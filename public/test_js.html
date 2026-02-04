@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test JavaScript Functions</title>
+</head>
+<body>
+    <h1>JavaScript Function Test</h1>
+    <button onclick="testOpenModal()">Test openEmailModal</button>
+    <div id="result"></div>
+    
+    <script>
+        function testOpenModal() {
+            const result = document.getElementById('result');
+            try {
+                if (typeof window.openEmailModal === 'function') {
+                    result.innerHTML = '✓ openEmailModal function is available';
+                    result.style.color = 'green';
+                } else {
+                    result.innerHTML = '✗ openEmailModal function is NOT available';
+                    result.style.color = 'red';
+                }
+            } catch (e) {
+                result.innerHTML = '✗ Error: ' + e.message;
+                result.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>

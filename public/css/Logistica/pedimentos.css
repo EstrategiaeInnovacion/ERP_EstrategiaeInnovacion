@@ -1,0 +1,172 @@
+/* Estilos específicos para la gestión de pedimentos */
+
+/* Estados de pedimentos */
+.pedimento-estado-pendiente {
+    @apply px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs;
+}
+
+.pedimento-estado-pagado {
+    @apply px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs;
+}
+
+.pedimento-estado-vencido {
+    @apply px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs;
+}
+
+/* Filas expandibles */
+.pedimento-fila-expandible {
+    transition: all 0.3s ease;
+}
+
+.pedimento-fila-expandible.hidden {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.pedimento-fila-expandible:not(.hidden) {
+    opacity: 1;
+    max-height: 1000px;
+}
+
+/* Botones de acción */
+.pedimento-btn-expandir {
+    transition: transform 0.2s ease;
+}
+
+.pedimento-btn-expandir:hover {
+    transform: scale(1.05);
+}
+
+/* Loading spinner para pedimentos */
+.pedimento-loading {
+    @apply flex items-center justify-center py-8;
+}
+
+.pedimento-loading::after {
+    content: "";
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: pedimento-spin 1s linear infinite;
+}
+
+@keyframes pedimento-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Estadísticas dashboard */
+.pedimento-stat-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center transition-all duration-200;
+}
+
+.pedimento-stat-card:hover {
+    @apply shadow-md transform scale-105;
+}
+
+.pedimento-stat-number {
+    @apply text-2xl font-bold mb-2;
+}
+
+.pedimento-stat-label {
+    @apply text-sm text-gray-600;
+}
+
+/* Modales específicos */
+.pedimento-modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4;
+}
+
+.pedimento-modal-content {
+    @apply bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto;
+}
+
+/* Tablas de pedimentos */
+.pedimento-table {
+    @apply min-w-full divide-y divide-gray-200;
+}
+
+.pedimento-table th {
+    @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+}
+
+.pedimento-table td {
+    @apply px-4 py-3 text-sm text-gray-900;
+}
+
+.pedimento-table tr:hover {
+    @apply bg-gray-50;
+}
+
+/* Checkbox de selección múltiple */
+.pedimento-checkbox {
+    @apply rounded border-gray-300 text-blue-600 focus:ring-blue-500;
+}
+
+/* Botón de acciones múltiples */
+.pedimento-btn-acciones-multiples {
+    @apply bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200;
+}
+
+.pedimento-btn-acciones-multiples.hidden {
+    @apply opacity-0 pointer-events-none;
+}
+
+/* Filtros */
+.pedimento-filtros {
+    @apply bg-white shadow rounded-lg mb-6;
+}
+
+.pedimento-filtro-input {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pedimento-table {
+        @apply text-xs;
+    }
+    
+    .pedimento-table th,
+    .pedimento-table td {
+        @apply px-2 py-2;
+    }
+    
+    .pedimento-modal-content {
+        @apply m-2;
+    }
+}
+
+/* Animaciones suaves */
+.pedimento-fade-in {
+    animation: pedimentoFadeIn 0.3s ease-in-out;
+}
+
+@keyframes pedimentoFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Estados de carga */
+.pedimento-skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Indicadores visuales */
+.pedimento-indicador-nuevo {
+    @apply relative;
+}
+
+.pedimento-indicador-nuevo::after {
+    content: "Nuevo";
+    @apply absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full;
+}

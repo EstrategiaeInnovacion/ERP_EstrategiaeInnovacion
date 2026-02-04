@@ -1,0 +1,760 @@
+// JavaScript para Matriz de Seguimiento
+
+// Variables globales
+let transportes = window.transportes || {};
+let operacionActualId = null;
+
+
+
+// Funciones del modal principal
+window.abrirModal = function() {
+    document.getElementById('modalOperacion').classList.remove('hidden');
+};
+
+window.cerrarModal = function() {
+    document.getElementById('modalOperacion').classList.add('hidden');
+    const form = document.getElementById('formOperacion');
+    if (form) form.reset();
+    
+    // Cerrar todos los formularios de nuevos registros
+    cancelarNuevoCliente();
+    cancelarNuevoAgente();
+    cancelarNuevoTransporte();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+
+// Funciones para nuevo cliente
+window.mostrarNuevoCliente = function() {
+    const form = document.getElementById('nuevoClienteForm');
+    if (form) form.classList.remove('hidden');
+};
+
+window.cancelarNuevoCliente = function() {
+    const form = document.getElementById('nuevoClienteForm');
+    const input = document.getElementById('nuevoClienteNombre');
+    if (form) form.classList.add('hidden');
+    if (input) input.value = '';
+};
+
+window.guardarNuevoCliente = function() {
+    const nombreInput = document.getElementById('nuevoClienteNombre');
+    if (!nombreInput) {
+        alert('Error: No se encontró el campo de nombre del cliente');
+        return;
+    }
+    
+    const nombre = nombreInput.value.trim();
+    if (!nombre) {
+        alert('Por favor, ingrese el nombre del cliente');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        alert('Error: Token CSRF no encontrado');
+        return;
+    }
+
+    fetch('/logistica/clientes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+        },
+        body: JSON.stringify({ cliente: nombre })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Actualizar el campo del formulario con el nuevo nombre
+            const clienteInput = document.querySelector('input[name="cliente"]');
+            if (clienteInput) {
+                clienteInput.value = nombre;
+            }
+            
+            // Agregar al datalist si existe
+            const datalist = document.getElementById('clientesList');
+            if (datalist) {
+                const option = document.createElement('option');
+                option.value = nombre;
+                datalist.appendChild(option);
+            } else {
+                console.warn('Datalist clientesList not found - verificando DOM...');
+                // Intentar encontrar el datalist por su atributo
+                const allDatalist = document.querySelectorAll('datalist');
+                console.log('Datalists encontrados:', allDatalist);
+            }
+            
+            cancelarNuevoCliente();
+            alert('✅ Cliente guardado exitosamente y agregado al formulario');
+        } else {
+            alert('Error al guardar el cliente: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        alert('Error de conexión: ' + error.message);
+    });
+};
+
+window.guardarNuevoCliente = function() {
+        const nombre = document.getElementById('nuevoClienteNombre').value.trim();
+        if (!nombre) {
+            alert('Por favor, ingrese el nombre del cliente');
+            return;
+        }
+
+        fetch('/logistica/clientes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ cliente: nombre })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Agregar al datalist
+                const datalist = document.getElementById('clientesList');
+                if (datalist) {
+                    const option = document.createElement('option');
+                    option.value = data.cliente.cliente;
+                    datalist.appendChild(option);
+                }
+                
+                // Establecer valor en el input
+                const input = document.querySelector('input[name="cliente"]');
+                if (input) {
+                    input.value = data.cliente.cliente;
+                }
+                
+                cancelarNuevoCliente();
+            } else {
+                alert('Error al guardar el cliente: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        });
+    };
+
+// Funciones para nuevo agente
+window.mostrarNuevoAgente = function() {
+    const form = document.getElementById('nuevoAgenteForm');
+    if (form) form.classList.remove('hidden');
+};
+
+window.cancelarNuevoAgente = function() {
+    const form = document.getElementById('nuevoAgenteForm');
+    const input = document.getElementById('nuevoAgenteNombre');
+    if (form) form.classList.add('hidden');
+    if (input) input.value = '';
+};
+
+window.guardarNuevoAgente = function() {
+    const nombreInput = document.getElementById('nuevoAgenteNombre');
+    if (!nombreInput) {
+        alert('Error: No se encontró el campo de nombre del agente');
+        return;
+    }
+    
+    const nombre = nombreInput.value.trim();
+    if (!nombre) {
+        alert('Por favor, ingrese el nombre del agente aduanal');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        alert('Error: Token CSRF no encontrado');
+        return;
+    }
+
+    fetch('/logistica/agentes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+        },
+        body: JSON.stringify({ agente_aduanal: nombre })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Actualizar el campo del formulario con el nuevo nombre
+            const agenteInput = document.querySelector('input[name="agente_aduanal"]');
+            if (agenteInput) {
+                agenteInput.value = nombre;
+            }
+            
+            // Agregar al datalist si existe
+            const datalist = document.getElementById('agentesList');
+            if (datalist) {
+                const option = document.createElement('option');
+                option.value = nombre;
+                datalist.appendChild(option);
+            } else {
+                console.warn('Datalist agentesList not found - verificando DOM...');
+                // Intentar encontrar el datalist por su atributo
+                const allDatalist = document.querySelectorAll('datalist');
+                console.log('Datalists encontrados:', allDatalist);
+            }
+            
+            cancelarNuevoAgente();
+            alert('✅ Agente aduanal guardado exitosamente y agregado al formulario');
+        } else {
+            alert('Error al guardar el agente aduanal: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        alert('Error de conexión: ' + error.message);
+    });
+};
+
+    window.guardarNuevoAgente = function() {
+        const nombre = document.getElementById('nuevoAgenteNombre').value.trim();
+        if (!nombre) {
+            alert('Por favor, ingrese el nombre del agente aduanal');
+            return;
+        }
+
+        fetch('/logistica/agentes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ agente_aduanal: nombre })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Agregar al datalist
+                const datalist = document.getElementById('agentesList');
+                if (datalist) {
+                    const option = document.createElement('option');
+                    option.value = data.agente.agente_aduanal;
+                    datalist.appendChild(option);
+                }
+                
+                // Establecer valor en el input
+                const input = document.querySelector('input[name="agente_aduanal"]');
+                if (input) {
+                    input.value = data.agente.agente_aduanal;
+                }
+                
+                cancelarNuevoAgente();
+            } else {
+                alert('Error al guardar el agente aduanal: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        });
+    };
+
+// Función para actualizar transportes y target
+window.actualizarTransportes = function() {
+    // Calcular target automáticamente cuando cambia el tipo de operación
+    calcularTargetAutomatico();
+    
+    // Filtrar transportes en el datalist según el tipo de operación
+    const tipoOperacion = document.querySelector('select[name="tipo_operacion_enum"]').value;
+    const datalist = document.getElementById('transportesList');
+    
+    if (datalist && tipoOperacion) {
+        // Ocultar/mostrar opciones según el tipo de operación
+        const options = datalist.querySelectorAll('option');
+        options.forEach(option => {
+            const optionTipo = option.getAttribute('data-tipo');
+            if (optionTipo === tipoOperacion) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+};window.mostrarNuevoTransporte = function() {
+    const select = document.querySelector('select[name="tipo_operacion_enum"]');
+    const form = document.getElementById('nuevoTransporteForm');
+    
+    if (!select || !select.value) {
+        alert('Por favor, seleccione primero el tipo de operación');
+        return;
+    }
+    if (form) form.classList.remove('hidden');
+};
+
+window.cancelarNuevoTransporte = function() {
+    const form = document.getElementById('nuevoTransporteForm');
+    const input = document.getElementById('nuevoTransporteNombre');
+    if (form) form.classList.add('hidden');
+    if (input) input.value = '';
+};
+
+window.guardarNuevoTransporte = function() {
+    const nombreInput = document.getElementById('nuevoTransporteNombre');
+    if (!nombreInput) {
+        alert('Error: No se encontró el campo de nombre del transporte');
+        return;
+    }
+    
+    const nombre = nombreInput.value.trim();
+    const tipoOperacionSelect = document.querySelector('select[name="tipo_operacion_enum"]');
+    const tipoOperacion = tipoOperacionSelect ? tipoOperacionSelect.value : '';
+    
+    if (!nombre) {
+        alert('Por favor, ingrese el nombre del transporte');
+        return;
+    }
+    
+    if (!tipoOperacion) {
+        alert('Por favor, seleccione el tipo de operación primero');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        alert('Error: Token CSRF no encontrado');
+        return;
+    }
+
+    fetch('/logistica/transportes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+        },
+        body: JSON.stringify({ 
+            transporte: nombre,
+            tipo_operacion: tipoOperacion
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Actualizar el campo del formulario con el nuevo nombre
+            const transporteInput = document.querySelector('input[name="transporte"]');
+            if (transporteInput) {
+                transporteInput.value = nombre;
+            }
+            
+            // Agregar al datalist si existe
+            const datalist = document.getElementById('transportesList');
+            if (datalist) {
+                const option = document.createElement('option');
+                option.value = nombre;
+                option.setAttribute('data-tipo', tipoOperacion);
+                datalist.appendChild(option);
+            } else {
+                console.warn('Datalist transportesList not found - verificando DOM...');
+                // Intentar encontrar el datalist por su atributo
+                const allDatalist = document.querySelectorAll('datalist');
+                console.log('Datalists encontrados:', allDatalist);
+            }
+            
+            cancelarNuevoTransporte();
+            alert('✅ Transporte guardado exitosamente y agregado al formulario');
+        } else {
+            alert('Error al guardar el transporte: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        alert('Error de conexión: ' + error.message);
+    });
+};
+
+    window.guardarNuevoTransporte = function() {
+        const nombre = document.getElementById('nuevoTransporteNombre').value.trim();
+        const tipoOperacion = document.querySelector('select[name="tipo_operacion_enum"]').value;
+        
+        if (!nombre) {
+            alert('Por favor, ingrese el nombre del transporte');
+            return;
+        }
+        
+        if (!tipoOperacion) {
+            alert('Por favor, seleccione el tipo de operación primero');
+            return;
+        }
+
+        fetch('/logistica/transportes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ 
+                transporte: nombre,
+                tipo_operacion: tipoOperacion
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Agregar al datalist con el tipo de operación
+                const datalist = document.getElementById('transportesList');
+                if (datalist) {
+                    const option = document.createElement('option');
+                    option.value = data.transporte.transporte;
+                    option.setAttribute('data-tipo', tipoOperacion);
+                    datalist.appendChild(option);
+                }
+                
+                // Establecer valor en el input
+                const input = document.querySelector('input[name="transporte"]');
+                if (input) {
+                    input.value = data.transporte.transporte;
+                }
+                
+                if (!transportes[tipoOperacion]) {
+                    transportes[tipoOperacion] = [];
+                }
+                transportes[tipoOperacion].push(data.transporte);
+                
+                cancelarNuevoTransporte();
+            } else {
+                alert('Error al guardar el transporte: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        });
+    };
+
+// Cálculos automáticos
+window.calcularResultado = function() {
+    const fechaArribo = document.querySelector('input[name="fecha_arribo_aduana"]').value;
+    const fechaModulacion = document.querySelector('input[name="fecha_modulacion"]').value;
+    
+    if (fechaArribo && fechaModulacion) {
+        const arribo = new Date(fechaArribo);
+        const modulacion = new Date(fechaModulacion);
+        const diferencia = Math.abs((modulacion - arribo) / (1000 * 60 * 60 * 24));
+        
+        document.querySelector('input[name="resultado"]').value = Math.round(diferencia);
+    }
+};
+
+window.calcularTargetAutomatico = function() {
+    const tipoOperacionSelect = document.querySelector('select[name="tipo_operacion_enum"]');
+    const targetInput = document.querySelector('input[name="target"]');
+    
+    if (tipoOperacionSelect && targetInput) {
+        const selectedOption = tipoOperacionSelect.options[tipoOperacionSelect.selectedIndex];
+        const targetValue = selectedOption ? selectedOption.getAttribute('data-target') : '';
+        
+        if (targetValue) {
+            targetInput.value = targetValue;
+        }
+    }
+};window.calcularDiasTransito = function() {
+        const fechaEmbarque = document.querySelector('input[name="fecha_embarque"]').value;
+        const fechaArribo = document.querySelector('input[name="fecha_arribo_planta"]').value;
+        
+        if (fechaEmbarque && fechaArribo) {
+            const embarque = new Date(fechaEmbarque);
+            const arribo = new Date(fechaArribo);
+            const diferencia = Math.abs((arribo - embarque) / (1000 * 60 * 60 * 24));
+            
+            document.querySelector('input[name="dias_transito"]').value = Math.round(diferencia);
+        }
+    };
+
+// Funciones del historial
+window.verHistorial = function(operacionId) {
+        operacionActualId = operacionId;
+        document.getElementById('modalHistorial').classList.remove('hidden');
+        
+        fetch(`/logistica/operaciones/${operacionId}/historial`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarHistorial(data.historial, data.operacion);
+                } else {
+                    document.getElementById('historialContent').innerHTML = `
+                        <div class="text-center py-8 text-red-500">
+                            <p>Error al cargar el historial</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('historialContent').innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <p>Error de conexión</p>
+                    </div>
+                `;
+            });
+    };
+
+window.cerrarModalHistorial = function() {
+    const modal = document.getElementById('modalHistorial');
+    if (modal) modal.classList.add('hidden');
+    operacionActualId = null;
+};
+
+    function mostrarHistorial(historial, operacion) {
+        const content = document.getElementById('historialContent');
+        
+        const historialHtml = `
+            <div class="space-y-6">
+                <!-- Información de la Operación -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-3">Información de la Operación</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <span class="text-slate-600">Operación:</span>
+                            <p class="font-medium">${operacion.operacion || '-'}</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-600">Cliente:</span>
+                            <p class="font-medium">${operacion.cliente ? operacion.cliente.cliente : 'Sin cliente'}</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-600">Status:</span>
+                            <p class="font-medium">${operacion.status || '-'}</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-600">Post-Operación:</span>
+                            <p class="font-medium">${operacion.post_operacion ? operacion.post_operacion.post_operacion : 'Sin asignar'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historial de Estados -->
+                <div class="bg-white rounded-lg border p-4">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Historial de Estados</h3>
+                    ${historial.length > 0 ? `
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Fecha Registro</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Fecha Arribo Aduana</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Días Transcurridos</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Target Días</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Color Status</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Status Operación</th>
+                                        <th class="px-3 py-2 text-left font-medium text-slate-700">Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    ${historial.map(registro => `
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-3 py-2">${registro.fecha_registro || '-'}</td>
+                                            <td class="px-3 py-2">${registro.fecha_arribo_aduana || '-'}</td>
+                                            <td class="px-3 py-2 text-center">${registro.dias_transcurridos || '0'}</td>
+                                            <td class="px-3 py-2 text-center">${registro.target_dias || '0'}</td>
+                                            <td class="px-3 py-2">
+                                                <span class="status-badge ${getColorStatusClass(registro.color_status)}">
+                                                    ${getColorStatusText(registro.color_status)}
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2">${registro.operacion_status || '-'}</td>
+                                            <td class="px-3 py-2">${registro.observaciones || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="text-center py-8 text-slate-500">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-lg font-medium">No hay historial registrado</p>
+                            <p class="text-sm">Los cambios de estado se mostrarán aquí</p>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+        
+        content.innerHTML = historialHtml;
+    }
+
+    function getColorStatusClass(status) {
+        switch(status) {
+            case 'verde': return 'status-verde';
+            case 'amarillo': return 'status-amarillo';
+            case 'rojo': return 'status-rojo';
+            case 'sin_fecha': return 'status-sin-fecha';
+            default: return 'status-sin-fecha';
+        }
+    }
+
+    function getColorStatusText(status) {
+        switch(status) {
+            case 'verde': return 'Verde';
+            case 'amarillo': return 'Amarillo';
+            case 'rojo': return 'Rojo';
+            case 'sin_fecha': return 'Sin Fecha';
+            default: return status || 'Desconocido';
+        }
+    }
+
+// Función para editar operación (solo marcar como Done)
+window.editarOperacion = function(operacionId) {
+        if (confirm('¿Desea marcar esta operación como COMPLETADA (Done)?')) {
+            fetch(`/logistica/operaciones/${operacionId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    status_calculado: 'Done'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Operación marcada como completada exitosamente');
+                    window.location.reload();
+                } else {
+                    alert('Error al actualizar el status: ' + (data.message || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+    };
+
+// Función para eliminar operación
+window.eliminarOperacion = function(operacionId) {
+        if (confirm('¿Está seguro de que desea eliminar esta operación? Esta acción no se puede deshacer.')) {
+            fetch(`/logistica/operaciones/${operacionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Operación eliminada exitosamente');
+                    window.location.reload();
+                } else {
+                    alert('Error al eliminar la operación: ' + (data.message || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+    };
+
+    // Event listeners para fechas y cálculos automáticos
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'fecha_arribo_aduana' || e.target.name === 'fecha_modulacion') {
+            calcularResultado();
+        }
+        if (e.target.name === 'fecha_embarque' || e.target.name === 'fecha_arribo_planta') {
+            calcularDiasTransito();
+        }
+        if (e.target.name === 'tipo_operacion_enum') {
+            actualizarTransportes();
+        }
+    });
+
+    // Manejar envío del formulario
+    document.getElementById('formOperacion').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/logistica/operaciones', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Operación guardada exitosamente');
+                cerrarModal();
+                window.location.reload();
+            } else {
+                alert('Error al guardar la operación: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al guardar la operación');
+        });
+    });
+
+    // Event listeners para cerrar modales
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModal();
+            cerrarModalHistorial();
+        }
+    });
+
+    document.getElementById('modalOperacion').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModal();
+        }
+    });
+
+    document.getElementById('modalHistorial').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModalHistorial();
+        }
+    });
+});
+
+// Función global para recalcular todos los status automáticamente
+function recalcularTodosLosStatus() {
+    if (confirm('¿Desea recalcular automáticamente todos los status de las operaciones?')) {
+        fetch('/logistica/operaciones/recalcular-status', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Status recalculados exitosamente');
+                window.location.reload();
+            } else {
+                alert('Error al recalcular: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        });
+    }
+}

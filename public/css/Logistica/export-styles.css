@@ -1,0 +1,161 @@
+/* Estilos para el sistema de exportación mejorado */
+.export-dropdown {
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(4px);
+}
+
+.export-option {
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.export-option:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    transform: translateX(2px);
+}
+
+.export-option:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
+}
+
+.export-option:hover:before {
+    transform: scaleY(1);
+}
+
+/* Animaciones para los loaders */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.export-loader {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Estilos para las notificaciones */
+.notification-slide {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Mejoras visuales para los botones de exportación */
+.export-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.email-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.email-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+/* Efectos para los iconos de archivos */
+.file-icon {
+    transition: transform 0.2s ease;
+}
+
+.export-option:hover .file-icon {
+    transform: scale(1.1);
+}
+
+/* Glassmorphism para los modals */
+.glass-modal {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Efectos de hover mejorados para las tarjetas */
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Animación de carga personalizada */
+.custom-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Estilos para badges de formato */
+.format-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.format-badge.excel {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+}
+
+.format-badge.csv {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+}
+
+.format-badge.pdf {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+    .export-dropdown {
+        position: fixed !important;
+        top: auto !important;
+        right: 1rem !important;
+        left: 1rem !important;
+        bottom: 1rem !important;
+        width: auto !important;
+        margin: 0;
+    }
+    
+    .export-option {
+        padding: 1rem;
+    }
+}
