@@ -185,21 +185,39 @@
             @if($rejectedUsers->count() > 0)
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-6 py-4 bg-red-50/50 border-b border-red-100">
-                        <h3 class="font-bold text-red-900 text-sm uppercase tracking-wide">Solicitudes Rechazadas</h3>
+                        <h3 class="font-bold text-red-900 text-sm uppercase tracking-wide">Solicitudes Rechazadas / Bajas</h3>
                     </div>
                     <div class="divide-y divide-slate-100">
                         @foreach($rejectedUsers as $user)
-                            <div class="px-6 py-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                                <div>
-                                    <p class="text-sm font-bold text-slate-700">{{ $user->name }}</p>
-                                    <p class="text-xs text-slate-400">{{ $user->email }}</p>
+                            @php
+                                $baja = $empleadosBaja[$user->email] ?? null;
+                            @endphp
+                            <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-bold text-slate-700">{{ $baja->nombre ?? $user->name }}</p>
+                                        <p class="text-xs text-slate-400">{{ $user->email }}</p>
+                                        @if($baja)
+                                            <div class="mt-2 space-y-1">
+                                                <p class="text-xs text-slate-500">
+                                                    <span class="font-semibold">Motivo:</span> {{ $baja->motivo_baja ?? 'No especificado' }}
+                                                </p>
+                                                <p class="text-xs text-slate-500">
+                                                    <span class="font-semibold">Fecha de baja:</span> {{ $baja->fecha_baja ? $baja->fecha_baja->format('d/m/Y') : 'N/A' }}
+                                                </p>
+                                                @if($baja->observaciones)
+                                                    <p class="text-xs text-slate-400 italic">{{ $baja->observaciones }}</p>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
+                                          onsubmit="return confirm('¿Eliminar permanentemente a {{ $baja->nombre ?? $user->name }}?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-bold hover:underline">Eliminar</button>
+                                    </form>
                                 </div>
-                                <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
-                                      onsubmit="return confirm('¿Eliminar permanentemente?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-bold hover:underline">Eliminar</button>
-                                </form>
                             </div>
                         @endforeach
                     </div>

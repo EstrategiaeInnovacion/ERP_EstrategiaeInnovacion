@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Actividades
+    Route::put('/activities/{activity}/validate', [App\Http\Controllers\ActivityController::class, 'validateCompletion'])->name('activities.validate');
+    Route::get('/activities/client-report', [App\Http\Controllers\ActivityController::class, 'generateClientReport'])->name('activities.client_report');
     Route::resource('activities', ActivityController::class);
     Route::post('/activities/batch', [ActivityController::class, 'storeBatch'])->name('activities.storeBatch');
     Route::put('/activities/{id}/approve', [ActivityController::class, 'approve'])->name('activities.approve');
@@ -305,6 +307,9 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::delete('/{user}/rejection', 'destroyRejected')->name('rejections.destroy');
         Route::delete('/blocked-emails/{blockedEmail}', 'destroyBlockedEmail')->name('blocked-emails.destroy');
     });
+    
+    // Alias: admin.users apunta a admin.users.index
+    Route::get('/users-list', [UsersController::class, 'index'])->name('users');
 });
 
 // API Notificaciones Admin

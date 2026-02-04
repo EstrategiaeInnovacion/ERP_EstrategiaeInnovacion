@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Logistica\OperacionLogistica;
 use App\Models\Logistica\Cliente;
 use App\Models\Empleado;
-use App\Services\Logistica\OperacionFilterService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Builder;
+
+// --- LIBRERÍAS NUEVAS PARA FILTROS ---
+use Spatie\QueryBuilder\QueryBuilder;
+use Spatie\QueryBuilder\AllowedFilter;
 
 // --- LIBRERÍAS PARA EXCEL Y GRÁFICAS ---
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -26,20 +29,16 @@ use PhpOffice\PhpSpreadsheet\Chart\Layout;
 
 class ReporteController extends Controller
 {
-    protected $filterService;
-
-    public function __construct(OperacionFilterService $filterService)
+    public function __construct()
     {
-        $this->filterService = $filterService;
         $this->middleware('auth');
     }
 
     /**
-     * Vista principal de reportes (Dashboard y Gráficos Web)
+     * Helper privado para reutilizar la lógica de filtros en todos los métodos
      */
-    public function index(Request $request)
+    private function obtenerQueryBase(Request $request)
     {
-        // 1. Identificar Usuario y Permisos
         $usuarioActual = auth()->user();
         $empleadoActual = null;
         $esAdmin = false;
@@ -51,14 +50,41 @@ class ReporteController extends Controller
             $esAdmin = $usuarioActual->hasRole('admin');
         }
 
-        // 2. Construir Query Base
-        $query = OperacionLogistica::query();
+        // 1. Iniciamos el QueryBuilder
+        $query = QueryBuilder::for(OperacionLogistica::class)
+            ->allowedFilters([
+                AllowedFilter::exact('cliente', 'cliente_id')->ignore('todos'), // Ajusta si usas 'cliente' (texto) o 'cliente_id'
+                AllowedFilter::partial('ejecutivo')->ignore('todos'),
+                
+                // Filtro de Estatus Inteligente
+                AllowedFilter::callback('status', function (Builder $query, $value) {
+                    if ($value === 'todos') return;
+                    $query->where(function($q) use ($value) {
+                        $q->where('status_manual', $value)
+                          ->orWhere('status_calculado', $value);
+                    });
+                }),
 
+                // Filtros de fecha estándar
+                AllowedFilter::callback('fecha_creacion_desde', fn ($q, $v) => $q->whereDate('created_at', '>=', $v)),
+                AllowedFilter::callback('fecha_creacion_hasta', fn ($q, $v) => $q->whereDate('created_at', '<=', $v)),
+
+                // Búsqueda General
+                AllowedFilter::callback('search', function (Builder $query, $value) {
+                    $query->where(function($q) use ($value) {
+                        $q->where('operacion', 'like', "%{$value}%")
+                          ->orWhere('referencia_cliente', 'like', "%{$value}%")
+                          ->orWhere('no_pedimento', 'like', "%{$value}%");
+                    });
+                }),
+            ]);
+
+        // 2. Aplicar restricciones de seguridad (Si no es Admin, solo ve lo suyo)
         if (!$esAdmin && $empleadoActual) {
             $query->where('ejecutivo', 'LIKE', '%' . $empleadoActual->nombre . '%');
         }
 
-        // 3. Filtros
+        // 3. Filtros Manuales Extra (Periodos predefinidos)
         if ($request->filled('periodo')) {
             $periodo = $request->periodo;
             if ($periodo === 'semanal') $query->where('created_at', '>=', now()->subWeek());
@@ -70,21 +96,29 @@ class ReporteController extends Controller
             $query->whereMonth('created_at', $request->mes)->whereYear('created_at', $request->anio);
         }
 
-        if ($request->filled('cliente')) {
-            $query->where('cliente', $request->cliente);
+        return $query;
+    }
+
+    /**
+     * Vista principal de reportes (Dashboard y Gráficos Web)
+     */
+    public function index(Request $request)
+    {
+        // Usamos el helper para obtener datos filtrados
+        $operaciones = $this->obtenerQueryBase($request)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Datos para la vista (Usuario y Admin)
+        $usuarioActual = auth()->user();
+        $empleadoActual = null;
+        $esAdmin = false;
+        if ($usuarioActual) {
+            $empleadoActual = Empleado::where('correo', $usuarioActual->email)->first();
+            $esAdmin = $usuarioActual->hasRole('admin');
         }
 
-        $this->filterService->apply($query, $request);
-
-        // 4. Obtener Datos
-        $operaciones = $query->select([
-            'id', 'cliente', 'ejecutivo', 'dias_transcurridos_calculados',
-            'target', 'status_calculado', 'status_manual', 'color_status',
-            'created_at', 'fecha_embarque', 'fecha_arribo_planta',
-            'operacion', 'referencia_cliente', 'no_pedimento'
-        ])->orderBy('created_at', 'desc')->get();
-
-        // 5. Procesar Estadísticas
+        // Procesar Estadísticas
         $comportamientoTemporal = [];
         $clientes_unicos = [];
         
@@ -132,7 +166,7 @@ class ReporteController extends Controller
             
             $comportamientoTemporal[] = [
                 'id' => $op->id,
-                'cliente' => $op->cliente,
+                'cliente' => $op->clienteRelacion->razon_social ?? $op->cliente, // Usar relación si existe
                 'ejecutivo' => $op->ejecutivo,
                 'dias_transcurridos' => (int)$diasTranscurridos,
                 'target' => $target,
@@ -143,7 +177,7 @@ class ReporteController extends Controller
             ];
 
             if (!in_array($op->cliente, $clientes_unicos)) {
-                $clientes_unicos[] = $op->cliente;
+                $clientes_unicos[] = $op->cliente; // Guardamos ID o nombre para el filtro
             }
         }
 
@@ -152,20 +186,18 @@ class ReporteController extends Controller
         $statsTemporales['promedio_dias'] = $totalOps > 0 ? $statsTemporales['total_dias'] / $totalOps : 0;
         $statsTemporales['promedio_target'] = $totalOps > 0 ? $statsTemporales['total_target'] / $totalOps : 0;
 
-        // --- CORRECCIÓN: Generar variable $stats para compatibilidad ---
         $stats = [
             'en_proceso' => $statsTemporales['en_tiempo'] + $statsTemporales['en_riesgo'],
             'fuera_metrica' => $statsTemporales['con_retraso'],
             'done' => $statsTemporales['completado_tiempo'] + $statsTemporales['completado_retraso'],
         ];
-        // -------------------------------------------------------------
 
-        $clientes = array_unique(array_filter($clientes_unicos));
-        sort($clientes);
+        // Obtener lista de clientes para el dropdown (si tienes el modelo Cliente)
+        $clientes = Cliente::orderBy('razon_social')->get(); 
 
         return view('Logistica.reportes', compact(
             'statsTemporales', 
-            'stats', // <--- Agregado para evitar el error
+            'stats',
             'comportamientoTemporal', 
             'clientes', 
             'esAdmin',
@@ -180,12 +212,10 @@ class ReporteController extends Controller
     public function exportExcelProfesional(Request $request)
     {
         try {
-            // 1. Obtener Datos
-            $query = OperacionLogistica::query();
-            $this->filterService->apply($query, $request);
-            $operaciones = $query->get();
+            // Usamos el helper para obtener datos
+            $operaciones = $this->obtenerQueryBase($request)->get();
 
-            // 2. Calcular Estadísticas para la Gráfica
+            // Calcular Estadísticas para la Gráfica
             $stats = [
                 'En Tiempo' => 0,
                 'En Riesgo' => 0,
@@ -209,14 +239,14 @@ class ReporteController extends Controller
                 }
             }
 
-            // 3. Iniciar Excel
+            // Iniciar Excel
             $spreadsheet = new Spreadsheet();
 
             // --- HOJA 1: DASHBOARD (Gráfica) ---
             $sheetChart = $spreadsheet->getActiveSheet();
             $sheetChart->setTitle('Dashboard Ejecutivo');
 
-            // Datos Fuente para la Gráfica (Celdas A1:B6)
+            // Datos Fuente para la Gráfica
             $sheetChart->setCellValue('A1', 'Estatus');
             $sheetChart->setCellValue('B1', 'Cantidad');
             $sheetChart->getStyle('A1:B1')->getFont()->setBold(true);
@@ -228,61 +258,46 @@ class ReporteController extends Controller
                 $row++;
             }
 
-            // Definir Series de Datos
-            // Etiquetas (Categorías)
+            // Crear Gráfica de Pastel
             $xAxisTickValues = [new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, "'Dashboard Ejecutivo'!\$A\$2:\$A\$6", null, 5)];
-            // Valores (Números)
             $dataSeriesValues = [new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, "'Dashboard Ejecutivo'!\$B\$2:\$B\$6", null, 5)];
 
-            // Construir Serie (Pastel)
             $series = new DataSeries(
-                DataSeries::TYPE_PIECHART,       // Tipo Pie
+                DataSeries::TYPE_PIECHART,
                 null, range(0, count($dataSeriesValues) - 1), 
                 [], $xAxisTickValues, $dataSeriesValues
             );
 
-            // Layout de la Gráfica
             $layout = new Layout();
-            $layout->setShowVal(true);      // Mostrar valor
-            $layout->setShowPercent(true);  // Mostrar porcentaje
+            $layout->setShowVal(true);
+            $layout->setShowPercent(true);
 
             $plotArea = new PlotArea($layout, [$series]);
             $legend = new Legend(Legend::POSITION_RIGHT, null, false);
             $title = new Title('Distribución de Estatus - ' . date('d/m/Y'));
 
-            $chart = new Chart(
-                'chart_status', $title, $legend, $plotArea, true, 0, null, null
-            );
-
-            // Posicionar Gráfica (D2 a M20)
+            $chart = new Chart('chart_status', $title, $legend, $plotArea, true, 0, null, null);
             $chart->setTopLeftPosition('D2');
             $chart->setBottomRightPosition('M20');
-
             $sheetChart->addChart($chart);
 
-            // Estética simple
             $sheetChart->getColumnDimension('A')->setAutoSize(true);
             $sheetChart->setShowGridlines(false);
-
 
             // --- HOJA 2: DATOS DETALLADOS ---
             $sheetData = new Worksheet($spreadsheet, 'Detalle Operaciones');
             $spreadsheet->addSheet($sheetData);
             
-            // Encabezados
             $headers = ['Folio', 'Cliente', 'Operación', 'Referencia', 'Pedimento', 'Fecha Embarque', 'Fecha Arribo', 'Status', 'Días', 'Target'];
             $sheetData->fromArray($headers, NULL, 'A1');
-            
-            // Estilo Encabezado
             $sheetData->getStyle('A1:J1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
             $sheetData->getStyle('A1:J1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF4472C4');
 
-            // Llenar Filas
             $rowsData = [];
             foreach($operaciones as $op) {
                 $rowsData[] = [
                     $op->id,
-                    $op->cliente,
+                    $op->clienteRelacion->razon_social ?? $op->cliente, // Usar relación
                     $op->operacion,
                     $op->referencia_cliente,
                     $op->no_pedimento,
@@ -294,22 +309,15 @@ class ReporteController extends Controller
                 ];
             }
             $sheetData->fromArray($rowsData, NULL, 'A2');
-            
-            foreach(range('A','J') as $col) {
-                $sheetData->getColumnDimension($col)->setAutoSize(true);
-            }
+            foreach(range('A','J') as $col) $sheetData->getColumnDimension($col)->setAutoSize(true);
 
-            // Regresar a la primera hoja
             $spreadsheet->setActiveSheetIndex(0);
-
-            // 4. Descargar
-            $filename = 'Reporte_Grafico_Logistica_' . date('Ymd_His') . '.xlsx';
 
             return response()->streamDownload(function() use ($spreadsheet) {
                 $writer = new Xlsx($spreadsheet);
-                $writer->setIncludeCharts(true); // ¡Vital!
+                $writer->setIncludeCharts(true);
                 $writer->save('php://output');
-            }, $filename);
+            }, 'Reporte_Grafico_Logistica_' . date('Ymd_His') . '.xlsx');
 
         } catch (\Exception $e) {
             Log::error('Error exportando Excel gráfico: ' . $e->getMessage());
@@ -318,13 +326,13 @@ class ReporteController extends Controller
     }
 
     /**
-     * Exportar Matriz de Seguimiento (Completa con Pestañas por Ejecutivo)
+     * Exportar Matriz de Seguimiento
      */
     public function exportMatrizSeguimiento(Request $request)
     {
         try {
             $spreadsheet = new Spreadsheet();
-            $spreadsheet->removeSheetByIndex(0); // Quitar hoja default
+            $spreadsheet->removeSheetByIndex(0);
 
             $usuarioActual = auth()->user();
             $esAdmin = $usuarioActual->hasRole('admin');
@@ -334,8 +342,11 @@ class ReporteController extends Controller
                     ->orWhere('posicion', 'like', '%Logistica%')->get();
 
                 foreach ($ejecutivos as $index => $ejecutivo) {
-                    $query = OperacionLogistica::where('ejecutivo', 'LIKE', '%' . $ejecutivo->nombre . '%');
-                    $this->filterService->apply($query, $request);
+                    // Aquí construimos el query manualmente porque necesitamos filtrar por ejecutivo específico
+                    // pero aprovechando los filtros globales
+                    $query = $this->obtenerQueryBase($request);
+                    $query->where('ejecutivo', 'LIKE', '%' . $ejecutivo->nombre . '%');
+                    
                     $operaciones = $query->get();
 
                     if ($operaciones->count() > 0) {
@@ -345,16 +356,10 @@ class ReporteController extends Controller
                     }
                 }
             } else {
-                // Usuario Normal
                 $sheet = new Worksheet($spreadsheet, 'Mis Operaciones');
                 $spreadsheet->addSheet($sheet, 0);
                 
-                $query = OperacionLogistica::query();
-                // Filtrar por nombre de usuario si se requiere
-                // $query->where(...)
-                $this->filterService->apply($query, $request);
-                $operaciones = $query->get();
-                
+                $operaciones = $this->obtenerQueryBase($request)->get();
                 $this->llenarHojaMatriz($sheet, $operaciones);
             }
 
@@ -376,9 +381,6 @@ class ReporteController extends Controller
         }
     }
 
-    /**
-     * Helper para llenar hoja de matriz (Columnas completas)
-     */
     private function llenarHojaMatriz($sheet, $operaciones)
     {
         $headers = ['Folio', 'Ejecutivo', 'Cliente', 'Operación', 'Referencia', 'Pedimento', 'Fechas', 'Status', 'Días'];
@@ -388,7 +390,7 @@ class ReporteController extends Controller
         foreach ($operaciones as $op) {
             $sheet->setCellValue('A' . $row, $op->id);
             $sheet->setCellValue('B' . $row, $op->ejecutivo);
-            $sheet->setCellValue('C' . $row, $op->cliente);
+            $sheet->setCellValue('C' . $row, $op->clienteRelacion->razon_social ?? $op->cliente);
             $sheet->setCellValue('D' . $row, $op->operacion);
             $sheet->setCellValue('E' . $row, $op->referencia_cliente);
             $sheet->setCellValue('F' . $row, $op->no_pedimento);
@@ -397,26 +399,12 @@ class ReporteController extends Controller
             $sheet->setCellValue('I' . $row, $op->dias_transcurridos_calculados);
             $row++;
         }
-        
         foreach(range('A','I') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
-    }
-
-    /**
-     * Exportar Resumen Ejecutivo (CSV Simple)
-     */
-    public function exportResumenEjecutivo(Request $request)
-    {
-        // ... Lógica similar a index pero retornando CSV stream ...
-        // Simplificado para este ejemplo, ya tienes la lógica en respuestas anteriores
-        return $this->exportCSV($request); 
     }
 
     public function exportCSV(Request $request)
     {
-        // Implementación básica de CSV
-        $query = OperacionLogistica::query();
-        $this->filterService->apply($query, $request);
-        $operaciones = $query->get();
+        $operaciones = $this->obtenerQueryBase($request)->get();
 
         $headers = [
             "Content-Type" => "text/csv",
@@ -427,18 +415,9 @@ class ReporteController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, ['ID', 'Cliente', 'Status']);
             foreach($operaciones as $op) {
-                fputcsv($file, [$op->id, $op->cliente, $op->status_manual ?: $op->status_calculado]);
+                fputcsv($file, [$op->id, $op->clienteRelacion->razon_social ?? $op->cliente, $op->status_manual ?: $op->status_calculado]);
             }
             fclose($file);
         }, 200, $headers);
-    }
-
-    /**
-     * Enviar Correo (Webhook N8N)
-     */
-    public function enviarCorreo(Request $request)
-    {
-        // Lógica de webhook
-        return response()->json(['success' => true]);
     }
 }

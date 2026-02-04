@@ -29,7 +29,7 @@ class ActivityController extends Controller
             $areasSistema = collect(['General', 'Operativo', 'Administrativo']);
         }
 
-        // LISTA DE USUARIOS PARA ASIGNAR (Todos)
+        // LISTA DE USUARIOS
         $empleadosAsignables = User::whereHas('empleado', function($q) {
             $q->where('es_activo', true);
         })->orderBy('name')->get();
@@ -45,6 +45,8 @@ class ActivityController extends Controller
         if ($miEmpleado) {
             $posicionLower = mb_strtolower($miEmpleado->posicion, 'UTF-8');
             $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion']);
+            
+            // VALIDACIÓN HORARIA
             $esHorarioPermitido = now()->isMonday() && now()->hour >= 9 && now()->hour < 11;
 
             if ($esPuestoPlanificador && $esHorarioPermitido) $puedePlanificar = true;
@@ -66,21 +68,73 @@ class ActivityController extends Controller
         }
         $targetUser = User::findOrFail($targetUserId);
 
-        // 4. FECHAS Y CONSULTAS
-        $viewDate = $request->has('week_view') ? Carbon::parse($request->week_view) : now();
-        $startOfWeek = $viewDate->copy()->startOfWeek();
-        $endOfWeek = $viewDate->copy()->endOfWeek();
-        $isHistoryView = $endOfWeek->lt(now()->startOfWeek());
-        $verTodo = $request->has('ver_historial') && $request->ver_historial == '1';
+        // 4. LÓGICA DE FECHAS FLEXIBLE
+        $rangeType = $request->input('range', 'week'); 
+        
+        if ($request->filled('date_start') && $request->filled('date_end')) {
+            $startDate = Carbon::parse($request->date_start)->startOfDay();
+            $endDate   = Carbon::parse($request->date_end)->endOfDay();
+            $rangeType = 'custom';
+            $periodLabel = 'Rango: ' . $startDate->format('d/m') . ' - ' . $endDate->format('d/m');
+            
+            $daysDiff = $startDate->diffInDays($endDate) + 1;
+            $prevDateRef = $startDate->copy()->subDays($daysDiff)->format('Y-m-d');
+            $nextDateRef = $endDate->copy()->addDay()->format('Y-m-d');
 
-        // --- CORRECCIÓN 1: LÓGICA DE VISUALIZACIÓN DE FECHAS ---
-        // Aparece si se asignó esta semana O si vence esta semana
-        $query = Activity::with(['user.empleado.supervisor', 'historial.user'])
-            ->where('user_id', $targetUserId) 
-            ->where(function($q) use ($startOfWeek, $endOfWeek) {
-                $q->whereBetween('fecha_compromiso', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
-                  ->orWhereBetween('fecha_inicio', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')]);
+        } else {
+            $refDate = $request->has('ref_date') ? Carbon::parse($request->ref_date) : now();
+            
+            switch ($rangeType) {
+                case 'month':
+                    $startDate = $refDate->copy()->startOfMonth();
+                    $endDate   = $refDate->copy()->endOfMonth();
+                    $periodLabel = Str::ucfirst($startDate->translatedFormat('F Y'));
+                    $prevDateRef = $startDate->copy()->subMonth()->format('Y-m-d');
+                    $nextDateRef = $startDate->copy()->addMonth()->format('Y-m-d');
+                    break;
+
+                case 'quarter': 
+                    $startDate = $refDate->copy()->startOfQuarter(); 
+                    $endDate   = $refDate->copy()->endOfQuarter();
+                    $periodLabel = 'Trimestre: ' . $startDate->format('M') . ' - ' . $endDate->format('M Y');
+                    $prevDateRef = $startDate->copy()->subMonths(3)->format('Y-m-d');
+                    $nextDateRef = $startDate->copy()->addMonths(3)->format('Y-m-d');
+                    break;
+
+                case 'week':
+                default:
+                    $startDate = $refDate->copy()->startOfWeek();
+                    $endDate   = $refDate->copy()->endOfWeek();
+                    $periodLabel = 'Semana: ' . $startDate->format('d M') . ' - ' . $endDate->format('d M');
+                    $prevDateRef = $startDate->copy()->subWeek()->format('Y-m-d');
+                    $nextDateRef = $startDate->copy()->addWeek()->format('Y-m-d');
+                    break;
+            }
+        }
+
+        $isHistoryView = $endDate->lt(now()->startOfWeek());
+        $verTodo = $request->has('ver_historial') && $request->ver_historial == '1';
+        $filterOrigin = $request->input('filter_origin', 'todos'); 
+
+        // QUERY PRINCIPAL
+        $query = Activity::with(['user.empleado.supervisor', 'historial.user', 'asignador']) 
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('fecha_compromiso', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                  ->orWhereBetween('fecha_inicio', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             });
+
+        // FILTROS DE ORIGEN
+        $query->where(function($q) use ($targetUserId, $filterOrigin) {
+            if ($filterOrigin === 'propias') {
+                $q->where('user_id', $targetUserId)->where('asignado_por', $targetUserId);
+            } elseif ($filterOrigin === 'recibidas') {
+                $q->where('user_id', $targetUserId)->where('asignado_por', '!=', $targetUserId);
+            } elseif ($filterOrigin === 'delegadas') {
+                $q->where('user_id', '!=', $targetUserId)->where('asignado_por', $targetUserId);
+            } else {
+                $q->where('user_id', $targetUserId)->orWhere('asignado_por', $targetUserId);
+            }
+        });
 
         if (!$verTodo && !$isHistoryView) $query->whereNotIn('estatus', ['Completado', 'Rechazado']);
         
@@ -92,7 +146,7 @@ class ActivityController extends Controller
             });
         }
 
-        $weeklyActivities = $query
+        $activitiesList = $query
             ->orderByRaw("CASE estatus WHEN 'Completado' THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
             ->orderBy('fecha_compromiso')
@@ -107,9 +161,9 @@ class ActivityController extends Controller
                 ->get();
         }
 
-        $mainActivities = $weeklyActivities->merge($pendingActivities)->unique('id');
+        $mainActivities = $activitiesList->merge($pendingActivities)->unique('id');
 
-        // 5. VARIABLES DE EQUIPO Y ALERTAS ESPECÍFICAS
+        // 5. VARIABLES DE EQUIPO
         $teamUsers = collect();
         if ($esDireccion) {
             $teamUsers = User::orderBy('name')->get();
@@ -117,46 +171,40 @@ class ActivityController extends Controller
             $teamUsers = User::whereIn('id', $idsVisibles)->orderBy('name')->get();
         }
 
-        // --- CORRECCIÓN 2: OBTENER IDS EXACTOS DE QUIÉN TIENE PENDIENTES ---
+        // ALERTAS
         $globalPendingCount = 0;
-        $usersWithPending = []; // Array para guardar IDs de usuarios con pendientes
+        $usersWithPending = []; 
 
         if ($esSupervisor || $esDireccion) {
-            // Base query para buscar pendientes bajo mi supervisión
             $alertQuery = Activity::where('estatus', 'Por Aprobar');
-            
             if (!$esDireccion) {
-                // Si soy supervisor, solo busco en mis ids visibles
                 $alertQuery->whereIn('user_id', $idsVisibles);
             }
-            // Excluir mis propias tareas de la alerta global (opcional, pero recomendado)
-            // $alertQuery->where('user_id', '!=', $user->id);
-
-            // Contamos totales
             $globalPendingCount = $alertQuery->count();
-            
-            // Obtenemos la lista de IDs únicos que tienen pendientes
             $usersWithPending = $alertQuery->pluck('user_id')->unique()->toArray();
         }
 
         $misRechazos = Activity::where('user_id', $user->id)->where('estatus', 'Rechazado')->get();
 
         $kpis = [
-            'total' => $weeklyActivities->count(),
-            'completadas' => $weeklyActivities->where('estatus', 'Completado')->count(),
-            'proceso' => $weeklyActivities->where('estatus', 'En proceso')->count(),
-            'pendientes' => $weeklyActivities->where('estatus', 'En blanco')->count(),
-            'retardos' => $weeklyActivities->where('estatus', 'Retardo')->count(),
+            'total' => $activitiesList->count(),
+            'completadas' => $activitiesList->where('estatus', 'Completado')->count(),
+            'proceso' => $activitiesList->where('estatus', 'En proceso')->count(),
+            'pendientes' => $activitiesList->where('estatus', 'En blanco')->count(),
+            'retardos' => $activitiesList->where('estatus', 'Retardo')->count(),
         ];
+
+        $startOfWeek = now()->startOfWeek(); 
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis', 
             'esDireccion', 'esSupervisor', 
             'puedePlanificar', 'esPuestoPlanificador', 'esHorarioPermitido',
             'globalPendingCount', 'misRechazos', 
-            'startOfWeek', 'endOfWeek', 'isHistoryView', 'verTodo',
+            'isHistoryView', 'verTodo',
             'areasSistema', 'empleadosAsignables', 
-            'usersWithPending' // <--- PASAMOS LA VARIABLE NUEVA A LA VISTA
+            'usersWithPending', 'filterOrigin',
+            'startDate', 'endDate', 'periodLabel', 'rangeType', 'prevDateRef', 'nextDateRef', 'startOfWeek'
         ));
     }
 
@@ -173,35 +221,42 @@ class ActivityController extends Controller
 
         // Determinar destinatario
         $targetUserId = $request->filled('assigned_to') ? $request->assigned_to : $currentUser->id;
+        
         $data['user_id'] = $targetUserId;
+        $data['asignado_por'] = $currentUser->id; 
         $data['fecha_inicio'] = now(); 
         $data['metrico'] = 1;
 
-        // --- REGLA DE JERARQUÍA (HIERARCHY RULE) ---
+        // --- REGLA DE JERARQUÍA ---
         if ($targetUserId == $currentUser->id) {
-            // 1. Auto-asignación: Se crea como borrador
             $data['estatus'] = 'En blanco';
         } else {
-            // 2. Asignación a terceros (Requiere chequeo de rango)
-            
-            // Check si soy Dirección
             $soyDireccion = $currentUser->empleado && Str::contains(strtolower($currentUser->empleado->posicion), 'direcc');
-            
-            // Check si soy el Supervisor Directo del destinatario
             $targetUser = User::with('empleado')->find($targetUserId);
             $soySuJefe = false;
-            if ($targetUser && $targetUser->empleado && $currentUser->empleado) {
+            
+            if ($targetUser?->empleado && $currentUser?->empleado) {
                 if ($targetUser->empleado->supervisor_id === $currentUser->empleado->id) {
                     $soySuJefe = true;
                 }
             }
 
-            if ($soyDireccion || $soySuJefe) {
-                // JEFE A SUBORDINADO: Pasa directo (Autoridad)
+            $soySupervisor = false;
+            if ($currentUser->empleado) {
+                $soySupervisor = Empleado::where('supervisor_id', $currentUser->empleado->id)->exists();
+            }
+            $esDestinoSupervisor = false;
+            if ($targetUser && $targetUser->empleado) {
+                $esDestinoSupervisor = Empleado::where('supervisor_id', $targetUser->empleado->id)->exists();
+            }
+
+            if ($soyDireccion) {
+                $data['estatus'] = 'Planeado'; 
+            } elseif ($soySupervisor && $esDestinoSupervisor) {
+                $data['estatus'] = 'Por Aprobar';
+            } elseif ($soySuJefe) {
                 $data['estatus'] = 'Planeado'; 
             } else {
-                // PAR A PAR (o SUBORDINADO A JEFE): Requiere Aprobación (Pimponeo Controlado)
-                // Esto generará una alerta en el dashboard del supervisor del destinatario
                 $data['estatus'] = 'Por Aprobar'; 
             }
         }
@@ -237,9 +292,9 @@ class ActivityController extends Controller
                     $nombre = trim($tarea['actividad'] ?? '');
                     if (empty($nombre)) continue;
 
-                    // El batch es auto-planificación, va a 'Por Aprobar' para que el jefe revise la semana entera
                     Activity::create([
                         'user_id'          => Auth::id(), 
+                        'asignado_por'     => Auth::id(),
                         'area'             => $tarea['area'] ?? 'General',
                         'cliente'          => $tarea['cliente'] ?? null,
                         'tipo_actividad'   => $tarea['tipo'] ?? 'Operativo',
@@ -259,6 +314,13 @@ class ActivityController extends Controller
         });
     }
 
+    // --- CORRECCIÓN: AGREGADO EL MÉTODO SHOW PARA EVITAR EL ERROR ---
+    public function show($id)
+    {
+        // Como usamos modales, no hay vista individual. Redirigimos al tablero.
+        return redirect()->route('activities.index');
+    }
+
     public function update(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
@@ -266,23 +328,37 @@ class ActivityController extends Controller
         
         $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
         $esSupervisor = false;
-        
         if ($user->empleado && $activity->user->empleado && $user->empleado->id === $activity->user->empleado->supervisor_id) {
             $esSupervisor = true;
         }
-        $esDuenoBorrador = ($activity->user_id === $user->id && $activity->estatus === 'En blanco');
+        $esDueno = ($activity->user_id === $user->id);
+        
+        // Permiso extendido: El creador también puede editar (importante para jefes que asignan)
+        $esAsignador = ($activity->asignado_por === $user->id);
 
-        $puedeEditarTodo = $esDireccion || $esSupervisor || $esDuenoBorrador;
+        $puedeEditarTodo = $esDireccion || $esSupervisor || ($esDueno && $activity->estatus === 'En blanco') || $esAsignador;
 
         $original = $activity->toArray(); 
 
         if ($puedeEditarTodo) {
             $activity->fill($request->except(['evidencia']));
         } else {
-            $activity->estatus = $request->estatus;
+            // El analista solo puede mover estatus y comentar
             $activity->comentarios = $request->comentarios;
+            
+            // --- LOGICA DE CIERRE CON VALIDACIÓN ---
+            if ($request->estatus === 'Completado') {
+                if ($esDireccion || $esSupervisor) {
+                    $activity->estatus = 'Completado'; // Jefes cierran directo
+                } else {
+                    $activity->estatus = 'Por Validar'; // Empleados piden validación
+                }
+            } else {
+                $activity->estatus = $request->estatus;
+            }
         }
 
+        // LOG DE CAMBIOS
         $mapaCampos = [
             'nombre_actividad' => 'Actividad', 
             'estatus' => 'Estatus', 
@@ -324,6 +400,7 @@ class ActivityController extends Controller
             ]);
         }
 
+        // Lógica automática de fechas (aunque el modelo ya tiene observer, reforzamos aquí por si acaso)
         if ($activity->estatus == 'Completado' && $original['estatus'] != 'Completado') {
             $activity->fecha_final = now();
         }
@@ -333,10 +410,6 @@ class ActivityController extends Controller
             $activity->porcentaje = null;
         }
         
-        if ($activity->estatus === 'Rechazado' && $original['estatus'] === 'Rechazado') {
-            // Lógica opcional para rechazos repetidos
-        }
-
         if ($request->hasFile('evidencia')) {
             if ($activity->evidencia_path) Storage::disk('public')->delete($activity->evidencia_path);
             $activity->evidencia_path = $request->file('evidencia')->store('evidencias', 'public');
@@ -347,6 +420,11 @@ class ActivityController extends Controller
         }
 
         $activity->save();
+
+        if($activity->estatus === 'Por Validar') {
+            return redirect()->back()->with('success', 'Actividad enviada a revisión del supervisor.');
+        }
+
         return redirect()->back()->with('success', 'Actualizado.');
     }
 
@@ -358,8 +436,9 @@ class ActivityController extends Controller
         $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
         $esSupervisor = $user->empleado && $activity->user->empleado && $user->empleado->id === $activity->user->empleado->supervisor_id;
         $esDuenoBorrador = ($activity->user_id === $user->id && $activity->estatus === 'En blanco');
+        $esAsignador = ($activity->asignado_por === $user->id);
 
-        if ($esDireccion || $esSupervisor || $esDuenoBorrador) {
+        if ($esDireccion || $esSupervisor || $esDuenoBorrador || $esAsignador) {
             $activity->delete();
             return redirect()->back()->with('success', 'Eliminado.');
         }
@@ -368,7 +447,36 @@ class ActivityController extends Controller
 
     public function approve(Request $request, $id)
     {
-        $act = Activity::findOrFail($id);
+        $act = Activity::with(['user.empleado', 'asignador.empleado'])->findOrFail($id);
+        $currentUser = Auth::user();
+        
+        $soyDireccion = $currentUser->empleado && Str::contains(strtolower($currentUser->empleado->posicion), 'direcc');
+        
+        $soySuJefeDirecto = false;
+        if ($act->user->empleado && $currentUser->empleado) {
+            if ($act->user->empleado->supervisor_id === $currentUser->empleado->id) {
+                $soySuJefeDirecto = true;
+            }
+        }
+
+        $assigner = $act->asignador; 
+        $target = $act->user;       
+        
+        $assignerIsSupervisor = $assigner && $assigner->empleado && Empleado::where('supervisor_id', $assigner->empleado->id)->exists();
+        $targetIsSupervisor = $target && $target->empleado && Empleado::where('supervisor_id', $target->empleado->id)->exists();
+        
+        $esCasoSupervisorASupervisor = $assignerIsSupervisor && $targetIsSupervisor;
+
+        if ($esCasoSupervisorASupervisor) {
+            if (!$soyDireccion) {
+                return back()->with('error', 'Acción denegada: Las tareas entre coordinadores requieren aprobación de Dirección.');
+            }
+        } else {
+            if (!$soyDireccion && !$soySuJefeDirecto) {
+                 return back()->with('error', 'Acción denegada: No eres el supervisor directo de este colaborador.');
+            }
+        }
+
         $act->estatus = 'Planeado'; 
         $act->motivo_rechazo = null;
         $act->save();
@@ -394,5 +502,68 @@ class ActivityController extends Controller
         $act->save();
         ActivityHistory::create(['activity_id'=>$id, 'user_id'=>Auth::id(), 'action'=>'updated', 'details'=>'Inició ejecución']);
         return back()->with('success', 'Iniciada.');
+    }
+
+    public function validateCompletion(Request $request, $id)
+    {
+        $act = Activity::findOrFail($id);
+        $user = Auth::user();
+
+        // Validar permisos (Dirección o Supervisor directo)
+        $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
+        $esSupervisor = $user->empleado && $act->user->empleado && $user->empleado->id === $act->user->empleado->supervisor_id;
+
+        if ($esDireccion || $esSupervisor) {
+            $act->estatus = 'Completado';
+            $act->fecha_final = now();
+            $act->save();
+
+            ActivityHistory::create([
+                'activity_id' => $id, 
+                'user_id' => Auth::id(), 
+                'action' => 'validated', 
+                'details' => 'Validó el cierre de la actividad'
+            ]);
+
+            return back()->with('success', 'Actividad validada y cerrada correctamente.');
+        }
+
+        return back()->with('error', 'No tienes permiso para validar esta actividad.');
+    }
+
+    public function generateClientReport(Request $request)
+    {
+        $request->validate([
+            'cliente_reporte' => 'required|string',
+            'mes_reporte'     => 'required|date_format:Y-m', 
+        ]);
+
+        $cliente = $request->cliente_reporte;
+        $fecha = Carbon::createFromFormat('Y-m', $request->mes_reporte);
+        
+        $inicioMes = $fecha->copy()->startOfMonth();
+        $finMes    = $fecha->copy()->endOfMonth();
+
+        $actividades = Activity::with(['user'])
+            ->where('cliente', 'LIKE', "%{$cliente}%") 
+            ->where(function($q) use ($inicioMes, $finMes) {
+                $q->whereBetween('fecha_compromiso', [$inicioMes, $finMes])
+                  ->orWhereBetween('fecha_final', [$inicioMes, $finMes]);
+            })
+            ->orderBy('fecha_compromiso')
+            ->get();
+
+        $stats = [
+            'total'       => $actividades->count(),
+            'completadas' => $actividades->where('estatus', 'Completado')->count(),
+            'en_proceso'  => $actividades->whereIn('estatus', ['En proceso', 'Planeado', 'Por Validar', 'Por Aprobar'])->count(),
+            'efectividad' => 0
+        ];
+
+        if ($stats['total'] > 0) {
+            $stats['efectividad'] = round(($stats['completadas'] / $stats['total']) * 100, 1);
+        }
+
+        return view('activities.report_print', compact('actividades', 'cliente', 'fecha', 'stats'));
     }
 }

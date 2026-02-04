@@ -47,9 +47,8 @@
     <script>
         // Configuración global para el JS
         window.token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        window.empleadoIdActual = {{ $empleadoActual ? $empleadoActual->id : 'null' }};
+        window.empleadoIdActual = {{ isset($empleadoActual) && $empleadoActual ? $empleadoActual->id : 'null' }};
     </script>
-    {{-- Asegúrate de que este archivo JS tenga el código actualizado que te di en el paso anterior --}}
     <script src="{{ asset('js/Logistica/matriz-seguimiento.js') }}?v={{ md5(time()) }}"></script>
 @endpush
 
@@ -84,6 +83,7 @@
                         Nueva Operación
                     </button>
 
+                    {{-- Botón Exportar preservando filtros actuales --}}
                     <a href="{{ route('logistica.reportes.export-matriz', request()->query()) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Exportar Excel
@@ -98,41 +98,71 @@
                 </div>
             </div>
 
-            {{-- 2. FILTROS RÁPIDOS --}}
+            {{-- 2. FILTROS RÁPIDOS (Actualizado para Spatie Query Builder) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <form method="GET" action="{{ route('logistica.matriz-seguimiento') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 items-end">
+                    
+                    {{-- Preservar el ordenamiento al filtrar --}}
+                    @if(request('sort'))
+                        <input type="hidden" name="sort" value="{{ request('sort') }}">
+                    @endif
+
+                    {{-- Filtro Búsqueda General --}}
                     <div class="col-span-1 md:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Buscar</label>
                         <div class="relative">
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Folio, Cliente, Pedimento..." class="w-full pl-10 pr-4 py-2 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <input type="text" name="filter[search]" value="{{ request('filter.search') }}" placeholder="Folio, Cliente, Pedimento..." class="w-full pl-10 pr-4 py-2 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </div>
                         </div>
                     </div>
+
+                    {{-- Filtro Cliente --}}
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cliente</label>
-                        <select name="cliente" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                            <option value="">Todos</option>
-                            @foreach($clientesUnicos ?? [] as $cli)
-                                <option value="{{ $cli }}" {{ request('cliente') == $cli ? 'selected' : '' }}>{{ $cli }}</option>
+                        <select name="filter[cliente]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
+                            <option value="todos">Todos</option>
+                            @foreach($clientes as $cliente)
+                                <option value="{{ $cliente->id }}" {{ request('filter.cliente') == $cliente->id ? 'selected' : '' }}>
+                                    {{ $cliente->razon_social ?? $cliente->cliente }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- Filtro Ejecutivo --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>
-                        <select name="status" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                            <option value="">Todos</option>
-                            <option value="In Process" {{ request('status') == 'In Process' ? 'selected' : '' }}>En Proceso</option>
-                            <option value="Done" {{ request('status') == 'Done' ? 'selected' : '' }}>Completado</option>
-                            <option value="Out of Metric" {{ request('status') == 'Out of Metric' ? 'selected' : '' }}>Fuera Métrica</option>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ejecutivo</label>
+                        <select name="filter[ejecutivo]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
+                            <option value="todos">Todos</option>
+                            @foreach($ejecutivos as $ejecutivo)
+                                <option value="{{ $ejecutivo->name }}" {{ request('filter.ejecutivo') == $ejecutivo->name ? 'selected' : '' }}>
+                                    {{ $ejecutivo->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
+
+                    {{-- Filtro Status --}}
                     <div>
-                        <button type="submit" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-xl transition-colors text-sm">Filtrar</button>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>
+                        <select name="filter[status]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
+                            <option value="todos">Todos</option>
+                            <option value="In Process" {{ request('filter.status') == 'In Process' ? 'selected' : '' }}>En Proceso</option>
+                            <option value="Done" {{ request('filter.status') == 'Done' ? 'selected' : '' }}>Completado</option>
+                            <option value="Out of Metric" {{ request('filter.status') == 'Out of Metric' ? 'selected' : '' }}>Fuera Métrica</option>
+                        </select>
                     </div>
-                    <div>
-                        <a href="{{ route('logistica.matriz-seguimiento') }}" class="flex items-center justify-center w-full text-slate-400 hover:text-red-500 py-2 transition-colors text-sm">Limpiar</a>
+
+                    {{-- Botones de Acción --}}
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-3 rounded-xl transition-colors text-sm">
+                            Filtrar
+                        </button>
+                        <a href="{{ route('logistica.matriz-seguimiento') }}" class="flex items-center justify-center px-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl transition-colors" title="Limpiar Filtros">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </a>
                     </div>
                 </form>
             </div>
@@ -143,11 +173,32 @@
                     <table class="w-full text-sm text-left text-slate-600">
                         <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-wider">
                             <tr>
-                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">Folio</th>
-                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap min-w-[150px]">Cliente</th>
-                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">Operación</th>
+                                {{-- ENCABEZADOS ORDENABLES --}}
+                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">
+                                    <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->query(), ['sort' => request('sort') === 'created_at' ? '-created_at' : 'created_at'])) }}" class="group flex items-center hover:text-blue-600 cursor-pointer">
+                                        Folio
+                                        @if(request('sort') == 'created_at') <span>&uarr;</span> @elseif(request('sort') == '-created_at') <span>&darr;</span> @endif
+                                    </a>
+                                </th>
+                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap min-w-[150px]">
+                                    <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->query(), ['sort' => request('sort') === 'cliente' ? '-cliente' : 'cliente'])) }}" class="group flex items-center hover:text-blue-600 cursor-pointer">
+                                        Cliente
+                                        @if(request('sort') == 'cliente') <span>&uarr;</span> @elseif(request('sort') == '-cliente') <span>&darr;</span> @endif
+                                    </a>
+                                </th>
+                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">
+                                    <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->query(), ['sort' => request('sort') === 'operacion' ? '-operacion' : 'operacion'])) }}" class="group flex items-center hover:text-blue-600 cursor-pointer">
+                                        Operación
+                                        @if(request('sort') == 'operacion') <span>&uarr;</span> @elseif(request('sort') == '-operacion') <span>&darr;</span> @endif
+                                    </a>
+                                </th>
                                 <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">Status</th>
-                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">Fechas (E/A)</th>
+                                <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap">
+                                    <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->query(), ['sort' => request('sort') === 'fecha_arribo' ? '-fecha_arribo' : 'fecha_arribo'])) }}" class="group flex items-center hover:text-blue-600 cursor-pointer">
+                                        Fechas (E/A)
+                                        @if(request('sort') == 'fecha_arribo') <span>&uarr;</span> @elseif(request('sort') == '-fecha_arribo') <span>&darr;</span> @endif
+                                    </a>
+                                </th>
                                 <th class="px-4 py-3 bg-slate-50 border-b border-slate-200 whitespace-nowrap min-w-[120px]">Pedimento</th>
                                 
                                 {{-- COLUMNA NUEVA: POST-OPERACIONES --}}
@@ -169,9 +220,11 @@
                                     {{-- Folio --}}
                                     <td class="px-4 py-3 font-medium text-slate-900">#{{ $op->id }}</td>
                                     
-                                    {{-- Cliente --}}
+                                    {{-- Cliente (Ahora usando relación si existe, o el string directo) --}}
                                     <td class="px-4 py-3">
-                                        <div class="font-medium text-slate-800 truncate max-w-[200px]" title="{{ $op->cliente }}">{{ $op->cliente }}</div>
+                                        <div class="font-medium text-slate-800 truncate max-w-[200px]" title="{{ $op->clienteRelacion->razon_social ?? $op->cliente }}">
+                                            {{ $op->clienteRelacion->razon_social ?? $op->cliente }}
+                                        </div>
                                         <div class="text-xs text-slate-400 truncate max-w-[200px]">{{ $op->proveedor_o_cliente }}</div>
                                     </td>
 
@@ -186,15 +239,16 @@
                                     {{-- Status --}}
                                     <td class="px-4 py-3">
                                         @php
-                                            $colorClass = match($op->color_status) {
-                                                'green' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                                                'yellow' => 'bg-amber-100 text-amber-700 border-amber-200',
-                                                'red' => 'bg-rose-100 text-rose-700 border-rose-200',
-                                                default => 'bg-slate-100 text-slate-600 border-slate-200'
+                                            // Lógica de color básica si no viene del modelo
+                                            $status = $op->status_manual ?: $op->status_calculado;
+                                            $colorClass = match($status) {
+                                                'Done' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                                'Out of Metric' => 'bg-rose-100 text-rose-700 border-rose-200',
+                                                default => 'bg-amber-100 text-amber-700 border-amber-200'
                                             };
                                         @endphp
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $colorClass }}">
-                                            {{ $op->status_manual ?: $op->status_calculado }}
+                                            {{ $status }}
                                         </span>
                                     </td>
 
@@ -270,6 +324,7 @@
                         </tbody>
                     </table>
                 </div>
+                {{-- Paginación manteniendo filtros --}}
                 <div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
                     {{ $operaciones->links() }}
                 </div>
@@ -278,7 +333,7 @@
     </div>
 
     {{-- ========================================================= --}}
-    {{-- SECCIÓN DE MODALES --}}
+    {{-- SECCIÓN DE MODALES (Mantenida intacta) --}}
     {{-- ========================================================= --}}
 
     <div id="modalOperacion" class="modal-overlay fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">

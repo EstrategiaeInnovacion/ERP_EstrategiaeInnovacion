@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlockedEmail;
 use App\Models\User;
 use App\Models\Empleado;
+use App\Models\EmpleadoBaja;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -24,10 +25,13 @@ class UsersController extends Controller
         $rejectedUsers = User::where('status', User::STATUS_REJECTED)
             ->orderByDesc('rejected_at')
             ->get();
+        
+        // Cargar información de bajas para usuarios rechazados
+        $empleadosBaja = EmpleadoBaja::all()->keyBy('correo');
 
         $blockedEmails = BlockedEmail::orderByDesc('created_at')->get();
 
-        return view('admin.users.index', compact('approvedUsers', 'pendingUsers', 'rejectedUsers', 'blockedEmails'));
+        return view('admin.users.index', compact('approvedUsers', 'pendingUsers', 'rejectedUsers', 'blockedEmails', 'empleadosBaja'));
     }
 
     public function create()
