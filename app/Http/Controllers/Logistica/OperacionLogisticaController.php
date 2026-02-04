@@ -313,9 +313,21 @@ class OperacionLogisticaController extends Controller
         $empleadoConfig = $modoPreview ? $empleadoPreview : $empleadoActual;
         $idEmpleadoConfig = $empleadoConfig ? $empleadoConfig->id : 0; 
 
+        // DEBUG TEMPORAL - Quitar después
+        \Log::info('DEBUG COLUMNAS: empleadoConfig=' . ($empleadoConfig ? $empleadoConfig->nombre . ' (ID ' . $idEmpleadoConfig . ')' : 'NULL'));
+        
         $columnasVisibles = ColumnaVisibleEjecutivo::getColumnasVisiblesParaEjecutivo($idEmpleadoConfig);
+        \Log::info('DEBUG COLUMNAS: columnasVisibles=' . json_encode($columnasVisibles));
+        
         $idioma = ColumnaVisibleEjecutivo::getIdiomaEjecutivo($idEmpleadoConfig);
         $nombresColumnas = ColumnaVisibleEjecutivo::getTodasLasColumnasConNombres($idioma);
+        
+        // Obtener columnas ordenadas con tipo (predeterminada/opcional) para la matriz
+        $columnasOrdenadas = ColumnaVisibleEjecutivo::getColumnasOrdenadasParaMatriz($idEmpleadoConfig, $idioma);
+        
+        // DEBUG: contar columnas opcionales
+        $opcionalesEnMatriz = array_filter($columnasOrdenadas, fn($c) => $c['tipo'] === 'opcional');
+        \Log::info('DEBUG COLUMNAS: columnasOrdenadas opcionales=' . json_encode($opcionalesEnMatriz));
 
         $empleados = Empleado::where(function($query) {
             $query->where('posicion', 'like', '%LOGISTICA%')
@@ -333,6 +345,7 @@ class OperacionLogisticaController extends Controller
             'pedimentos' => Pedimento::orderBy('clave')->get(),
             'camposPersonalizados' => CampoPersonalizadoMatriz::where('activo', true)->orderBy('orden')->get(),
             'columnasOpcionalesVisibles' => $columnasVisibles,
+            'columnasOrdenadas' => $columnasOrdenadas,
             'idiomaColumnas' => $idioma,
             'nombresColumnas' => $nombresColumnas,
             'empleados' => $empleados, 

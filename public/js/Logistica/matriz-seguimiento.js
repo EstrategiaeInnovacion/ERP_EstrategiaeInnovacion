@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('operacionId').value = '';
         document.getElementById('isEditing').value = '';
         document.getElementById('modalTitle').innerText = 'Nueva Operación';
-        document.getElementById('statusManualSection').classList.add('hidden');
         document.getElementById('modalOperacion').classList.remove('hidden');
     };
 
@@ -31,13 +30,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('operacionId').value = op.id;
                     document.getElementById('isEditing').value = 'PUT';
                     document.getElementById('modalTitle').innerText = 'Editar Operación #' + op.id;
-                    document.getElementById('statusManualSection').classList.remove('hidden');
                     
-                    // --- MAPEO DE CAMPOS ---
+                    // --- MAPEO DE TODOS LOS CAMPOS ---
                     const fields = [
-                        'operacion', 'tipo_operacion_enum', 'cliente', 'ejecutivo', 
-                        'no_pedimento', 'referencia_cliente', 'status_manual',
-                        'fecha_embarque', 'fecha_arribo_aduana'
+                        // Información Principal
+                        'operacion', 'tipo_operacion_enum', 'ejecutivo', 'cliente', 
+                        'proveedor_o_cliente', 'proveedor',
+                        // Referencias y Documentos
+                        'referencia_cliente', 'referencia_interna', 'clave', 'no_factura',
+                        'no_pedimento', 'guia_bl', 'mail_subject',
+                        // Aduana y Agente
+                        'aduana', 'agente_aduanal', 'referencia_aa', 'transporte',
+                        // Fechas
+                        'fecha_etd', 'fecha_zarpe', 'fecha_embarque', 'fecha_arribo_aduana',
+                        'fecha_modulacion', 'fecha_arribo_planta',
+                        // Información Adicional
+                        'tipo_carga', 'tipo_incoterm', 'puerto_salida', 'in_charge',
+                        'tipo_previo', 'target', 'dias_transito', 'resultado',
+                        // Status y Comentarios
+                        'status_manual', 'comentarios'
                     ];
 
                     fields.forEach(field => {
@@ -52,10 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             input.value = value;
 
-                            // Corrección para Selects (especialmente Ejecutivo)
-                            // Si el valor no coincide exactamente, intenta buscarlo trimmeado
+                            // Corrección para Selects
                             if (input.tagName === 'SELECT' && input.value !== value) {
-                                // Intento manual de encontrar la opción correcta
                                 for (let option of input.options) {
                                     if (option.value.trim() === String(value).trim()) {
                                         input.value = option.value;
@@ -65,6 +74,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     });
+
+                    // Manejar checkbox pedimento_en_carpeta
+                    const checkPedimento = form.querySelector('[name="pedimento_en_carpeta"]');
+                    if (checkPedimento) {
+                        checkPedimento.checked = op.pedimento_en_carpeta == 1 || op.pedimento_en_carpeta === true;
+                    }
                     
                     document.getElementById('modalOperacion').classList.remove('hidden');
                 }
@@ -409,4 +424,135 @@ document.addEventListener('DOMContentLoaded', function() {
         // Implementar carga de comentarios aquí...
     };
     window.cerrarModalComentarios = function() { document.getElementById('modalComentarios').classList.add('hidden'); };
+
+    // =========================================================
+    // 5. CONFIGURACIÓN DE COLUMNAS POR EJECUTIVO
+    // =========================================================
+    let configColumnasPorEjecutivo = {};
+    let ejecutivoSeleccionadoId = null;
+    let columnasPredeterminadas = [];
+
+    window.cargarConfiguracionEjecutivo = function(empleadoId) {
+        if (!empleadoId) {
+            document.getElementById('contenedorColumnasOpcionales').classList.add('hidden');
+            document.getElementById('mensajeSeleccionarEjecutivo').classList.remove('hidden');
+            return;
+        }
+
+        ejecutivoSeleccionadoId = empleadoId;
+        
+        fetch(`/logistica/columnas-config/ejecutivo/${empleadoId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    configColumnasPorEjecutivo = data.configuracion;
+                    columnasPredeterminadas = Object.keys(data.columnasPredeterminadas);
+                    renderizarColumnasOpcionales(data.configuracion, data.columnasPredeterminadas);
+                    document.getElementById('contenedorColumnasOpcionales').classList.remove('hidden');
+                    document.getElementById('mensajeSeleccionarEjecutivo').classList.add('hidden');
+                }
+            })
+            .catch(err => {
+                console.error('Error cargando configuración:', err);
+            });
+    };
+
+    function renderizarColumnasOpcionales(configuracion, columnasPred) {
+        const container = document.getElementById('listaColumnasOpcionales');
+        container.innerHTML = '';
+
+        Object.entries(configuracion).forEach(([columna, config]) => {
+            const isActive = config.visible;
+            const despuesDe = config.mostrar_despues_de || 'comentarios';
+
+            const item = document.createElement('div');
+            item.className = `p-4 rounded-xl border ${isActive ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'}`;
+            item.innerHTML = `
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="font-medium text-slate-800">${config.nombre_es}</div>
+                        <div class="text-xs text-slate-500">${config.nombre_en}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-xs">
+                            <label class="text-slate-500">Mostrar después de:</label>
+                            <select 
+                                id="pos_${columna}" 
+                                class="ml-1 text-xs rounded border-slate-300 py-1 px-2"
+                                onchange="actualizarPosicionColumna('${columna}', this.value)"
+                                ${!isActive ? 'disabled' : ''}
+                            >
+                                ${Object.entries(columnasPred).map(([key, nombre]) => 
+                                    `<option value="${key}" ${despuesDe === key ? 'selected' : ''}>${nombre}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <button 
+                            type="button"
+                            onclick="toggleColumnaOpcional('${columna}')"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}"
+                        >
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}"></span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    window.toggleColumnaOpcional = function(columna) {
+        configColumnasPorEjecutivo[columna].visible = !configColumnasPorEjecutivo[columna].visible;
+        
+        // Re-renderizar para actualizar UI
+        fetch(`/logistica/columnas-config/ejecutivo/${ejecutivoSeleccionadoId}`)
+            .then(res => res.json())
+            .then(data => {
+                renderizarColumnasOpcionales(configColumnasPorEjecutivo, data.columnasPredeterminadas);
+            });
+    };
+
+    window.actualizarPosicionColumna = function(columna, despuesDe) {
+        configColumnasPorEjecutivo[columna].mostrar_despues_de = despuesDe;
+    };
+
+    window.guardarConfiguracionColumnas = function() {
+        if (!ejecutivoSeleccionadoId) {
+            alert('Selecciona un ejecutivo primero');
+            return;
+        }
+
+        const columnas = Object.entries(configColumnasPorEjecutivo).map(([columna, config]) => ({
+            columna: columna,
+            visible: config.visible,
+            mostrar_despues_de: config.mostrar_despues_de
+        }));
+
+        fetch('/logistica/columnas-config/guardar-completa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify({
+                empleado_id: ejecutivoSeleccionadoId,
+                columnas: columnas
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Configuración guardada correctamente');
+                // Recargar para ver los cambios en la matriz
+                window.location.reload();
+            } else {
+                alert('Error al guardar la configuración');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error al guardar');
+        });
+    };
+
 });

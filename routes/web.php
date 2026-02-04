@@ -30,6 +30,7 @@ use App\Http\Controllers\Logistica\ReporteController;
 use App\Http\Controllers\Logistica\PedimentoController; // <--- AGREGADO
 use App\Http\Controllers\Logistica\LogisticaCorreoCCController; // <--- AGREGADO
 use App\Http\Controllers\Logistica\CatalogosController;
+use App\Http\Controllers\Logistica\ColumnaVisibleController;
 
 
 /*
@@ -115,6 +116,14 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
     // Dashboard
     Route::get('/', function () { return view('Logistica.index'); })->name('index');
     Route::get('/matriz-seguimiento', [OperacionLogisticaController::class, 'index'])->name('matriz-seguimiento');
+
+    // --- API Configuración de Columnas por Ejecutivo ---
+    Route::prefix('columnas-config')->name('columnas-config.')->group(function() {
+        Route::get('/ejecutivos', [ColumnaVisibleController::class, 'getEjecutivos'])->name('ejecutivos');
+        Route::get('/ejecutivo/{empleadoId}', [ColumnaVisibleController::class, 'getConfiguracion'])->name('get');
+        Route::post('/guardar', [ColumnaVisibleController::class, 'guardarConfiguracion'])->name('guardar');
+        Route::post('/guardar-completa', [ColumnaVisibleController::class, 'guardarConfiguracionCompleta'])->name('guardar-completa');
+    });
 
     // Operaciones
     Route::resource('operaciones', OperacionLogisticaController::class);

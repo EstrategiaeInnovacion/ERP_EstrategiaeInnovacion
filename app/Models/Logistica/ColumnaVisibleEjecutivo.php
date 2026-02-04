@@ -14,6 +14,7 @@ class ColumnaVisibleEjecutivo extends Model
         'columna',
         'visible',
         'orden',
+        'mostrar_despues_de',
         'idioma_nombres'
     ];
 
@@ -236,7 +237,7 @@ class ColumnaVisibleEjecutivo extends Model
             if (!$config) {
                 return true;
             }
-            return $config->visible;
+            return $config->getAttribute('visible');
         }
         
         // Si es columna opcional
@@ -244,7 +245,7 @@ class ColumnaVisibleEjecutivo extends Model
             $config = self::where('empleado_id', $empleadoId)
                 ->where('columna', $columna)
                 ->first();
-            return $config ? $config->visible : false;
+            return $config ? $config->getAttribute('visible') : false;
         }
         
         return true;
@@ -448,7 +449,7 @@ class ColumnaVisibleEjecutivo extends Model
                 $columnasOrdenadas[] = [
                     'columna' => $columna,
                     'nombre' => $nombre,
-                    'visible' => $config->visible,
+                    'visible' => $config->getAttribute('visible'),
                     'orden' => $config->orden,
                     'predeterminada' => $esPredeterminada,
                     'opcional' => $esOpcional,
@@ -555,9 +556,102 @@ class ColumnaVisibleEjecutivo extends Model
                 [
                     'visible' => $columnaData['visible'] ?? false,
                     'orden' => $columnaData['orden'] ?? $index,
+                    'mostrar_despues_de' => $columnaData['mostrar_despues_de'] ?? null,
                     'idioma_nombres' => $idiomaActual
                 ]
             );
         }
+    }
+
+    /**
+     * Obtener configuración de columnas opcionales para un ejecutivo
+     * Incluye visibilidad y posición
+     */
+    public static function getConfiguracionOpcionalesEjecutivo($empleadoId)
+    {
+        $config = self::where('empleado_id', $empleadoId)
+            ->whereIn('columna', array_keys(self::$columnasOpcionales))
+            ->get()
+            ->keyBy('columna');
+
+        $resultado = [];
+        foreach (self::$columnasOpcionales as $columna => $nombres) {
+            $configColumna = $config->get($columna);
+            $resultado[$columna] = [
+                'nombre_es' => $nombres['es'],
+                'nombre_en' => $nombres['en'],
+                'visible' => $configColumna ? $configColumna->getAttribute('visible') : false,
+                'mostrar_despues_de' => $configColumna ? $configColumna->mostrar_despues_de : 'comentarios'
+            ];
+        }
+        
+        return $resultado;
+    }
+
+    /**
+     * Guardar configuración de una columna opcional para un ejecutivo
+     */
+    public static function guardarConfiguracionColumnaOpcional($empleadoId, $columna, $visible, $mostrarDespuesDe = null)
+    {
+        $idiomaActual = self::getIdiomaEjecutivo($empleadoId);
+        
+        return self::updateOrCreate(
+            [
+                'empleado_id' => $empleadoId,
+                'columna' => $columna
+            ],
+            [
+                'visible' => $visible,
+                'mostrar_despues_de' => $mostrarDespuesDe,
+                'idioma_nombres' => $idiomaActual
+            ]
+        );
+    }
+
+    /**
+     * Obtener columnas ordenadas para la matriz (predeterminadas + opcionales en su posición)
+     */
+    public static function getColumnasOrdenadasParaMatriz($empleadoId, $idioma = 'es')
+    {
+        $predeterminadas = array_keys(self::$columnasPredeterminadas);
+        $opcionales = self::getConfiguracionOpcionalesEjecutivo($empleadoId);
+        
+        $resultado = [];
+        
+        foreach ($predeterminadas as $colPred) {
+            // Agregar columna predeterminada
+            $resultado[] = [
+                'columna' => $colPred,
+                'nombre' => self::$columnasPredeterminadas[$colPred][$idioma] ?? self::$columnasPredeterminadas[$colPred]['es'],
+                'tipo' => 'predeterminada'
+            ];
+            
+            // Buscar columnas opcionales que deben mostrarse después de esta
+            foreach ($opcionales as $colOpt => $configOpt) {
+                if ($configOpt['visible'] && $configOpt['mostrar_despues_de'] === $colPred) {
+                    $resultado[] = [
+                        'columna' => $colOpt,
+                        'nombre' => self::$columnasOpcionales[$colOpt][$idioma] ?? self::$columnasOpcionales[$colOpt]['es'],
+                        'tipo' => 'opcional'
+                    ];
+                }
+            }
+        }
+        
+        // Agregar columnas opcionales visibles que no tienen posición definida (al final)
+        foreach ($opcionales as $colOpt => $configOpt) {
+            if ($configOpt['visible'] && (empty($configOpt['mostrar_despues_de']) || !in_array($configOpt['mostrar_despues_de'], $predeterminadas))) {
+                $yaAgregada = collect($resultado)->where('columna', $colOpt)->isNotEmpty();
+                if (!$yaAgregada) {
+                    $resultado[] = [
+                        'columna' => $colOpt,
+                        'nombre' => self::$columnasOpcionales[$colOpt][$idioma] ?? self::$columnasOpcionales[$colOpt]['es'],
+                        'tipo' => 'opcional'
+                    ];
+                }
+            }
+        }
+        
+        return $resultado;
     }
 }
