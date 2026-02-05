@@ -101,7 +101,7 @@ class OperacionLogistica extends Model
     {
         // Intenta relacionar la columna 'cliente' de esta tabla con el 'id' de la tabla clientes
         return $this->belongsTo(Cliente::class, 'cliente', 'id')
-                    ->withDefault(['razon_social' => 'Cliente no encontrado']);
+                    ->withDefault(['cliente' => 'Cliente no encontrado']);
     }
 
     /**

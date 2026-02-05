@@ -565,18 +565,57 @@ class ColumnaVisibleEjecutivo extends Model
 
     /**
      * Obtener configuración de columnas opcionales para un ejecutivo
-     * Incluye visibilidad y posición
+     * Incluye visibilidad, posición y si es global
      */
     public static function getConfiguracionOpcionalesEjecutivo($empleadoId)
     {
-        $config = self::where('empleado_id', $empleadoId)
+        // Configuración específica del ejecutivo
+        $configEjecutivo = self::where('empleado_id', $empleadoId)
+            ->whereIn('columna', array_keys(self::$columnasOpcionales))
+            ->get()
+            ->keyBy('columna');
+
+        // Configuración global (empleado_id = NULL)
+        $configGlobal = self::whereNull('empleado_id')
             ->whereIn('columna', array_keys(self::$columnasOpcionales))
             ->get()
             ->keyBy('columna');
 
         $resultado = [];
         foreach (self::$columnasOpcionales as $columna => $nombres) {
-            $configColumna = $config->get($columna);
+            $configColumnaEjecutivo = $configEjecutivo->get($columna);
+            $configColumnaGlobal = $configGlobal->get($columna);
+            
+            // Una columna es visible si está activa globalmente O específicamente para el ejecutivo
+            $esGlobal = $configColumnaGlobal && $configColumnaGlobal->getAttribute('visible');
+            $visibleEjecutivo = $configColumnaEjecutivo ? $configColumnaEjecutivo->getAttribute('visible') : false;
+            
+            $resultado[$columna] = [
+                'nombre_es' => $nombres['es'],
+                'nombre_en' => $nombres['en'],
+                'visible' => $visibleEjecutivo,
+                'es_global' => $esGlobal,
+                'mostrar_despues_de' => $configColumnaEjecutivo ? $configColumnaEjecutivo->mostrar_despues_de : 
+                                       ($configColumnaGlobal ? $configColumnaGlobal->mostrar_despues_de : 'comentarios')
+            ];
+        }
+        
+        return $resultado;
+    }
+
+    /**
+     * Obtener solo la configuración global de columnas opcionales
+     */
+    public static function getConfiguracionGlobal()
+    {
+        $configGlobal = self::whereNull('empleado_id')
+            ->whereIn('columna', array_keys(self::$columnasOpcionales))
+            ->get()
+            ->keyBy('columna');
+
+        $resultado = [];
+        foreach (self::$columnasOpcionales as $columna => $nombres) {
+            $configColumna = $configGlobal->get($columna);
             $resultado[$columna] = [
                 'nombre_es' => $nombres['es'],
                 'nombre_en' => $nombres['en'],
@@ -586,6 +625,24 @@ class ColumnaVisibleEjecutivo extends Model
         }
         
         return $resultado;
+    }
+
+    /**
+     * Guardar configuración global de una columna (visible para todos)
+     */
+    public static function guardarConfiguracionColumnaGlobal($columna, $visible, $mostrarDespuesDe = null)
+    {
+        return self::updateOrCreate(
+            [
+                'empleado_id' => null,
+                'columna' => $columna
+            ],
+            [
+                'visible' => $visible,
+                'mostrar_despues_de' => $mostrarDespuesDe,
+                'idioma_nombres' => 'es'
+            ]
+        );
     }
 
     /**
@@ -610,6 +667,7 @@ class ColumnaVisibleEjecutivo extends Model
 
     /**
      * Obtener columnas ordenadas para la matriz (predeterminadas + opcionales en su posición)
+     * AHORA incluye columnas globales y específicas del ejecutivo
      */
     public static function getColumnasOrdenadasParaMatriz($empleadoId, $idioma = 'es')
     {
@@ -627,8 +685,10 @@ class ColumnaVisibleEjecutivo extends Model
             ];
             
             // Buscar columnas opcionales que deben mostrarse después de esta
+            // Una columna se muestra si está visible para el ejecutivo O es global
             foreach ($opcionales as $colOpt => $configOpt) {
-                if ($configOpt['visible'] && $configOpt['mostrar_despues_de'] === $colPred) {
+                $debeMotrarse = $configOpt['visible'] || $configOpt['es_global'];
+                if ($debeMotrarse && $configOpt['mostrar_despues_de'] === $colPred) {
                     $resultado[] = [
                         'columna' => $colOpt,
                         'nombre' => self::$columnasOpcionales[$colOpt][$idioma] ?? self::$columnasOpcionales[$colOpt]['es'],
@@ -640,7 +700,8 @@ class ColumnaVisibleEjecutivo extends Model
         
         // Agregar columnas opcionales visibles que no tienen posición definida (al final)
         foreach ($opcionales as $colOpt => $configOpt) {
-            if ($configOpt['visible'] && (empty($configOpt['mostrar_despues_de']) || !in_array($configOpt['mostrar_despues_de'], $predeterminadas))) {
+            $debeMotrarse = $configOpt['visible'] || $configOpt['es_global'];
+            if ($debeMotrarse && (empty($configOpt['mostrar_despues_de']) || !in_array($configOpt['mostrar_despues_de'], $predeterminadas))) {
                 $yaAgregada = collect($resultado)->where('columna', $colOpt)->isNotEmpty();
                 if (!$yaAgregada) {
                     $resultado[] = [
@@ -653,5 +714,67 @@ class ColumnaVisibleEjecutivo extends Model
         }
         
         return $resultado;
+    }
+
+    /**
+     * Obtener campos personalizados visibles para un ejecutivo
+     * Considera configuración global (empleado_id = NULL) e individual
+     */
+    public static function getCamposPersonalizadosVisibles($empleadoId)
+    {
+        // Obtener todos los campos personalizados activos
+        $todosLosCampos = CampoPersonalizadoMatriz::where('activo', true)
+            ->orderBy('orden')
+            ->get();
+        
+        // Si no hay ejecutivo específico (admin), devolver todos los campos activos
+        if (!$empleadoId || $empleadoId <= 0) {
+            return $todosLosCampos;
+        }
+        
+        // Filtrar solo los que tienen configuración visible (global o individual)
+        return $todosLosCampos->filter(function($campo) use ($empleadoId) {
+            $columnaKey = 'campo_' . $campo->id;
+            
+            // Verificar si está visible globalmente
+            $visibleGlobal = self::whereNull('empleado_id')
+                ->where('columna', $columnaKey)
+                ->where('visible', true)
+                ->exists();
+            
+            if ($visibleGlobal) {
+                return true;
+            }
+            
+            // Verificar si está visible para este ejecutivo específico
+            $visibleIndividual = self::where('empleado_id', $empleadoId)
+                ->where('columna', $columnaKey)
+                ->where('visible', true)
+                ->exists();
+            
+            return $visibleIndividual;
+        })->values();
+    }
+
+    /**
+     * Verificar si una columna opcional está visible para un ejecutivo (ya sea por config individual o global)
+     */
+    public static function esColumnaOpcionalVisible($empleadoId, $columna)
+    {
+        // Verificar si es global
+        $configGlobal = self::whereNull('empleado_id')
+            ->where('columna', $columna)
+            ->where('visible', true)
+            ->exists();
+        
+        if ($configGlobal) {
+            return true;
+        }
+        
+        // Verificar configuración específica del ejecutivo
+        return self::where('empleado_id', $empleadoId)
+            ->where('columna', $columna)
+            ->where('visible', true)
+            ->exists();
     }
 }

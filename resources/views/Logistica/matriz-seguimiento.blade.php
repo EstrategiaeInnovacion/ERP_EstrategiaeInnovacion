@@ -127,7 +127,7 @@
                             <option value="todos">Todos</option>
                             @foreach($clientes as $cliente)
                                 <option value="{{ $cliente->id }}" {{ request('filter.cliente') == $cliente->id ? 'selected' : '' }}>
-                                    {{ $cliente->razon_social ?? $cliente->cliente }}
+                                    {{ $cliente->cliente }}
                                 </option>
                             @endforeach
                         </select>
@@ -633,7 +633,109 @@
                     </div>
                     @endif
 
-                    {{-- Sección 6: Status y Comentarios --}}
+                    {{-- Sección 6: Campos Personalizados Dinámicos (de BD) --}}
+                    @if(isset($camposPersonalizados) && count($camposPersonalizados) > 0)
+                    <div class="bg-cyan-50 rounded-xl p-4">
+                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Campos Adicionales
+                            <span class="text-xs text-slate-400 font-normal">(Personalizados)</span>
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="campos-personalizados-dinamicos">
+                            @foreach($camposPersonalizados as $campo)
+                                @if($campo->activo)
+                                <div>
+                                    <label class="block text-xs font-medium mb-1 text-slate-600">
+                                        {{ $campo->nombre }}
+                                        @if($campo->requerido)<span class="text-red-500">*</span>@endif
+                                    </label>
+                                    
+                                    @switch($campo->tipo)
+                                        @case('texto')
+                                        @case('email')
+                                        @case('telefono')
+                                        @case('url')
+                                            <input type="{{ $campo->tipo === 'email' ? 'email' : ($campo->tipo === 'telefono' ? 'tel' : ($campo->tipo === 'url' ? 'url' : 'text')) }}" 
+                                                name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                            @break
+                                        
+                                        @case('descripcion')
+                                            <textarea name="campo_{{ $campo->id }}" rows="2" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}></textarea>
+                                            @break
+                                        
+                                        @case('numero')
+                                            <input type="number" name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                            @break
+                                        
+                                        @case('decimal')
+                                        @case('moneda')
+                                            <input type="number" step="0.01" name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                            @break
+                                        
+                                        @case('fecha')
+                                            <input type="date" name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                            @break
+                                        
+                                        @case('booleano')
+                                            <div class="flex items-center pt-1">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" name="campo_{{ $campo->id }}" value="1" 
+                                                        class="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
+                                                    <span class="text-sm text-slate-600">Sí</span>
+                                                </label>
+                                            </div>
+                                            @break
+                                        
+                                        @case('selector')
+                                            <select name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                                <option value="">Seleccionar...</option>
+                                                @if($campo->opciones)
+                                                    @foreach($campo->opciones as $opcion)
+                                                        <option value="{{ $opcion }}">{{ $opcion }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
+                                            @break
+                                        
+                                        @case('multiple')
+                                            <div class="space-y-1 p-2 border rounded-lg bg-white max-h-32 overflow-y-auto">
+                                                @if($campo->opciones)
+                                                    @foreach($campo->opciones as $opcion)
+                                                        <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                                                            <input type="checkbox" name="campo_{{ $campo->id }}[]" value="{{ $opcion }}" 
+                                                                class="rounded border-slate-300 text-cyan-600">
+                                                            <span>{{ $opcion }}</span>
+                                                        </label>
+                                                    @endforeach
+                                                @endif
+                                            </div>
+                                            @break
+                                        
+                                        @default
+                                            <input type="text" name="campo_{{ $campo->id }}" 
+                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
+                                                {{ $campo->requerido ? 'required' : '' }}>
+                                    @endswitch
+                                </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Sección 7: Status y Comentarios --}}
                     <div class="bg-rose-50 rounded-xl p-4">
                         <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
                             <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -696,13 +798,32 @@
             <div class="p-6 border-b flex justify-between items-center bg-slate-800 text-white rounded-t-2xl">
                 <div>
                     <h3 class="font-bold text-xl">Configuración del Sistema</h3>
-                    <p class="text-slate-300 text-sm">Gestiona columnas opcionales por ejecutivo y tareas estándar.</p>
+                    <p class="text-slate-300 text-sm">Gestiona columnas, campos personalizados y tareas estándar.</p>
                 </div>
                 <button onclick="cerrarModalCamposPersonalizados()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
-                {{-- Panel Izquierdo: Columnas Opcionales por Ejecutivo --}}
-                <div class="w-full md:w-2/3 p-6 border-r border-slate-200 overflow-y-auto">
+            
+            {{-- Pestañas de navegación --}}
+            <div class="border-b border-slate-200 bg-slate-50">
+                <nav class="flex -mb-px px-6">
+                    <button onclick="mostrarTabConfig('columnas')" id="tabColumnas" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
+                        Columnas por Ejecutivo
+                    </button>
+                    <button onclick="mostrarTabConfig('campos')" id="tabCampos" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Campos Personalizados
+                    </button>
+                    <button onclick="mostrarTabConfig('checklist')" id="tabChecklist" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        Checklist Estándar
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="flex-1 overflow-hidden">
+                {{-- TAB 1: Columnas por Ejecutivo --}}
+                <div id="panelColumnas" class="tab-config-panel h-full overflow-y-auto p-6">
                     <h4 class="font-bold text-lg text-slate-800 mb-2">Columnas Extra por Ejecutivo</h4>
                     <p class="text-sm text-slate-500 mb-4">Configura qué campos opcionales se muestran para cada ejecutivo en la matriz y el formulario.</p>
                     
@@ -720,9 +841,11 @@
                     {{-- Lista de Columnas Opcionales --}}
                     <div id="contenedorColumnasOpcionales" class="hidden">
                         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                            <p class="text-sm text-amber-800">
-                                <strong>Nota:</strong> Las columnas opcionales aparecerán en <span class="bg-slate-200 px-1 rounded">color gris</span> en la matriz para diferenciarse de las predeterminadas.
-                            </p>
+                            <div class="text-sm text-amber-800 space-y-1">
+                                <p><strong>Configuración de columnas:</strong></p>
+                                <p>• <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">Mostrar a todos</span> - La columna será visible para todos los ejecutivos.</p>
+                                <p>• <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Solo este ejecutivo</span> - La columna solo será visible para el ejecutivo seleccionado.</p>
+                            </div>
                         </div>
                         
                         <div id="listaColumnasOpcionales" class="space-y-3">
@@ -742,15 +865,123 @@
                     </div>
                 </div>
                 
-                {{-- Panel Derecho: Checklist Estándar --}}
-                <div class="w-full md:w-1/3 p-6 overflow-y-auto bg-slate-50">
+                {{-- TAB 2: Campos Personalizados --}}
+                <div id="panelCampos" class="tab-config-panel h-full overflow-y-auto p-6 hidden">
+                    <h4 class="font-bold text-lg text-slate-800 mb-2">Campos Personalizados</h4>
+                    <p class="text-sm text-slate-500 mb-4">Crea campos adicionales que aparecerán en todas las operaciones.</p>
+                    
+                    {{-- Formulario para nuevo campo --}}
+                    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 mb-6 border border-indigo-100">
+                        <h5 class="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Crear Nuevo Campo
+                        </h5>
+                        <form id="formNuevoCampoCompleto" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Campo *</label>
+                                    <input type="text" id="nuevoCampoNombre" required 
+                                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" 
+                                        placeholder="Ej: Número de Contenedor">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Campo *</label>
+                                    <select id="nuevoCampoTipo" required 
+                                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        onchange="mostrarOpcionesCampo(this.value)">
+                                        <option value="texto">📝 Texto corto</option>
+                                        <option value="descripcion">📄 Descripción (multilínea)</option>
+                                        <option value="numero">🔢 Número entero</option>
+                                        <option value="decimal">💲 Número decimal</option>
+                                        <option value="moneda">💰 Moneda</option>
+                                        <option value="fecha">📅 Fecha</option>
+                                        <option value="booleano">✅ Sí/No</option>
+                                        <option value="selector">📋 Selector (una opción)</option>
+                                        <option value="multiple">☑️ Opción múltiple</option>
+                                        <option value="email">📧 Correo electrónico</option>
+                                        <option value="telefono">📞 Teléfono</option>
+                                        <option value="url">🔗 URL/Enlace</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            {{-- Opciones para selector/múltiple --}}
+                            <div id="contenedorOpcionesCampo" class="hidden">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Opciones (una por línea)</label>
+                                <textarea id="nuevoCampoOpciones" rows="3" 
+                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Opción 1&#10;Opción 2&#10;Opción 3"></textarea>
+                            </div>
+                            
+                            <div class="flex items-center gap-6">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="nuevoCampoRequerido" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="text-sm text-slate-700">Campo obligatorio</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="nuevoCampoActivo" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="text-sm text-slate-700">Activo</span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                    Crear Campo
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    {{-- Lista de campos existentes --}}
+                    <div>
+                        <h5 class="font-semibold text-slate-700 mb-3 flex items-center justify-between">
+                            <span>Campos Existentes</span>
+                            <span id="contadorCampos" class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">0 campos</span>
+                        </h5>
+                        <div id="listaCamposPersonalizados" class="space-y-2">
+                            <div class="text-center py-8 text-slate-400">
+                                <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <p class="text-sm">Cargando campos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- TAB 3: Checklist Estándar --}}
+                <div id="panelChecklist" class="tab-config-panel h-full overflow-y-auto p-6 hidden">
                     <h4 class="font-bold text-lg text-slate-800 mb-2">Checklist Estándar</h4>
                     <p class="text-sm text-slate-500 mb-4">Tareas automáticas para nuevas operaciones.</p>
+                    
+                    {{-- Formulario para agregar nueva tarea --}}
                     <form id="formNuevaPlantilla" class="flex gap-2 mb-4">
                         <input type="text" id="newPlantillaNombre" class="flex-1 rounded-lg border-slate-300 text-sm" placeholder="Nueva tarea...">
-                        <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">+</button>
+                        <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 font-medium">+</button>
                     </form>
-                    <div id="listaPlantillasConfig" class="space-y-2 bg-white p-4 rounded-xl border border-slate-200"></div>
+                    
+                    {{-- Lista de tareas existentes --}}
+                    <div class="mb-3">
+                        <h5 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tareas Activas</h5>
+                    </div>
+                    <div id="listaPlantillasConfig" class="space-y-2 max-h-[400px] overflow-y-auto">
+                        <div class="text-center py-4">
+                            <svg class="w-8 h-8 mx-auto text-slate-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-slate-400 text-sm mt-2">Cargando tareas...</p>
+                        </div>
+                    </div>
+                    
+                    {{-- Tip --}}
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <p class="text-xs text-blue-700">
+                            <strong>Tip:</strong> Haz clic en el nombre de una tarea para editarla directamente.
+                        </p>
+                    </div>
                 </div>
             </div>
             <div class="p-4 border-t bg-slate-50 rounded-b-2xl text-right">

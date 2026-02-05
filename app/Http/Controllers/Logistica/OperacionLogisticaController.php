@@ -19,6 +19,7 @@ use App\Models\Logistica\Transporte;
 use App\Models\Logistica\Aduana;
 use App\Models\Logistica\Pedimento;
 use App\Models\Logistica\CampoPersonalizadoMatriz;
+use App\Models\Logistica\ValorCampoPersonalizado;
 use App\Models\Logistica\ColumnaVisibleEjecutivo;
 use App\Models\Empleado;
 
@@ -61,10 +62,17 @@ class OperacionLogisticaController extends Controller
         // 2. Construcción del Query con Spatie Query Builder
         $operaciones = QueryBuilder::for(OperacionLogistica::class)
             // Cargamos relaciones para evitar N+1 (optimización)
-            ->with(['ejecutivo', 'postOperaciones', 'valoresCamposPersonalizados.campo', 'clienteRelacion'])
+            ->with(['ejecutivo', 'postOperaciones', 'valoresCamposPersonalizados.campo'])
             ->allowedFilters([
-                // Filtro exacto para Cliente (usa el select)
-                AllowedFilter::exact('cliente', 'cliente_id')->ignore('todos'), // Ajusta 'cliente_id' si tu columna es esa, o 'cliente' si guardas el nombre
+                // Filtro de cliente: busca por ID del Cliente y compara con el nombre guardado en operaciones
+                AllowedFilter::callback('cliente', function (Builder $query, $value) {
+                    if (empty($value) || $value === 'todos') return;
+                    // Buscar el nombre del cliente por ID y filtrar
+                    $cliente = Cliente::find($value);
+                    if ($cliente) {
+                        $query->where('cliente', $cliente->cliente);
+                    }
+                }),
 
                 // Filtro parcial para Ejecutivo
                 AllowedFilter::partial('ejecutivo')->ignore('todos'),
@@ -142,6 +150,9 @@ class OperacionLogisticaController extends Controller
 
             $operacion = OperacionLogistica::create($data);
             $this->generarHistorialInicial($operacion);
+            
+            // Guardar campos personalizados
+            $this->guardarCamposPersonalizados($request, $operacion->id);
 
             return redirect()->route('logistica.matriz-seguimiento')
                 ->with('success', 'Operación creada exitosamente. Folio: ' . $operacion->id);
@@ -159,6 +170,9 @@ class OperacionLogisticaController extends Controller
         try {
             $data = $request->validated();
             $operacion->update($data);
+            
+            // Actualizar campos personalizados
+            $this->guardarCamposPersonalizados($request, $operacion->id);
 
             // Forzar recálculo tras edición
             if (method_exists($operacion, 'actualizarStatusAutomaticamente')) {
@@ -171,6 +185,35 @@ class OperacionLogisticaController extends Controller
         } catch (\Exception $e) {
             Log::error('Error actualizando: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Guardar valores de campos personalizados
+     */
+    private function guardarCamposPersonalizados(Request $request, $operacionId)
+    {
+        // Buscar todos los campos que empiecen con "campo_"
+        foreach ($request->all() as $key => $valor) {
+            if (strpos($key, 'campo_') === 0) {
+                $campoId = (int) str_replace('campo_', '', $key);
+                
+                if ($campoId > 0) {
+                    // Si es array (checkbox multiple), convertir a JSON
+                    $valorFinal = is_array($valor) ? json_encode($valor) : $valor;
+                    
+                    // Guardar usando updateOrCreate para evitar duplicados
+                    ValorCampoPersonalizado::updateOrCreate(
+                        [
+                            'operacion_logistica_id' => $operacionId,
+                            'campo_personalizado_id' => $campoId
+                        ],
+                        [
+                            'valor' => $valorFinal
+                        ]
+                    );
+                }
+            }
         }
     }
 
@@ -343,7 +386,7 @@ class OperacionLogisticaController extends Controller
             'transportes' => Transporte::orderBy('transporte')->get(),
             'aduanas' => Aduana::orderBy('aduana')->get(),
             'pedimentos' => Pedimento::orderBy('clave')->get(),
-            'camposPersonalizados' => CampoPersonalizadoMatriz::where('activo', true)->orderBy('orden')->get(),
+            'camposPersonalizados' => ColumnaVisibleEjecutivo::getCamposPersonalizadosVisibles($idEmpleadoConfig),
             'columnasOpcionalesVisibles' => $columnasVisibles,
             'columnasOrdenadas' => $columnasOrdenadas,
             'idiomaColumnas' => $idioma,

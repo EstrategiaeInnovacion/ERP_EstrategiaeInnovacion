@@ -68,13 +68,55 @@ class CampoPersonalizadoController extends Controller
     public function store(Request $request) {
         $validated = $request->validate([
             'nombre' => 'required|string|max:100',
-            'tipo' => 'required|in:texto,fecha,numero,decimal,booleano,selector,multiple',
+            'tipo' => 'required|in:texto,descripcion,fecha,numero,decimal,moneda,booleano,selector,multiple,email,telefono,url',
             'opciones' => 'nullable', // JSON o array
-            'activo' => 'boolean',
-            'orden' => 'integer'
+            'requerido' => 'nullable|boolean',
+            'activo' => 'nullable|boolean',
+            'orden' => 'nullable|integer'
         ]);
         
+        // Procesar opciones si vienen como array
+        if (isset($validated['opciones']) && is_array($validated['opciones'])) {
+            $validated['opciones'] = $validated['opciones'];
+        }
+        
+        // Valores por defecto
+        $validated['activo'] = $request->input('activo', true);
+        $validated['requerido'] = $request->input('requerido', false);
+        $validated['orden'] = $request->input('orden', 99);
+        
         $campo = CampoPersonalizadoMatriz::create($validated);
+        return response()->json(['success' => true, 'campo' => $campo]);
+    }
+
+    /**
+     * Actualiza un campo personalizado
+     */
+    public function update(Request $request, $id) {
+        $campo = CampoPersonalizadoMatriz::findOrFail($id);
+        
+        $validated = $request->validate([
+            'nombre' => 'sometimes|string|max:100',
+            'tipo' => 'sometimes|in:texto,descripcion,fecha,numero,decimal,moneda,booleano,selector,multiple,email,telefono,url',
+            'opciones' => 'nullable',
+            'requerido' => 'nullable|boolean',
+            'activo' => 'nullable|boolean',
+            'orden' => 'nullable|integer'
+        ]);
+        
+        $campo->update($validated);
+        return response()->json(['success' => true, 'campo' => $campo]);
+    }
+
+    /**
+     * Toggle activo/inactivo de un campo
+     */
+    public function toggleActivo(Request $request, $id) {
+        $campo = CampoPersonalizadoMatriz::findOrFail($id);
+        
+        $campo->activo = $request->input('activo', !$campo->activo);
+        $campo->save();
+        
         return response()->json(['success' => true, 'campo' => $campo]);
     }
 

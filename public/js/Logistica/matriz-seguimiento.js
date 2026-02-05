@@ -81,10 +81,55 @@ document.addEventListener('DOMContentLoaded', function() {
                         checkPedimento.checked = op.pedimento_en_carpeta == 1 || op.pedimento_en_carpeta === true;
                     }
                     
+                    // Cargar valores de campos personalizados
+                    cargarValoresCamposPersonalizados(id, form);
+                    
                     document.getElementById('modalOperacion').classList.remove('hidden');
                 }
             });
     };
+
+    // Función para cargar valores de campos personalizados al editar
+    function cargarValoresCamposPersonalizados(operacionId, form) {
+        fetch(`/logistica/campos-personalizados/operacion/${operacionId}/valores`)
+            .then(res => res.json())
+            .then(valores => {
+                // valores es un objeto {campo_id: valor}
+                Object.entries(valores).forEach(([campoId, valor]) => {
+                    const inputName = `campo_${campoId}`;
+                    const input = form.querySelector(`[name="${inputName}"]`);
+                    const inputMultiple = form.querySelectorAll(`[name="${inputName}[]"]`);
+                    
+                    if (input) {
+                        if (input.type === 'checkbox' && inputMultiple.length === 0) {
+                            // Checkbox simple (booleano)
+                            input.checked = valor == '1' || valor === 'true' || valor === true;
+                        } else if (input.type === 'date' && valor) {
+                            // Fecha
+                            input.value = valor.split('T')[0].split(' ')[0];
+                        } else {
+                            // Texto, select, etc.
+                            input.value = valor || '';
+                        }
+                    }
+                    
+                    // Checkbox múltiple
+                    if (inputMultiple.length > 0) {
+                        try {
+                            const valoresArray = typeof valor === 'string' ? JSON.parse(valor) : valor;
+                            if (Array.isArray(valoresArray)) {
+                                inputMultiple.forEach(cb => {
+                                    cb.checked = valoresArray.includes(cb.value);
+                                });
+                            }
+                        } catch(e) {
+                            console.log('Error parsing multiple values:', e);
+                        }
+                    }
+                });
+            })
+            .catch(err => console.log('Error cargando campos personalizados:', err));
+    }
 
     const formOperacion = document.getElementById('formOperacion');
     if(formOperacion) {
@@ -301,39 +346,174 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalCamposPersonalizados').classList.add('hidden');
     };
 
+    // =========================================================
+    // SISTEMA DE PESTAÑAS PARA CONFIGURACIÓN
+    // =========================================================
+    window.mostrarTabConfig = function(tab) {
+        // Ocultar todos los paneles
+        document.querySelectorAll('.tab-config-panel').forEach(panel => panel.classList.add('hidden'));
+        // Desactivar todos los botones de tabs
+        document.querySelectorAll('.tab-config-btn').forEach(btn => {
+            btn.classList.remove('border-blue-500', 'text-blue-600');
+            btn.classList.add('border-transparent', 'text-slate-500');
+        });
+        
+        // Mostrar panel seleccionado y activar tab
+        const panelMap = {
+            'columnas': 'panelColumnas',
+            'campos': 'panelCampos',
+            'checklist': 'panelChecklist'
+        };
+        const tabMap = {
+            'columnas': 'tabColumnas',
+            'campos': 'tabCampos',
+            'checklist': 'tabChecklist'
+        };
+        
+        document.getElementById(panelMap[tab])?.classList.remove('hidden');
+        const activeTab = document.getElementById(tabMap[tab]);
+        if(activeTab) {
+            activeTab.classList.remove('border-transparent', 'text-slate-500');
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+        }
+    };
+
+    // Mostrar/ocultar campo de opciones según tipo seleccionado
+    window.mostrarOpcionesCampo = function(tipo) {
+        const contenedor = document.getElementById('contenedorOpcionesCampo');
+        if(tipo === 'selector' || tipo === 'multiple') {
+            contenedor.classList.remove('hidden');
+        } else {
+            contenedor.classList.add('hidden');
+        }
+    };
+
+    // Iconos para tipos de campo
+    const TIPO_ICONOS = {
+        'texto': '📝',
+        'descripcion': '📄',
+        'numero': '🔢',
+        'decimal': '💲',
+        'moneda': '💰',
+        'fecha': '📅',
+        'booleano': '✅',
+        'selector': '📋',
+        'multiple': '☑️',
+        'email': '📧',
+        'telefono': '📞',
+        'url': '🔗'
+    };
+
     function cargarConfiguracion() {
         // Cargar Campos Personalizados
-        fetch('/logistica/campos-personalizados')
-            .then(r => r.json())
-            .then(data => {
-                const lista = document.getElementById('listaCamposConfig');
-                // Aseguramos que data sea el array, a veces viene directo o dentro de una propiedad
-                const campos = Array.isArray(data) ? data : (data.campos || []); 
-                
-                lista.innerHTML = campos.map(c => `
-                    <div class="flex justify-between items-center p-2 border-b text-sm">
-                        <span>${c.nombre} <small class="text-gray-400">(${c.tipo})</small></span>
-                        <button onclick="eliminarCampo(${c.id})" class="text-red-500 hover:text-red-700">×</button>
-                    </div>
-                `).join('') || '<p class="text-gray-400 text-sm text-center py-2">Sin campos extra.</p>';
-            });
+        cargarCamposPersonalizados();
 
-        // Cargar Plantillas Post-Operación (CORREGIDO)
+        // Cargar Plantillas Post-Operación (Checklist Estándar)
         fetch('/logistica/post-operaciones/globales')
             .then(r => r.json())
             .then(data => {
                 const lista = document.getElementById('listaPlantillasConfig');
-                if(data.success) {
-                    // CORRECCIÓN AQUÍ: Usar 'postOperaciones' (CamelCase) tal como lo envía el Controller
+                if(data.success && data.postOperaciones.length > 0) {
                     lista.innerHTML = data.postOperaciones.map(p => ` 
-                        <div class="flex justify-between items-center p-2 border-b text-sm">
-                            <span>${p.nombre}</span>
-                            <button onclick="eliminarPlantilla(${p.id})" class="text-red-500 hover:text-red-700">×</button>
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors" id="plantilla-${p.id}">
+                            <div class="flex-1">
+                                <input type="text" value="${p.nombre}" 
+                                    class="bg-transparent border-none text-sm font-medium text-slate-700 w-full focus:outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1"
+                                    id="plantilla-nombre-${p.id}"
+                                    onchange="actualizarPlantilla(${p.id})"
+                                    onfocus="this.classList.add('bg-white', 'border', 'border-blue-300')"
+                                    onblur="this.classList.remove('bg-white', 'border', 'border-blue-300')">
+                            </div>
+                            <div class="flex gap-1 ml-2">
+                                <button onclick="confirmarEliminarPlantilla(${p.id}, '${p.nombre.replace(/'/g, "\\'")}')" 
+                                    class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" 
+                                    title="Eliminar tarea">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    `).join('') || '<p class="text-gray-400 text-sm text-center py-2">Sin tareas globales.</p>';
+                    `).join('');
+                } else {
+                    lista.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">No hay tareas configuradas. Agrega una nueva tarea arriba.</p>';
                 }
+            })
+            .catch(err => {
+                console.error('Error cargando plantillas:', err);
+                document.getElementById('listaPlantillasConfig').innerHTML = '<p class="text-red-400 text-sm text-center py-4">Error al cargar tareas.</p>';
             });
     }
+
+    // Actualizar nombre de plantilla (inline edit)
+    window.actualizarPlantilla = function(id) {
+        const input = document.getElementById(`plantilla-nombre-${id}`);
+        const nuevoNombre = input.value.trim();
+        
+        if(!nuevoNombre) {
+            alert('El nombre no puede estar vacío');
+            cargarConfiguracion();
+            return;
+        }
+
+        fetch(`/logistica/post-operaciones/globales/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': token},
+            body: JSON.stringify({ nombre: nuevoNombre })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                // Feedback visual sutil
+                input.classList.add('bg-green-50');
+                setTimeout(() => input.classList.remove('bg-green-50'), 1000);
+            } else {
+                alert('Error al actualizar');
+                cargarConfiguracion();
+            }
+        })
+        .catch(() => {
+            alert('Error de conexión');
+            cargarConfiguracion();
+        });
+    };
+
+    // Confirmar eliminación de plantilla
+    window.confirmarEliminarPlantilla = function(id, nombre) {
+        if(confirm(`¿Eliminar la tarea "${nombre}"? Esta acción no se puede deshacer.`)) {
+            eliminarPlantilla(id);
+        }
+    };
+
+    // Eliminar plantilla
+    window.eliminarPlantilla = function(id) {
+        const elemento = document.getElementById(`plantilla-${id}`);
+        if(elemento) {
+            elemento.style.opacity = '0.5';
+            elemento.style.pointerEvents = 'none';
+        }
+
+        fetch(`/logistica/post-operaciones/globales/${id}`, {
+            method: 'DELETE',
+            headers: {'X-CSRF-TOKEN': token}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                cargarConfiguracion();
+            } else {
+                alert('Error al eliminar');
+                if(elemento) {
+                    elemento.style.opacity = '1';
+                    elemento.style.pointerEvents = 'auto';
+                }
+            }
+        })
+        .catch(() => {
+            alert('Error de conexión');
+            cargarConfiguracion();
+        });
+    };
 
     // Guardar Nuevo Campo Personalizado (CORREGIDO EL REFRESCO)
     document.getElementById('formNuevoCampo')?.addEventListener('submit', function(e) {
@@ -366,6 +546,200 @@ document.addEventListener('DOMContentLoaded', function() {
              btn.disabled = false;
         });
     });
+
+    // =========================================================
+    // FORMULARIO COMPLETO PARA NUEVO CAMPO PERSONALIZADO
+    // =========================================================
+    document.getElementById('formNuevoCampoCompleto')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const nombre = document.getElementById('nuevoCampoNombre').value.trim();
+        const tipo = document.getElementById('nuevoCampoTipo').value;
+        const requerido = document.getElementById('nuevoCampoRequerido').checked;
+        const activo = document.getElementById('nuevoCampoActivo').checked;
+        const opcionesRaw = document.getElementById('nuevoCampoOpciones')?.value || '';
+        
+        if(!nombre) {
+            alert('El nombre del campo es obligatorio');
+            return;
+        }
+
+        // Procesar opciones para selector/multiple
+        let opciones = null;
+        if(tipo === 'selector' || tipo === 'multiple') {
+            opciones = opcionesRaw.split('\n').map(o => o.trim()).filter(o => o);
+            if(opciones.length === 0) {
+                alert('Debes agregar al menos una opción para este tipo de campo');
+                return;
+            }
+        }
+
+        const btn = this.querySelector('button[type="submit"]');
+        const txtOriginal = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Guardando...';
+        btn.disabled = true;
+
+        fetch('/logistica/campos-personalizados', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': token},
+            body: JSON.stringify({ 
+                nombre: nombre, 
+                tipo: tipo, 
+                requerido: requerido ? 1 : 0,
+                activo: activo ? 1 : 0, 
+                opciones: opciones,
+                orden: 99 
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Limpiar formulario
+                document.getElementById('nuevoCampoNombre').value = '';
+                document.getElementById('nuevoCampoTipo').value = 'texto';
+                document.getElementById('nuevoCampoRequerido').checked = false;
+                document.getElementById('nuevoCampoActivo').checked = true;
+                document.getElementById('nuevoCampoOpciones').value = '';
+                document.getElementById('contenedorOpcionesCampo').classList.add('hidden');
+                
+                alert('Campo creado correctamente. La página se recargará para mostrar la nueva columna.');
+                window.location.reload();
+            } else {
+                alert('Error al crear: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error de conexión');
+        })
+        .finally(() => {
+            btn.innerHTML = txtOriginal;
+            btn.disabled = false;
+        });
+    });
+
+    // Función para cargar y mostrar campos personalizados con todo el detalle
+    function cargarCamposPersonalizados() {
+        const lista = document.getElementById('listaCamposPersonalizados');
+        const contador = document.getElementById('contadorCampos');
+        
+        if(!lista) return;
+        
+        fetch('/logistica/campos-personalizados')
+            .then(r => r.json())
+            .then(data => {
+                const campos = Array.isArray(data) ? data : (data.campos || []);
+                
+                if(contador) {
+                    contador.textContent = `${campos.length} campo${campos.length !== 1 ? 's' : ''}`;
+                }
+                
+                if(campos.length === 0) {
+                    lista.innerHTML = `
+                        <div class="text-center py-8 text-slate-400">
+                            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <p class="text-sm">No hay campos personalizados.</p>
+                            <p class="text-xs">Usa el formulario de arriba para crear uno.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                lista.innerHTML = campos.map(c => {
+                    const icono = TIPO_ICONOS[c.tipo] || '📝';
+                    const esActivo = c.activo == 1;
+                    const esRequerido = c.requerido == 1;
+                    
+                    let opcionesHtml = '';
+                    if((c.tipo === 'selector' || c.tipo === 'multiple') && c.opciones) {
+                        try {
+                            const opts = typeof c.opciones === 'string' ? JSON.parse(c.opciones) : c.opciones;
+                            if(Array.isArray(opts) && opts.length > 0) {
+                                opcionesHtml = `<div class="text-xs text-slate-400 mt-1">Opciones: ${opts.join(', ')}</div>`;
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    return `
+                        <div class="p-3 rounded-lg border ${esActivo ? 'bg-white border-slate-200' : 'bg-slate-100 border-slate-200 opacity-60'} hover:shadow-sm transition-shadow" id="campo-item-${c.id}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-lg">${icono}</span>
+                                        <span class="font-medium text-slate-800">${c.nombre}</span>
+                                        ${esRequerido ? '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Obligatorio</span>' : ''}
+                                        ${!esActivo ? '<span class="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Inactivo</span>' : ''}
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">Tipo: ${c.tipo}</div>
+                                    ${opcionesHtml}
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="toggleActivoCampo(${c.id}, ${esActivo ? 0 : 1})" 
+                                        class="p-1.5 ${esActivo ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-50'} rounded transition-colors" 
+                                        title="${esActivo ? 'Desactivar' : 'Activar'}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${esActivo ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' : 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21'}"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="confirmarEliminarCampo(${c.id}, '${c.nombre.replace(/'/g, "\\'")}')" 
+                                        class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" 
+                                        title="Eliminar campo">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                console.error('Error cargando campos:', err);
+                lista.innerHTML = '<p class="text-red-400 text-sm text-center py-4">Error al cargar campos.</p>';
+            });
+    }
+
+    // Toggle activo/inactivo de campo
+    window.toggleActivoCampo = function(id, nuevoEstado) {
+        const elemento = document.getElementById(`campo-item-${id}`);
+        if(elemento) {
+            elemento.style.opacity = '0.5';
+            elemento.style.pointerEvents = 'none';
+        }
+        
+        fetch(`/logistica/campos-personalizados/${id}/toggle-activo`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': token},
+            body: JSON.stringify({ activo: nuevoEstado })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                // Recargar para mostrar cambios en la tabla
+                window.location.reload();
+            } else {
+                alert('Error al actualizar');
+                if(elemento) {
+                    elemento.style.opacity = '1';
+                    elemento.style.pointerEvents = 'auto';
+                }
+            }
+        })
+        .catch(() => {
+            alert('Error de conexión');
+            cargarCamposPersonalizados();
+        });
+    };
+
+    // Confirmar eliminación de campo
+    window.confirmarEliminarCampo = function(id, nombre) {
+        if(confirm(`¿Eliminar el campo "${nombre}"?\n\nEsto eliminará todos los valores guardados de este campo. Esta acción no se puede deshacer.`)) {
+            eliminarCampo(id);
+        }
+    };
 
     // Guardar Nueva Plantilla Post-Op (Tarea Global)
     document.getElementById('formNuevaPlantilla')?.addEventListener('submit', function(e) {
@@ -429,6 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 5. CONFIGURACIÓN DE COLUMNAS POR EJECUTIVO
     // =========================================================
     let configColumnasPorEjecutivo = {};
+    let configCamposPersonalizados = {};
     let ejecutivoSeleccionadoId = null;
     let columnasPredeterminadas = [];
 
@@ -446,8 +821,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     configColumnasPorEjecutivo = data.configuracion;
+                    configCamposPersonalizados = data.camposPersonalizados || {};
                     columnasPredeterminadas = Object.keys(data.columnasPredeterminadas);
-                    renderizarColumnasOpcionales(data.configuracion, data.columnasPredeterminadas);
+                    renderizarColumnasOpcionales(data.configuracion, data.columnasPredeterminadas, data.camposPersonalizados);
                     document.getElementById('contenedorColumnasOpcionales').classList.remove('hidden');
                     document.getElementById('mensajeSeleccionarEjecutivo').classList.add('hidden');
                 }
@@ -457,63 +833,177 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    function renderizarColumnasOpcionales(configuracion, columnasPred) {
+    function renderizarColumnasOpcionales(configuracion, columnasPred, camposPersonalizados = {}) {
         const container = document.getElementById('listaColumnasOpcionales');
         container.innerHTML = '';
+        
+        // Sección 1: Columnas Opcionales del Sistema
+        const seccionColumnas = document.createElement('div');
+        seccionColumnas.innerHTML = `
+            <h5 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
+                Columnas del Sistema
+            </h5>
+        `;
+        container.appendChild(seccionColumnas);
 
         Object.entries(configuracion).forEach(([columna, config]) => {
-            const isActive = config.visible;
-            const despuesDe = config.mostrar_despues_de || 'comentarios';
+            const item = crearItemColumna(columna, config, columnasPred, false);
+            container.appendChild(item);
+        });
+        
+        // Sección 2: Campos Personalizados
+        if (Object.keys(camposPersonalizados).length > 0) {
+            const seccionCampos = document.createElement('div');
+            seccionCampos.className = 'mt-6 pt-4 border-t border-slate-200';
+            seccionCampos.innerHTML = `
+                <h5 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    Campos Personalizados
+                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">${Object.keys(camposPersonalizados).length}</span>
+                </h5>
+            `;
+            container.appendChild(seccionCampos);
+            
+            Object.entries(camposPersonalizados).forEach(([columna, config]) => {
+                const item = crearItemColumna(columna, config, columnasPred, true);
+                container.appendChild(item);
+            });
+        }
+    }
+    
+    function crearItemColumna(columna, config, columnasPred, esCampoPersonalizado) {
+        const isActiveIndividual = config.visible;
+        const isGlobal = config.es_global || false;
+        const despuesDe = config.mostrar_despues_de || 'comentarios';
+        const isVisibleForUser = isActiveIndividual || isGlobal;
+        
+        // Indicadores de tipo para campos personalizados
+        const tipoIconos = {
+            'texto': '📝', 'descripcion': '📄', 'numero': '🔢', 'decimal': '💲',
+            'moneda': '💰', 'fecha': '📅', 'booleano': '✅', 'selector': '📋',
+            'multiple': '☑️', 'email': '📧', 'telefono': '📞', 'url': '🔗'
+        };
+        const tipoIcono = esCampoPersonalizado && config.tipo ? (tipoIconos[config.tipo] || '📝') : '';
+        const requeridoBadge = esCampoPersonalizado && config.requerido ? '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded ml-2">Obligatorio</span>' : '';
 
-            const item = document.createElement('div');
-            item.className = `p-4 rounded-xl border ${isActive ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'}`;
-            item.innerHTML = `
+        const item = document.createElement('div');
+        item.className = `p-4 rounded-xl border mb-2 ${isGlobal ? 'bg-blue-50 border-blue-200' : (isActiveIndividual ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200')}`;
+        item.innerHTML = `
+            <div class="flex flex-col gap-3">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex-1">
-                        <div class="font-medium text-slate-800">${config.nombre_es}</div>
-                        <div class="text-xs text-slate-500">${config.nombre_en}</div>
+                        <div class="font-medium text-slate-800">
+                            ${tipoIcono ? `<span class="mr-1">${tipoIcono}</span>` : ''}${config.nombre_es}${requeridoBadge}
+                        </div>
+                        <div class="text-xs text-slate-500">${esCampoPersonalizado && config.tipo ? `Tipo: ${config.tipo}` : config.nombre_en}</div>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-xs">
-                            <label class="text-slate-500">Mostrar después de:</label>
+                            <label class="text-slate-500">Después de:</label>
                             <select 
                                 id="pos_${columna}" 
                                 class="ml-1 text-xs rounded border-slate-300 py-1 px-2"
-                                onchange="actualizarPosicionColumna('${columna}', this.value)"
-                                ${!isActive ? 'disabled' : ''}
+                                onchange="actualizarPosicionColumna('${columna}', this.value, ${esCampoPersonalizado})"
+                                ${!isVisibleForUser ? 'disabled' : ''}
                             >
                                 ${Object.entries(columnasPred).map(([key, nombre]) => 
                                     `<option value="${key}" ${despuesDe === key ? 'selected' : ''}>${nombre}</option>`
                                 ).join('')}
                             </select>
                         </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <!-- Checkbox Mostrar a todos -->
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            id="global_${columna}"
+                            ${isGlobal ? 'checked' : ''}
+                            onchange="toggleColumnaGlobal('${columna}', this.checked)"
+                            class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        >
+                        <span class="text-sm text-slate-600">Mostrar a todos</span>
+                        ${isGlobal ? '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Activo global</span>' : ''}
+                    </label>
+                    
+                    <!-- Toggle solo para este ejecutivo -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500">Solo este ejecutivo:</span>
                         <button 
                             type="button"
-                            onclick="toggleColumnaOpcional('${columna}')"
-                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}"
+                            onclick="toggleColumnaOpcional('${columna}', ${esCampoPersonalizado})"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActiveIndividual ? 'bg-green-500' : 'bg-slate-300'} ${isGlobal ? 'opacity-50' : ''}"
+                            ${isGlobal ? 'disabled title="Ya está activo para todos"' : ''}
                         >
-                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}"></span>
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActiveIndividual ? 'translate-x-6' : 'translate-x-1'}"></span>
                         </button>
                     </div>
                 </div>
-            `;
-            container.appendChild(item);
-        });
+            </div>
+        `;
+        return item;
     }
 
-    window.toggleColumnaOpcional = function(columna) {
-        configColumnasPorEjecutivo[columna].visible = !configColumnasPorEjecutivo[columna].visible;
+    // Toggle para mostrar a todos (global)
+    window.toggleColumnaGlobal = function(columna, checked) {
+        const despuesDe = document.getElementById(`pos_${columna}`)?.value || 'comentarios';
+        
+        fetch('/logistica/columnas-config/guardar-global', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify({
+                columna: columna,
+                visible: checked,
+                mostrar_despues_de: despuesDe
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Recargar la configuración para actualizar la UI
+                cargarConfiguracionEjecutivo(ejecutivoSeleccionadoId);
+            } else {
+                alert('Error al guardar configuración global');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error de conexión');
+        });
+    };
+
+    window.toggleColumnaOpcional = function(columna, esCampoPersonalizado = false) {
+        // Actualizar en el objeto correspondiente
+        if (esCampoPersonalizado) {
+            configCamposPersonalizados[columna].visible = !configCamposPersonalizados[columna].visible;
+        } else {
+            configColumnasPorEjecutivo[columna].visible = !configColumnasPorEjecutivo[columna].visible;
+        }
         
         // Re-renderizar para actualizar UI
         fetch(`/logistica/columnas-config/ejecutivo/${ejecutivoSeleccionadoId}`)
             .then(res => res.json())
             .then(data => {
-                renderizarColumnasOpcionales(configColumnasPorEjecutivo, data.columnasPredeterminadas);
+                // Actualizar las configuraciones locales con los datos del servidor
+                renderizarColumnasOpcionales(
+                    data.configuracion, 
+                    data.columnasPredeterminadas,
+                    data.camposPersonalizados
+                );
             });
     };
 
-    window.actualizarPosicionColumna = function(columna, despuesDe) {
-        configColumnasPorEjecutivo[columna].mostrar_despues_de = despuesDe;
+    window.actualizarPosicionColumna = function(columna, despuesDe, esCampoPersonalizado = false) {
+        if (esCampoPersonalizado) {
+            configCamposPersonalizados[columna].mostrar_despues_de = despuesDe;
+        } else {
+            configColumnasPorEjecutivo[columna].mostrar_despues_de = despuesDe;
+        }
     };
 
     window.guardarConfiguracionColumnas = function() {
@@ -522,11 +1012,22 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Columnas opcionales del sistema
         const columnas = Object.entries(configColumnasPorEjecutivo).map(([columna, config]) => ({
             columna: columna,
             visible: config.visible,
             mostrar_despues_de: config.mostrar_despues_de
         }));
+        
+        // Campos personalizados
+        const camposPersonalizados = Object.entries(configCamposPersonalizados).map(([columna, config]) => ({
+            columna: columna,
+            visible: config.visible,
+            mostrar_despues_de: config.mostrar_despues_de
+        }));
+        
+        // Combinar ambos arrays
+        const todasLasColumnas = [...columnas, ...camposPersonalizados];
 
         fetch('/logistica/columnas-config/guardar-completa', {
             method: 'POST',
@@ -536,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 empleado_id: ejecutivoSeleccionadoId,
-                columnas: columnas
+                columnas: todasLasColumnas
             })
         })
         .then(res => res.json())

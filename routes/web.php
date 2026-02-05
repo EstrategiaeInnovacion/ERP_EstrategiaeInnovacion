@@ -123,6 +123,9 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
         Route::get('/ejecutivo/{empleadoId}', [ColumnaVisibleController::class, 'getConfiguracion'])->name('get');
         Route::post('/guardar', [ColumnaVisibleController::class, 'guardarConfiguracion'])->name('guardar');
         Route::post('/guardar-completa', [ColumnaVisibleController::class, 'guardarConfiguracionCompleta'])->name('guardar-completa');
+        // Rutas para configuración global (mostrar a todos)
+        Route::get('/global', [ColumnaVisibleController::class, 'getConfiguracionGlobal'])->name('global');
+        Route::post('/guardar-global', [ColumnaVisibleController::class, 'guardarConfiguracionGlobal'])->name('guardar-global');
     });
 
     // Operaciones
@@ -189,10 +192,10 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
     Route::controller(PostOperacionController::class)->prefix('post-operaciones')->name('post-operaciones.')->group(function() {
         Route::get('globales', 'indexGlobales')->name('globales');
         Route::post('globales', 'storeGlobal')->name('store-global');
+        Route::put('globales/{id}', 'updateGlobal')->name('update-global');
+        Route::delete('globales/{id}', 'destroyGlobal')->name('destroy-global');
         Route::get('operaciones/{id}', 'getByOperacion')->name('get-by-operacion');
         Route::put('operaciones/{id}/actualizar', 'bulkUpdate')->name('bulk-update');
-
-        
     });
 
     // Reportes
@@ -218,7 +221,9 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
         ->group(function() {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
+            Route::put('/{id}', 'update')->name('update');
             Route::delete('/{id}', 'destroy')->name('destroy');
+            Route::put('/{id}/toggle-activo', 'toggleActivo')->name('toggle-activo');
             
             // ESTA ES LA RUTA CRÍTICA QUE FALTA O FALLA:
             Route::post('/valor', 'storeValor')->name('store-valor'); 

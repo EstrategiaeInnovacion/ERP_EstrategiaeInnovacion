@@ -97,10 +97,10 @@
                         </div>
                         <div class="h-6 w-px bg-slate-300"></div>
                         <div>
-                            <select name="cliente" class="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 cursor-pointer max-w-[150px]">
+                            <select name="filter[cliente]" class="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 cursor-pointer max-w-[150px]">
                                 <option value="">Todos los Clientes</option>
                                 @foreach($clientes as $c)
-                                    <option value="{{ $c }}" {{ request('cliente') == $c ? 'selected' : '' }}>{{ Str::limit($c, 15) }}</option>
+                                    <option value="{{ $c->id }}" {{ request('filter.cliente') == $c->id ? 'selected' : '' }}>{{ Str::limit($c->cliente, 15) }}</option>
                                 @endforeach
                             </select>
                         </div>

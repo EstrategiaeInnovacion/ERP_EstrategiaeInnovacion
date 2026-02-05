@@ -12,7 +12,7 @@ class PostOperacionController extends Controller
 {
     // --- PLANTILLAS GLOBALES ---
 
-    public function indexGlobal()
+    public function indexGlobales()
     {
         $globales = PostOperacion::whereNull('operacion_logistica_id')->orderBy('nombre')->get();
         return response()->json(['success' => true, 'postOperaciones' => $globales]);
@@ -28,6 +28,28 @@ class PostOperacionController extends Controller
             'operacion_logistica_id' => null
         ]);
         return response()->json(['success' => true, 'postOperacion' => $po]);
+    }
+
+    public function updateGlobal(Request $request, $id)
+    {
+        $request->validate(['nombre' => 'required']);
+        $po = PostOperacion::findOrFail($id);
+        $po->update([
+            'nombre' => $request->nombre,
+            'descripcion' => $request->descripcion ?? $po->descripcion
+        ]);
+        return response()->json(['success' => true, 'postOperacion' => $po]);
+    }
+
+    public function destroyGlobal($id)
+    {
+        $po = PostOperacion::findOrFail($id);
+        
+        // También eliminamos las referencias en operaciones específicas
+        PostOperacionOperacion::where('post_operacion_id', $id)->delete();
+        
+        $po->delete();
+        return response()->json(['success' => true, 'message' => 'Tarea eliminada correctamente']);
     }
 
     // --- ESPECÍFICAS DE UNA OPERACIÓN ---

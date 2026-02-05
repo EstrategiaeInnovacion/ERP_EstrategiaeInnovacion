@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Logistica;
 use App\Http\Controllers\Controller;
 use App\Models\Logistica\OperacionLogistica;
 use App\Models\Logistica\Cliente;
+use App\Models\Logistica\ValorCampoPersonalizado;
 use App\Models\Empleado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -50,10 +51,19 @@ class ReporteController extends Controller
             $esAdmin = $usuarioActual->hasRole('admin');
         }
 
-        // 1. Iniciamos el QueryBuilder
+        // 1. Iniciamos el QueryBuilder con eager loading de campos personalizados
         $query = QueryBuilder::for(OperacionLogistica::class)
+            ->with(['valoresCamposPersonalizados.campo', 'postOperaciones'])
             ->allowedFilters([
-                AllowedFilter::exact('cliente', 'cliente_id')->ignore('todos'), // Ajusta si usas 'cliente' (texto) o 'cliente_id'
+                // Filtro de cliente: busca por ID del Cliente y compara con el nombre guardado en operaciones
+                AllowedFilter::callback('cliente', function (Builder $query, $value) {
+                    if (empty($value) || $value === 'todos') return;
+                    // Buscar el nombre del cliente por ID y filtrar
+                    $cliente = Cliente::find($value);
+                    if ($cliente) {
+                        $query->where('cliente', $cliente->cliente);
+                    }
+                }),
                 AllowedFilter::partial('ejecutivo')->ignore('todos'),
                 
                 // Filtro de Estatus Inteligente
@@ -166,7 +176,7 @@ class ReporteController extends Controller
             
             $comportamientoTemporal[] = [
                 'id' => $op->id,
-                'cliente' => $op->clienteRelacion->razon_social ?? $op->cliente, // Usar relación si existe
+                'cliente' => $op->cliente, // Usar atributo directo
                 'ejecutivo' => $op->ejecutivo,
                 'dias_transcurridos' => (int)$diasTranscurridos,
                 'target' => $target,
@@ -192,8 +202,8 @@ class ReporteController extends Controller
             'done' => $statsTemporales['completado_tiempo'] + $statsTemporales['completado_retraso'],
         ];
 
-        // Obtener lista de clientes para el dropdown (si tienes el modelo Cliente)
-        $clientes = Cliente::orderBy('razon_social')->get(); 
+        // Obtener lista de clientes para el dropdown
+        $clientes = Cliente::orderBy('cliente')->get(); 
 
         return view('Logistica.reportes', compact(
             'statsTemporales', 
@@ -297,7 +307,7 @@ class ReporteController extends Controller
             foreach($operaciones as $op) {
                 $rowsData[] = [
                     $op->id,
-                    $op->clienteRelacion->razon_social ?? $op->cliente, // Usar relación
+                    $op->cliente, // Usar atributo directo
                     $op->operacion,
                     $op->referencia_cliente,
                     $op->no_pedimento,
@@ -327,6 +337,7 @@ class ReporteController extends Controller
 
     /**
      * Exportar Matriz de Seguimiento
+     * Incluye columnas predeterminadas + columnas opcionales activadas por el usuario
      */
     public function exportMatrizSeguimiento(Request $request)
     {
@@ -336,23 +347,40 @@ class ReporteController extends Controller
 
             $usuarioActual = auth()->user();
             $esAdmin = $usuarioActual->hasRole('admin');
+            
+            // Obtener el empleado actual para sus columnas configuradas
+            $empleadoActual = Empleado::where('correo', $usuarioActual->email)
+                ->orWhere('nombre', 'like', '%' . $usuarioActual->name . '%')
+                ->first();
+            
+            $empleadoId = $empleadoActual ? $empleadoActual->id : 0;
+            
+            // Obtener idioma del usuario (por defecto español)
+            $idioma = \App\Models\Logistica\ColumnaVisibleEjecutivo::getIdiomaEjecutivo($empleadoId);
+            
+            // Obtener columnas ordenadas para este usuario (predeterminadas + opcionales activas)
+            $columnasOrdenadas = \App\Models\Logistica\ColumnaVisibleEjecutivo::getColumnasOrdenadasParaMatriz($empleadoId, $idioma);
 
             if ($esAdmin) {
                 $ejecutivos = Empleado::where('area', 'Logistica')
                     ->orWhere('posicion', 'like', '%Logistica%')->get();
 
                 foreach ($ejecutivos as $index => $ejecutivo) {
-                    // Aquí construimos el query manualmente porque necesitamos filtrar por ejecutivo específico
-                    // pero aprovechando los filtros globales
                     $query = $this->obtenerQueryBase($request);
                     $query->where('ejecutivo', 'LIKE', '%' . $ejecutivo->nombre . '%');
                     
                     $operaciones = $query->get();
 
                     if ($operaciones->count() > 0) {
+                        // Para admin, obtener las columnas configuradas del ejecutivo específico
+                        $columnasEjecutivo = \App\Models\Logistica\ColumnaVisibleEjecutivo::getColumnasOrdenadasParaMatriz(
+                            $ejecutivo->id, 
+                            $idioma
+                        );
+                        
                         $sheet = new Worksheet($spreadsheet, substr($ejecutivo->nombre, 0, 30));
                         $spreadsheet->addSheet($sheet, $index);
-                        $this->llenarHojaMatriz($sheet, $operaciones);
+                        $this->llenarHojaMatriz($sheet, $operaciones, $columnasEjecutivo);
                     }
                 }
             } else {
@@ -360,7 +388,7 @@ class ReporteController extends Controller
                 $spreadsheet->addSheet($sheet, 0);
                 
                 $operaciones = $this->obtenerQueryBase($request)->get();
-                $this->llenarHojaMatriz($sheet, $operaciones);
+                $this->llenarHojaMatriz($sheet, $operaciones, $columnasOrdenadas);
             }
 
             if ($spreadsheet->getSheetCount() == 0) {
@@ -377,29 +405,177 @@ class ReporteController extends Controller
             }, 'Matriz_Seguimiento_' . date('Ymd') . '.xlsx');
 
         } catch (\Exception $e) {
+            Log::error('Error exportando matriz: ' . $e->getMessage());
             return back()->with('error', 'Error exportando matriz: ' . $e->getMessage());
         }
     }
 
-    private function llenarHojaMatriz($sheet, $operaciones)
+    /**
+     * Llenar hoja de Excel con las columnas configuradas del usuario
+     */
+    private function llenarHojaMatriz($sheet, $operaciones, $columnasOrdenadas)
     {
-        $headers = ['Folio', 'Ejecutivo', 'Cliente', 'Operación', 'Referencia', 'Pedimento', 'Fechas', 'Status', 'Días'];
+        // 1. Crear encabezados dinámicos basados en las columnas configuradas
+        $headers = [];
+        foreach ($columnasOrdenadas as $colInfo) {
+            $headers[] = $colInfo['nombre'];
+        }
         $sheet->fromArray($headers, NULL, 'A1');
         
+        // Estilizar encabezados
+        $lastCol = $this->getExcelColumnLetter(count($headers) - 1);
+        $sheet->getStyle('A1:' . $lastCol . '1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:' . $lastCol . '1')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF4472C4');
+        $sheet->getStyle('A1:' . $lastCol . '1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        
+        // 2. Llenar datos por cada operación
         $row = 2;
         foreach ($operaciones as $op) {
-            $sheet->setCellValue('A' . $row, $op->id);
-            $sheet->setCellValue('B' . $row, $op->ejecutivo);
-            $sheet->setCellValue('C' . $row, $op->clienteRelacion->razon_social ?? $op->cliente);
-            $sheet->setCellValue('D' . $row, $op->operacion);
-            $sheet->setCellValue('E' . $row, $op->referencia_cliente);
-            $sheet->setCellValue('F' . $row, $op->no_pedimento);
-            $sheet->setCellValue('G' . $row, ($op->fecha_embarque ? $op->fecha_embarque->format('d/m/Y') : '-'));
-            $sheet->setCellValue('H' . $row, $op->status_manual ?: $op->status_calculado);
-            $sheet->setCellValue('I' . $row, $op->dias_transcurridos_calculados);
+            $col = 0;
+            foreach ($columnasOrdenadas as $colInfo) {
+                $columna = $colInfo['columna'];
+                $valor = $this->obtenerValorColumna($op, $columna);
+                $cellAddress = $this->getExcelColumnLetter($col) . $row;
+                $sheet->setCellValue($cellAddress, $valor);
+                $col++;
+            }
             $row++;
         }
-        foreach(range('A','I') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
+        
+        // 3. Autoajustar ancho de columnas
+        for ($i = 0; $i < count($headers); $i++) {
+            $sheet->getColumnDimension($this->getExcelColumnLetter($i))->setAutoSize(true);
+        }
+    }
+    
+    /**
+     * Obtener el valor de una columna para una operación
+     */
+    private function obtenerValorColumna($operacion, $columna)
+    {
+        switch ($columna) {
+            case 'id':
+                return $operacion->id;
+            case 'ejecutivo':
+                return $operacion->ejecutivo ?? '-';
+            case 'cliente':
+                return $operacion->cliente ?? '-';
+            case 'operacion':
+                return $operacion->operacion ?? '-';
+            case 'tipo_operacion_enum':
+                return $operacion->tipo_operacion_enum ?? '-';
+            case 'proveedor_o_cliente':
+                return $operacion->proveedor_o_cliente ?? '-';
+            case 'referencia_interna':
+                return $operacion->referencia_interna ?? '-';
+            case 'referencia_cliente':
+                return $operacion->referencia_cliente ?? '-';
+            case 'no_factura':
+                return $operacion->no_factura ?? '-';
+            case 'no_pedimento':
+                return $operacion->no_pedimento ?? '-';
+            case 'clave':
+                return $operacion->clave ?? '-';
+            case 'aduana':
+                return $operacion->aduana ?? '-';
+            case 'agente_aduanal':
+                return $operacion->agente_aduanal ?? '-';
+            case 'referencia_aa':
+                return $operacion->referencia_aa ?? '-';
+            case 'transporte':
+                return $operacion->transporte ?? '-';
+            case 'guia_bl':
+                return $operacion->guia_bl ?? '-';
+            case 'status':
+                return $operacion->status_manual ?: ($operacion->status_calculado ?? 'In Process');
+            case 'resultado':
+                return $operacion->resultado ?? '-';
+            case 'target':
+                return $operacion->target ?? '-';
+            case 'dias_transito':
+                return $operacion->dias_transcurridos_calculados ?? 0;
+                
+            // Campos de fecha
+            case 'fecha_embarque':
+                return $operacion->fecha_embarque ? $operacion->fecha_embarque->format('d/m/Y') : '-';
+            case 'fecha_arribo_aduana':
+                return $operacion->fecha_arribo_aduana ? $operacion->fecha_arribo_aduana->format('d/m/Y') : '-';
+            case 'fecha_modulacion':
+                return $operacion->fecha_modulacion ? $operacion->fecha_modulacion->format('d/m/Y') : '-';
+            case 'fecha_arribo_planta':
+                return $operacion->fecha_arribo_planta ? $operacion->fecha_arribo_planta->format('d/m/Y') : '-';
+            case 'fecha_etd':
+                return $operacion->fecha_etd ? $operacion->fecha_etd->format('d/m/Y') : '-';
+            case 'fecha_zarpe':
+                return $operacion->fecha_zarpe ? $operacion->fecha_zarpe->format('d/m/Y') : '-';
+                
+            // Campos opcionales adicionales
+            case 'tipo_carga':
+                return $operacion->tipo_carga ?? '-';
+            case 'tipo_incoterm':
+                return $operacion->tipo_incoterm ?? '-';
+            case 'puerto_salida':
+                return $operacion->puerto_salida ?? '-';
+            case 'in_charge':
+                return $operacion->in_charge ?? '-';
+            case 'proveedor':
+                return $operacion->proveedor ?? '-';
+            case 'tipo_previo':
+                return $operacion->tipo_previo ?? '-';
+            case 'pedimento_en_carpeta':
+                return $operacion->pedimento_en_carpeta ? 'Sí' : 'No';
+            case 'mail_subject':
+                return $operacion->mail_subject ?? '-';
+                
+            // Post-operaciones (progreso)
+            case 'post_operaciones':
+                $total = $operacion->postOperaciones ? $operacion->postOperaciones->count() : 0;
+                $completas = $operacion->postOperaciones ? $operacion->postOperaciones->where('status', 'Completado')->count() : 0;
+                return "{$completas}/{$total}";
+                
+            // Comentarios
+            case 'comentarios':
+                return $operacion->comentarios ?? '-';
+                
+            default:
+                // Verificar si es un campo personalizado (campo_ID)
+                if (str_starts_with($columna, 'campo_')) {
+                    $campoId = str_replace('campo_', '', $columna);
+                    $valorCampo = $operacion->valoresCamposPersonalizados
+                        ->firstWhere('campo_personalizado_id', $campoId);
+                    
+                    if ($valorCampo) {
+                        // Manejar valores array (selector múltiple)
+                        if (is_array($valorCampo->valor)) {
+                            return implode(', ', $valorCampo->valor);
+                        }
+                        // Manejar booleanos
+                        if ($valorCampo->campo && $valorCampo->campo->tipo === 'booleano') {
+                            return $valorCampo->valor ? 'Sí' : 'No';
+                        }
+                        return $valorCampo->valor ?? '-';
+                    }
+                    return '-';
+                }
+                
+                // Para campos dinámicos o no mapeados, intentar obtener directamente
+                return $operacion->$columna ?? '-';
+        }
+    }
+    
+    /**
+     * Convertir índice numérico a letra de columna Excel (0=A, 1=B, ..., 26=AA, etc.)
+     */
+    private function getExcelColumnLetter($index)
+    {
+        $letters = '';
+        while ($index >= 0) {
+            $letters = chr(($index % 26) + 65) . $letters;
+            $index = intval($index / 26) - 1;
+        }
+        return $letters;
     }
 
     public function exportCSV(Request $request)
@@ -415,7 +591,7 @@ class ReporteController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, ['ID', 'Cliente', 'Status']);
             foreach($operaciones as $op) {
-                fputcsv($file, [$op->id, $op->clienteRelacion->razon_social ?? $op->cliente, $op->status_manual ?: $op->status_calculado]);
+                fputcsv($file, [$op->id, $op->cliente, $op->status_manual ?: $op->status_calculado]);
             }
             fclose($file);
         }, 200, $headers);
