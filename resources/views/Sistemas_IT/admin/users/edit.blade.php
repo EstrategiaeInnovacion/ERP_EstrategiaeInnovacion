@@ -4,21 +4,6 @@
 
 @section('content')
 
-    {{-- Breadcrumb --}}
-    <div class="bg-white border-b border-gray-200">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div class="flex items-center">
-                <a href="{{ route('admin.users.show', $user) }}"
-                   class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200 group">
-                    <svg class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                    Volver al Perfil de Usuario
-                </a>
-            </div>
-        </div>
-    </div>
-
     <main class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
         {{-- Alertas --}}
@@ -42,8 +27,19 @@
 
             {{-- Header de la tarjeta --}}
             <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900">Editar Usuario</h2>
-                <p class="text-gray-600 mt-1">Puedes modificar nombre, correo, contraseña, rol y área.</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Editar Usuario</h2>
+                        <p class="text-gray-600 mt-1">Puedes modificar nombre, correo, contraseña, rol y área.</p>
+                    </div>
+                    <a href="{{ route('admin.users.show', $user) }}"
+                       class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200 group flex-shrink-0">
+                        <svg class="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        Volver al Perfil
+                    </a>
+                </div>
             </div>
 
             {{-- Info del usuario (solo lectura) --}}
@@ -266,14 +262,6 @@
             </div>
         </div>
     </main>
-
-    <footer class="bg-white border-t border-blue-100 mt-16">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <div class="text-center text-gray-500 text-sm">
-                <p>&copy; {{ date('Y') }} ERP Estrategia e Innovación. Todos los derechos reservados.</p>
-            </div>
-        </div>
-    </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
