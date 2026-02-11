@@ -251,10 +251,13 @@ class EmpleadoSeeder extends Seeder
             $nombreNormalizado = strtolower(trim($emp['nombre']));
             $partesNombre = preg_split('/\s+/', $nombreNormalizado);
             
-            // Obtener primer nombre y primer apellido para búsqueda flexible
+            // Obtener partes del nombre para búsqueda flexible
+            // Ej: "Jonathan Loredo Palacios" -> primerNombre="jonathan", apellidos=["loredo","palacios"]
             $primerNombre = $partesNombre[0] ?? '';
-            $primerApellido = $partesNombre[1] ?? '';
-            $segundoApellido = $partesNombre[count($partesNombre) - 1] ?? '';
+            $apellidos = array_slice($partesNombre, 1); // Todos menos el primero
+            $ultimoApellido = end($partesNombre) ?: '';
+            
+            $empleadoExistente = null;
             
             // 1. BUSCAR EMPLEADO POR ID_EMPLEADO (prioridad máxima)
             $empleadoExistente = Empleado::where('id_empleado', $emp['id_empleado'])->first();
@@ -264,32 +267,40 @@ class EmpleadoSeeder extends Seeder
                 $empleadoExistente = Empleado::whereRaw('LOWER(TRIM(nombre)) = ?', [$nombreNormalizado])->first();
             }
             
-            // 3. Buscar por nombre parcial: primer nombre + cualquier apellido
-            if (!$empleadoExistente && $primerNombre && $primerApellido) {
-                $empleadoExistente = Empleado::whereRaw('LOWER(nombre) LIKE ?', ["%{$primerNombre}%"])
-                    ->where(function ($q) use ($primerApellido, $segundoApellido) {
-                        $q->whereRaw('LOWER(nombre) LIKE ?', ["%{$primerApellido}%"]);
-                        if ($segundoApellido && $segundoApellido !== $primerApellido) {
-                            $q->orWhereRaw('LOWER(nombre) LIKE ?', ["%{$segundoApellido}%"]);
-                        }
-                    })
+            // 3. Buscar por primer nombre + último apellido (MÁS COMÚN)
+            // Ej: "Jonathan" + "Palacios" encuentra "Jonathan Israel Loredo Palacios"
+            if (!$empleadoExistente && $primerNombre && $ultimoApellido && $primerNombre !== $ultimoApellido) {
+                $empleadoExistente = Empleado::whereRaw('LOWER(nombre) LIKE ?', ["{$primerNombre}%"])
+                    ->whereRaw('LOWER(nombre) LIKE ?', ["%{$ultimoApellido}%"])
                     ->first();
             }
             
-            // 4. Buscar solo por primer nombre y primer apellido (más flexible)
-            if (!$empleadoExistente && $primerNombre && $primerApellido) {
-                $empleadoExistente = Empleado::whereRaw(
-                    'LOWER(nombre) LIKE ? AND LOWER(nombre) LIKE ?', 
-                    ["{$primerNombre}%", "%{$primerApellido}%"]
-                )->first();
+            // 4. Buscar por primer nombre + cualquier apellido del seeder
+            if (!$empleadoExistente && $primerNombre && count($apellidos) > 0) {
+                foreach ($apellidos as $apellido) {
+                    if (strlen($apellido) >= 3) { // Solo apellidos con 3+ caracteres
+                        $empleadoExistente = Empleado::whereRaw('LOWER(nombre) LIKE ?', ["{$primerNombre}%"])
+                            ->whereRaw('LOWER(nombre) LIKE ?', ["%{$apellido}%"])
+                            ->first();
+                        if ($empleadoExistente) break;
+                    }
+                }
             }
             
-            // 5. Buscar por correo del seeder
+            // 5. Buscar solo por primer nombre si es único (ej: "Guillermo")
+            if (!$empleadoExistente && $primerNombre && strlen($primerNombre) >= 4) {
+                $coincidencias = Empleado::whereRaw('LOWER(nombre) LIKE ?', ["{$primerNombre}%"])->get();
+                if ($coincidencias->count() === 1) {
+                    $empleadoExistente = $coincidencias->first();
+                }
+            }
+            
+            // 6. Buscar por correo del seeder
             if (!$empleadoExistente) {
                 $empleadoExistente = Empleado::where('correo', $emp['correo'])->first();
             }
             
-            // 6. BUSCAR USUARIO
+            // 7. BUSCAR USUARIO
             if ($empleadoExistente && $empleadoExistente->user_id) {
                 // Ya tiene usuario asignado, usarlo
                 $user = User::find($empleadoExistente->user_id);
@@ -297,19 +308,35 @@ class EmpleadoSeeder extends Seeder
                     $user->update(['name' => $emp['nombre']]);
                 }
             } else {
-                // Buscar usuario por email del empleado existente o del seeder
-                $user = User::where('email', $empleadoExistente ? $empleadoExistente->correo : $emp['correo'])->first();
+                // Buscar usuario por email del empleado existente
+                $user = null;
+                if ($empleadoExistente && $empleadoExistente->correo) {
+                    $user = User::where('email', $empleadoExistente->correo)->first();
+                }
                 
+                // Buscar por email del seeder
                 if (!$user) {
-                    // Buscar por nombre exacto
+                    $user = User::where('email', $emp['correo'])->first();
+                }
+                
+                // Buscar por nombre exacto en users
+                if (!$user) {
                     $user = User::whereRaw('LOWER(TRIM(name)) = ?', [$nombreNormalizado])->first();
                 }
                 
-                if (!$user && $primerNombre && $primerApellido) {
-                    // Buscar por nombre parcial en users
-                    $user = User::whereRaw('LOWER(name) LIKE ?', ["%{$primerNombre}%"])
-                        ->whereRaw('LOWER(name) LIKE ?', ["%{$primerApellido}%"])
+                // Buscar por primer nombre + apellido en users
+                if (!$user && $primerNombre && $ultimoApellido) {
+                    $user = User::whereRaw('LOWER(name) LIKE ?', ["{$primerNombre}%"])
+                        ->whereRaw('LOWER(name) LIKE ?', ["%{$ultimoApellido}%"])
                         ->first();
+                }
+                
+                // Buscar por primer nombre solo si es único
+                if (!$user && $primerNombre && strlen($primerNombre) >= 4) {
+                    $coincidencias = User::whereRaw('LOWER(name) LIKE ?', ["{$primerNombre}%"])->get();
+                    if ($coincidencias->count() === 1) {
+                        $user = $coincidencias->first();
+                    }
                 }
                 
                 if ($user) {
