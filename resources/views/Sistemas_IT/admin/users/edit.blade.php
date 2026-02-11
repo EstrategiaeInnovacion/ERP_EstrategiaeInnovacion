@@ -177,50 +177,27 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{-- No. de Nómina / Reloj --}}
-                        <div>
-                            <label for="id_empleado" class="block text-sm font-medium text-gray-700 mb-2">
-                                No. de Nómina / Reloj
-                            </label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 sm:text-sm">#</span>
-                                </div>
-                                <input type="text"
-                                       id="id_empleado"
-                                       name="id_empleado"
-                                       value="{{ old('id_empleado', optional($user->empleado)->id_empleado) }}"
-                                       class="block w-full pl-7 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('id_empleado') border-red-300 @enderror"
-                                       placeholder="Ej. 1045">
-                            </div>
-                            @error('id_empleado')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Jefe Directo --}}
-                        <div>
-                            <label for="supervisor_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                Jefe Directo (Organigrama)
-                            </label>
-                            <select id="supervisor_id"
-                                    name="supervisor_id"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-                                <option value="">-- Sin Supervisor Asignado --</option>
-                                @if(isset($empleados))
-                                    @foreach($empleados as $emp)
-                                        <option value="{{ $emp->id }}" {{ old('supervisor_id', optional($user->empleado)->supervisor_id) == $emp->id ? 'selected' : '' }}>
-                                            {{ $emp->nombre }} @if($emp->posicion) - {{ $emp->posicion }} @endif
-                                        </option>
-                                    @endforeach
-                                @endif
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500">Determina quién evaluará a este empleado.</p>
-                            @error('supervisor_id')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                    {{-- Jefe Directo --}}
+                    <div>
+                        <label for="supervisor_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Jefe Directo (Organigrama)
+                        </label>
+                        <select id="supervisor_id"
+                                name="supervisor_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            <option value="">-- Sin Supervisor Asignado --</option>
+                            @if(isset($jefes))
+                                @foreach($jefes as $jefe)
+                                    <option value="{{ $jefe->id }}" {{ old('supervisor_id', optional($user->empleado)->supervisor_id) == $jefe->id ? 'selected' : '' }}>
+                                        {{ $jefe->nombre }} - {{ $jefe->posicion }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Solo aparecen coordinadores y director. Selecciona a quién le reporta este empleado.</p>
+                        @error('supervisor_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 

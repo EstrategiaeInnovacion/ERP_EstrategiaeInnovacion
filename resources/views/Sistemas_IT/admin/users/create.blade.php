@@ -130,15 +130,15 @@
                                 id="supervisor_id" 
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                             <option value="">-- Sin Supervisor Asignado --</option>
-                            @if(isset($empleados))
-                                @foreach($empleados as $emp)
-                                    <option value="{{ $emp->id }}" {{ old('supervisor_id') == $emp->id ? 'selected' : '' }}>
-                                        {{ $emp->nombre }} {{ $emp->apellido_paterno }} @if($emp->posicion) - {{ $emp->posicion }} @endif
+                            @if(isset($jefes))
+                                @foreach($jefes as $jefe)
+                                    <option value="{{ $jefe->id }}" {{ old('supervisor_id') == $jefe->id ? 'selected' : '' }}>
+                                        {{ $jefe->nombre }} - {{ $jefe->posicion }}
                                     </option>
                                 @endforeach
                             @endif
                         </select>
-                        <p class="mt-1 text-xs text-gray-500">Determina quién evaluará a este empleado.</p>
+                        <p class="mt-1 text-xs text-gray-500">Solo coordinadores y director. Selecciona a quién le reporta.</p>
                         @error('supervisor_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror

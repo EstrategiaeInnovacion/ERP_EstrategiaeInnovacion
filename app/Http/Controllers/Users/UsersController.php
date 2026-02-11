@@ -41,14 +41,22 @@ class UsersController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        // Enviamos la lista de empleados para seleccionar al Supervisor
-        $empleados = Empleado::where('es_activo', true)
+        // Solo coordinadores y director para el select de Jefe Directo
+        $supervisorIds = Empleado::whereNotNull('supervisor_id')
+            ->distinct()
+            ->pluck('supervisor_id');
+
+        $jefes = Empleado::where('es_activo', true)
+            ->where(function ($q) use ($supervisorIds) {
+                $q->whereIn('id', $supervisorIds)
+                  ->orWhere('posicion', 'Direccion');
+            })
             ->orderBy('nombre')
             ->get();
 
         return view('admin.users.create', [
             'subdepartamentosCE' => $subdepartamentosCE,
-            'empleados' => $empleados,
+            'jefes' => $jefes,
         ]);
     }
 
@@ -122,20 +130,28 @@ class UsersController extends Controller
             ->orderBy('nombre')
             ->get();
             
-        // También necesitamos empleados en la edición para cambiar supervisor
-        $empleados = Empleado::where('es_activo', true)
-            ->where('user_id', '!=', $user->id) // Evitar que se seleccione a sí mismo como jefe
+        // Solo coordinadores y director para el select de Jefe Directo
+        $supervisorIds = Empleado::whereNotNull('supervisor_id')
+            ->distinct()
+            ->pluck('supervisor_id');
+
+        $jefes = Empleado::where('es_activo', true)
+            ->where(function ($q) use ($supervisorIds) {
+                $q->whereIn('id', $supervisorIds)
+                  ->orWhere('posicion', 'Direccion');
+            })
+            ->where('user_id', '!=', $user->id)
             ->orderBy('nombre')
             ->get();
-            
+
         // Cargamos el modelo empleado asociado para llenar los campos
         $empleado = Empleado::where('user_id', $user->id)->first();
 
         return view('admin.users.edit', [
             'user' => $user,
-            'empleado' => $empleado, // Pasamos los datos del empleado a la vista
+            'empleado' => $empleado,
             'subdepartamentosCE' => $subdepartamentosCE,
-            'empleados' => $empleados,
+            'jefes' => $jefes,
         ]);
     }
 
