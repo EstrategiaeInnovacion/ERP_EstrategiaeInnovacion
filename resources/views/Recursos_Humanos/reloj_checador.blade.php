@@ -1,5 +1,11 @@
 @extends('layouts.erp')
 
+@push('styles')
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+@endpush
+
 @section('content')
     <x-slot name="header">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -18,8 +24,44 @@
         </div>
     </x-slot>
 
-    <div class="py-8 bg-gray-50/50 min-h-screen" x-data="{ openImport: false }">
+    <div class="py-8 bg-gray-50/50 min-h-screen" x-data="{ openImport: false, showNoResults: {{ ($sinResultados ?? false) ? 'true' : 'false' }} }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+            
+            {{-- MODAL SIN RESULTADOS --}}
+            <div x-show="showNoResults" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showNoResults = false"></div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                    <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full">
+                        <div class="bg-white px-6 pt-6 pb-4">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-4">
+                                    <svg class="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-900 mb-2" id="modal-title">
+                                    Sin registros encontrados
+                                </h3>
+                                <p class="text-sm text-gray-500 mb-2">
+                                    No se encontraron registros para <span class="font-semibold text-gray-700">"{{ $busqueda ?? '' }}"</span>
+                                </p>
+                                <p class="text-sm text-gray-500">
+                                    en el período del <span class="font-medium text-indigo-600">{{ $fechaInicioFormato ?? '' }}</span> al <span class="font-medium text-indigo-600">{{ $fechaFinFormato ?? '' }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-6 py-4 flex justify-center gap-3">
+                            <a href="{{ route('rh.reloj.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                                Limpiar filtros
+                            </a>
+                            <button type="button" @click="showNoResults = false" class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition">
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             {{-- SECCIÓN DE ESTADÍSTICAS --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -339,13 +381,27 @@
                                         </div>
                                     </td>
                                 </tr>
+                            @elseif($empleados->isEmpty())
+                                <tr>
+                                    <td colspan="7" class="px-6 py-16 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p class="text-lg font-medium text-gray-500 mb-1">No se encontraron empleados</p>
+                                            <p class="text-sm text-gray-400">Intenta con otra búsqueda o cambia las fechas del período</p>
+                                        </div>
+                                    </td>
+                                </tr>
                             @endif
                         </tbody>
                     </table>
                 </div>
+                @if($empleados->hasPages())
                 <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
                     {{ $empleados->links() }}
                 </div>
+                @endif
             </div>
         </div>
     </div>

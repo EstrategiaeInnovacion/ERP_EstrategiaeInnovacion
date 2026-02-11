@@ -18,7 +18,9 @@ class RelojChecadorImportController extends Controller
 {
     public function index(Request $request)
     {
-        // ... (El código del index se mantiene igual) ...
+        // Configurar Carbon en español
+        Carbon::setLocale('es');
+        
         // 1. Definir Periodo
         $inicio = $request->input('fecha_inicio', now()->startOfMonth()->toDateString());
         $fin = $request->input('fecha_fin', now()->endOfMonth()->toDateString());
@@ -101,17 +103,28 @@ class RelojChecadorImportController extends Controller
             ->limit(3)
             ->get();
 
+        // Formatear fechas para mostrar en español
+        $fechaInicioFormato = Carbon::parse($inicio)->isoFormat('D [de] MMMM [de] YYYY');
+        $fechaFinFormato = Carbon::parse($fin)->isoFormat('D [de] MMMM [de] YYYY');
+        
+        // Flag para indicar si hubo búsqueda sin resultados
+        $sinResultados = $search && $empleados->isEmpty();
+        
         return view('Recursos_Humanos.reloj_checador', compact(
             'empleados', 
             'fechas',
             'porcentajeAsistencia',
             'topRetardos',
-            'horasTotales'
+            'horasTotales',
+            'fechaInicioFormato',
+            'fechaFinFormato',
+            'sinResultados'
         ) + [
             'totalRegistros' => $kpis['total'],
             'asistenciasOk' => $kpis['ok'],
             'retardos' => $kpis['retardos'],
-            'faltas' => $kpis['faltas']
+            'faltas' => $kpis['faltas'],
+            'busqueda' => $search
         ]);
     }
 
