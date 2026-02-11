@@ -225,14 +225,7 @@ class EmpleadoSeeder extends Seeder
                 'posicion' => 'Legal',
                 'supervisor' => 'Jazzman Jerssain Aguilar Cisneros',
             ],
-            [
-                'id_empleado' => '97',
-                'nombre' => 'Jesus David Rivera Romero',
-                'correo' => 'jesus.rivera@empresa.com',
-                'area' => 'Estrategia e Innovacion',
-                'posicion' => 'Legal',
-                'supervisor' => 'Jazzman Jerssain Aguilar Cisneros',
-            ],
+            // Jesus David Rivera Romero - BAJA
             [
                 'id_empleado' => '102',
                 'nombre' => 'Carlos Alfonso Rivera Moran',

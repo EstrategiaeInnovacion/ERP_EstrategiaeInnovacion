@@ -48,6 +48,12 @@ $empleadosBaja = [
         'motivo_baja' => 'Baja de personal',
         'observaciones' => 'Confirmado por usuario - baja de empleado',
     ],
+    [
+        'nombre' => 'Jesus David Rivera Romero',
+        'correo' => 'legal2@estrategiaeinnovacion.com.mx',
+        'motivo_baja' => 'Baja de personal',
+        'observaciones' => 'Solicitud de baja',
+    ],
 ];
 
 $procesados = 0;

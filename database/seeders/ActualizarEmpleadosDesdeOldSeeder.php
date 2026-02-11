@@ -43,7 +43,7 @@ class ActualizarEmpleadosDesdeOldSeeder extends Seeder
         ['id_empleado' => '100', 'nombre' => 'Mayra Susana Coreño Arriaga', 'area' => 'Estrategia e Innovacion', 'posicion' => 'Post-Operacion'],
         ['id_empleado' => '101', 'nombre' => 'Erika Liliana Mireles Sanchez', 'area' => 'Estrategia e Innovacion', 'posicion' => 'Anexo 24'],
         ['id_empleado' => '80', 'nombre' => 'Ana Sofia Cuello Aguilar', 'area' => 'Estrategia e Innovacion', 'posicion' => 'Legal'],
-        ['id_empleado' => '97', 'nombre' => 'Jesus David Rivera Romero', 'area' => 'Estrategia e Innovacion', 'posicion' => 'Legal'],
+        // Jesus David Rivera Romero - BAJA
         ['id_empleado' => '102', 'nombre' => 'Carlos Alfonso Rivera Moran', 'area' => 'Estrategia e Innovacion', 'posicion' => 'Legal'],
     ];
 
