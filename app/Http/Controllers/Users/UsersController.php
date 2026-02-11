@@ -58,12 +58,10 @@ class UsersController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required','string','email','max:255','unique:users'],
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:user,admin,invitado,colaborador',
-            'area' => 'required|in:Legal,Logistica,RH,Comercio Exterior,Sistemas,Socio',
+            'role' => 'required|in:user,admin',
+            'area' => 'required|string|max:255',
             'subdepartamento_id' => 'nullable|integer|exists:subdepartamentos,id',
-            
-            // --- NUEVOS CAMPOS AGREGADOS ---
-            'id_empleado' => 'nullable|string|max:30|unique:empleados,id_empleado', // ID Nómina/Reloj
+            'id_empleado' => 'nullable|string|max:30|unique:empleados,id_empleado',
             'posicion' => 'required|string|max:255',
             'supervisor_id' => 'nullable|exists:empleados,id',
         ]);
@@ -151,11 +149,9 @@ class UsersController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required','string','email','max:255'],
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|in:user,admin,invitado,colaborador',
-            'area' => 'required|in:Legal,Logistica,RH,Comercio Exterior,Sistemas,Socio',
+            'role' => 'required|in:user,admin',
+            'area' => 'required|string|max:255',
             'subdepartamento_id' => 'nullable|integer|exists:subdepartamentos,id',
-            
-            // Validación en Update (ignorando el propio registro)
             'id_empleado' => 'nullable|string|max:30|unique:empleados,id_empleado,' . $empleadoId,
             'posicion' => 'required|string|max:255',
             'supervisor_id' => 'nullable|exists:empleados,id',
