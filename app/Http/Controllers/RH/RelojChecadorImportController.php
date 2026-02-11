@@ -49,9 +49,7 @@ class RelojChecadorImportController extends Controller
             ->when($search, function($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
-                      ->orWhere('apellido_paterno', 'like', "%{$search}%")
-                      ->orWhere('id_empleado', 'like', "%{$search}%")
-                      ->orWhere('no_empleado', 'like', "%{$search}%");
+                      ->orWhere('id_empleado', 'like', "%{$search}%");
                 });
             })
             ->orderBy('nombre')
