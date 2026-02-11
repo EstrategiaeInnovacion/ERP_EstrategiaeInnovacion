@@ -249,16 +249,47 @@ class EmpleadoSeeder extends Seeder
         foreach ($empleados as $emp) {
             // Normalizar nombre para búsqueda
             $nombreNormalizado = strtolower(trim($emp['nombre']));
+            $partesNombre = preg_split('/\s+/', $nombreNormalizado);
             
-            // 1. BUSCAR EMPLEADO POR ID_EMPLEADO (prioridad)
+            // Obtener primer nombre y primer apellido para búsqueda flexible
+            $primerNombre = $partesNombre[0] ?? '';
+            $primerApellido = $partesNombre[1] ?? '';
+            $segundoApellido = $partesNombre[count($partesNombre) - 1] ?? '';
+            
+            // 1. BUSCAR EMPLEADO POR ID_EMPLEADO (prioridad máxima)
             $empleadoExistente = Empleado::where('id_empleado', $emp['id_empleado'])->first();
             
-            // 2. Si no existe, buscar por nombre similar (más estricto)
+            // 2. Buscar por nombre exacto (case insensitive)
             if (!$empleadoExistente) {
                 $empleadoExistente = Empleado::whereRaw('LOWER(TRIM(nombre)) = ?', [$nombreNormalizado])->first();
             }
             
-            // 3. BUSCAR USUARIO
+            // 3. Buscar por nombre parcial: primer nombre + cualquier apellido
+            if (!$empleadoExistente && $primerNombre && $primerApellido) {
+                $empleadoExistente = Empleado::whereRaw('LOWER(nombre) LIKE ?', ["%{$primerNombre}%"])
+                    ->where(function ($q) use ($primerApellido, $segundoApellido) {
+                        $q->whereRaw('LOWER(nombre) LIKE ?', ["%{$primerApellido}%"]);
+                        if ($segundoApellido && $segundoApellido !== $primerApellido) {
+                            $q->orWhereRaw('LOWER(nombre) LIKE ?', ["%{$segundoApellido}%"]);
+                        }
+                    })
+                    ->first();
+            }
+            
+            // 4. Buscar solo por primer nombre y primer apellido (más flexible)
+            if (!$empleadoExistente && $primerNombre && $primerApellido) {
+                $empleadoExistente = Empleado::whereRaw(
+                    'LOWER(nombre) LIKE ? AND LOWER(nombre) LIKE ?', 
+                    ["{$primerNombre}%", "%{$primerApellido}%"]
+                )->first();
+            }
+            
+            // 5. Buscar por correo del seeder
+            if (!$empleadoExistente) {
+                $empleadoExistente = Empleado::where('correo', $emp['correo'])->first();
+            }
+            
+            // 6. BUSCAR USUARIO
             if ($empleadoExistente && $empleadoExistente->user_id) {
                 // Ya tiene usuario asignado, usarlo
                 $user = User::find($empleadoExistente->user_id);
@@ -266,12 +297,19 @@ class EmpleadoSeeder extends Seeder
                     $user->update(['name' => $emp['nombre']]);
                 }
             } else {
-                // Buscar usuario por email o nombre
+                // Buscar usuario por email del empleado existente o del seeder
                 $user = User::where('email', $empleadoExistente ? $empleadoExistente->correo : $emp['correo'])->first();
                 
                 if (!$user) {
-                    // Buscar por similitud de nombre
+                    // Buscar por nombre exacto
                     $user = User::whereRaw('LOWER(TRIM(name)) = ?', [$nombreNormalizado])->first();
+                }
+                
+                if (!$user && $primerNombre && $primerApellido) {
+                    // Buscar por nombre parcial en users
+                    $user = User::whereRaw('LOWER(name) LIKE ?', ["%{$primerNombre}%"])
+                        ->whereRaw('LOWER(name) LIKE ?', ["%{$primerApellido}%"])
+                        ->first();
                 }
                 
                 if ($user) {
