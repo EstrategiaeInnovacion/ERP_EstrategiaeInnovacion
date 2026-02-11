@@ -14,7 +14,7 @@
                     <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider border border-indigo-200">
                         Portal Administrativo
                     </span>
-                    <span class="text-sm text-slate-400 font-medium">{{ date('F  d\t\h, Y') }}</span>
+                    <span class="text-sm text-slate-400 font-medium">{{ \Carbon\Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY') }}</span>
                 </div>
                 <h3 class="text-3xl font-bold text-slate-900 tracking-tight">Panel de Control RH</h3>
                 <p class="mt-2 text-slate-500 max-w-2xl text-lg leading-relaxed">
