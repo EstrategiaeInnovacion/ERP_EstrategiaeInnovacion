@@ -42,13 +42,9 @@ class UsersController extends Controller
             ->get();
 
         // Solo coordinadores y director para el select de Jefe Directo
-        $supervisorIds = Empleado::whereNotNull('supervisor_id')
-            ->distinct()
-            ->pluck('supervisor_id');
-
         $jefes = Empleado::where('es_activo', true)
-            ->where(function ($q) use ($supervisorIds) {
-                $q->whereIn('id', $supervisorIds)
+            ->where(function ($q) {
+                $q->where('es_coordinador', true)
                   ->orWhere('posicion', 'Direccion');
             })
             ->orderBy('nombre')
@@ -71,6 +67,7 @@ class UsersController extends Controller
             'subdepartamento_id' => 'nullable|integer|exists:subdepartamentos,id',
             'id_empleado' => 'nullable|string|max:30|unique:empleados,id_empleado',
             'posicion' => 'required|string|max:255',
+            'es_coordinador' => 'nullable|boolean',
             'supervisor_id' => 'nullable|exists:empleados,id',
         ]);
 
@@ -97,10 +94,9 @@ class UsersController extends Controller
                 'correo' => $user->email,
                 'area' => $request->area,
                 'subdepartamento_id' => $request->area === 'Comercio Exterior' ? $request->subdepartamento_id : null,
-                
-                // Guardamos los campos adicionales
-                'id_empleado' => $request->id_empleado, // <--- AQUÍ SE GUARDA EL ID DE EMPLEADO
+                'id_empleado' => $request->id_empleado,
                 'posicion' => $request->posicion,
+                'es_coordinador' => $request->boolean('es_coordinador'),
                 'supervisor_id' => $request->supervisor_id,
                 'es_activo' => true,
             ]
@@ -131,13 +127,9 @@ class UsersController extends Controller
             ->get();
             
         // Solo coordinadores y director para el select de Jefe Directo
-        $supervisorIds = Empleado::whereNotNull('supervisor_id')
-            ->distinct()
-            ->pluck('supervisor_id');
-
         $jefes = Empleado::where('es_activo', true)
-            ->where(function ($q) use ($supervisorIds) {
-                $q->whereIn('id', $supervisorIds)
+            ->where(function ($q) {
+                $q->where('es_coordinador', true)
                   ->orWhere('posicion', 'Direccion');
             })
             ->where('user_id', '!=', $user->id)
@@ -170,6 +162,7 @@ class UsersController extends Controller
             'subdepartamento_id' => 'nullable|integer|exists:subdepartamentos,id',
             'id_empleado' => 'nullable|string|max:30|unique:empleados,id_empleado,' . $empleadoId,
             'posicion' => 'required|string|max:255',
+            'es_coordinador' => 'nullable|boolean',
             'supervisor_id' => 'nullable|exists:empleados,id',
         ]);
 
@@ -200,6 +193,7 @@ class UsersController extends Controller
                 // Actualizamos los campos nuevos
                 'id_empleado' => $request->id_empleado,
                 'posicion' => $request->posicion,
+                'es_coordinador' => $request->boolean('es_coordinador'),
                 'supervisor_id' => $request->supervisor_id,
             ]
         );

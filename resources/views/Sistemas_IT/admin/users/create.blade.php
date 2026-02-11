@@ -49,13 +49,19 @@
                         <label for="area" class="block text-sm font-medium text-gray-700 mb-2">
                             Área / Departamento <span class="text-red-500">*</span>
                         </label>
-                        <select name="area" id="area" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('area') border-red-300 @enderror">
-                            <option value="">Selecciona un área</option>
-                            @php($areas = ['Legal','Logistica','RH','Comercio Exterior','Sistemas','Socio'])
-                            @foreach($areas as $a)
-                                <option value="{{ $a }}" {{ old('area') === $a ? 'selected' : '' }}>{{ $a }}</option>
+                        <input type="text"
+                               name="area"
+                               id="area"
+                               list="areas-list"
+                               value="{{ old('area', 'Estrategia e Innovacion') }}"
+                               required
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('area') border-red-300 @enderror"
+                               placeholder="Escribe o selecciona un área">
+                        <datalist id="areas-list">
+                            @foreach(['Estrategia e Innovacion','Recursos Humanos','Chronos Fullfillment','Siegwerk','AGC','PPM Industries','EB-Tecnica','Sarrel','AsiaWay','Comercio Exterior'] as $a)
+                                <option value="{{ $a }}">
                             @endforeach
-                        </select>
+                        </datalist>
                         @error('area')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -83,51 +89,41 @@
                     <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide border-b border-slate-200 pb-2">
                         Información Laboral (RH)
                     </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="posicion" class="block text-sm font-medium text-gray-700 mb-2">
-                                Cargo / Posición <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" 
-                                   name="posicion" 
-                                   id="posicion"
-                                   value="{{ old('posicion') }}"
-                                   required
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('posicion') border-red-300 @enderror" 
-                                   placeholder="Ej. Ejecutivo de Tráfico">
-                            @error('posicion')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
 
-                        <div>
-                            <label for="id_empleado" class="block text-sm font-medium text-gray-700 mb-2">
-                                No. de Nómina / Reloj
-                            </label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 sm:text-sm">#</span>
-                                </div>
-                                <input type="text" 
-                                       name="id_empleado" 
-                                       id="id_empleado"
-                                       value="{{ old('id_empleado') }}"
-                                       class="block w-full pl-7 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('id_empleado') border-red-300 @enderror" 
-                                       placeholder="Ej. 1045">
-                            </div>
-                            @error('id_empleado')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                    <div>
+                        <label for="posicion" class="block text-sm font-medium text-gray-700 mb-2">
+                            Cargo / Posición <span class="text-red-500">*</span>
+                        </label>
+                        <select name="posicion" id="posicion" required
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('posicion') border-red-300 @enderror">
+                            <option value="">Selecciona una posición</option>
+                            @foreach(['Direccion','Administracion RH','Auditoria','Logistica','Legal','Post-Operacion','TI','Anexo 24'] as $pos)
+                                <option value="{{ $pos }}" {{ old('posicion') === $pos ? 'selected' : '' }}>{{ $pos }}</option>
+                            @endforeach
+                        </select>
+                        @error('posicion')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="flex items-center gap-4 py-2">
+                        <label for="es_coordinador" class="relative inline-flex items-center cursor-pointer">
+                            <input type="hidden" name="es_coordinador" value="0">
+                            <input type="checkbox" id="es_coordinador" name="es_coordinador" value="1"
+                                   {{ old('es_coordinador') ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-700">Es Coordinador / Jefe</span>
+                        </label>
+                        <p class="text-xs text-gray-500">Activar si este empleado es coordinador o jefe de área.</p>
                     </div>
 
                     <div>
                         <label for="supervisor_id" class="block text-sm font-medium text-gray-700 mb-2">
                             Jefe Directo (Para Organigrama)
                         </label>
-                        <select name="supervisor_id" 
-                                id="supervisor_id" 
+                        <select name="supervisor_id"
+                                id="supervisor_id"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                             <option value="">-- Sin Supervisor Asignado --</option>
                             @if(isset($jefes))
@@ -175,8 +171,6 @@
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('role') border-red-300 @enderror">
                             <option value="">Selecciona un rol</option>
                             <option value="user" {{ old('role') === 'user' ? 'selected' : '' }}>Usuario Estándar</option>
-                            <option value="colaborador" {{ old('role') === 'colaborador' ? 'selected' : '' }}>Colaborador (Acceso Extendido)</option>
-                            <option value="invitado" {{ old('role') === 'invitado' ? 'selected' : '' }}>Invitado (Limitado)</option>
                             <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Administrador</option>
                         </select>
                         @error('role')
@@ -233,33 +227,25 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const areaSelect = document.getElementById('area');
+            const areaInput = document.getElementById('area');
             const wrapper = document.getElementById('subdepartamentoWrapper');
-            
+
             function toggleSub() {
-                if (!areaSelect || !wrapper) return;
-                
-                if (areaSelect.value === 'Comercio Exterior') {
+                if (!areaInput || !wrapper) return;
+
+                if (areaInput.value === 'Comercio Exterior') {
                     wrapper.classList.remove('hidden');
                 } else {
                     wrapper.classList.add('hidden');
-                    // Limpiar selección si se oculta
                     const subSelect = document.getElementById('subdepartamento_id');
                     if (subSelect) subSelect.value = '';
                 }
             }
-            
-            // Ejecutar al cargar y al cambiar
+
             toggleSub();
-            areaSelect.addEventListener('change', toggleSub);
+            areaInput.addEventListener('input', toggleSub);
+            areaInput.addEventListener('change', toggleSub);
         });
     </script>
 
-    <footer class="bg-white border-t border-blue-100 mt-16">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <div class="text-center text-gray-500 text-sm">
-                <p>&copy; {{ date('Y') }} ERP Estrategia e Innovación. Todos los derechos reservados.</p>
-            </div>
-        </div>
-    </footer>
 @endsection

@@ -177,11 +177,30 @@
                         </div>
                     </div>
 
-                    {{-- Jefe Directo --}}
-                    <div>
-                        <label for="supervisor_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Jefe Directo (Organigrama)
-                        </label>
+                    {{-- Es Coordinador + Jefe Directo --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Rol en Organigrama
+                            </label>
+                            <label for="es_coordinador" class="relative inline-flex items-center cursor-pointer">
+                                <input type="hidden" name="es_coordinador" value="0">
+                                <input type="checkbox"
+                                       id="es_coordinador"
+                                       name="es_coordinador"
+                                       value="1"
+                                       {{ old('es_coordinador', optional($user->empleado)->es_coordinador) ? 'checked' : '' }}
+                                       class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                <span class="ml-3 text-sm font-medium text-gray-700">Es Coordinador / Jefe</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">Actívalo si este empleado tiene gente a su cargo. Aparecerá como opción de jefe directo.</p>
+                        </div>
+
+                        <div>
+                            <label for="supervisor_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                Jefe Directo (Organigrama)
+                            </label>
                         <select id="supervisor_id"
                                 name="supervisor_id"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
@@ -194,10 +213,11 @@
                                 @endforeach
                             @endif
                         </select>
-                        <p class="mt-1 text-xs text-gray-500">Solo aparecen coordinadores y director. Selecciona a quién le reporta este empleado.</p>
+                        <p class="mt-1 text-xs text-gray-500">Solo aparecen coordinadores y director.</p>
                         @error('supervisor_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        </div>
                     </div>
                 </div>
 

@@ -23,6 +23,7 @@ class Empleado extends Model
         'es_activo',
         'subdepartamento_id',
         'posicion',
+        'es_coordinador',
         'es_practicante',
         'telefono',
         'direccion',
