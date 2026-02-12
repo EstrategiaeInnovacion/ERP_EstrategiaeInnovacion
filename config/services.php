@@ -40,4 +40,11 @@ return [
         'logistica_webhook_url' => env('N8N_LOGISTICA_WEBHOOK_URL', 'https://c06a622f9486ece49a2db2acdcebb3.18.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4d18962376014414b02dbdd20060e2b1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=4l6Kkhpot_YreAb6Buo57Zs1pQ9I4oJl1gtl0A5sLak'),
     ],
 
+    'microsoft_graph' => [
+        'client_id' => env('MS_GRAPH_CLIENT_ID'),
+        'tenant_id' => env('MS_GRAPH_TENANT_ID'),
+        'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
+        'sender_email' => env('MS_GRAPH_SENDER_EMAIL', 'sistemas@estrategiaeinnovacion.com.mx'),
+    ],
+
 ];

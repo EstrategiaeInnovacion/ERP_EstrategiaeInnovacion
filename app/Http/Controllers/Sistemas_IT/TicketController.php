@@ -8,6 +8,7 @@ use App\Models\Sistemas_IT\ComputerProfile;
 use App\Models\Sistemas_IT\MaintenanceBooking;
 use App\Models\Sistemas_IT\MaintenanceSlot;
 use App\Models\Sistemas_IT\Ticket;
+use App\Services\MicrosoftGraphMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
@@ -219,20 +220,41 @@ class TicketController extends Controller
     }
 
     /**
-     * Envía notificación por correo al administrador de sistemas
+     * Envía notificación por correo al administrador de sistemas usando Microsoft Graph API
      */
     protected function enviarCorreoNotificacion(Ticket $ticket): void
     {
         $destinatario = config('app.admin_sistemas_email', 'sistemas@estrategiaeinnovacion.com.mx');
         
         try {
-            Mail::to($destinatario)->send(new NuevoTicketNotificacion($ticket));
+            // Renderizar la vista del correo a HTML
+            $htmlContent = view('emails.nuevo_ticket', ['ticket' => $ticket])->render();
             
-            \Log::info('Correo de notificación enviado correctamente.', [
-                'ticket_id' => $ticket->id,
-                'folio' => $ticket->folio,
-                'destinatario' => $destinatario,
-            ]);
+            // Preparar el asunto
+            $tipoLabel = match($ticket->tipo_problema) {
+                'software' => 'Software',
+                'hardware' => 'Hardware',
+                'mantenimiento' => 'Mantenimiento',
+                default => 'Ticket'
+            };
+            $subject = "[{$ticket->folio}] Nuevo Ticket de {$tipoLabel}";
+            
+            // Enviar usando Microsoft Graph
+            $graphService = new MicrosoftGraphMailService();
+            $enviado = $graphService->sendMail($destinatario, $subject, $htmlContent);
+            
+            if ($enviado) {
+                \Log::info('Correo de notificación enviado via Microsoft Graph.', [
+                    'ticket_id' => $ticket->id,
+                    'folio' => $ticket->folio,
+                    'destinatario' => $destinatario,
+                ]);
+            } else {
+                \Log::warning('No se pudo enviar correo via Microsoft Graph.', [
+                    'ticket_id' => $ticket->id,
+                    'folio' => $ticket->folio,
+                ]);
+            }
         } catch (\Throwable $exception) {
             \Log::error('Error al enviar correo de notificación.', [
                 'ticket_id' => $ticket->id,
