@@ -81,17 +81,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-slate-900 rounded-3xl p-6 text-white flex items-center justify-between shadow-lg relative overflow-hidden group">
-                <div class="absolute inset-0 bg-gradient-to-r from-indigo-900 to-slate-900 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative z-10">
-                    <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Acción Rápida</p>
-                    <h5 class="text-lg font-bold">Registrar Nuevo Empleado</h5>
-                </div>
-                <a href="{{ route('admin.users.create') }}" class="relative z-10 bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm">
-                    Crear +
-                </a>
-            </div>
-            
             <div class="bg-indigo-600 rounded-3xl p-6 text-white flex items-center justify-between shadow-lg shadow-indigo-200 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-50 group-hover:opacity-100 transition-opacity"></div>
                 <div class="relative z-10">
