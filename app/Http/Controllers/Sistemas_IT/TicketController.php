@@ -111,29 +111,25 @@ class TicketController extends Controller
             ];
 
             if ($validated['tipo_problema'] === 'mantenimiento') {
-                // NOTA: Si usas slots de BD real, descomenta la validación de capacidad aquí.
-                /*
-                $slot = MaintenanceSlot::lockForUpdate()->find($validated['maintenance_slot_id'] ?? null);
-                if (!$slot || !$slot->is_active || $slot->available_capacity <= 0) {
-                     throw ValidationException::withMessages(['maintenance_slot_id' => 'Horario no disponible.']);
+                // Nueva lógica: usar fecha y hora de los inputs directamente
+                $fechaRequerida = $request->input('fecha_requerida');
+                $horaRequerida = $request->input('hora_requerida');
+                
+                if ($fechaRequerida && $horaRequerida) {
+                    // Crear datetime completo para maintenance_scheduled_at
+                    $scheduledAt = \Carbon\Carbon::parse(
+                        $fechaRequerida . ' ' . $horaRequerida,
+                        'America/Mexico_City'
+                    );
+                    $ticketData['maintenance_scheduled_at'] = $scheduledAt;
                 }
-                $ticketData['maintenance_slot_id'] = $slot->id;
-                $ticketData['maintenance_scheduled_at'] = $slot->start_date_time;
-                */
 
                 $ticket = Ticket::create($ticketData);
 
-                MaintenanceBooking::create([
-                    'maintenance_slot_id' => $validated['maintenance_slot_id'],
-                    'ticket_id' => $ticket->id,
-                    'additional_details' => $validated['descripcion_problema'] ?? '',
-                ]);
-
-                // $slot->increment('booked_count'); // Descomentar si usas BD real
-
                 \Log::info('TicketController::store - Ticket de mantenimiento creado exitosamente', [
                     'ticket_id' => $ticket->id,
-                    'folio' => $ticket->folio
+                    'folio' => $ticket->folio,
+                    'scheduled_at' => $ticketData['maintenance_scheduled_at'] ?? null,
                 ]);
             } else {
                 $ticket = Ticket::create($ticketData);
