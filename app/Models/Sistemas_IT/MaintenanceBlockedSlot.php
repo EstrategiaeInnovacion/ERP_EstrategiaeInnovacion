@@ -35,32 +35,36 @@ class MaintenanceBlockedSlot extends Model
      */
     public static function isBlocked(string $date, ?string $timeSlot = null): bool
     {
-        $dateCarbon = Carbon::parse($date);
+        // Normalizar fecha
+        $date = Carbon::parse($date)->format('Y-m-d');
+        
+        // Normalizar time_slot a HH:MM:SS para comparación con la DB
+        $timeSlotNormalized = $timeSlot ? substr($timeSlot, 0, 5) . ':00' : null;
         
         return self::query()
-            ->where(function ($query) use ($dateCarbon, $timeSlot) {
-                // Bloqueo por fecha específica
-                $query->where(function ($q) use ($dateCarbon, $timeSlot) {
-                    $q->whereDate('date_start', '<=', $dateCarbon)
-                      ->where(function ($subQ) use ($dateCarbon) {
-                          $subQ->whereNull('date_end')
-                               ->whereDate('date_start', $dateCarbon);
-                      })
-                      ->orWhere(function ($subQ) use ($dateCarbon) {
-                          $subQ->whereNotNull('date_end')
-                               ->whereDate('date_end', '>=', $dateCarbon)
-                               ->whereDate('date_start', '<=', $dateCarbon);
-                      });
-                })
-                // Filtrar por horario si se especifica
-                ->where(function ($q) use ($timeSlot) {
-                    if ($timeSlot) {
-                        $q->whereNull('time_slot') // Bloqueo de todo el día
-                          ->orWhere('time_slot', $timeSlot);
-                    } else {
-                        $q->whereNull('time_slot'); // Solo bloqueos de día completo
-                    }
+            ->where(function ($query) use ($date) {
+                // Fecha dentro del rango o fecha exacta
+                $query->where(function ($q) use ($date) {
+                    // Bloqueo de fecha única (sin date_end)
+                    $q->where(function ($sub) use ($date) {
+                        $sub->whereDate('date_start', $date)
+                            ->whereNull('date_end');
+                    })
+                    // O bloqueo de rango (con date_end)
+                    ->orWhere(function ($sub) use ($date) {
+                        $sub->whereDate('date_start', '<=', $date)
+                            ->whereDate('date_end', '>=', $date);
+                    });
                 });
+            })
+            ->where(function ($q) use ($timeSlotNormalized) {
+                // Bloqueo de día completo (time_slot es null)
+                $q->whereNull('time_slot');
+                
+                // O bloqueo de hora específica que coincida
+                if ($timeSlotNormalized) {
+                    $q->orWhere('time_slot', $timeSlotNormalized);
+                }
             })
             ->exists();
     }
@@ -70,14 +74,21 @@ class MaintenanceBlockedSlot extends Model
      */
     public static function getBlockedForRange(string $startDate, string $endDate): array
     {
+        // Normalizar fechas
+        $startDate = Carbon::parse($startDate)->format('Y-m-d');
+        $endDate = Carbon::parse($endDate)->format('Y-m-d');
+        
         $blocks = self::query()
             ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('date_start', [$startDate, $endDate])
-                      ->orWhere(function ($q) use ($startDate, $endDate) {
-                          $q->whereNotNull('date_end')
-                            ->where('date_start', '<=', $endDate)
-                            ->where('date_end', '>=', $startDate);
-                      });
+                // Bloqueo que inicia dentro del rango
+                $query->whereDate('date_start', '>=', $startDate)
+                      ->whereDate('date_start', '<=', $endDate);
+            })
+            ->orWhere(function ($query) use ($startDate, $endDate) {
+                // Bloqueo con rango que intersecta
+                $query->whereNotNull('date_end')
+                      ->whereDate('date_start', '<=', $endDate)
+                      ->whereDate('date_end', '>=', $startDate);
             })
             ->get();
 
@@ -87,15 +98,30 @@ class MaintenanceBlockedSlot extends Model
             $start = Carbon::parse($block->date_start);
             $end = $block->date_end ? Carbon::parse($block->date_end) : $start->copy();
             
+            // Iterar solo dentro del rango solicitado
+            $rangeStart = Carbon::parse($startDate);
+            $rangeEnd = Carbon::parse($endDate);
+            
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                $dateStr = $date->format('Y-m-d');
-                
-                if (!isset($blockedSlots[$dateStr])) {
-                    $blockedSlots[$dateStr] = [];
+                // Solo incluir si está dentro del rango solicitado
+                if ($date->lt($rangeStart) || $date->gt($rangeEnd)) {
+                    continue;
                 }
                 
+                $dateStr = $date->format('Y-m-d');
+                
                 if ($block->time_slot) {
-                    $blockedSlots[$dateStr][] = $block->time_slot;
+                    // Bloqueo de hora específica
+                    if (!isset($blockedSlots[$dateStr]) || $blockedSlots[$dateStr] !== 'all') {
+                        if (!isset($blockedSlots[$dateStr])) {
+                            $blockedSlots[$dateStr] = [];
+                        }
+                        if (is_array($blockedSlots[$dateStr])) {
+                            // Formatear time_slot a HH:MM
+                            $timeSlot = substr($block->time_slot, 0, 5);
+                            $blockedSlots[$dateStr][] = $timeSlot;
+                        }
+                    }
                 } else {
                     // Día completo bloqueado
                     $blockedSlots[$dateStr] = 'all';

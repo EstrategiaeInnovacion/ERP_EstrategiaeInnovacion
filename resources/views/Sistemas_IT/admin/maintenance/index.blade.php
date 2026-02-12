@@ -703,6 +703,9 @@
         </div>
     </main>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const tabButtons = document.querySelectorAll('.tab-trigger');
@@ -1176,8 +1179,11 @@
 
         // ===== AGENDA DE MANTENIMIENTOS =====
         let currentWeekStart = null;
+        let miniCalendarInstance = null;
 
         function initAgenda() {
+            // Inicializar mini calendario
+            initMiniCalendar();
             loadWeekMaintenances();
 
             document.getElementById('prevWeek')?.addEventListener('click', () => {
@@ -1193,6 +1199,26 @@
                     const nextWeek = new Date(currentWeekStart);
                     nextWeek.setDate(nextWeek.getDate() + 7);
                     loadWeekMaintenances(nextWeek.toISOString().slice(0, 10));
+                }
+            });
+        }
+
+        function initMiniCalendar() {
+            const miniCalEl = document.getElementById('miniCalendar');
+            if (!miniCalEl) return;
+
+            miniCalendarInstance = flatpickr(miniCalEl, {
+                inline: true,
+                locale: 'es',
+                dateFormat: 'Y-m-d',
+                defaultDate: new Date(),
+                disable: [
+                    function(date) {
+                        return (date.getDay() === 0 || date.getDay() === 6);
+                    }
+                ],
+                onChange: function(selectedDates, dateStr) {
+                    loadWeekMaintenances(dateStr);
                 }
             });
         }
@@ -1213,7 +1239,17 @@
                 const url = new URL('{{ route("admin.maintenance.week-maintenances") }}');
                 if (weekStart) url.searchParams.set('week_start', weekStart);
 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
                 const data = await response.json();
 
                 currentWeekStart = data.week_start;

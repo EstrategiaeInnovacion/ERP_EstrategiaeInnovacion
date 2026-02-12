@@ -416,6 +416,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Cache de disponibilidad por fecha
             const availabilityCache = {};
+            
+            // URLs de API
+            const apiSlotsUrl = "{{ route('maintenance.slots') }}";
+            const apiCheckUrl = "{{ route('maintenance.check-availability') }}";
 
             const dateInput = document.getElementById('fecha_requerida_input');
             const timeInput = document.getElementById('hora_requerida_input');
@@ -460,7 +464,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 try {
                     // Obtener disponibilidad de la API
-                    const response = await fetch(`/maintenance/slots?date=${dateStr}`);
+                    const response = await fetch(`${apiSlotsUrl}?date=${dateStr}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    
                     const data = await response.json();
                     
                     // Guardar en cache
@@ -486,22 +500,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Crear un mapa de disponibilidad desde la API
                 const slotMap = {};
                 apiSlots.forEach(s => {
-                    slotMap[s.time_slot] = s;
+                    slotMap[s.start] = s;
                 });
 
                 timeSlots.forEach(slot => {
                     const apiSlot = slotMap[slot.start];
-                    let isBooked = apiSlot ? !apiSlot.available : false;
-                    let isBlocked = apiSlot ? apiSlot.blocked : false;
-                    let isPast = false;
-
-                    // Validación de hora pasada (solo si es hoy)
-                    if (isToday) {
-                        const [slotH, slotM] = slot.start.split(':').map(Number);
-                        if (slotH < currentServerHour || (slotH === currentServerHour && slotM <= currentServerMinute)) {
-                            isPast = true;
-                        }
-                    }
+                    let isBooked = apiSlot ? apiSlot.is_booked : false;
+                    let isBlocked = apiSlot ? apiSlot.is_blocked : false;
+                    let isPast = apiSlot ? apiSlot.is_past : false;
 
                     const isDisabled = isBooked || isPast || isBlocked;
                     if (!isDisabled) availableCount++;
@@ -550,7 +556,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
 
                             try {
-                                const checkResponse = await fetch(`/maintenance/check-availability?date=${dateStr}&time_slot=${slot.start}`);
+                                const checkResponse = await fetch(`${apiCheckUrl}?date=${dateStr}&time=${slot.start}`, {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                });
+                                
+                                if (!checkResponse.ok) {
+                                    throw new Error('HTTP ' + checkResponse.status);
+                                }
+                                
                                 const checkData = await checkResponse.json();
 
                                 if (!checkData.available) {

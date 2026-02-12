@@ -170,19 +170,25 @@ class MaintenanceController extends Controller
      */
     public function slots(Request $request): JsonResponse
     {
-        $request->validate([
-            'date' => 'required|date_format:Y-m-d',
-        ]);
+        try {
+            $dateStr = $request->query('date');
+            
+            if (!$dateStr || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Fecha inválida',
+                    'slots' => [],
+                ], 400);
+            }
 
-        $dateStr = $request->query('date');
-        $date = Carbon::parse($dateStr, 'America/Mexico_City');
-        $now = Carbon::now('America/Mexico_City');
+            $date = Carbon::parse($dateStr, 'America/Mexico_City');
+            $now = Carbon::now('America/Mexico_City');
 
-        // Si es fin de semana, no hay slots
-        if ($date->isWeekend()) {
-            return response()->json([
-                'date' => $dateStr,
-                'slots' => [],
+            // Si es fin de semana, no hay slots
+            if ($date->isWeekend()) {
+                return response()->json([
+                    'date' => $dateStr,
+                    'slots' => [],
                 'message' => 'No hay horarios disponibles en fin de semana.',
             ]);
         }
@@ -249,6 +255,13 @@ class MaintenanceController extends Controller
             'is_full_day_blocked' => $isFullDayBlocked,
             'slots' => $slots,
         ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Error al cargar disponibilidad: ' . $e->getMessage(),
+                'slots' => [],
+            ], 500);
+        }
     }
 
     /**
@@ -256,13 +269,17 @@ class MaintenanceController extends Controller
      */
     public function checkAvailability(Request $request): JsonResponse
     {
-        $request->validate([
-            'date' => 'required|date_format:Y-m-d',
-            'time' => 'required|date_format:H:i',
-        ]);
-
-        $dateStr = $request->query('date');
-        $timeStr = $request->query('time');
+        try {
+            $dateStr = $request->query('date');
+            $timeStr = $request->query('time');
+            
+            if (!$dateStr || !$timeStr) {
+                return response()->json([
+                    'available' => false,
+                    'reason' => 'invalid_params',
+                    'message' => 'Parámetros inválidos',
+                ], 400);
+            }
         
         // Verificar si está bloqueado
         $isBlocked = MaintenanceBlockedSlot::isBlocked($dateStr, $timeStr);
@@ -306,6 +323,13 @@ class MaintenanceController extends Controller
             'available' => true,
             'message' => 'Horario disponible.',
         ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'available' => false,
+                'reason' => 'error',
+                'message' => 'Error al verificar disponibilidad: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
