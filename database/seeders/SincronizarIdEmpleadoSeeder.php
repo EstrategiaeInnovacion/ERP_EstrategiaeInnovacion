@@ -4,43 +4,63 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Empleado;
 
 class SincronizarIdEmpleadoSeeder extends Seeder
 {
     /**
-     * Sincroniza el id_empleado de la tabla empleados
-     * con los datos de la BD local (mysql_old)
+     * Sincroniza el id_empleado en la BD local del servidor (estrategias_innovacion_v2)
+     * usando los datos correctos del EmpleadoSeeder.
      * 
-     * Busca coincidencias por nombre de forma flexible:
-     * - Ignora mayúsculas/minúsculas
-     * - Ignora acentos
-     * - Permite nombres parciales (solo primer nombre + apellido)
+     * Busca por nombre (completo o parcial, ignora mayúsculas/acentos)
+     * y actualiza el id_empleado correspondiente.
      * 
-     * Uso: php artisan db:seed --class=SincronizarIdEmpleadoSeeder
+     * EJECUTAR EN EL SERVIDOR:
+     * php artisan db:seed --class=SincronizarIdEmpleadoSeeder
      */
+    
+    // Lista de empleados con id_empleado correcto (del EmpleadoSeeder)
+    private array $empleadosCorrectos = [
+        ['id_empleado' => '0', 'nombre' => 'Amos Guillermo Aguilera Gonzalez'],
+        ['id_empleado' => '36', 'nombre' => 'Liliana Hernandez Castilla'],
+        ['id_empleado' => '23', 'nombre' => 'Silvestre Reyes Castillo'],
+        ['id_empleado' => '30', 'nombre' => 'Nancy Beatriz Gomez Hernandez'],
+        ['id_empleado' => '56', 'nombre' => 'Jazzman Jerssain Aguilar Cisneros'],
+        ['id_empleado' => '57', 'nombre' => 'Mario Mojica Morales'],
+        ['id_empleado' => '74', 'nombre' => 'Aneth Alejandra Herrera Hernandez'],
+        ['id_empleado' => '22', 'nombre' => 'Zaira Isabel Martinez Urbina'],
+        ['id_empleado' => '60', 'nombre' => 'Luis Eduardo Inclan Soriano'],
+        ['id_empleado' => '68', 'nombre' => 'Guadalupe Jacqueline Mendoza Rodriguez'],
+        ['id_empleado' => '73', 'nombre' => 'Mariana Rodriguez Rueda'],
+        ['id_empleado' => '78', 'nombre' => 'Oscar Eduardo Morin Carrizales'],
+        ['id_empleado' => '53', 'nombre' => 'Alisson Cassiel Pineda Martinez'],
+        ['id_empleado' => '86', 'nombre' => 'Ivan Rodriguez Juarez'],
+        ['id_empleado' => '87', 'nombre' => 'Karen Cristina Bonal Mata'],
+        ['id_empleado' => '96', 'nombre' => 'Jacob de Jesus Medina Ramirez'],
+        ['id_empleado' => '99', 'nombre' => 'Fatima Esther Torres Arriaga'],
+        ['id_empleado' => '84', 'nombre' => 'Mariana Calderón Ojeda'],
+        ['id_empleado' => '95', 'nombre' => 'Jonathan Loredo Palacios'],
+        ['id_empleado' => '103', 'nombre' => 'Isaac Covarrubias Quintero'],
+        ['id_empleado' => '90', 'nombre' => 'Jessica Anahi Esparza Gonzalez'],
+        ['id_empleado' => '98', 'nombre' => 'Felipe de Jesus Rodriguez Ledesma'],
+        ['id_empleado' => '100', 'nombre' => 'Mayra Susana Coreño Arriaga'],
+        ['id_empleado' => '101', 'nombre' => 'Erika Liliana Mireles Sanchez'],
+        ['id_empleado' => '80', 'nombre' => 'Ana Sofia Cuello Aguilar'],
+        ['id_empleado' => '102', 'nombre' => 'Carlos Alfonso Rivera Moran'],
+    ];
+
     public function run(): void
     {
         $this->command->info('╔════════════════════════════════════════════════════════════╗');
-        $this->command->info('║  SINCRONIZAR id_empleado DESDE BD LOCAL                    ║');
-        $this->command->info('║  BD Local (mysql_old) → ERP (empleados)                    ║');
+        $this->command->info('║  SINCRONIZAR id_empleado EN BD LOCAL                       ║');
+        $this->command->info('║  Seeder → estrategias_innovacion_v2 (127.0.0.1)            ║');
         $this->command->info('╚════════════════════════════════════════════════════════════╝');
         $this->command->info('');
 
-        // Verificar conexión a mysql_old
-        try {
-            $empleadosLocal = DB::connection('mysql_old')->table('empleados')->get();
-            $this->command->info("✓ Conexión a mysql_old exitosa");
-        } catch (\Exception $e) {
-            $this->command->error("✗ No se pudo conectar a mysql_old: " . $e->getMessage());
-            return;
-        }
+        // Obtener empleados de la BD local
+        $empleadosBD = DB::table('empleados')->get();
 
-        // Obtener empleados del ERP
-        $empleadosERP = Empleado::all();
-
-        $this->command->info("Empleados en BD Local: " . $empleadosLocal->count());
-        $this->command->info("Empleados en ERP: " . $empleadosERP->count());
+        $this->command->info("Empleados en Seeder: " . count($this->empleadosCorrectos));
+        $this->command->info("Empleados en BD Local: " . $empleadosBD->count());
         $this->command->info('');
         $this->command->info('─────────────────────────────────────────────────────────────');
 
@@ -49,39 +69,42 @@ class SincronizarIdEmpleadoSeeder extends Seeder
         $noEncontrados = [];
         $multiples = [];
 
-        foreach ($empleadosERP as $empERP) {
-            $nombreERP = $empERP->nombre;
+        foreach ($this->empleadosCorrectos as $empSeeder) {
+            $nombreSeeder = $empSeeder['nombre'];
+            $idEmpleadoCorrecto = $empSeeder['id_empleado'];
             
-            // Buscar coincidencia en BD Local
-            $resultado = $this->buscarEnLocal($nombreERP, $empleadosLocal);
+            // Buscar coincidencia en BD local
+            $resultado = $this->buscarEnBD($nombreSeeder, $empleadosBD);
             
             if ($resultado['tipo'] === 'unico') {
-                $empLocal = $resultado['empleado'];
+                $empBD = $resultado['empleado'];
                 
                 // Verificar si hay cambio
-                if ($empERP->id_empleado != $empLocal->id_empleado) {
-                    $idAnterior = $empERP->id_empleado ?? 'NULL';
+                if ($empBD->id_empleado != $idEmpleadoCorrecto) {
+                    $idAnterior = $empBD->id_empleado ?? 'NULL';
                     
-                    $empERP->id_empleado = $empLocal->id_empleado;
-                    $empERP->save();
+                    DB::table('empleados')
+                        ->where('id', $empBD->id)
+                        ->update(['id_empleado' => $idEmpleadoCorrecto]);
                     
                     $actualizados++;
-                    $this->command->info("✓ {$nombreERP}");
-                    $this->command->info("  → Encontrado como: {$empLocal->nombre}");
-                    $this->command->info("  → id_empleado: {$idAnterior} → {$empLocal->id_empleado}");
+                    $this->command->info("✓ {$nombreSeeder}");
+                    $this->command->info("  → Encontrado como: {$empBD->nombre}");
+                    $this->command->info("  → id_empleado: {$idAnterior} → {$idEmpleadoCorrecto}");
                 } else {
                     $sinCambios++;
-                    $this->command->line("= {$nombreERP} (id_empleado ya correcto: {$empERP->id_empleado})");
+                    $this->command->line("= {$nombreSeeder} (id_empleado ya correcto: {$idEmpleadoCorrecto})");
                 }
             } elseif ($resultado['tipo'] === 'multiple') {
                 $multiples[] = [
-                    'nombre' => $nombreERP,
+                    'nombre' => $nombreSeeder,
+                    'id_empleado' => $idEmpleadoCorrecto,
                     'coincidencias' => $resultado['coincidencias']
                 ];
-                $this->command->warn("? {$nombreERP} - Múltiples coincidencias encontradas");
+                $this->command->warn("? {$nombreSeeder} - Múltiples coincidencias");
             } else {
-                $noEncontrados[] = $nombreERP;
-                $this->command->error("✗ {$nombreERP} - NO encontrado en BD Local");
+                $noEncontrados[] = ['nombre' => $nombreSeeder, 'id_empleado' => $idEmpleadoCorrecto];
+                $this->command->error("✗ {$nombreSeeder} - NO encontrado en BD");
             }
         }
 
@@ -98,9 +121,9 @@ class SincronizarIdEmpleadoSeeder extends Seeder
         // Detalles de no encontrados
         if (count($noEncontrados) > 0) {
             $this->command->info('');
-            $this->command->warn('Empleados ERP no encontrados en BD Local:');
-            foreach ($noEncontrados as $nombre) {
-                $this->command->warn("  - {$nombre}");
+            $this->command->warn('Empleados del Seeder no encontrados en BD:');
+            foreach ($noEncontrados as $emp) {
+                $this->command->warn("  - {$emp['nombre']} (id_empleado: {$emp['id_empleado']})");
             }
         }
 
@@ -109,40 +132,40 @@ class SincronizarIdEmpleadoSeeder extends Seeder
             $this->command->info('');
             $this->command->warn('Empleados con múltiples coincidencias (revisar manualmente):');
             foreach ($multiples as $item) {
-                $this->command->warn("  {$item['nombre']}:");
+                $this->command->warn("  {$item['nombre']} (debe ser id_empleado: {$item['id_empleado']}):");
                 foreach ($item['coincidencias'] as $coincidencia) {
-                    $this->command->warn("    → {$coincidencia->nombre} (id_empleado: {$coincidencia->id_empleado})");
+                    $this->command->warn("    → ID:{$coincidencia->id} - {$coincidencia->nombre}");
                 }
             }
         }
     }
 
     /**
-     * Busca un empleado en la BD local usando múltiples estrategias de coincidencia
+     * Busca un empleado en la BD usando múltiples estrategias de coincidencia
      */
-    private function buscarEnLocal(string $nombreERP, $empleadosLocal): array
+    private function buscarEnBD(string $nombreSeeder, $empleadosBD): array
     {
-        $nombreNorm = $this->normalizar($nombreERP);
-        $palabrasERP = $this->obtenerPalabras($nombreNorm);
+        $nombreNorm = $this->normalizar($nombreSeeder);
+        $palabrasSeeder = $this->obtenerPalabras($nombreNorm);
         
         // Estrategia 1: Coincidencia exacta (normalizada)
-        foreach ($empleadosLocal as $emp) {
+        foreach ($empleadosBD as $emp) {
             if ($this->normalizar($emp->nombre) === $nombreNorm) {
                 return ['tipo' => 'unico', 'empleado' => $emp];
             }
         }
         
-        // Estrategia 2: Todas las palabras del ERP (>= 3 chars) están en el nombre local
+        // Estrategia 2: Todas las palabras del Seeder (>= 3 chars) están en el nombre BD
         $coincidenciasE2 = [];
-        foreach ($empleadosLocal as $emp) {
-            $nombreLocalNorm = $this->normalizar($emp->nombre);
+        foreach ($empleadosBD as $emp) {
+            $nombreBDNorm = $this->normalizar($emp->nombre);
             $todasCoinciden = true;
             $palabrasValidas = 0;
             
-            foreach ($palabrasERP as $palabra) {
+            foreach ($palabrasSeeder as $palabra) {
                 if (strlen($palabra) >= 3) {
                     $palabrasValidas++;
-                    if (strpos($nombreLocalNorm, $palabra) === false) {
+                    if (strpos($nombreBDNorm, $palabra) === false) {
                         $todasCoinciden = false;
                         break;
                     }
@@ -161,16 +184,16 @@ class SincronizarIdEmpleadoSeeder extends Seeder
         }
         
         // Estrategia 3: Primer nombre + último apellido
-        if (count($palabrasERP) >= 2) {
-            $primerNombre = $palabrasERP[0];
-            $ultimoApellido = end($palabrasERP);
+        if (count($palabrasSeeder) >= 2) {
+            $primerNombre = $palabrasSeeder[0];
+            $ultimoApellido = end($palabrasSeeder);
             
             $coincidenciasE3 = [];
-            foreach ($empleadosLocal as $emp) {
-                $nombreLocalNorm = $this->normalizar($emp->nombre);
+            foreach ($empleadosBD as $emp) {
+                $nombreBDNorm = $this->normalizar($emp->nombre);
                 
-                if (strpos($nombreLocalNorm, $primerNombre) === 0 && 
-                    strpos($nombreLocalNorm, $ultimoApellido) !== false) {
+                if (strpos($nombreBDNorm, $primerNombre) === 0 && 
+                    strpos($nombreBDNorm, $ultimoApellido) !== false) {
                     $coincidenciasE3[] = $emp;
                 }
             }
@@ -183,26 +206,26 @@ class SincronizarIdEmpleadoSeeder extends Seeder
         }
         
         // Estrategia 4: Solo primer nombre + cualquier apellido (>= 4 chars)
-        if (count($palabrasERP) >= 2) {
-            $primerNombre = $palabrasERP[0];
+        if (count($palabrasSeeder) >= 2) {
+            $primerNombre = $palabrasSeeder[0];
             
             $coincidenciasE4 = [];
-            foreach ($empleadosLocal as $emp) {
-                $nombreLocalNorm = $this->normalizar($emp->nombre);
-                $palabrasLocal = $this->obtenerPalabras($nombreLocalNorm);
+            foreach ($empleadosBD as $emp) {
+                $nombreBDNorm = $this->normalizar($emp->nombre);
+                $palabrasBD = $this->obtenerPalabras($nombreBDNorm);
                 
                 // Primer nombre debe coincidir al inicio
-                if (strpos($nombreLocalNorm, $primerNombre) !== 0) {
+                if (strpos($nombreBDNorm, $primerNombre) !== 0) {
                     continue;
                 }
                 
                 // Al menos un apellido (>= 4 chars) debe coincidir
-                foreach ($palabrasERP as $i => $palabra) {
+                foreach ($palabrasSeeder as $i => $palabra) {
                     if ($i === 0) continue;
                     if (strlen($palabra) >= 4) {
-                        foreach ($palabrasLocal as $j => $palabraLocal) {
+                        foreach ($palabrasBD as $j => $palabraBD) {
                             if ($j === 0) continue;
-                            if (strlen($palabraLocal) >= 4 && $palabra === $palabraLocal) {
+                            if (strlen($palabraBD) >= 4 && $palabra === $palabraBD) {
                                 $coincidenciasE4[] = $emp;
                                 break 2;
                             }
@@ -219,13 +242,13 @@ class SincronizarIdEmpleadoSeeder extends Seeder
         }
         
         // Estrategia 5: Nombre corto - solo primer nombre si es único y largo
-        if (!empty($palabrasERP[0]) && strlen($palabrasERP[0]) >= 5) {
-            $primerNombre = $palabrasERP[0];
+        if (!empty($palabrasSeeder[0]) && strlen($palabrasSeeder[0]) >= 5) {
+            $primerNombre = $palabrasSeeder[0];
             $coincidencias = [];
             
-            foreach ($empleadosLocal as $emp) {
-                $nombreLocalNorm = $this->normalizar($emp->nombre);
-                if (strpos($nombreLocalNorm, $primerNombre) === 0) {
+            foreach ($empleadosBD as $emp) {
+                $nombreBDNorm = $this->normalizar($emp->nombre);
+                if (strpos($nombreBDNorm, $primerNombre) === 0) {
                     $coincidencias[] = $emp;
                 }
             }
@@ -233,9 +256,9 @@ class SincronizarIdEmpleadoSeeder extends Seeder
             if (count($coincidencias) === 1) {
                 return ['tipo' => 'unico', 'empleado' => $coincidencias[0]];
             } elseif (count($coincidencias) > 1) {
-                // Si hay múltiples, intentar filtrar por segundo nombre/apellido
-                if (count($palabrasERP) >= 2) {
-                    $segundaPalabra = $palabrasERP[1];
+                // Intentar filtrar por segundo nombre/apellido
+                if (count($palabrasSeeder) >= 2) {
+                    $segundaPalabra = $palabrasSeeder[1];
                     $filtradas = array_filter($coincidencias, function($emp) use ($segundaPalabra) {
                         return strpos($this->normalizar($emp->nombre), $segundaPalabra) !== false;
                     });
