@@ -318,6 +318,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::delete('/{user}', 'destroy')->name('destroy');
         Route::post('/{user}/approve', 'approve')->name('approve');
         Route::post('/{user}/reject', 'reject')->name('reject');
+        Route::post('/{user}/baja', 'darDeBaja')->name('baja');
         Route::delete('/{user}/rejection', 'destroyRejected')->name('rejections.destroy');
         Route::delete('/blocked-emails/{blockedEmail}', 'destroyBlockedEmail')->name('blocked-emails.destroy');
     });

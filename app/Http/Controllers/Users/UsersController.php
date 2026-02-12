@@ -264,4 +264,43 @@ class UsersController extends Controller
 
         return redirect()->route('admin.users')->with('success', 'Solicitud rechazada y correo marcado como no permitido.');
     }
+
+    public function darDeBaja(Request $request, User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'No puedes darte de baja a ti mismo.');
+        }
+
+        if ($user->status !== User::STATUS_APPROVED) {
+            return back()->with('error', 'Solo puedes dar de baja a usuarios activos.');
+        }
+
+        $data = $request->validate([
+            'motivo_baja' => 'required|string|max:255',
+            'observaciones' => 'nullable|string|max:1000',
+        ]);
+
+        $empleado = Empleado::where('user_id', $user->id)->first();
+
+        EmpleadoBaja::create([
+            'empleado_id' => $empleado?->id,
+            'user_id' => $user->id,
+            'nombre' => $empleado?->nombre ?? $user->name,
+            'correo' => $user->email,
+            'motivo_baja' => $data['motivo_baja'],
+            'fecha_baja' => now()->toDateString(),
+            'observaciones' => $data['observaciones'],
+        ]);
+
+        if ($empleado) {
+            $empleado->update(['es_activo' => false]);
+        }
+
+        $user->update([
+            'status' => User::STATUS_REJECTED,
+            'rejected_at' => now(),
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'El usuario ' . $user->name . ' ha sido dado de baja exitosamente.');
+    }
 }

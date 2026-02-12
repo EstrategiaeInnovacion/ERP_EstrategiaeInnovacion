@@ -332,6 +332,65 @@
                 </p>
             </div>
         </div>
+        {{-- Dar de Baja --}}
+        @if($user->status === 'approved' && $user->id !== auth()->id())
+            <div class="mt-8 bg-white rounded-lg shadow-sm border border-red-200 overflow-hidden">
+                <div class="px-6 py-4 bg-red-50/50 border-b border-red-100">
+                    <h3 class="text-sm font-bold text-red-800 uppercase tracking-wide flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        Dar de Baja al Empleado
+                    </h3>
+                    <p class="text-xs text-red-600 mt-1">Esta acción desactivará la cuenta del usuario y lo registrará como baja.</p>
+                </div>
+                <form method="POST" action="{{ route('admin.users.baja', $user) }}" class="p-6 space-y-4"
+                      onsubmit="return confirm('¿Estás seguro de dar de baja a {{ $user->name }}? Esta acción cambiará su estado a inactivo.');">
+                    @csrf
+                    <div>
+                        <label for="motivo_baja" class="block text-sm font-medium text-gray-700 mb-2">
+                            Motivo de la Baja <span class="text-red-500">*</span>
+                        </label>
+                        <select id="motivo_baja_select" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 mb-2">
+                            <option value="">Selecciona un motivo...</option>
+                            <option value="Baja de personal">Baja de personal</option>
+                            <option value="Renuncia voluntaria">Renuncia voluntaria</option>
+                            <option value="Fin de contrato">Fin de contrato</option>
+                            <option value="Reestructura organizacional">Reestructura organizacional</option>
+                            <option value="otro">Otro (escribir)</option>
+                        </select>
+                        <input type="text"
+                               name="motivo_baja"
+                               id="motivo_baja"
+                               required
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 @error('motivo_baja') border-red-300 @enderror"
+                               placeholder="Describe el motivo de la baja">
+                        @error('motivo_baja')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-2">
+                            Observaciones Adicionales
+                        </label>
+                        <textarea name="observaciones"
+                                  id="observaciones"
+                                  rows="2"
+                                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
+                                  placeholder="Información adicional (opcional)"></textarea>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="submit"
+                                class="inline-flex items-center px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors duration-200 shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                            </svg>
+                            Confirmar Baja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
     </main>
 
     <script>
@@ -351,6 +410,24 @@
             toggleSub();
             areaInput.addEventListener('input', toggleSub);
             areaInput.addEventListener('change', toggleSub);
+
+            // Motivo de baja: select -> input sync
+            const motivoSelect = document.getElementById('motivo_baja_select');
+            const motivoInput = document.getElementById('motivo_baja');
+            if (motivoSelect && motivoInput) {
+                motivoSelect.addEventListener('change', function() {
+                    if (this.value && this.value !== 'otro') {
+                        motivoInput.value = this.value;
+                        motivoInput.readOnly = true;
+                        motivoInput.classList.add('bg-gray-50');
+                    } else {
+                        motivoInput.value = '';
+                        motivoInput.readOnly = false;
+                        motivoInput.classList.remove('bg-gray-50');
+                        motivoInput.focus();
+                    }
+                });
+            }
         });
     </script>
 

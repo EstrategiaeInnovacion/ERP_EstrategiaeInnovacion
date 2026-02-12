@@ -181,72 +181,134 @@
             @endif
         </div>
 
-        <div class="grid md:grid-cols-2 gap-6 mt-8">
-            @if($rejectedUsers->count() > 0)
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 bg-red-50/50 border-b border-red-100">
-                        <h3 class="font-bold text-red-900 text-sm uppercase tracking-wide">Solicitudes Rechazadas / Bajas</h3>
-                    </div>
-                    <div class="divide-y divide-slate-100">
-                        @foreach($rejectedUsers as $user)
-                            @php
-                                $baja = $empleadosBaja[$user->email] ?? null;
-                            @endphp
-                            <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1">
-                                        <p class="text-sm font-bold text-slate-700">{{ $baja->nombre ?? $user->name }}</p>
-                                        <p class="text-xs text-slate-400">{{ $user->email }}</p>
-                                        @if($baja)
-                                            <div class="mt-2 space-y-1">
-                                                <p class="text-xs text-slate-500">
-                                                    <span class="font-semibold">Motivo:</span> {{ $baja->motivo_baja ?? 'No especificado' }}
-                                                </p>
-                                                <p class="text-xs text-slate-500">
-                                                    <span class="font-semibold">Fecha de baja:</span> {{ $baja->fecha_baja ? $baja->fecha_baja->format('d/m/Y') : 'N/A' }}
-                                                </p>
-                                                @if($baja->observaciones)
-                                                    <p class="text-xs text-slate-400 italic">{{ $baja->observaciones }}</p>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
-                                          onsubmit="return confirm('¿Eliminar permanentemente a {{ $baja->nombre ?? $user->name }}?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-bold hover:underline">Eliminar</button>
-                                    </form>
-                                </div>
+        @if($rejectedUsers->count() > 0 || $blockedEmails->count() > 0)
+            <div class="mt-10 space-y-6">
+                @if($rejectedUsers->count() > 0)
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-red-400 rounded-l-[2rem]"></div>
+                        <div class="px-8 py-5 bg-red-50/40 border-b border-red-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                    Solicitudes Rechazadas / Bajas
+                                </h3>
+                                <p class="text-sm text-slate-500 mt-0.5">{{ $rejectedUsers->count() }} registro(s) de usuarios dados de baja o rechazados.</p>
                             </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
+                        </div>
 
-            @if($blockedEmails->count() > 0)
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200">
-                        <h3 class="font-bold text-slate-700 text-sm uppercase tracking-wide">Correos Bloqueados</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                                        <th class="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Empleado</th>
+                                        <th class="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Motivo</th>
+                                        <th class="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
+                                        <th class="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach($rejectedUsers as $user)
+                                        @php
+                                            $baja = $empleadosBaja[$user->email] ?? null;
+                                        @endphp
+                                        <tr class="hover:bg-red-50/30 transition-colors">
+                                            <td class="px-8 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-9 h-9 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-xs font-bold border border-red-200 flex-shrink-0">
+                                                        {{ strtoupper(substr($baja->nombre ?? $user->name, 0, 1)) }}
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-bold text-slate-800">{{ $baja->nombre ?? $user->name }}</p>
+                                                        <p class="text-xs text-slate-400">{{ $user->email }}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-8 py-4">
+                                                @if($baja && $baja->motivo_baja)
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-red-50 text-red-700 border border-red-100">
+                                                        {{ $baja->motivo_baja }}
+                                                    </span>
+                                                    @if($baja->observaciones)
+                                                        <p class="text-[11px] text-slate-400 mt-1 italic">{{ Str::limit($baja->observaciones, 50) }}</p>
+                                                    @endif
+                                                @else
+                                                    <span class="text-xs text-slate-400">Confirmado por usuario - baja de empleado</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-8 py-4">
+                                                <div class="flex flex-col">
+                                                    @if($baja && $baja->fecha_baja)
+                                                        <span class="text-xs font-bold text-slate-700">{{ $baja->fecha_baja->format('d/m/Y') }}</span>
+                                                    @elseif($user->rejected_at)
+                                                        <span class="text-xs font-bold text-slate-700">{{ $user->rejected_at->format('d/m/Y') }}</span>
+                                                    @else
+                                                        <span class="text-xs text-slate-400">N/A</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td class="px-8 py-4 text-right">
+                                                <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
+                                                      onsubmit="return confirm('¿Eliminar permanentemente a {{ $baja->nombre ?? $user->name }}? Esta acción no se puede deshacer.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all" title="Eliminar permanentemente">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="divide-y divide-slate-100">
-                        @foreach($blockedEmails as $blocked)
-                            <div class="px-6 py-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                                <div>
-                                    <p class="text-sm font-bold text-slate-700">{{ $blocked->email }}</p>
-                                    <p class="text-xs text-slate-400">{{ $blocked->reason ?? 'Sin motivo' }}</p>
-                                </div>
-                                <form method="POST" action="{{ route('admin.blocked-emails.destroy', $blocked) }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs text-indigo-500 hover:text-indigo-700 font-bold hover:underline">Desbloquear</button>
-                                </form>
+                @endif
+
+                @if($blockedEmails->count() > 0)
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="px-8 py-5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                    Correos Bloqueados
+                                </h3>
+                                <p class="text-sm text-slate-500 mt-0.5">{{ $blockedEmails->count() }} correo(s) con acceso restringido.</p>
                             </div>
-                        @endforeach
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach($blockedEmails as $blocked)
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                                            <td class="px-8 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-9 h-9 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-bold text-slate-700">{{ $blocked->email }}</p>
+                                                        <p class="text-xs text-slate-400">{{ $blocked->reason ?? 'Sin motivo especificado' }}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-8 py-4 text-right">
+                                                <form method="POST" action="{{ route('admin.blocked-emails.destroy', $blocked) }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors">
+                                                        Desbloquear
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
 
     </div>
 </div>
