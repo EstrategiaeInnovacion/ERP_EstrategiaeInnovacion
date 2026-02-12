@@ -92,6 +92,7 @@ Route::middleware('auth')->group(function () {
     // Mantenimiento (Usuario)
     Route::get('/maintenance/availability', [MaintenanceController::class, 'availability'])->name('maintenance.availability');
     Route::get('/maintenance/slots', [MaintenanceController::class, 'slots'])->name('maintenance.slots');
+    Route::get('/maintenance/check-availability', [MaintenanceController::class, 'checkAvailability'])->name('maintenance.check-availability');
 
     // Capacitación (Usuario)
     Route::prefix('capacitacion')->name('capacitacion.')->group(function () {
@@ -300,11 +301,13 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::put('/maintenance/computers/{computerProfile}', 'updateComputer')->name('computers.update');
         Route::delete('/maintenance/computers/{computerProfile}', 'destroyComputer')->name('computers.destroy');
 
-        Route::post('/maintenance/slots', 'store')->name('slots.store');
-        Route::post('/maintenance/slots/bulk', 'storeBulk')->name('slots.store-bulk');
-        Route::put('/maintenance/slots/{slot}', 'updateSlot')->name('slots.update');
-        Route::delete('/maintenance/slots/{slot}', 'destroySlot')->name('slots.destroy');
-        Route::delete('/maintenance/slots/destroy-past', 'destroyPastSlots')->name('slots.destroy-past');
+        // API para agenda de mantenimientos
+        Route::get('/maintenance/week-maintenances', 'getWeekMaintenances')->name('week-maintenances');
+        Route::get('/maintenance/calendar-data', 'getCalendarData')->name('calendar-data');
+        
+        // Bloqueo de horarios
+        Route::post('/maintenance/block-slot', 'blockSlot')->name('block-slot');
+        Route::delete('/maintenance/unblock-slot/{block}', 'unblockSlot')->name('unblock-slot');
     });
 
     // Usuarios

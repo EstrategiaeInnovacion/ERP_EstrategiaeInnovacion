@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
-@section('title', 'Configuración de Mantenimientos - Panel Administrativo')
+@section('title', 'Gestión de Mantenimientos - Panel Administrativo')
 
 @section('content')
     <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-8">
             <div>
-                <h2 class="text-3xl font-bold text-gray-900">Horarios de mantenimiento</h2>
+                <h2 class="text-3xl font-bold text-gray-900">Gestión de Mantenimientos</h2>
                 <p class="text-gray-600">Administra la agenda de mantenimientos y la documentación técnica de los equipos.</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
@@ -17,16 +17,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </a>
-
-                <form method="POST" action="{{ route('admin.maintenance.slots.destroy-past') }}" class="inline-flex"
-                    onsubmit="return confirm('¿Eliminar todos los horarios pasados? Esta acción cancelará las reservaciones asociadas.');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit"
-                        class="inline-flex items-center px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors">
-                        Eliminar horarios pasados
-                    </button>
-                </form>
             </div>
         </div>
 
@@ -43,8 +33,15 @@
 
         <div class="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="bg-slate-50 border-b border-blue-100 flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3">
-                <button type="button" data-tab-target="tab-profiles"
+                <button type="button" data-tab-target="tab-agenda"
                     class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-blue-700 bg-white shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Agenda de Mantenimientos
+                </button>
+                <button type="button" data-tab-target="tab-profiles"
+                    class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
                     <span class="hidden sm:inline">Ficha técnica</span>
                     <span class="sm:hidden">Ficha</span>
                 </button>
@@ -53,22 +50,166 @@
                     <span class="hidden sm:inline">Expedientes</span>
                     <span class="sm:hidden">Expedientes</span>
                 </button>
-                <button type="button" data-tab-target="tab-bulk"
+                <button type="button" data-tab-target="tab-bloqueos"
                     class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
-                    Horarios en lote
-                </button>
-                <button type="button" data-tab-target="tab-individual"
-                    class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
-                    Horario individual
-                </button>
-                <button type="button" data-tab-target="tab-agenda"
-                    class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
-                    Agenda programada
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Bloquear Horarios
                 </button>
             </div>
 
             <div class="p-6 sm:p-8 space-y-10">
-                <section id="tab-profiles" data-tab-panel class="space-y-8">
+                {{-- Nueva pestaña: Agenda de Mantenimientos --}}
+                <section id="tab-agenda" data-tab-panel class="space-y-8">
+                    <div class="space-y-2">
+                        <h3 class="text-xl font-semibold text-slate-900">Agenda de Mantenimientos</h3>
+                        <p class="text-sm text-slate-500 max-w-2xl">Visualiza los mantenimientos programados de la semana. Los horarios disponibles son de 9:00 AM a 4:00 PM (bloques de 1 hora).</p>
+                    </div>
+
+                    {{-- Navegación de semanas --}}
+                    <div class="flex items-center justify-between bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <button type="button" id="prevWeek" class="p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div class="text-center">
+                            <h4 id="weekLabel" class="text-lg font-bold text-slate-800">Cargando...</h4>
+                            <p class="text-xs text-slate-500">Semana actual</p>
+                        </div>
+                        <button type="button" id="nextWeek" class="p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Mini calendario con días con mantenimientos --}}
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div class="lg:col-span-1">
+                            <div class="bg-white border border-slate-200 rounded-xl p-4">
+                                <h5 class="text-sm font-bold text-slate-700 mb-3">Calendario</h5>
+                                <div id="miniCalendar" class="text-center">
+                                    <p class="text-sm text-slate-400">Cargando calendario...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Lista de mantenimientos de la semana --}}
+                        <div class="lg:col-span-3">
+                            <div id="weekView" class="space-y-4">
+                                <div class="text-center py-10">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-sm text-slate-500 mt-2">Cargando agenda...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {{-- Pestaña de bloqueos --}}
+                <section id="tab-bloqueos" data-tab-panel class="space-y-8 hidden">
+                    <div class="space-y-2">
+                        <h3 class="text-xl font-semibold text-slate-900">Bloquear Horarios</h3>
+                        <p class="text-sm text-slate-500 max-w-2xl">Bloquea horarios específicos o rangos de fechas cuando no haya disponibilidad para mantenimientos.</p>
+                    </div>
+
+                    <form method="POST" action="{{ route('admin.maintenance.block-slot') }}" class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-6">
+                        @csrf
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label for="date_start" class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio <span class="text-red-500">*</span></label>
+                                <input type="date" id="date_start" name="date_start" required
+                                    min="{{ date('Y-m-d') }}"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="date_end" class="block text-sm font-medium text-gray-700 mb-1">Fecha fin (opcional)</label>
+                                <input type="date" id="date_end" name="date_end"
+                                    min="{{ date('Y-m-d') }}"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <p class="text-xs text-gray-500 mt-1">Deja vacío para bloquear solo un día</p>
+                            </div>
+                            <div>
+                                <label for="time_slot" class="block text-sm font-medium text-gray-700 mb-1">Horario específico</label>
+                                <select id="time_slot" name="time_slot" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Todo el día</option>
+                                    @foreach($timeSlots ?? [] as $slot)
+                                        <option value="{{ $slot['start'] }}">{{ $slot['label'] }} - {{ Carbon\Carbon::parse($slot['end'])->format('h:i A') }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Deja vacío para bloquear todo el día</p>
+                            </div>
+                            <div>
+                                <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Motivo (opcional)</label>
+                                <input type="text" id="reason" name="reason" placeholder="Ej: Junta de departamento"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="inline-flex items-center px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                                Bloquear horario
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- Lista de bloqueos activos --}}
+                    <div class="space-y-4">
+                        <h4 class="text-lg font-semibold text-slate-800">Bloqueos activos</h4>
+                        @if(isset($blockedSlots) && $blockedSlots->count() > 0)
+                            <div class="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden">
+                                @foreach($blockedSlots as $block)
+                                    <div class="flex items-center justify-between p-4 bg-white hover:bg-slate-50">
+                                        <div class="flex items-center gap-4">
+                                            <div class="p-2 bg-red-100 rounded-lg">
+                                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-slate-800">
+                                                    {{ \Carbon\Carbon::parse($block->date_start)->translatedFormat('d M, Y') }}
+                                                    @if($block->date_end)
+                                                        - {{ \Carbon\Carbon::parse($block->date_end)->translatedFormat('d M, Y') }}
+                                                    @endif
+                                                </p>
+                                                <p class="text-sm text-slate-500">
+                                                    @if($block->time_slot)
+                                                        Horario: {{ \Carbon\Carbon::parse($block->time_slot)->format('h:i A') }}
+                                                    @else
+                                                        Todo el día
+                                                    @endif
+                                                    @if($block->reason)
+                                                        · {{ $block->reason }}
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <form method="POST" action="{{ route('admin.maintenance.unblock-slot', $block) }}" onsubmit="return confirm('¿Eliminar este bloqueo?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+                                <p class="text-slate-500">No hay bloqueos activos.</p>
+                            </div>
+                        @endif
+                    </div>
+                </section>
+
+                <section id="tab-profiles" data-tab-panel class="space-y-8 hidden">
                     <div class="space-y-2">
                         <h3 class="text-xl font-semibold text-slate-900">Registrar ficha técnica de equipo</h3>
                         <p class="text-sm text-slate-500 max-w-2xl">Selecciona un ticket desde "Seguimiento administrativo de tickets" para completar los datos de la ficha técnica del equipo.</p>
@@ -558,292 +699,6 @@
                         </div>
                     @endif
                 </section>
-
-                <section id="tab-bulk" data-tab-panel class="space-y-8 hidden">
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-900">Agregar horarios en lote</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Crea múltiples horarios seleccionando un rango de fechas, los días de la semana y la capacidad disponible. El sistema calcula automáticamente los bloques de tiempo.</p>
-                    </div>
-
-                    <form method="POST" action="{{ route('admin.maintenance.slots.store-bulk') }}" id="bulkScheduleForm" class="space-y-8">
-                        @csrf
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                            <div class="space-y-6">
-                                <div class="space-y-3">
-                                    <h4 class="font-medium text-gray-800">Rango de fechas</h4>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio <span class="text-red-500">*</span></label>
-                                            <input type="date" id="start_date" name="start_date" value="{{ old('start_date') }}"
-                                                min="{{ date('Y-m-d') }}"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                required>
-                                            @error('start_date')
-                                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                        <div>
-                                            <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Fecha fin <span class="text-red-500">*</span></label>
-                                            <input type="date" id="end_date" name="end_date" value="{{ old('end_date') }}"
-                                                min="{{ date('Y-m-d') }}"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                required>
-                                            @error('end_date')
-                                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-3">
-                                    <h4 class="font-medium text-gray-800">Días de aplicación</h4>
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        @php
-                                            $daysSelected = old('days', []);
-                                            $daysOptions = [
-                                                'monday' => 'Lunes',
-                                                'tuesday' => 'Martes',
-                                                'wednesday' => 'Miércoles',
-                                                'thursday' => 'Jueves',
-                                                'friday' => 'Viernes',
-                                                'saturday' => 'Sábado',
-                                                'sunday' => 'Domingo',
-                                            ];
-                                        @endphp
-                                        @foreach ($daysOptions as $value => $label)
-                                            <label class="flex items-center bg-slate-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
-                                                <input type="checkbox" name="days[]" value="{{ $value }}"
-                                                    class="rounded border-gray-300 text-blue-600 mr-2"
-                                                    {{ in_array($value, $daysSelected, true) ? 'checked' : '' }}>
-                                                {{ $label }}
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @error('days')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="space-y-6">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="bulk_start_time" class="block text-sm font-medium text-gray-700 mb-1">Hora inicio <span class="text-red-500">*</span></label>
-                                        <input type="time" id="bulk_start_time" name="bulk_start_time"
-                                            value="{{ old('bulk_start_time', '09:00') }}"
-                                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required>
-                                        @error('bulk_start_time')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label for="bulk_end_time" class="block text-sm font-medium text-gray-700 mb-1">Hora fin <span class="text-red-500">*</span></label>
-                                        <input type="time" id="bulk_end_time" name="bulk_end_time"
-                                            value="{{ old('bulk_end_time', '13:00') }}"
-                                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required>
-                                        @error('bulk_end_time')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label for="total_capacity" class="block text-sm font-medium text-gray-700 mb-1">Capacidad total <span class="text-red-500">*</span></label>
-                                    <input type="number" min="1" max="20" id="total_capacity" name="total_capacity"
-                                        value="{{ old('total_capacity', 4) }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        onchange="calculateSlots()" required>
-                                    <p class="text-xs text-gray-500 mt-1">Número de horarios en los que se dividirá el rango seleccionado.</p>
-                                    @error('total_capacity')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div id="slotsPreview" class="bg-slate-50 border border-blue-100 rounded-xl p-4 space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <h5 class="text-sm font-semibold text-gray-700">Vista previa de horarios</h5>
-                                        <span class="text-xs text-gray-500" id="previewSlotCount">0</span>
-                                    </div>
-                                    <div id="slotsContainer" class="space-y-1 text-xs text-gray-600">
-                                        <p class="text-gray-500">Completa los campos para ver la vista previa.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <div class="text-sm text-gray-600 bg-slate-50 border border-gray-200 rounded-lg px-4 py-3 space-y-1 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
-                                <span><span id="totalDays" class="font-semibold text-blue-600">0</span> días seleccionados</span>
-                                <span class="hidden sm:inline">·</span>
-                                <span><span id="totalSlots" class="font-semibold text-blue-600">0</span> horarios por día</span>
-                                <span class="hidden sm:inline">·</span>
-                                <span><span id="totalSchedules" class="font-semibold text-blue-600">0</span> horarios totales</span>
-                            </div>
-                            <button type="submit"
-                                class="inline-flex items-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                Crear horarios en lote
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                <section id="tab-individual" data-tab-panel class="space-y-8 hidden">
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-900">Agregar horario individual</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Utiliza este formulario cuando necesites un ajuste puntual en la agenda sin afectar otras fechas.</p>
-                    </div>
-
-                    <form method="POST" action="{{ route('admin.maintenance.slots.store') }}" class="space-y-6">
-                        @csrf
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Fecha <span class="text-red-500">*</span></label>
-                                <input type="date" id="date" name="date" value="{{ old('date') }}"
-                                    min="{{ date('Y-m-d') }}"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required>
-                                @error('date')
-                                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">Hora inicio <span class="text-red-500">*</span></label>
-                                <input type="time" id="start_time" name="start_time" value="{{ old('start_time', '09:00') }}"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required>
-                                @error('start_time')
-                                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">Hora fin <span class="text-red-500">*</span></label>
-                                <input type="time" id="end_time" name="end_time" value="{{ old('end_time', '10:00') }}"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required>
-                                @error('end_time')
-                                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="capacity" class="block text-sm font-medium text-gray-700 mb-1">Capacidad <span class="text-red-500">*</span></label>
-                                <input type="number" id="capacity" name="capacity" min="1" max="10" value="{{ old('capacity', 2) }}"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required>
-                                @error('capacity')
-                                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end">
-                            <button type="submit"
-                                class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6" />
-                                </svg>
-                                Guardar horario
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                <section id="tab-agenda" data-tab-panel class="space-y-8 hidden">
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-900">Agenda programada</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Consulta los horarios configurados, ajusta su capacidad y desactiva los que no estén disponibles temporalmente.</p>
-                    </div>
-
-                    @php
-                        $allSlots = $groupedSlots->flatten(1);
-                        $totalConfigured = $allSlots->count();
-                        $totalCapacity = $allSlots->sum('capacity');
-                        $totalBooked = $allSlots->sum('booked_count');
-                        $activeSlots = $allSlots->filter(fn($slot) => $slot->is_active)->count();
-                    @endphp
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <div class="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                            <p class="text-xs uppercase font-semibold text-blue-600 tracking-wide">Horarios configurados</p>
-                            <p class="text-2xl font-bold text-slate-900 mt-2">{{ $totalConfigured }}</p>
-                        </div>
-                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-                            <p class="text-xs uppercase font-semibold text-emerald-600 tracking-wide">Capacidad total</p>
-                            <p class="text-2xl font-bold text-slate-900 mt-2">{{ $totalCapacity }}</p>
-                        </div>
-                        <div class="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
-                            <p class="text-xs uppercase font-semibold text-amber-600 tracking-wide">Reservas activas</p>
-                            <p class="text-2xl font-bold text-slate-900 mt-2">{{ $totalBooked }}</p>
-                        </div>
-                        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                            <p class="text-xs uppercase font-semibold text-indigo-600 tracking-wide">Horarios activos</p>
-                            <p class="text-2xl font-bold text-slate-900 mt-2">{{ $activeSlots }}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        @forelse ($groupedSlots as $date => $slots)
-                            <div class="border border-gray-200 rounded-2xl overflow-hidden">
-                                <div class="px-6 py-4 bg-slate-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                    <div>
-                                        <h4 class="text-lg font-semibold text-gray-900">{{ \Carbon\Carbon::parse($date)->translatedFormat('d \d\e F, Y') }}</h4>
-                                        <p class="text-sm text-gray-500">{{ $slots->count() }} horario(s) configurado(s)</p>
-                                    </div>
-                                    <div class="flex items-center gap-4 text-sm text-gray-600">
-                                        <span>Capacidad total: <span class="font-semibold text-blue-600">{{ $slots->sum('capacity') }}</span></span>
-                                        <span>Reservados: <span class="font-semibold text-amber-600">{{ $slots->sum('booked_count') }}</span></span>
-                                    </div>
-                                </div>
-                                <div class="divide-y divide-gray-100">
-                                    @foreach ($slots as $slot)
-                                        <div class="px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                                                <div class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700">
-                                                    {{ \Carbon\Carbon::parse($slot->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($slot->end_time)->format('H:i') }}
-                                                </div>
-                                                <div class="text-sm text-gray-600 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
-                                                    <span>Capacidad: <span class="font-semibold text-gray-900">{{ $slot->capacity }}</span></span>
-                                                    <span>Reservados: <span class="font-semibold text-gray-900">{{ $slot->booked_count }}</span></span>
-                                                    <span>Estado: <span class="font-semibold {{ $slot->is_active ? 'text-green-600' : 'text-gray-500' }}">{{ $slot->is_active ? 'Activo' : 'Inactivo' }}</span></span>
-                                                </div>
-                                            </div>
-                                            <div class="flex flex-wrap items-center gap-3">
-                                                <form method="POST" action="{{ route('admin.maintenance.slots.update', $slot) }}" class="flex items-center gap-2">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <input type="number" min="1" max="20" name="capacity" value="{{ $slot->capacity }}"
-                                                        class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                    <label class="flex items-center text-xs text-gray-600">
-                                                        <input type="checkbox" name="is_active" value="1"
-                                                            class="mr-2 rounded border-gray-300 text-green-600 focus:ring-green-500" {{ $slot->is_active ? 'checked' : '' }}>
-                                                        Activo
-                                                    </label>
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">Actualizar</button>
-                                                </form>
-                                                <form method="POST" action="{{ route('admin.maintenance.slots.destroy', $slot) }}"
-                                                    onsubmit="return confirm('¿Seguro que deseas eliminar este horario?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors">Eliminar</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @empty
-                            <div class="bg-slate-50 border border-gray-200 rounded-xl p-6 text-center text-gray-600">
-                                <p>No hay horarios configurados. ¡Comienza agregando uno!</p>
-                            </div>
-                        @endforelse
-                    </div>
-                </section>
             </div>
         </div>
     </main>
@@ -1318,5 +1173,147 @@
                 totalSlotsLabel.textContent = totalSlots.toString();
             }
         }
+
+        // ===== AGENDA DE MANTENIMIENTOS =====
+        let currentWeekStart = null;
+
+        function initAgenda() {
+            loadWeekMaintenances();
+
+            document.getElementById('prevWeek')?.addEventListener('click', () => {
+                if (currentWeekStart) {
+                    const prevWeek = new Date(currentWeekStart);
+                    prevWeek.setDate(prevWeek.getDate() - 7);
+                    loadWeekMaintenances(prevWeek.toISOString().slice(0, 10));
+                }
+            });
+
+            document.getElementById('nextWeek')?.addEventListener('click', () => {
+                if (currentWeekStart) {
+                    const nextWeek = new Date(currentWeekStart);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    loadWeekMaintenances(nextWeek.toISOString().slice(0, 10));
+                }
+            });
+        }
+
+        async function loadWeekMaintenances(weekStart = null) {
+            const weekView = document.getElementById('weekView');
+            const weekLabel = document.getElementById('weekLabel');
+
+            if (!weekView) return;
+
+            weekView.innerHTML = `
+                <div class="text-center py-10">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-sm text-slate-500 mt-2">Cargando agenda...</p>
+                </div>`;
+
+            try {
+                const url = new URL('{{ route("admin.maintenance.week-maintenances") }}');
+                if (weekStart) url.searchParams.set('week_start', weekStart);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                currentWeekStart = data.week_start;
+                if (weekLabel) weekLabel.textContent = data.week_label;
+
+                renderWeekView(data.days);
+            } catch (error) {
+                console.error('Error cargando agenda:', error);
+                weekView.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                        <p class="text-red-600">Error al cargar la agenda. Intenta de nuevo.</p>
+                    </div>`;
+            }
+        }
+
+        function renderWeekView(days) {
+            const weekView = document.getElementById('weekView');
+            if (!weekView) return;
+
+            if (!days || days.length === 0) {
+                weekView.innerHTML = `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+                        <p class="text-slate-500">No hay datos para mostrar.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="space-y-4">';
+
+            days.forEach(day => {
+                const hasMaintenances = day.maintenances && (Array.isArray(day.maintenances) ? day.maintenances.length > 0 : Object.keys(day.maintenances).length > 0);
+                const isBlocked = day.blocked === 'all';
+                const todayClass = day.is_today ? 'border-blue-400 bg-blue-50' : 'border-slate-200';
+
+                html += `
+                    <div class="border ${todayClass} rounded-xl overflow-hidden">
+                        <div class="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg ${day.is_today ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'} flex items-center justify-center font-bold">
+                                    ${day.day_number}
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-800 capitalize">${day.day_name}</p>
+                                    <p class="text-xs text-slate-500">${day.month}</p>
+                                </div>
+                            </div>
+                            ${day.is_today ? '<span class="px-2 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">Hoy</span>' : ''}
+                            ${isBlocked ? '<span class="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">Día bloqueado</span>' : ''}
+                        </div>`;
+
+                if (isBlocked) {
+                    html += `
+                        <div class="px-4 py-6 bg-red-50 text-center">
+                            <p class="text-sm text-red-600">Este día está bloqueado para mantenimientos.</p>
+                        </div>`;
+                } else if (!hasMaintenances) {
+                    html += `
+                        <div class="px-4 py-6 bg-slate-50 text-center">
+                            <p class="text-sm text-slate-400">No hay mantenimientos programados.</p>
+                        </div>`;
+                } else {
+                    html += '<div class="divide-y divide-slate-100">';
+                    
+                    const maintenances = Array.isArray(day.maintenances) ? day.maintenances : Object.values(day.maintenances).flat();
+                    
+                    maintenances.forEach(m => {
+                        const estadoColor = m.estado === 'en_proceso' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700';
+                        html += `
+                            <div class="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <div class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold">
+                                        ${m.hora_label}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-800">${m.solicitante}</p>
+                                        <p class="text-xs text-slate-500">${m.folio} · ${m.asunto || 'Sin asunto'}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-1 text-xs font-medium ${estadoColor} rounded-full capitalize">${m.estado.replace('_', ' ')}</span>
+                                    <a href="{{ url('/admin/tickets') }}/${m.id}" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>`;
+                    });
+                    
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            });
+
+            html += '</div>';
+            weekView.innerHTML = html;
+        }
+
+        // Inicializar agenda
+        initAgenda();
     </script>
 @endsection

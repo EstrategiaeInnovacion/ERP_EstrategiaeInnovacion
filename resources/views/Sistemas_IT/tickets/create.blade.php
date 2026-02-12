@@ -147,8 +147,8 @@
                                             {{-- Para compatibilidad con tu validación de backend si usas slots ID --}}
                                             <input type="hidden" name="maintenance_slot_id" id="maintenance_slot_id" value="1"> 
 
-                                            <div id="time-slots-container" class="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1">
-                                                <div class="col-span-2 text-center py-10">
+                                            <div id="time-slots-container" class="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto pr-1">
+                                                <div class="col-span-3 text-center py-10">
                                                     <div class="inline-flex p-3 bg-white rounded-full text-slate-300 mb-2">
                                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                                     </div>
@@ -181,16 +181,29 @@
                         </div>
 
                         <div class="col-span-2">
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Adjuntar (Opcional)</label>
-                            <div class="border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-{{ $c }}-50/50 hover:border-{{ $c }}-300 transition-all group">
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Adjuntar Imágenes (Opcional)</label>
+                            <div id="dropzone" class="border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-{{ $c }}-50/50 hover:border-{{ $c }}-300 transition-all group cursor-pointer">
                                 <div class="p-2 bg-slate-100 text-slate-400 rounded-full mb-2 group-hover:bg-white group-hover:text-{{ $c }}-500 group-hover:shadow-sm transition-all">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 </div>
                                 <label for="imagenes" class="cursor-pointer text-sm font-bold text-{{ $c }}-600 hover:underline">
-                                    <span>Seleccionar archivo</span>
-                                    <input id="imagenes" name="imagenes[]" type="file" multiple class="sr-only">
+                                    <span>Seleccionar imágenes</span>
+                                    <input id="imagenes" name="imagenes[]" type="file" multiple accept="image/*" class="sr-only">
                                 </label>
+                                <p class="text-xs text-slate-400 mt-1">Máximo 10 imágenes, 5MB cada una. (JPG, PNG, GIF)</p>
                             </div>
+                            {{-- Barra de progreso de subida --}}
+                            <div id="upload-progress" class="hidden mt-3">
+                                <div class="flex items-center justify-between text-xs text-slate-600 mb-1">
+                                    <span>Procesando imágenes...</span>
+                                    <span id="progress-text">0/0</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div id="progress-bar" class="bg-{{ $c }}-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div id="preview-container" class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3" style="display:none;"></div>
+                            <p id="file-count" class="text-xs text-slate-500 mt-2 hidden"></p>
                         </div>
                     </div>
 
@@ -205,6 +218,168 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('imagenes');
+    const previewContainer = document.getElementById('preview-container');
+    const fileCount = document.getElementById('file-count');
+    const dropzone = document.getElementById('dropzone');
+    const form = document.getElementById('ticketForm');
+    const progressContainer = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const MAX_FILES = 10;
+    const MAX_SIZE_MB = 5;
+
+    let selectedFiles = [];
+
+    // Click en dropzone abre el selector
+    dropzone.addEventListener('click', function(e) {
+        if (e.target.closest('label')) return;
+        input.click();
+    });
+
+    // Drag & drop
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('border-blue-400', 'bg-blue-50/50');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('border-blue-400', 'bg-blue-50/50');
+    });
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('border-blue-400', 'bg-blue-50/50');
+        addFiles(e.dataTransfer.files);
+    });
+
+    input.addEventListener('change', function() {
+        addFiles(this.files);
+        this.value = '';
+    });
+
+    function addFiles(fileList) {
+        const filesToProcess = Array.from(fileList);
+        let processed = 0;
+        let totalToProcess = filesToProcess.length;
+        
+        // Mostrar barra de progreso
+        if (totalToProcess > 0) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.textContent = '0/' + totalToProcess;
+        }
+        
+        // Procesar archivos con animación
+        filesToProcess.forEach(function(file, i) {
+            setTimeout(function() {
+                if (selectedFiles.length >= MAX_FILES) {
+                    if (processed === 0) {
+                        alert('Máximo ' + MAX_FILES + ' imágenes permitidas.');
+                    }
+                } else if (!file.type.startsWith('image/')) {
+                    alert(file.name + ' no es una imagen válida.');
+                } else if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                    alert(file.name + ' excede el límite de ' + MAX_SIZE_MB + 'MB.');
+                } else {
+                    selectedFiles.push(file);
+                }
+                
+                processed++;
+                const percent = Math.round((processed / totalToProcess) * 100);
+                progressBar.style.width = percent + '%';
+                progressText.textContent = processed + '/' + totalToProcess;
+                
+                // Cuando termine, ocultar progreso y renderizar
+                if (processed >= totalToProcess) {
+                    setTimeout(function() {
+                        progressContainer.classList.add('hidden');
+                        renderPreviews();
+                    }, 300);
+                }
+            }, i * 100); // Pequeño delay entre cada archivo para efecto visual
+        });
+        
+        // Si no hay archivos, renderizar inmediatamente
+        if (totalToProcess === 0) {
+            renderPreviews();
+        }
+    }
+
+    function renderPreviews() {
+        previewContainer.innerHTML = '';
+        if (selectedFiles.length === 0) {
+            previewContainer.style.display = 'none';
+            fileCount.classList.add('hidden');
+            return;
+        }
+        previewContainer.style.display = 'grid';
+        fileCount.classList.remove('hidden');
+        fileCount.textContent = selectedFiles.length + ' de ' + MAX_FILES + ' imágenes seleccionadas';
+
+        selectedFiles.forEach(function(file, index) {
+            const card = document.createElement('div');
+            card.className = 'relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white animate-fadeIn';
+            card.style.animation = 'fadeIn 0.3s ease-in-out';
+
+            const img = document.createElement('img');
+            img.className = 'w-full h-24 object-cover bg-slate-100';
+            img.alt = file.name;
+            
+            // Placeholder mientras carga
+            const placeholder = document.createElement('div');
+            placeholder.className = 'w-full h-24 bg-slate-100 flex items-center justify-center';
+            placeholder.innerHTML = '<svg class="w-6 h-6 text-slate-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+            card.appendChild(placeholder);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) { 
+                img.src = e.target.result;
+                card.replaceChild(img, placeholder);
+            };
+            reader.readAsDataURL(file);
+
+            const info = document.createElement('div');
+            info.className = 'px-2 py-1.5';
+            const sizeKB = (file.size / 1024).toFixed(0);
+            const sizeText = sizeKB > 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : sizeKB + ' KB';
+            info.innerHTML = '<p class="text-[10px] text-slate-600 font-medium truncate" title="' + file.name + '">' + file.name + '</p><p class="text-[9px] text-slate-400">' + sizeText + '</p>';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600';
+            removeBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            removeBtn.addEventListener('click', function() {
+                selectedFiles.splice(index, 1);
+                renderPreviews();
+            });
+
+            card.appendChild(info);
+            card.appendChild(removeBtn);
+            previewContainer.appendChild(card);
+        });
+    }
+
+    // Antes de enviar, inyectar archivos en un nuevo input
+    form.addEventListener('submit', function() {
+        // Limpiar inputs anteriores
+        form.querySelectorAll('input[name="imagenes[]"][data-injected]').forEach(function(el) { el.remove(); });
+
+        const dt = new DataTransfer();
+        selectedFiles.forEach(function(file) { dt.items.add(file); });
+        input.files = dt.files;
+    });
+});
+</script>
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+</style>
+@endpush
+
 @endsection
 
 {{-- 2. LÓGICA REFORZADA DEL CALENDARIO --}}
@@ -217,29 +392,30 @@
             // ============================================
             // 1. OBTENER FECHA DEL SERVIDOR (PHP -> JS)
             // ============================================
-            // Esto es crucial para que la validación de horas sea correcta
             @if(isset($serverTime))
                 const serverDateStr = "{{ $serverTime->format('Y-m-d') }}";
                 const currentServerHour = {{ $serverTime->hour }};
                 const currentServerMinute = {{ $serverTime->minute }};
             @else
-                // Fallback por seguridad
                 const now = new Date();
                 const serverDateStr = now.toISOString().split('T')[0];
                 const currentServerHour = now.getHours();
                 const currentServerMinute = now.getMinutes();
             @endif
 
+            // Nuevos slots predefinidos: 9am a 4pm (7 slots de 1 hora cada uno)
             const timeSlots = [
-                { start: '09:00', end: '10:15', label: '09:00 AM' },
-                { start: '10:30', end: '11:45', label: '10:30 AM' },
-                { start: '12:00', end: '13:15', label: '12:00 PM' },
-                { start: '14:00', end: '15:15', label: '02:00 PM' },
-                { start: '15:30', end: '16:45', label: '03:30 PM' },
-                { start: '17:00', end: '18:15', label: '05:00 PM' }
+                { start: '09:00', end: '10:00', label: '09:00 AM' },
+                { start: '10:00', end: '11:00', label: '10:00 AM' },
+                { start: '11:00', end: '12:00', label: '11:00 AM' },
+                { start: '12:00', end: '13:00', label: '12:00 PM' },
+                { start: '13:00', end: '14:00', label: '01:00 PM' },
+                { start: '14:00', end: '15:00', label: '02:00 PM' },
+                { start: '15:00', end: '16:00', label: '03:00 PM' }
             ];
 
-            const bookedSlots = {}; 
+            // Cache de disponibilidad por fecha
+            const availabilityCache = {};
 
             const dateInput = document.getElementById('fecha_requerida_input');
             const timeInput = document.getElementById('hora_requerida_input');
@@ -250,7 +426,7 @@
             flatpickr("#calendar-inline", {
                 inline: true,
                 locale: "es",
-                minDate: serverDateStr, // Bloquea fechas anteriores al servidor
+                minDate: serverDateStr,
                 defaultDate: serverDateStr,
                 dateFormat: "Y-m-d",
                 disable: [
@@ -260,50 +436,79 @@
                 ],
                 onChange: function(selectedDates, dateStr) {
                     dateInput.value = dateStr;
-                    generateTimeSlots(dateStr);
+                    loadSlotsForDate(dateStr);
                     timeInput.value = '';
                     summaryBox.classList.add('hidden');
                 }
             });
 
-            // Generar slots iniciales (para hoy)
-            generateTimeSlots(serverDateStr);
+            // Cargar slots iniciales
+            loadSlotsForDate(serverDateStr);
             dateInput.value = serverDateStr;
 
-            function generateTimeSlots(dateStr) {
-                slotsContainer.innerHTML = '';
-                const occupiedToday = bookedSlots[dateStr] || [];
-                
-                // Determinamos si la fecha seleccionada es HOY según el servidor
-                const isToday = (dateStr === serverDateStr);
+            async function loadSlotsForDate(dateStr) {
+                // Mostrar loading
+                slotsContainer.innerHTML = `
+                    <div class="col-span-3 py-6 text-center">
+                        <svg class="animate-spin h-6 w-6 mx-auto text-emerald-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-sm text-slate-500 mt-2">Cargando disponibilidad...</p>
+                    </div>
+                `;
 
+                try {
+                    // Obtener disponibilidad de la API
+                    const response = await fetch(`/maintenance/slots?date=${dateStr}`);
+                    const data = await response.json();
+                    
+                    // Guardar en cache
+                    availabilityCache[dateStr] = data.slots || [];
+                    
+                    generateTimeSlots(dateStr, data.slots || []);
+                } catch (error) {
+                    console.error('Error cargando slots:', error);
+                    slotsContainer.innerHTML = `
+                        <div class="col-span-3 py-6 text-center text-red-400 text-sm">
+                            Error al cargar disponibilidad. <button type="button" onclick="loadSlotsForDate('${dateStr}')" class="underline">Reintentar</button>
+                        </div>
+                    `;
+                }
+            }
+
+            function generateTimeSlots(dateStr, apiSlots) {
+                slotsContainer.innerHTML = '';
+                
+                const isToday = (dateStr === serverDateStr);
                 let availableCount = 0;
 
+                // Crear un mapa de disponibilidad desde la API
+                const slotMap = {};
+                apiSlots.forEach(s => {
+                    slotMap[s.time_slot] = s;
+                });
+
                 timeSlots.forEach(slot => {
-                    let isBooked = occupiedToday.includes(slot.start);
+                    const apiSlot = slotMap[slot.start];
+                    let isBooked = apiSlot ? !apiSlot.available : false;
+                    let isBlocked = apiSlot ? apiSlot.blocked : false;
                     let isPast = false;
 
-                    // --- VALIDACIÓN DE HORA PASADA ---
+                    // Validación de hora pasada (solo si es hoy)
                     if (isToday) {
                         const [slotH, slotM] = slot.start.split(':').map(Number);
-                        
-                        // Si la hora del slot es menor a la hora actual
-                        if (slotH < currentServerHour) {
-                            isPast = true;
-                        } 
-                        // Si es la misma hora, checamos minutos (opcional, aquí solo horas)
-                        else if (slotH === currentServerHour && slotM < currentServerMinute) {
+                        if (slotH < currentServerHour || (slotH === currentServerHour && slotM <= currentServerMinute)) {
                             isPast = true;
                         }
                     }
 
-                    // Si ya pasó o está ocupado, lo deshabilitamos
-                    const isDisabled = isBooked || isPast;
-
+                    const isDisabled = isBooked || isPast || isBlocked;
                     if (!isDisabled) availableCount++;
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
+                    btn.dataset.slot = slot.start;
                     btn.className = `
                         relative w-full py-3 px-2 rounded-xl border text-sm font-bold transition-all
                         flex flex-col items-center justify-center gap-1
@@ -315,30 +520,75 @@
                     
                     if (isDisabled) {
                         btn.disabled = true;
+                        let statusText = 'Ocupado';
+                        let statusColor = 'text-red-300';
+                        if (isPast) {
+                            statusText = 'Pasado';
+                            statusColor = 'text-slate-300';
+                        } else if (isBlocked) {
+                            statusText = 'No disponible';
+                            statusColor = 'text-orange-300';
+                        }
                         btn.innerHTML = `
                             <span class="line-through">${slot.label}</span>
-                            <span class="text-[9px] uppercase font-bold text-red-300">
-                                ${isPast ? 'Pasado' : 'Ocupado'}
-                            </span>
+                            <span class="text-[9px] uppercase font-bold ${statusColor}">${statusText}</span>
                         `;
                     } else {
                         btn.innerHTML = `
                             <span>${slot.label}</span>
-                            <span class="text-[9px] text-slate-400 font-normal">Fin: ${slot.end}</span>
+                            <span class="text-[9px] text-slate-400 font-normal">1 hora</span>
                         `;
                         
-                        btn.onclick = function() {
-                            document.querySelectorAll('#time-slots-container button').forEach(b => {
-                                if(!b.disabled) {
-                                    b.className = b.className.replace('ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500 text-emerald-700', 'bg-white border-slate-200 text-slate-600');
+                        btn.onclick = async function() {
+                            // Verificar disponibilidad en tiempo real antes de seleccionar
+                            btn.disabled = true;
+                            btn.innerHTML = `
+                                <svg class="animate-spin h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            `;
+
+                            try {
+                                const checkResponse = await fetch(`/maintenance/check-availability?date=${dateStr}&time_slot=${slot.start}`);
+                                const checkData = await checkResponse.json();
+
+                                if (!checkData.available) {
+                                    // Ya no está disponible - recargar slots
+                                    alert('Este horario acaba de ser ocupado. Se actualizará la disponibilidad.');
+                                    loadSlotsForDate(dateStr);
+                                    return;
                                 }
-                            });
-                            
-                            btn.className = btn.className.replace('bg-white border-slate-200 text-slate-600', 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500 text-emerald-700');
-                            
-                            timeInput.value = slot.start;
-                            summaryText.textContent = `${formatDate(dateStr)} • ${slot.label}`;
-                            summaryBox.classList.remove('hidden');
+
+                                // Está disponible - seleccionar
+                                document.querySelectorAll('#time-slots-container button').forEach(b => {
+                                    if(!b.disabled) {
+                                        b.className = b.className.replace('ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500 text-emerald-700', 'bg-white border-slate-200 text-slate-600');
+                                    }
+                                });
+                                
+                                btn.className = `
+                                    relative w-full py-3 px-2 rounded-xl border text-sm font-bold transition-all
+                                    flex flex-col items-center justify-center gap-1
+                                    ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500 text-emerald-700
+                                `;
+                                btn.innerHTML = `
+                                    <span>${slot.label}</span>
+                                    <span class="text-[9px] text-emerald-500 font-normal">✓ Seleccionado</span>
+                                `;
+                                btn.disabled = false;
+                                
+                                timeInput.value = slot.start;
+                                summaryText.textContent = `${formatDate(dateStr)} • ${slot.label}`;
+                                summaryBox.classList.remove('hidden');
+                            } catch (error) {
+                                console.error('Error verificando disponibilidad:', error);
+                                btn.disabled = false;
+                                btn.innerHTML = `
+                                    <span>${slot.label}</span>
+                                    <span class="text-[9px] text-slate-400 font-normal">1 hora</span>
+                                `;
+                            }
                         };
                     }
                     slotsContainer.appendChild(btn);
@@ -346,19 +596,39 @@
 
                 if (availableCount === 0) {
                     slotsContainer.innerHTML = `
-                        <div class="col-span-2 py-6 text-center text-slate-400 text-sm italic bg-white rounded-xl border border-dashed border-slate-200">
-                            No hay horarios disponibles para esta fecha.
+                        <div class="col-span-3 py-6 text-center text-slate-400 text-sm italic bg-white rounded-xl border border-dashed border-slate-200">
+                            <svg class="w-8 h-8 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            No hay horarios disponibles para esta fecha.<br>
+                            <span class="text-xs">Intenta seleccionar otro día.</span>
                         </div>`;
                 }
             }
 
             function formatDate(dateString) {
                 const parts = dateString.split('-');
-                // Crear fecha sin conversión de zona horaria del navegador
                 const date = new Date(parts[0], parts[1] - 1, parts[2]); 
                 const options = { weekday: 'long', day: 'numeric', month: 'short' };
                 return date.toLocaleDateString('es-ES', options);
             }
+
+            // Refrescar disponibilidad cada 30 segundos si la pestaña está visible
+            let refreshInterval;
+            function startAutoRefresh() {
+                refreshInterval = setInterval(() => {
+                    if (document.visibilityState === 'visible' && dateInput.value) {
+                        loadSlotsForDate(dateInput.value);
+                    }
+                }, 30000);
+            }
+            startAutoRefresh();
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && dateInput.value) {
+                    loadSlotsForDate(dateInput.value);
+                }
+            });
         });
     </script>
     @endpush
