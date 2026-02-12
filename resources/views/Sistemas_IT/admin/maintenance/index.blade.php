@@ -710,37 +710,89 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         /* Estilos personalizados para el mini calendario */
+        #miniCalendarContainer {
+            overflow: hidden;
+        }
+        #miniCalendar {
+            display: flex;
+            justify-content: center;
+        }
         #miniCalendar .flatpickr-calendar {
             box-shadow: none !important;
             border: none !important;
-            width: 100% !important;
-            font-size: 13px;
+            width: auto !important;
+            max-width: 100% !important;
+            font-size: 12px;
+            position: relative !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 auto;
         }
         #miniCalendar .flatpickr-calendar.inline {
+            position: relative !important;
             top: 0 !important;
         }
         #miniCalendar .flatpickr-months {
-            padding: 0 4px;
+            padding: 0;
+        }
+        #miniCalendar .flatpickr-month {
+            height: 32px;
         }
         #miniCalendar .flatpickr-current-month {
-            font-size: 14px;
+            font-size: 13px;
+            padding-top: 6px;
+        }
+        #miniCalendar .flatpickr-monthDropdown-months,
+        #miniCalendar .numInputWrapper {
+            font-size: 12px;
+        }
+        #miniCalendar .flatpickr-innerContainer {
+            max-width: 100%;
+        }
+        #miniCalendar .flatpickr-rContainer {
+            max-width: 100%;
+        }
+        #miniCalendar .flatpickr-days {
+            width: 100% !important;
+        }
+        #miniCalendar .dayContainer {
+            width: 100% !important;
+            min-width: auto !important;
+            max-width: 100% !important;
+            justify-content: center;
         }
         #miniCalendar .flatpickr-day {
-            max-width: 32px;
-            height: 32px;
-            line-height: 32px;
-            font-size: 12px;
+            max-width: 28px;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            font-size: 11px;
+            margin: 1px;
+            flex-basis: auto !important;
         }
         #miniCalendar .flatpickr-day.selected {
             background: #3b82f6;
             border-color: #3b82f6;
         }
+        #miniCalendar .flatpickr-day.today {
+            border-color: #3b82f6;
+        }
         #miniCalendar .flatpickr-weekdays {
-            height: 28px;
+            height: 24px;
         }
         #miniCalendar .flatpickr-weekday {
-            font-size: 11px;
+            font-size: 10px;
             color: #64748b;
+            font-weight: 600;
+        }
+        #miniCalendar .flatpickr-prev-month,
+        #miniCalendar .flatpickr-next-month {
+            padding: 4px 8px;
+        }
+        #miniCalendar .flatpickr-prev-month svg,
+        #miniCalendar .flatpickr-next-month svg {
+            width: 10px;
+            height: 10px;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
