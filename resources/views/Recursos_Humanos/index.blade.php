@@ -87,10 +87,9 @@
                     <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Acción Rápida</p>
                     <h5 class="text-lg font-bold">Registrar Nuevo Empleado</h5>
                 </div>
-                {{-- Ajusta la ruta a tu formulario de creación de empleados --}}
-                <button class="relative z-10 bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm">
+                <a href="{{ route('admin.users.create') }}" class="relative z-10 bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm">
                     Crear +
-                </button>
+                </a>
             </div>
             
             <div class="bg-indigo-600 rounded-3xl p-6 text-white flex items-center justify-between shadow-lg shadow-indigo-200 relative overflow-hidden group">
