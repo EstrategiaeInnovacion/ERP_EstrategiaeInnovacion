@@ -86,7 +86,7 @@
                     </div>
 
                     {{-- Mini calendario con días con mantenimientos --}}
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-1">
                             <div class="bg-white border border-slate-200 rounded-xl p-4">
                                 <h5 class="text-sm font-bold text-slate-700 mb-3">Calendario</h5>
@@ -101,7 +101,7 @@
                         </div>
 
                         {{-- Lista de mantenimientos de la semana --}}
-                        <div class="lg:col-span-3">
+                        <div class="lg:col-span-2">
                             <div id="weekView" class="space-y-4">
                                 <div class="text-center py-10">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
