@@ -87,7 +87,6 @@
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Detalles</th>
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</th>
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Prioridad</th>
-                                <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -145,11 +144,6 @@
                                             <span class="text-xs">{{ $prioConfig[0] }}</span>
                                             <span class="text-[10px] font-bold uppercase">{{ $ticket->prioridad }}</span>
                                         </div>
-                                    </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-right">
-                                        <a href="{{ route('tickets.show', $ticket->id) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all" title="Ver Detalles">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                        </a>
                                     </td>
                                 </tr>
                             @endforeach
