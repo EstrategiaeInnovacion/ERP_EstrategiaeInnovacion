@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Sistemas Email
+    |--------------------------------------------------------------------------
+    |
+    | Correo del administrador de sistemas para recibir notificaciones de
+    | tickets de soporte (software, hardware, mantenimiento).
+    |
+    */
+
+    'admin_sistemas_email' => env('ADMIN_SISTEMAS_EMAIL', 'sistemas@estrategiaeinnovacion.com.mx'),
+
 ];

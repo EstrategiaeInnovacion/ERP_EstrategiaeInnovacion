@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sistemas_IT;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NuevoTicketNotificacion;
 use App\Models\Sistemas_IT\ComputerProfile;
 use App\Models\Sistemas_IT\MaintenanceBooking;
 use App\Models\Sistemas_IT\MaintenanceSlot;
@@ -143,6 +144,7 @@ class TicketController extends Controller
 
         if ($ticket) {
             $this->notifyN8nTicketCreated($ticket);
+            $this->enviarCorreoNotificacion($ticket);
         }
 
         return redirect()->route('tickets.mis-tickets')->with('success',
@@ -216,6 +218,28 @@ class TicketController extends Controller
         });
     }
 
+    /**
+     * Envía notificación por correo al administrador de sistemas
+     */
+    protected function enviarCorreoNotificacion(Ticket $ticket): void
+    {
+        $destinatario = config('app.admin_sistemas_email', 'sistemas@estrategiaeinnovacion.com.mx');
+        
+        try {
+            Mail::to($destinatario)->send(new NuevoTicketNotificacion($ticket));
+            
+            \Log::info('Correo de notificación enviado correctamente.', [
+                'ticket_id' => $ticket->id,
+                'folio' => $ticket->folio,
+                'destinatario' => $destinatario,
+            ]);
+        } catch (\Throwable $exception) {
+            \Log::error('Error al enviar correo de notificación.', [
+                'ticket_id' => $ticket->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
     public function index()
     {
         $tickets = Ticket::orderBy('created_at', 'desc')->paginate(15);
