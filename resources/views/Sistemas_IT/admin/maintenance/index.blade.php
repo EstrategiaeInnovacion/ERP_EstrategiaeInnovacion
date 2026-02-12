@@ -90,8 +90,12 @@
                         <div class="lg:col-span-1">
                             <div class="bg-white border border-slate-200 rounded-xl p-4">
                                 <h5 class="text-sm font-bold text-slate-700 mb-3">Calendario</h5>
-                                <div id="miniCalendar" class="text-center">
-                                    <p class="text-sm text-slate-400">Cargando calendario...</p>
+                                <div id="miniCalendarContainer">
+                                    <div id="miniCalendarLoading" class="text-center py-4">
+                                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                                        <p class="text-xs text-slate-400 mt-2">Cargando...</p>
+                                    </div>
+                                    <div id="miniCalendar" class="hidden"></div>
                                 </div>
                             </div>
                         </div>
@@ -704,6 +708,41 @@
     </main>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        /* Estilos personalizados para el mini calendario */
+        #miniCalendar .flatpickr-calendar {
+            box-shadow: none !important;
+            border: none !important;
+            width: 100% !important;
+            font-size: 13px;
+        }
+        #miniCalendar .flatpickr-calendar.inline {
+            top: 0 !important;
+        }
+        #miniCalendar .flatpickr-months {
+            padding: 0 4px;
+        }
+        #miniCalendar .flatpickr-current-month {
+            font-size: 14px;
+        }
+        #miniCalendar .flatpickr-day {
+            max-width: 32px;
+            height: 32px;
+            line-height: 32px;
+            font-size: 12px;
+        }
+        #miniCalendar .flatpickr-day.selected {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+        #miniCalendar .flatpickr-weekdays {
+            height: 28px;
+        }
+        #miniCalendar .flatpickr-weekday {
+            font-size: 11px;
+            color: #64748b;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
@@ -1205,7 +1244,12 @@
 
         function initMiniCalendar() {
             const miniCalEl = document.getElementById('miniCalendar');
+            const loadingEl = document.getElementById('miniCalendarLoading');
             if (!miniCalEl) return;
+
+            // Mostrar calendario y ocultar loading
+            if (loadingEl) loadingEl.classList.add('hidden');
+            miniCalEl.classList.remove('hidden');
 
             miniCalendarInstance = flatpickr(miniCalEl, {
                 inline: true,
