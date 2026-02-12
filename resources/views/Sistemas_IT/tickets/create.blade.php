@@ -515,6 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.dataset.slot = slot.start;
+                    btn.dataset.label = slot.label; // Guardar label original
                     btn.className = `
                         relative w-full py-3 px-2 rounded-xl border text-sm font-bold transition-all
                         flex flex-col items-center justify-center gap-1
@@ -576,13 +577,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                     return;
                                 }
 
-                                // Está disponible - seleccionar
-                                document.querySelectorAll('#time-slots-container button').forEach(b => {
-                                    if(!b.disabled) {
-                                        b.className = b.className.replace('ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500 text-emerald-700', 'bg-white border-slate-200 text-slate-600');
-                                    }
+                                // Está disponible - PRIMERO deseleccionar todos los demás
+                                document.querySelectorAll('#time-slots-container button:not([disabled])').forEach(b => {
+                                    // Restaurar estilo original
+                                    b.className = `
+                                        relative w-full py-3 px-2 rounded-xl border text-sm font-bold transition-all
+                                        flex flex-col items-center justify-center gap-1
+                                        bg-white border-slate-200 text-slate-600 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md
+                                    `;
+                                    // Restaurar HTML original usando el label guardado
+                                    const originalLabel = b.dataset.label;
+                                    b.innerHTML = `
+                                        <span>${originalLabel}</span>
+                                        <span class="text-[9px] text-slate-400 font-normal">1 hora</span>
+                                    `;
                                 });
                                 
+                                // LUEGO marcar solo este como seleccionado
                                 btn.className = `
                                     relative w-full py-3 px-2 rounded-xl border text-sm font-bold transition-all
                                     flex flex-col items-center justify-center gap-1
