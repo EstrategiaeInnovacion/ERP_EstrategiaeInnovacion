@@ -67,7 +67,8 @@ class User extends Authenticatable
      */
     private function normalizeString(?string $value): string
     {
-        if (empty($value)) return '';
+        if (empty($value))
+            return '';
         // Convierte a minúsculas y reemplaza acentos comunes
         $value = mb_strtolower(trim($value), 'UTF-8');
         $replacements = ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n'];
@@ -115,7 +116,7 @@ class User extends Authenticatable
         // 3. Revisar cada valor
         foreach ($valoresAChecar as $valor) {
             $normalizado = $this->normalizeString($valor);
-            
+
             // Si el valor normalizado está en la lista exacta
             if (in_array($normalizado, $palabrasClave)) {
                 return true;
@@ -125,7 +126,7 @@ class User extends Authenticatable
             if (str_contains($normalizado, 'recursos humanos') || str_contains($normalizado, 'capital humano')) {
                 return true;
             }
-            
+
             // Caso especial para "Administracion RH" que mencionaste
             if (str_contains($normalizado, 'administracion rh')) {
                 return true;

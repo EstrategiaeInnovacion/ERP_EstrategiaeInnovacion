@@ -57,8 +57,12 @@
                 {{-- NAVEGACIÓN TABS --}}
                 <div class="border-b border-slate-200 bg-white px-6">
                     <nav class="flex space-x-8 overflow-x-auto" aria-label="Tabs">
-                        @if(isset($esAdmin) && $esAdmin)
+                        @if((isset($esAdmin) && $esAdmin) || (isset($esSupervisorLogistica) && $esSupervisorLogistica))
                             <button onclick="switchTab('clientes')" id="tab-clientes" class="tab-button active py-4 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors">Clientes</button>
+                            @if(isset($esSupervisorLogistica) && $esSupervisorLogistica)
+                                <button onclick="switchTab('ejecutivos')" id="tab-ejecutivos" class="tab-button py-4 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors">Ejecutivos</button>
+                            @endif
+
                         @endif
                         <button onclick="switchTab('agentes')" id="tab-agentes" class="tab-button {{ !(isset($esAdmin) && $esAdmin) ? 'active' : '' }} py-4 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors">Agentes Aduanales</button>
                         <button onclick="switchTab('transportes')" id="tab-transportes" class="tab-button py-4 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors">Transportes</button>
@@ -76,7 +80,7 @@
                 <div class="p-6 bg-white min-h-[500px]">
 
                     {{-- 1. TAB CLIENTES --}}
-                    @if(isset($esAdmin) && $esAdmin)
+                    @if((isset($esAdmin) && $esAdmin) || (isset($esSupervisorLogistica) && $esSupervisorLogistica))
                     <div id="clientes-content" class="tab-content block">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-lg font-bold text-slate-800">Directorio de Clientes</h3>
@@ -190,6 +194,76 @@
                         </div>
                         <div class="mt-4">{{ $transportes->appends(['tab' => 'transportes'])->links() }}</div>
                     </div>
+
+                    {{-- 4. TAB EJECUTIVOS (TU EQUIPO) --}}
+                    @if(isset($esSupervisorLogistica) && $esSupervisorLogistica)
+                    <div id="ejecutivos-content" class="tab-content hidden">
+                         <div class="mb-8 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <h4 class="text-md font-bold text-slate-700 mb-2">Agregar Miembro al Equipo</h4>
+                            <form action="{{ route('logistica.equipo.store') }}" method="POST" class="flex gap-4 items-end">
+                                @csrf
+                                <div class="flex-grow">
+                                    <label for="busqueda" class="block text-sm font-medium text-gray-700">Buscar por Correo o ID de Empleado</label>
+                                    <input type="text" name="busqueda" id="busqueda" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="ejemplo@estrategiaeinnovacion.com">
+                                </div>
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded shadow">
+                                    Agregar
+                                </button>
+                            </form>
+                            <p class="text-xs text-gray-500 mt-2">
+                                Nota: Al agregar, el empleado será asignado bajo tu supervisión directa.
+                            </p>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">Mi Equipo Actual</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posición</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @if(isset($equipo) && count($equipo) > 0)
+                                        @foreach($equipo as $empleado)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm font-medium text-gray-900">{{ $empleado->nombre }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm text-gray-500">{{ $empleado->id_empleado }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm text-gray-500">{{ $empleado->correo }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm text-gray-500">{{ $empleado->posicion ?? 'N/A' }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <form action="{{ route('logistica.equipo.destroy', $empleado->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de quitar a {{ $empleado->nombre }} de tu equipo?');" style="display:inline;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 hover:text-red-900">Remover</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @else
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                No tienes miembros asignados a tu equipo aún.
+                                            </td>
+                                        </tr>
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
 
                     {{-- 4. OTRAS TABS DE ADMIN (Solo lectura rápida en este ejemplo) --}}
                     @if(isset($esAdmin) && $esAdmin)

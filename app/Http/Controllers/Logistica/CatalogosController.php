@@ -31,6 +31,30 @@ class CatalogosController extends Controller
             $esAdmin = $usuarioActual->hasRole('admin');
         }
 
+        // Logic for Logistics Supervisor (Same as in ClienteController)
+        $esSupervisorLogistica = false;
+        if ($empleadoActual && $empleadoActual->es_coordinador) {
+            $area = mb_strtolower($empleadoActual->area, 'UTF-8');
+            $posicion = mb_strtolower($empleadoActual->posicion ?? '', 'UTF-8');
+            $areasPermitidas = ['logística', 'logistica', 'sistemas', 'dirección', 'direccion'];
+
+            foreach ($areasPermitidas as $permitido) {
+                if (str_contains($area, $permitido) || str_contains($posicion, $permitido)) {
+                    $esSupervisorLogistica = true;
+                    break;
+                }
+            }
+        }
+
+        // Get Team if Supervisor
+        $equipo = [];
+        if ($esSupervisorLogistica && $empleadoActual) {
+            $equipo = Empleado::where('supervisor_id', $empleadoActual->id)
+                ->where('es_activo', true)
+                ->orderBy('nombre')
+                ->get();
+        }
+
         // Recuperamos los datos paginados. 
         // Usamos nombres de parámetro distintos ('clientes_page', etc.) 
         // para que la paginación de una tab no afecte a las otras.
@@ -53,10 +77,10 @@ class CatalogosController extends Controller
             ->paginate(15, ['*'], 'pedimentos_page');
 
         // Filtro para encontrar ejecutivos de logística
-        $filtroLogistica = function($query) {
+        $filtroLogistica = function ($query) {
             $query->where('posicion', 'like', '%LOGISTICA%')
-                  ->orWhere('posicion', 'like', '%Logistica%')
-                  ->orWhere('posicion', 'like', '%logistica%');
+                ->orWhere('posicion', 'like', '%Logistica%')
+                ->orWhere('posicion', 'like', '%logistica%');
         };
 
         $ejecutivos = Empleado::where($filtroLogistica)
@@ -73,16 +97,19 @@ class CatalogosController extends Controller
             ->get();
 
         return view('Logistica.catalogos', compact(
-            'clientes', 
-            'agentesAduanales', 
-            'transportes', 
-            'ejecutivos', 
-            'todosEjecutivos', 
-            'aduanas', 
-            'pedimentos', 
-            'correosCC', 
-            'empleadoActual', 
-            'esAdmin'
+            'clientes',
+            'agentesAduanales',
+            'transportes',
+            'ejecutivos',
+            'todosEjecutivos',
+            'aduanas',
+            'pedimentos',
+            'correosCC',
+            'empleadoActual',
+            'empleadoActual',
+            'esAdmin',
+            'esSupervisorLogistica',
+            'equipo'
         ));
     }
 }

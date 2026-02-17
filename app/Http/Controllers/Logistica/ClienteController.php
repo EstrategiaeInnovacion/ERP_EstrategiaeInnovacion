@@ -18,17 +18,43 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
         $usuarioActual = auth()->user();
-        $empleadoActual = $usuarioActual ? Empleado::where('correo', $usuarioActual->email)->first() : null;
+        $empleadoActual = $usuarioActual ?Empleado::where('correo', $usuarioActual->email)->first() : null;
+
+
+
         $esAdmin = $usuarioActual && $usuarioActual->hasRole('admin');
+
+        // Check Supervisor Logística/Sistemas/Dirección
+        $esSupervisorLogistica = false;
+        if ($empleadoActual && $empleadoActual->es_coordinador) {
+            $area = mb_strtolower($empleadoActual->area, 'UTF-8');
+            $posicion = mb_strtolower($empleadoActual->posicion ?? '', 'UTF-8');
+            $areasPermitidas = ['logística', 'logistica', 'sistemas', 'dirección', 'direccion'];
+            foreach ($areasPermitidas as $permitido) {
+                if (str_contains($area, $permitido) || str_contains($posicion, $permitido)) {
+                    $esSupervisorLogistica = true;
+                    break;
+                }
+            }
+        }
 
         $query = Cliente::with('ejecutivoAsignado')->orderBy('cliente');
 
-        // Si no es admin, solo ver sus clientes (opcional, según tu regla de negocio)
-        if (!$esAdmin && $empleadoActual) {
-            $query->where(function($q) use ($empleadoActual) {
+        // Si no es admin y NO es supervisor, solo ver sus clientes
+        if (!$esAdmin && !$esSupervisorLogistica && $empleadoActual) {
+            $query->where(function ($q) use ($empleadoActual) {
                 $q->where('ejecutivo_asignado_id', $empleadoActual->id)
-                  ->orWhereNull('ejecutivo_asignado_id');
+                    ->orWhereNull('ejecutivo_asignado_id');
             });
+        }
+
+        // Obtener equipo si es supervisor
+        $equipo = [];
+        if ($esSupervisorLogistica && $empleadoActual) {
+            $equipo = Empleado::where('supervisor_id', $empleadoActual->id)
+                ->where('es_activo', true)
+                ->orderBy('nombre')
+                ->get();
         }
 
         if ($request->wantsJson()) {
@@ -36,7 +62,16 @@ class ClienteController extends Controller
         }
 
         // Si necesitas paginación para una vista
-        return $query->paginate(15);
+        return view('Logistica.catalogos', [
+            'clientes' => $query->paginate(15),
+            'agentesAduanales' => \App\Models\Logistica\AgenteAduanal::orderBy('agente_aduanal')->paginate(15),
+            'transportes' => \App\Models\Logistica\Transporte::orderBy('transporte')->paginate(15),
+            // Solo cargar estos si es Admin O Supervisor
+            'todosEjecutivos' => ($esAdmin || $esSupervisorLogistica) ?Empleado::where('es_activo', true)->orderBy('nombre')->get() : [],
+            'esAdmin' => $esAdmin,
+            'esSupervisorLogistica' => $esSupervisorLogistica,
+            'equipo' => $equipo
+        ]);
     }
 
     public function store(Request $request)
@@ -63,7 +98,8 @@ class ClienteController extends Controller
             $ejecutivoId = $request->ejecutivo_asignado_id;
             if (!$ejecutivoId && auth()->user()) {
                 $empleado = Empleado::where('correo', auth()->user()->email)->first();
-                if ($empleado) $ejecutivoId = $empleado->id;
+                if ($empleado)
+                    $ejecutivoId = $empleado->id;
             }
 
             $cliente = Cliente::create([
@@ -74,12 +110,13 @@ class ClienteController extends Controller
             ]);
 
             return response()->json([
-                'success' => true, 
-                'cliente' => $cliente->load('ejecutivoAsignado'), 
+                'success' => true,
+                'cliente' => $cliente->load('ejecutivoAsignado'),
                 'message' => 'Cliente creado correctamente'
             ]);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('Error creando cliente: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno: ' . $e->getMessage()], 500);
         }
@@ -115,7 +152,7 @@ class ClienteController extends Controller
     public function destroy($id)
     {
         $cliente = Cliente::findOrFail($id);
-        
+
         // Verificar uso en operaciones (por nombre, ya que no usas ID en operaciones)
         $uso = OperacionLogistica::where('cliente', $cliente->cliente)->count();
         if ($uso > 0) {
@@ -129,7 +166,8 @@ class ClienteController extends Controller
     public function asignarEjecutivo(Request $request)
     {
         // Solo admins
-        if (!auth()->user()->hasRole('admin')) abort(403);
+        if (!auth()->user()->hasRole('admin'))
+            abort(403);
 
         $request->validate([
             'cliente_ids' => 'required|array',
@@ -145,16 +183,17 @@ class ClienteController extends Controller
     public function import(Request $request, ClienteImportService $importService)
     {
         $request->validate(['clientes_file' => 'required|file|mimes:xlsx,xls']);
-        
+
         $path = $request->file('clientes_file')->store('temp');
         $resultados = $importService->importFromExcel(storage_path("app/$path"));
-        
+
         return response()->json(['success' => true, 'resultados' => $resultados]);
     }
 
     public function deleteAll()
     {
-        if (!auth()->user()->hasRole('admin')) abort(403);
+        if (!auth()->user()->hasRole('admin'))
+            abort(403);
         Cliente::truncate();
         return response()->json(['success' => true, 'message' => 'Todos los clientes han sido eliminados']);
     }

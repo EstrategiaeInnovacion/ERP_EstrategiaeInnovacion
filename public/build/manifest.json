@@ -22,7 +22,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-VDdxUhO3.css",
+    "file": "assets/app-BkgwS_H3.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -31,7 +31,7 @@
     ]
   },
   "resources/js/Logistica/index.js": {
-    "file": "assets/index-DhXAPHsg.js",
+    "file": "assets/index-DR2FKhrE.js",
     "name": "index",
     "src": "resources/js/Logistica/index.js",
     "isEntry": true,
@@ -58,7 +58,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CrbEGIr3.js",
+    "file": "assets/app-ja89Gasz.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true
