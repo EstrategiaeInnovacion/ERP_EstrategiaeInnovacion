@@ -23,10 +23,21 @@
                 <textarea name="descripcion" rows="4" class="w-full border rounded px-3 py-2 text-gray-700">{{ $video->descripcion }}</textarea>
             </div>
 
+            {{-- Enlace de YouTube --}}
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Enlace de YouTube</label>
+                <input type="url" name="youtube_url" value="{{ $video->youtube_url }}" placeholder="https://www.youtube.com/watch?v=..." class="w-full border rounded px-3 py-2 text-gray-700 focus:outline-none focus:border-indigo-500">
+                <p class="text-xs text-gray-500 mt-1">Si ingresas un enlace aquí, se eliminará el video subido anteriormente (si existe).</p>
+            </div>
+
+            <div class="flex items-center justify-center my-4">
+                <span class="text-gray-400 text-sm font-medium bg-white px-2">--- O ---</span>
+            </div>
+
             {{-- Reemplazar Video --}}
             <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-                <label class="block text-yellow-800 font-bold mb-2">Reemplazar Video (Opcional)</label>
-                <p class="text-sm text-yellow-600 mb-2">Sube un archivo solo si quieres cambiar el video actual.</p>
+                <label class="block text-yellow-800 font-bold mb-2">Reemplazar con Archivo de Video</label>
+                <p class="text-sm text-yellow-600 mb-2">Sube un archivo solo si quieres reemplazar el contenido actual con un video nuevo.</p>
                 <input type="file" name="video" accept="video/*" class="w-full text-sm">
             </div>
 

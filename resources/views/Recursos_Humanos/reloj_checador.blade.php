@@ -211,198 +211,194 @@
                 </div>
             </div>
 
-            {{-- TABLA DE ASISTENCIA --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-100">
-                        <thead class="bg-gray-50/80">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Empleado</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Entrada</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Salida</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Hrs</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-50">
-                            @php 
-                                $currentMonth = null; 
-                            @endphp
-
-                            {{-- 1. Iteramos por las FECHAS --}}
-                            @foreach($fechas as $fechaObj)
-                                
-                                {{-- Separador de Mes --}}
-                                @if($currentMonth !== $fechaObj->format('Y-m'))
-                                    @php $currentMonth = $fechaObj->format('Y-m'); @endphp
-                                    <tr class="bg-gray-100">
-                                        <td colspan="7" class="px-6 py-2 text-xs font-bold text-indigo-600 uppercase tracking-widest border-l-4 border-indigo-400">
-                                            {{ $fechaObj->isoFormat('MMMM YYYY') }}
-                                        </td>
-                                    </tr>
-                                @endif
-
-                                {{-- 2. Iteramos por los EMPLEADOS --}}
-                                @foreach($empleados as $empleado)
-                                    @php
-                                        // Buscar registro exacto para empleado y fecha
-                                        $asistencia = $empleado->asistencias->first(function($item) use ($fechaObj) {
-                                            return \Carbon\Carbon::parse($item->fecha)->format('Y-m-d') === $fechaObj->format('Y-m-d');
-                                        });
-                                    @endphp
-
-                                    <tr class="hover:bg-gray-50/80 transition-colors group">
-                                        {{-- Empleado --}}
-                                        <td class="px-6 py-3 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                <div class="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-100 to-white flex items-center justify-center text-indigo-700 text-xs font-bold border border-indigo-100 shadow-sm">
-                                                    {{ substr($empleado->nombre, 0, 1) }}
-                                                </div>
-                                                <div class="ml-3">
-                                                    <div class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">{{ $empleado->nombre }}</div>
-                                                    <div class="text-[10px] text-gray-400 uppercase tracking-wide">{{ $empleado->id_empleado ?? 'S/N' }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        
-                                        {{-- Fecha --}}
-                                        <td class="px-6 py-3 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-700">{{ $fechaObj->format('d/m') }}</div>
-                                            <div class="text-xs text-gray-400">
-                                                {{ $fechaObj->isoFormat('dddd') }}
-                                            </div>
-                                        </td>
-
-                                        @if($asistencia)
-                                            {{-- CASO 1: SÍ HAY REGISTRO --}}
-                                            @if($asistencia->tipo_registro == 'asistencia')
-                                                <td class="px-6 py-3 whitespace-nowrap text-center">
-                                                    <span class="font-mono text-sm {{ $asistencia->es_retardo && !$asistencia->es_justificado ? 'text-red-600 font-bold' : 'text-gray-600' }}">
-                                                        {{ $asistencia->entrada ? substr($asistencia->entrada, 0, 5) : '--:--' }}
-                                                    </span>
-                                                    @if($asistencia->es_retardo && !$asistencia->es_justificado)
-                                                        <span class="block text-[9px] text-red-400 font-medium mt-0.5">Tarde</span>
-                                                    @endif
-                                                </td>
-                                                <td class="px-6 py-3 whitespace-nowrap text-center text-gray-600 font-mono text-sm">
-                                                    {{ $asistencia->salida ? substr($asistencia->salida, 0, 5) : '--:--' }}
-                                                </td>
-                                                <td class="px-6 py-3 whitespace-nowrap text-center">
-                                                    @php
-                                                        $horasRegistro = '--';
-                                                        if($asistencia->entrada && $asistencia->salida) {
-                                                            $entrada = \Carbon\Carbon::parse($asistencia->entrada);
-                                                            $salida = \Carbon\Carbon::parse($asistencia->salida);
-                                                            if($salida->gt($entrada)) {
-                                                                $diffMins = $entrada->diffInMinutes($salida);
-                                                                $h = floor($diffMins / 60);
-                                                                $m = $diffMins % 60;
-                                                                $horasRegistro = sprintf('%02d:%02d', $h, $m);
+            {{-- VISTA CENTRADA EN EL EMPLEADO (Employee-First) --}}
+            <div class="space-y-6">
+                @if($empleados->isEmpty())
+                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                        <svg class="w-16 h-16 text-gray-300 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-lg font-medium text-gray-500 mb-1">No se encontraron empleados</p>
+                        <p class="text-sm text-gray-400">Intenta con otra búsqueda o cambia las fechas del período</p>
+                    </div>
+                @else
+                    @foreach($empleados as $empleado)
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-all duration-300">
+                            {{-- ENCABEZADO EMPLEADO --}}
+                            <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-white border-2 border-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shadow-sm">
+                                        {{ substr($empleado->nombre, 0, 2) }}
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-bold text-gray-900 leading-tight">{{ $empleado->nombre }}</h3>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">ID: {{ $empleado->id_empleado ?? 'S/N' }}</span>
+                                            {{-- Resumen Rápido (Opcional, se puede calcular si se desea mayor detalle) --}}
+                                            @php
+                                                // Pequeño cálculo al vuelo para el resumen de este empleado en el rango
+                                                $asistenciasEmp = $empleado->asistencias->whereBetween('fecha', [$fechaInicioFormato, $fechaFinFormato]);
+                                                $retardosEmp = $asistenciasEmp->where('es_retardo', true)->where('es_justificado', false)->count();
+                                                $faltasEmp = $asistenciasEmp->where('tipo_registro', 'falta')->where('es_justificado', false)->count();
+                                                
+                                                // Calcular Horas Totales
+                                                $totalMinutos = 0;
+                                                foreach($asistenciasEmp as $asist) {
+                                                    if($asist->tipo_registro == 'asistencia' && $asist->entrada && $asist->salida) {
+                                                        try {
+                                                            $ent = \Carbon\Carbon::parse($asist->entrada);
+                                                            $sal = \Carbon\Carbon::parse($asist->salida);
+                                                            if($sal->gt($ent)) {
+                                                                $totalMinutos += $ent->diffInMinutes($sal);
                                                             }
+                                                        } catch(\Exception $e) {}
+                                                    }
+                                                }
+                                                $horasTotales = floor($totalMinutos / 60);
+                                                $minutosRestantes = $totalMinutos % 60;
+                                            @endphp
+                                            
+                                            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $totalMinutos }} minutos">
+                                                ⏱️ {{ $horasTotales }}h {{ $minutosRestantes > 0 ? $minutosRestantes.'m' : '' }}
+                                            </span>
+
+                                            @if($retardosEmp > 0)
+                                                <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">{{ $retardosEmp }} Retardos</span>
+                                            @endif
+                                            @if($faltasEmp > 0)
+                                                <span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">{{ $faltasEmp }} Faltas</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ now()->toDateString() }}')" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                                        <svg class="w-3.5 h-3.5 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Nueva Incidencia
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- BODY: TIRA DE FECHAS (Scroll Horizontal) --}}
+                            <div class="p-4 overflow-x-auto">
+                                <div class="flex gap-2 min-w-max pb-2">
+                                    @foreach($fechas as $fechaObj)
+                                        @php
+                                            $asistencia = $empleado->asistencias->first(function($item) use ($fechaObj) {
+                                                return \Carbon\Carbon::parse($item->fecha)->format('Y-m-d') === $fechaObj->format('Y-m-d');
+                                            });
+
+                                            // Estilos base
+                                            $cardClass = 'bg-gray-50 border-gray-100';
+                                            $textClass = 'text-gray-400';
+                                            $icon = null;
+                                            
+                                            // Estado
+                                            if($asistencia) {
+                                                $tipo = $asistencia->tipo_registro;
+                                                if($tipo == 'asistencia') {
+                                                    if($asistencia->es_retardo && !$asistencia->es_justificado) {
+                                                        $cardClass = 'bg-amber-50 border-amber-200';
+                                                        $textClass = 'text-amber-700';
+                                                        $icon = '⚠️';
+                                                    } elseif($asistencia->es_justificado) {
+                                                        $cardClass = 'bg-indigo-50 border-indigo-200';
+                                                        $textClass = 'text-indigo-700';
+                                                        $icon = '✅';
+                                                    } else {
+                                                        $cardClass = 'bg-green-50 border-green-200';
+                                                        $textClass = 'text-green-700';
+                                                    }
+                                                } elseif($tipo == 'falta') {
+                                                    $cardClass = $asistencia->es_justificado ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200';
+                                                    $textClass = $asistencia->es_justificado ? 'text-orange-700' : 'text-red-700';
+                                                    $icon = '❌';
+                                                } else {
+                                                    // Vacaciones, Incapacidad
+                                                    $cardClass = 'bg-blue-50 border-blue-200';
+                                                    $textClass = 'text-blue-700';
+                                                    $icon = ($tipo == 'vacaciones' ? '🌴' : '🏥');
+                                                }
+                                            } else {
+                                                // Sin Registro
+                                                $cardClass = 'bg-gray-50 border-gray-100 opacity-60 hover:opacity-100';
+                                            }
+                                        @endphp
+                                        
+                                        <div class="relative w-[130px] flex-shrink-0 rounded-lg border {{ $cardClass }} p-2.5 transition-all duration-200 hover:shadow-md cursor-pointer group/day"
+                                             @if($asistencia)
+                                                 onclick="abrirModalEdicion({{ $asistencia }})"
+                                                 title="Click para editar"
+                                             @else
+                                                 onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ $fechaObj->toDateString() }}')"
+                                                 title="Click para justificar"
+                                             @endif
+                                        >
+                                            {{-- Fecha --}}
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-xs font-bold text-gray-500">{{ $fechaObj->format('d M') }}</span>
+                                                <span class="text-[10px] uppercase text-gray-400">{{ $fechaObj->isoFormat('ddd') }}</span>
+                                            </div>
+
+                                            {{-- Contenido Central --}}
+                                            <div class="text-center h-12 flex flex-col justify-center items-center">
+                                                @if($asistencia && $asistencia->tipo_registro == 'asistencia')
+                                                    <div class="text-xs font-mono font-bold text-gray-800 block">
+                                                        {{ $asistencia->entrada ? substr($asistencia->entrada, 0, 5) : '--:--' }}
+                                                        <span class="text-gray-300 mx-0.5">-</span>
+                                                        {{ $asistencia->salida ? substr($asistencia->salida, 0, 5) : '--:--' }}
+                                                    </div>
+                                                    
+                                                    {{-- Cálculo de Horas Diarias --}}
+                                                    @php
+                                                        $horasDia = null;
+                                                        if($asistencia->entrada && $asistencia->salida) {
+                                                            try {
+                                                                $entrada = \Carbon\Carbon::parse($asistencia->entrada);
+                                                                $salida = \Carbon\Carbon::parse($asistencia->salida);
+                                                                if($salida->gt($entrada)) {
+                                                                    $diff = $entrada->diffInMinutes($salida);
+                                                                    $horasDia = floor($diff/60) . 'h ' . ($diff%60) . 'm';
+                                                                }
+                                                            } catch(\Exception $e) {}
                                                         }
                                                     @endphp
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 font-mono">
-                                                        {{ $horasRegistro }}
-                                                    </span>
-                                                </td>
-                                            @else
-                                                {{-- Vacaciones, Incapacidad, Falta, etc --}}
-                                                <td colspan="3" class="px-6 py-3 text-center">
-                                                    <span class="text-sm text-gray-400 italic flex items-center justify-center gap-1">
-                                                        @if($asistencia->tipo_registro == 'vacaciones') 🌴
-                                                        @elseif($asistencia->tipo_registro == 'incapacidad') 🏥
-                                                        @elseif($asistencia->tipo_registro == 'falta') ❌
-                                                        @endif
-                                                        {{ ucfirst($asistencia->tipo_registro) }}
-                                                    </span>
-                                                </td>
-                                            @endif
-
-                                            {{-- ESTADO (BADGE) --}}
-                                            <td class="px-6 py-3 whitespace-nowrap text-center">
-                                                @php
-                                                    $badgeClass = match($asistencia->tipo_registro) {
-                                                        'vacaciones' => 'bg-blue-50 text-blue-700 border-blue-200',
-                                                        'incapacidad' => 'bg-purple-50 text-purple-700 border-purple-200',
-                                                        'falta' => ($asistencia->es_justificado) 
-                                                            ? 'bg-orange-50 text-orange-700 border-orange-200' // Falta Justificada (Naranja)
-                                                            : 'bg-red-50 text-red-700 border-red-200',         // Falta Injustificada (Rojo)
-                                                        'descanso' => 'bg-gray-100 text-gray-600 border-gray-200',
-                                                        default => ($asistencia->es_retardo && !$asistencia->es_justificado) 
-                                                            ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                                                            : (($asistencia->es_justificado) ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-green-50 text-green-700 border-green-200')
-                                                    };
                                                     
-                                                    $statusText = match($asistencia->tipo_registro) {
-                                                        'asistencia' => ($asistencia->es_retardo && !$asistencia->es_justificado) ? 'Retardo' : (($asistencia->es_justificado) ? 'Justificado' : 'A Tiempo'),
-                                                        'falta' => ($asistencia->es_justificado) ? 'Falta Justif.' : 'Falta', // Texto personalizado
-                                                        default => ucfirst($asistencia->tipo_registro)
-                                                    };
-                                                @endphp
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $badgeClass }}">
-                                                    {{ $statusText }}
-                                                </span>
-                                            </td>
+                                                    @if($horasDia)
+                                                        <span class="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 rounded mt-0.5">
+                                                            {{ $horasDia }}
+                                                        </span>
+                                                    @endif
 
-                                            <td class="px-6 py-3 whitespace-nowrap text-right">
-                                                <button onclick="abrirModalEdicion({{ $asistencia }})" class="text-gray-400 hover:text-indigo-600 transition p-1 rounded-full hover:bg-gray-100" title="Editar Registro">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                </button>
-                                            </td>
+                                                    @if($icon) <span class="text-[10px] mt-0.5 block">{{ $icon }}</span> @endif
+                                                @elseif($asistencia)
+                                                    <span class="text-xs font-bold {{ $textClass }} truncate w-full">
+                                                        {{ $icon }} {{ ucfirst($asistencia->tipo_registro) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-[10px] text-gray-300 italic group-hover/day:text-indigo-400">
+                                                        -- Vacío --
+                                                    </span>
+                                                @endif
+                                            </div>
 
-                                        @else
-                                            {{-- CASO 2: NO HAY REGISTRO (SIN CHECADA) --}}
-                                            <td colspan="3" class="px-6 py-3 text-center bg-red-50/30">
-                                                <span class="text-xs text-red-400 italic">-- Sin checada --</span>
-                                            </td>
-                                            <td class="px-6 py-3 whitespace-nowrap text-center bg-red-50/30">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
-                                                    Sin Registro
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-3 whitespace-nowrap text-right bg-red-50/30">
-                                                {{-- Botón para CREAR justificación en este día vacío --}}
-                                                <button onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ $fechaObj->toDateString() }}')" class="text-red-300 hover:text-red-600 transition p-1 rounded-full hover:bg-red-50" title="Justificar Ausencia">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                </button>
-                                            </td>
-                                        @endif
-                                    </tr>
-                                @endforeach
-                            @endforeach
-
-                            @if(empty($fechas))
-                                <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center">
-                                        <div class="flex flex-col items-center justify-center text-gray-400">
-                                            <p class="text-sm font-medium">No hay fechas que mostrar</p>
+                                            {{-- Hover Action Indicator (Sutil) --}}
+                                            <div class="absolute inset-0 border-2 border-indigo-400 rounded-lg opacity-0 group-hover/day:opacity-100 pointer-events-none transition-opacity"></div>
                                         </div>
-                                    </td>
-                                </tr>
-                            @elseif($empleados->isEmpty())
-                                <tr>
-                                    <td colspan="7" class="px-6 py-16 text-center">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <p class="text-lg font-medium text-gray-500 mb-1">No se encontraron empleados</p>
-                                            <p class="text-sm text-gray-400">Intenta con otra búsqueda o cambia las fechas del período</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-                @if($empleados->hasPages())
-                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                    {{ $empleados->links() }}
-                </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 @endif
             </div>
+
+            {{-- PAGINACIÓN --}}
+            @if($empleados->hasPages())
+                <div class="mt-8 bg-white px-6 py-4 rounded-xl border border-gray-200 shadow-sm">
+                    {{ $empleados->links() }}
+                </div>
+            @endif
         </div>
     </div>
 

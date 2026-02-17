@@ -18,7 +18,23 @@ class Capacitacion extends Model
         'thumbnail_path',
         'subido_por',
         'activo',
+        'youtube_url', // <-- AGREGADO
     ];
+
+    public function isYoutube()
+    {
+        return !empty($this->youtube_url);
+    }
+
+    public function getYoutubeId()
+    {
+        if (!$this->youtube_url) return null;
+        $pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i';
+        if (preg_match($pattern, $this->youtube_url, $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
 
     public function uploader()
     {

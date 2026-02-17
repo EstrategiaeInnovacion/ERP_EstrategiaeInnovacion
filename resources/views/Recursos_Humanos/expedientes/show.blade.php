@@ -158,16 +158,19 @@
                 {{-- Switch Tipo Empleado --}}
                 <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-bold text-slate-700">Tipo</h4>
-                        <p class="text-[10px] text-slate-400">Define requisitos.</p>
+                        <h4 class="text-sm font-bold text-slate-700">Tipo: <span class="{{ $empleado->es_practicante ? 'text-amber-600' : 'text-blue-600' }}">{{ $empleado->es_practicante ? 'Practicante' : 'Empleado' }}</span></h4>
+                        <p class="text-[10px] text-slate-400">Define los requisitos del expediente.</p>
                     </div>
                     <form action="{{ route('rh.expedientes.update', $empleado->id) }}" method="POST" id="form-toggle-tipo">
                         @csrf @method('PUT')
                         <input type="hidden" name="toggle_practicante" value="1">
                         <input type="hidden" name="es_practicante" value="0">
-                        <label class="relative inline-flex items-center cursor-pointer">
+                        <label class="relative inline-flex items-center cursor-pointer" title="Cambiar entre Empleado y Practicante">
                             <input type="checkbox" name="es_practicante" value="1" class="sr-only peer" onchange="document.getElementById('form-toggle-tipo').submit()" {{ $empleado->es_practicante ? 'checked' : '' }}>
-                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div class="w-11 h-6 bg-blue-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 border-2 border-transparent"></div>
+                            <span class="ml-2 text-[10px] font-bold {{ $empleado->es_practicante ? 'text-amber-600' : 'text-blue-600' }}">
+                                {{ $empleado->es_practicante ? 'PRACTICANTE' : 'EMPLEADO' }}
+                            </span>
                         </label>
                     </form>
                 </div>
@@ -201,10 +204,10 @@
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                         Subir Manual
                     </h3>
-                    <form action="{{ route('rh.expedientes.upload', $empleado->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                    <form action="{{ route('rh.expedientes.upload', $empleado->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3" x-data="{ nombre: '' }">
                         @csrf
                         <div>
-                            <select name="nombre" class="w-full text-xs rounded-lg border-blue-200 focus:ring-blue-500 bg-white py-1.5">
+                            <select name="nombre" x-model="nombre" class="w-full text-xs rounded-lg border-blue-200 focus:ring-blue-500 bg-white py-1.5">
                                 <option value="">-- Seleccionar Requisito --</option>
                                 @foreach($checklistDocs as $doc)
                                     <option value="{{ $doc }}">{{ $doc }}</option>
@@ -212,6 +215,12 @@
                                 <option value="Otro">Otro (Escribir manual)</option>
                             </select>
                         </div>
+                        
+                        {{-- Campo para nombre manual (Solo si es Otro) --}}
+                        <div x-show="nombre === 'Otro'" style="display: none;" x-transition>
+                            <input type="text" name="nombre_manual" placeholder="Especifique el nombre del documento..." class="w-full text-xs rounded-lg border-blue-200 focus:ring-blue-500 placeholder-blue-300">
+                        </div>
+
                         <div>
                             <select name="categoria" class="w-full text-xs rounded-lg border-blue-200 focus:ring-blue-500 bg-white py-1.5">
                                 <option value="Identificación">Identificación</option>

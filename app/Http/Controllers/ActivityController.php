@@ -44,7 +44,7 @@ class ActivityController extends Controller
 
         if ($miEmpleado) {
             $posicionLower = mb_strtolower($miEmpleado->posicion, 'UTF-8');
-            $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion']);
+            $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion', 'auditoria']);
             
             // VALIDACIÓN HORARIA
             $esHorarioPermitido = now()->isMonday() && now()->hour >= 9 && now()->hour < 11;

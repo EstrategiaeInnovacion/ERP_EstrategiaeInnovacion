@@ -8,11 +8,26 @@
         </a>
     </div>
 
-    <div class="bg-black rounded-xl overflow-hidden shadow-2xl">
-        <video controls class="w-full aspect-video" controlsList="nodownload">
-            <source src="{{ asset('storage/' . $video->archivo_path) }}" type="video/mp4">
-            Tu navegador no soporta la reproducción de video.
-        </video>
+    <div class="bg-black rounded-xl overflow-hidden shadow-2xl relative w-full" style="padding-top: 56.25%;"> <!-- Aspect ratio 16:9 -->
+        @if($video->isYoutube() && $video->getYoutubeId())
+            <iframe 
+                class="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/{{ $video->getYoutubeId() }}?rel=0" 
+                title="{{ $video->titulo }}"
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+            </iframe>
+        @elseif($video->archivo_path)
+            <video controls class="absolute top-0 left-0 w-full h-full" controlsList="nodownload">
+                <source src="{{ asset('storage/' . $video->archivo_path) }}" type="video/mp4">
+                Tu navegador no soporta la reproducción de video.
+            </video>
+        @else
+            <div class="absolute top-0 left-0 w-full h-full flex items-center justify-center text-white">
+                <p>No hay video disponible.</p>
+            </div>
+        @endif
     </div>
 
     <div class="mt-6 bg-white p-6 rounded-xl shadow-sm border border-gray-200">

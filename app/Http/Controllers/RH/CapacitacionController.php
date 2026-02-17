@@ -39,28 +39,31 @@ class CapacitacionController extends Controller
         return view('Recursos_Humanos.capacitacion.manage', compact('videos'));
     }
 
-    // Guardar nuevo video
     public function store(Request $request)
     {
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'video' => 'required|mimes:mp4,mov,ogg,qt|max:200000', // 200MB
-            'adjuntos.*' => 'nullable|file|max:10240' // 10MB por adjunto
+            'youtube_url' => 'nullable|url',
+            // Video requerido solo si NO hay youtube_url
+            'video' => 'required_without:youtube_url|mimes:mp4,mov,ogg,qt|max:200000',
+            'adjuntos.*' => 'nullable|file|max:10240'
         ]);
 
         try {
-            // Guardar video
-            $path = $request->file('video')->store('capacitacion', 'public');
+            $path = null;
+            if ($request->hasFile('video')) {
+                $path = $request->file('video')->store('capacitacion', 'public');
+            }
 
             $capacitacion = Capacitacion::create([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
-                'archivo_path' => $path,
+                'archivo_path' => $path, 
+                'youtube_url' => $request->youtube_url, 
                 'subido_por' => Auth::id(),
             ]);
 
-            // Guardar adjuntos si existen
             if ($request->hasFile('adjuntos')) {
                 foreach ($request->file('adjuntos') as $archivo) {
                     $docPath = $archivo->store('capacitacion_docs', 'public');
@@ -86,7 +89,6 @@ class CapacitacionController extends Controller
         return view('Recursos_Humanos.capacitacion.edit', compact('video'));
     }
 
-    // Actualizar video y documentos
     public function update(Request $request, $id)
     {
         $video = Capacitacion::findOrFail($id);
@@ -94,28 +96,32 @@ class CapacitacionController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
+            'youtube_url' => 'nullable|url',
             'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
             'adjuntos.*' => 'nullable|file|max:10240'
         ]);
 
-        // 1. Actualizar textos
         $video->update([
             'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
+            'youtube_url' => $request->youtube_url,
         ]);
 
-        // 2. Reemplazar video (solo si se subió uno nuevo)
         if ($request->hasFile('video')) {
-            // Borrar viejo
-            if (Storage::disk('public')->exists($video->archivo_path)) {
+            if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
                 Storage::disk('public')->delete($video->archivo_path);
             }
-            // Subir nuevo
             $video->archivo_path = $request->file('video')->store('capacitacion', 'public');
+            $video->youtube_url = null; 
+            $video->save();
+        } elseif ($request->youtube_url) {
+            if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
+                Storage::disk('public')->delete($video->archivo_path);
+                $video->archivo_path = null;
+            }
             $video->save();
         }
 
-        // 3. Agregar nuevos adjuntos
         if ($request->hasFile('adjuntos')) {
             foreach ($request->file('adjuntos') as $archivo) {
                 $docPath = $archivo->store('capacitacion_docs', 'public');

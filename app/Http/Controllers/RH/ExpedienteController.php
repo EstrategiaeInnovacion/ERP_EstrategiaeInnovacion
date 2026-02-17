@@ -78,34 +78,45 @@ class ExpedienteController extends Controller
         return back()->with('success', 'Información actualizada.');
     }
 
-    /**
-     * Subir un documento individual al expediente.
-     */
     public function uploadDocument(Request $request, $empleadoId)
     {
+        // Validación inicial
         $request->validate([
-            // [MEJORA] Permitimos Excel, Word e Imágenes además de PDF
-            'documento' => 'required|file|mimes:pdf,jpg,png,jpeg,xlsx,xls,csv,doc,docx|max:10240', // 10MB Máx
-            'nombre' => 'required|string',
+            'documento' => 'required|file|mimes:pdf,jpg,png,jpeg,xlsx,xls,csv,doc,docx|max:10240',
             'categoria' => 'required|string',
             'fecha_vencimiento' => 'nullable|date'
         ]);
 
+        $nombreFinal = $request->nombre;
+
+        // Si seleccionó "Otro", validamos que haya escrito algo en el manual
+        if ($request->nombre === 'Otro') {
+            $request->validate([
+                'nombre_manual' => 'required|string|max:150'
+            ]);
+            $nombreFinal = $request->nombre_manual;
+        } else {
+            // Si no es "Otro", el nombre debe venir del select
+            $request->validate([
+                'nombre' => 'required|string'
+            ]);
+        }
+
         $empleado = Empleado::findOrFail($empleadoId);
         $file = $request->file('documento');
-        
+
         // Limpiamos el nombre del archivo
-        $filename = Str::slug($request->nombre) . '_' . time() . '.' . $file->getClientOriginalExtension();
-        
+        $filename = Str::slug($nombreFinal) . '_' . time() . '.' . $file->getClientOriginalExtension();
+
         $path = $file->storeAs(
-            "expedientes/{$empleado->id}", 
-            $filename, 
-            'local' // <--- CAMBIO AQUÍ
+            "expedientes/{$empleado->id}",
+            $filename,
+            'local'
         );
 
         EmpleadoDocumento::create([
             'empleado_id' => $empleado->id,
-            'nombre' => $request->nombre,
+            'nombre' => $nombreFinal,
             'categoria' => $request->categoria,
             'ruta_archivo' => $path,
             'fecha_vencimiento' => $request->fecha_vencimiento
