@@ -19,7 +19,7 @@ class CapacitacionController extends Controller
         $videos = Capacitacion::where('activo', true)
             ->orderBy('created_at', 'desc')
             ->paginate(9); // Usamos paginación para evitar carga lenta
-            
+
         return view('Recursos_Humanos.capacitacion.index', compact('videos'));
     }
 
@@ -59,8 +59,8 @@ class CapacitacionController extends Controller
             $capacitacion = Capacitacion::create([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
-                'archivo_path' => $path, 
-                'youtube_url' => $request->youtube_url, 
+                'archivo_path' => $path,
+                'youtube_url' => $request->youtube_url,
                 'subido_por' => Auth::id(),
             ]);
 
@@ -75,7 +75,8 @@ class CapacitacionController extends Controller
             }
 
             return redirect()->route('rh.capacitacion.manage')->with('success', 'Video subido correctamente.');
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return back()->with('error', 'Error al subir: ' . $e->getMessage());
         }
     }
@@ -112,9 +113,10 @@ class CapacitacionController extends Controller
                 Storage::disk('public')->delete($video->archivo_path);
             }
             $video->archivo_path = $request->file('video')->store('capacitacion', 'public');
-            $video->youtube_url = null; 
+            $video->youtube_url = null;
             $video->save();
-        } elseif ($request->youtube_url) {
+        }
+        elseif ($request->youtube_url) {
             if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
                 Storage::disk('public')->delete($video->archivo_path);
                 $video->archivo_path = null;
@@ -138,35 +140,46 @@ class CapacitacionController extends Controller
     // Eliminar video completo
     public function destroy($id)
     {
-        $video = Capacitacion::findOrFail($id);
-        
-        // Laravel borra los adjuntos de la BD automáticamente si configuraste cascade, 
-        // pero limpiamos los archivos físicos de los adjuntos primero:
-        foreach($video->adjuntos as $adjunto) {
-            if (Storage::disk('public')->exists($adjunto->archivo_path)) {
-                Storage::disk('public')->delete($adjunto->archivo_path);
-            }
-        }
+        try {
+            $video = Capacitacion::findOrFail($id);
 
-        // Eliminar archivo de video físico
-        if (Storage::disk('public')->exists($video->archivo_path)) {
-            Storage::disk('public')->delete($video->archivo_path);
+            // Laravel borra los adjuntos de la BD automáticamente si configuraste cascade, 
+            // pero limpiamos los archivos físicos de los adjuntos primero:
+            foreach ($video->adjuntos as $adjunto) {
+                if (!empty($adjunto->archivo_path) && Storage::disk('public')->exists($adjunto->archivo_path)) {
+                    Storage::disk('public')->delete($adjunto->archivo_path);
+                }
+            }
+
+            // Eliminar archivo de video físico
+            if (!empty($video->archivo_path) && Storage::disk('public')->exists($video->archivo_path)) {
+                Storage::disk('public')->delete($video->archivo_path);
+            }
+
+            $video->delete(); // Esto borra el registro y los adjuntos en cascada (si la migración está bien)
+            return back()->with('success', 'Video y adjuntos eliminados.');
         }
-        
-        $video->delete(); // Esto borra el registro y los adjuntos en cascada (si la migración está bien)
-        return back()->with('success', 'Video y adjuntos eliminados.');
+        catch (\Exception $e) {
+            \Log::error('Error eliminando video de capacitación: ' . $e->getMessage());
+            return back()->with('error', 'Error al eliminar el video: ' . $e->getMessage());
+        }
     }
 
     // Eliminar solo un documento adjunto
     public function destroyAdjunto($id)
     {
-        $adjunto = CapacitacionAdjunto::findOrFail($id);
-        
-        if (Storage::disk('public')->exists($adjunto->archivo_path)) {
-            Storage::disk('public')->delete($adjunto->archivo_path);
+        try {
+            $adjunto = CapacitacionAdjunto::findOrFail($id);
+
+            if (!empty($adjunto->archivo_path) && Storage::disk('public')->exists($adjunto->archivo_path)) {
+                Storage::disk('public')->delete($adjunto->archivo_path);
+            }
+
+            $adjunto->delete();
+            return back()->with('success', 'Documento eliminado.');
         }
-        
-        $adjunto->delete();
-        return back()->with('success', 'Documento eliminado.');
+        catch (\Exception $e) {
+            return back()->with('error', 'Error al eliminar el documento: ' . $e->getMessage());
+        }
     }
 }
