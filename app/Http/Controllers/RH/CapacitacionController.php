@@ -118,56 +118,62 @@ class CapacitacionController extends Controller
 
     public function update(Request $request, $id)
     {
-        $video = Capacitacion::findOrFail($id);
+        try {
+            $video = Capacitacion::findOrFail($id);
 
-        $request->validate([
-            'titulo' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'categoria' => 'nullable|string|max:255',
-            'puestos_permitidos' => 'nullable|array',
-            'puestos_permitidos.*' => 'string',
-            'youtube_url' => 'nullable|url',
-            'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
-            'adjuntos.*' => 'nullable|file|max:10240'
-        ]);
+            $request->validate([
+                'titulo' => 'required|string|max:255',
+                'descripcion' => 'nullable|string',
+                'categoria' => 'nullable|string|max:255',
+                'puestos_permitidos' => 'nullable|array',
+                'puestos_permitidos.*' => 'string',
+                'youtube_url' => 'nullable|url',
+                'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
+                'adjuntos.*' => 'nullable|file|max:10240'
+            ]);
 
-        $puestosArray = $request->puestos_permitidos;
+            $puestosArray = $request->puestos_permitidos;
 
-        $video->update([
-            'titulo' => $request->titulo,
-            'descripcion' => $request->descripcion,
-            'categoria' => $request->categoria,
-            'puestos_permitidos' => $puestosArray,
-            'youtube_url' => $request->youtube_url,
-        ]);
+            $video->update([
+                'titulo' => $request->titulo,
+                'descripcion' => $request->descripcion,
+                'categoria' => $request->categoria,
+                'puestos_permitidos' => $puestosArray,
+                'youtube_url' => $request->youtube_url,
+            ]);
 
-        if ($request->hasFile('video')) {
-            if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
-                Storage::disk('public')->delete($video->archivo_path);
+            if ($request->hasFile('video')) {
+                if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
+                    Storage::disk('public')->delete($video->archivo_path);
+                }
+                $video->archivo_path = $request->file('video')->store('capacitacion', 'public');
+                $video->youtube_url = null;
+                $video->save();
             }
-            $video->archivo_path = $request->file('video')->store('capacitacion', 'public');
-            $video->youtube_url = null;
-            $video->save();
-        }
-        elseif ($request->youtube_url) {
-            if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
-                Storage::disk('public')->delete($video->archivo_path);
-                $video->archivo_path = null;
+            elseif ($request->youtube_url) {
+                if ($video->archivo_path && Storage::disk('public')->exists($video->archivo_path)) {
+                    Storage::disk('public')->delete($video->archivo_path);
+                    $video->archivo_path = null;
+                }
+                $video->save();
             }
-            $video->save();
-        }
 
-        if ($request->hasFile('adjuntos')) {
-            foreach ($request->file('adjuntos') as $archivo) {
-                $docPath = $archivo->store('capacitacion_docs', 'public');
-                $video->adjuntos()->create([
-                    'titulo' => $archivo->getClientOriginalName(),
-                    'archivo_path' => $docPath
-                ]);
+            if ($request->hasFile('adjuntos')) {
+                foreach ($request->file('adjuntos') as $archivo) {
+                    $docPath = $archivo->store('capacitacion_docs', 'public');
+                    $video->adjuntos()->create([
+                        'titulo' => $archivo->getClientOriginalName(),
+                        'archivo_path' => $docPath
+                    ]);
+                }
             }
-        }
 
-        return redirect()->route('rh.capacitacion.manage')->with('success', 'Capacitación actualizada.');
+            return redirect()->route('rh.capacitacion.manage')->with('success', 'Capacitación actualizada.');
+        }
+        catch (\Exception $e) {
+            Log::error('Error actualizando capacitación: ' . $e->getMessage());
+            return back()->with('error', 'Error al actualizar: ' . $e->getMessage())->withInput();
+        }
     }
 
     // Eliminar video completo
