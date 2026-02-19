@@ -23,6 +23,50 @@
                 <textarea name="descripcion" rows="4" class="w-full border rounded px-3 py-2 text-gray-700">{{ $video->descripcion }}</textarea>
             </div>
 
+            {{-- Categoría y Puestos --}}
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">Categoría</label>
+                    <select name="categoria" class="w-full border rounded px-3 py-2 text-gray-700 focus:outline-none focus:border-indigo-500">
+                        <option value="Talleres Virtuales" {{ $video->categoria == 'Talleres Virtuales' ? 'selected' : '' }}>Talleres Virtuales</option>
+                        <option value="Capacitación RH" {{ $video->categoria == 'Capacitación RH' ? 'selected' : '' }}>Capacitación RH</option>
+                        <option value="Formatos" {{ $video->categoria == 'Formatos' ? 'selected' : '' }}>Formatos</option>
+                        <option value="Otro" {{ $video->categoria == 'Otro' ? 'selected' : '' }}>Otro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">Puestos Permitidos</label>
+                    <div class="max-h-48 overflow-y-auto border border-gray-300 rounded p-2 bg-gray-50">
+                        <div class="flex items-start mb-2 pb-2 border-b border-gray-200">
+                            <div class="flex items-center h-5">
+                                <input id="select_all_puestos" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-2 text-xs">
+                                <label for="select_all_puestos" class="font-bold text-gray-800 cursor-pointer">Seleccionar Todos</label>
+                            </div>
+                        </div>
+                        @foreach($puestos as $index => $puesto)
+                            <div class="flex items-start mb-1">
+                                <div class="flex items-center h-5">
+                                    <input id="puesto_edit_{{ $index }}" name="puestos_permitidos[]" value="{{ $puesto }}" type="checkbox" 
+                                        {{ in_array($puesto, $video->puestos_permitidos ?? []) ? 'checked' : '' }}
+                                        class="puesto-checkbox focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-2 text-sm">
+                                    <label for="puesto_edit_{{ $index }}" class="font-medium text-gray-700 cursor-pointer">{{ $puesto }}</label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Selecciona los puestos que pueden ver este video. Dejar vacío para público.</p>
+                </div>
+
+                <script>
+                    document.getElementById('select_all_puestos').addEventListener('change', function() {
+                        const checkboxes = document.querySelectorAll('.puesto-checkbox');
+                        checkboxes.forEach(cb => cb.checked = this.checked);
+                    });
+                </script>
+
             {{-- Enlace de YouTube --}}
             <div class="mb-4">
                 <label class="block text-gray-700 font-bold mb-2">Enlace de YouTube</label>

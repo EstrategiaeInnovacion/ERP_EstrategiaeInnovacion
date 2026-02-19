@@ -8,19 +8,33 @@ use App\Models\CapacitacionAdjunto; // Asegúrate de tener este modelo creado
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CapacitacionController extends Controller
 {
     // --- VISTAS PÚBLICAS (EMPLEADOS) ---
 
     // Vista para TODOS los empleados (Galería)
+    // Vista para TODOS los empleados (Galería)
     public function index()
     {
+        $user = Auth::user();
         $videos = Capacitacion::where('activo', true)
             ->orderBy('created_at', 'desc')
-            ->paginate(9); // Usamos paginación para evitar carga lenta
+            ->get(); // Obtenemos todos para poder filtrar en PHP
 
-        return view('Recursos_Humanos.capacitacion.index', compact('videos'));
+        // Filtramos en memoria usando la lógica del modelo
+        $filteredVideos = $videos->filter(function ($video) use ($user) {
+            return $video->isVisibleFor($user);
+        });
+
+        // Agrupamos por categoría
+        // Si la categoría es null, usamos 'General' o 'Sin Categoría'
+        $groupedVideos = $filteredVideos->groupBy(function ($item) {
+            return $item->categoria ?: 'General';
+        });
+
+        return view('Recursos_Humanos.capacitacion.index', compact('groupedVideos'));
     }
 
     // Vista para VER un video específico
@@ -32,11 +46,14 @@ class CapacitacionController extends Controller
 
     // --- ÁREA DE ADMINISTRACIÓN (SOLO RH) ---
 
-    // Panel de gestión (Aquí estaba el error, esta función faltaba)
+    // Panel de gestión
     public function manage()
     {
         $videos = Capacitacion::orderBy('created_at', 'desc')->get();
-        return view('Recursos_Humanos.capacitacion.manage', compact('videos'));
+        // Obtener puestos únicos de empleados
+        $puestos = \App\Models\Empleado::distinct()->pluck('posicion')->filter()->sort()->values();
+
+        return view('Recursos_Humanos.capacitacion.manage', compact('videos', 'puestos'));
     }
 
     public function store(Request $request)
@@ -44,6 +61,9 @@ class CapacitacionController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
+            'categoria' => 'nullable|string|max:255', // <-- AGREGADO
+            'puestos_permitidos' => 'nullable|array', // <-- SE CAMBIO A ARRAY
+            'puestos_permitidos.*' => 'string', // Validar que cada elemento sea string
             'youtube_url' => 'nullable|url',
             // Video requerido solo si NO hay youtube_url
             'video' => 'required_without:youtube_url|mimes:mp4,mov,ogg,qt|max:200000',
@@ -56,9 +76,14 @@ class CapacitacionController extends Controller
                 $path = $request->file('video')->store('capacitacion', 'public');
             }
 
+            // Como ahora viene en array desde el select multiple, no necesitamos explode
+            $puestosArray = $request->puestos_permitidos;
+
             $capacitacion = Capacitacion::create([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
+                'categoria' => $request->categoria,
+                'puestos_permitidos' => $puestosArray,
                 'archivo_path' => $path,
                 'youtube_url' => $request->youtube_url,
                 'subido_por' => Auth::id(),
@@ -87,7 +112,8 @@ class CapacitacionController extends Controller
     public function edit($id)
     {
         $video = Capacitacion::with('adjuntos')->findOrFail($id);
-        return view('Recursos_Humanos.capacitacion.edit', compact('video'));
+        $puestos = \App\Models\Empleado::distinct()->pluck('posicion')->filter()->sort()->values();
+        return view('Recursos_Humanos.capacitacion.edit', compact('video', 'puestos'));
     }
 
     public function update(Request $request, $id)
@@ -97,14 +123,21 @@ class CapacitacionController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
+            'categoria' => 'nullable|string|max:255',
+            'puestos_permitidos' => 'nullable|array',
+            'puestos_permitidos.*' => 'string',
             'youtube_url' => 'nullable|url',
             'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
             'adjuntos.*' => 'nullable|file|max:10240'
         ]);
 
+        $puestosArray = $request->puestos_permitidos;
+
         $video->update([
             'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
+            'categoria' => $request->categoria,
+            'puestos_permitidos' => $puestosArray,
             'youtube_url' => $request->youtube_url,
         ]);
 

@@ -22,6 +22,48 @@
                     <p class="text-xs text-gray-500 mt-1">Opcional. Si se llena, no subir archivo de video.</p>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select name="categoria" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="Talleres Virtuales">Talleres Virtuales</option>
+                        <option value="Capacitación RH">Capacitación RH</option>
+                        <option value="Formatos">Formatos</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Puestos Permitidos</label>
+                    <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-2 bg-gray-50">
+                        <div class="flex items-start mb-2 pb-2 border-b border-gray-200">
+                            <div class="flex items-center h-5">
+                                <input id="select_all_puestos" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-2 text-xs">
+                                <label for="select_all_puestos" class="font-bold text-gray-800 cursor-pointer">Seleccionar Todos</label>
+                            </div>
+                        </div>
+                        @foreach($puestos as $index => $puesto)
+                            <div class="flex items-start mb-1">
+                                <div class="flex items-center h-5">
+                                    <input id="puesto_{{ $index }}" name="puestos_permitidos[]" value="{{ $puesto }}" type="checkbox" class="puesto-checkbox focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-2 text-xs">
+                                    <label for="puesto_{{ $index }}" class="font-medium text-gray-700 cursor-pointer">{{ $puesto }}</label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Selecciona los puestos que pueden ver este video. Dejar vacío para público.</p>
+                </div>
+
+                <script>
+                    document.getElementById('select_all_puestos').addEventListener('change', function() {
+                        const checkboxes = document.querySelectorAll('.puesto-checkbox');
+                        checkboxes.forEach(cb => cb.checked = this.checked);
+                    });
+                </script>
+
                 <div class="col-span-1 md:col-span-2 flex items-center justify-center my-2">
                     <span class="text-gray-400 text-sm font-medium bg-white px-2">--- O ---</span>
                 </div>

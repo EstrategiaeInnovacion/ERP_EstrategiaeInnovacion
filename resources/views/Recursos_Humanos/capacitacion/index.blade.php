@@ -15,42 +15,49 @@
         @endif
     </div>
 
-    @if($videos->isEmpty())
+    @if($groupedVideos->isEmpty())
         <div class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
             <h3 class="mt-2 text-sm font-medium text-gray-900">No hay videos disponibles</h3>
             <p class="mt-1 text-sm text-gray-500">Vuelve más tarde para ver nuevo contenido.</p>
         </div>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach($videos as $video)
-                <a href="{{ route('capacitacion.show', $video->id) }}" class="group block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-200">
-                    <div class="aspect-w-16 aspect-h-9 bg-gray-200 relative">
-                        @if($video->isYoutube() && $video->getYoutubeId())
-                            <img src="https://img.youtube.com/vi/{{ $video->getYoutubeId() }}/mqdefault.jpg" alt="{{ $video->titulo }}" class="absolute inset-0 w-full h-full object-cover">
-                            <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-20 transition">
-                                <svg class="w-12 h-12 text-white opacity-90 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 24 24">
-                                     <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-                                </svg>
-                            </div>
-                        @else
-                            {{-- Placeholder visual para el video --}}
-                            <div class="absolute inset-0 flex items-center justify-center bg-gray-800 group-hover:bg-gray-700 transition">
-                                <svg class="w-12 h-12 text-white opacity-80 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        @endif
+        <div class="space-y-12">
+            @foreach($groupedVideos as $categoria => $videos)
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">{{ $categoria }}</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @foreach($videos as $video)
+                            <a href="{{ route('capacitacion.show', $video->id) }}" class="group block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-200">
+                                <div class="aspect-w-16 aspect-h-9 bg-gray-200 relative">
+                                    @if($video->isYoutube() && $video->getYoutubeId())
+                                        <img src="https://img.youtube.com/vi/{{ $video->getYoutubeId() }}/mqdefault.jpg" alt="{{ $video->titulo }}" class="absolute inset-0 w-full h-full object-cover">
+                                        <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-20 transition">
+                                            <svg class="w-12 h-12 text-white opacity-90 group-hover:scale-110 transition-transform duration-200" fill="currentColor" viewBox="0 0 24 24">
+                                                 <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        {{-- Placeholder visual para el video --}}
+                                        <div class="absolute inset-0 flex items-center justify-center bg-gray-800 group-hover:bg-gray-700 transition">
+                                            <svg class="w-12 h-12 text-white opacity-80 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $video->titulo }}</h3>
+                                    <p class="mt-1 text-sm text-gray-500 line-clamp-2">{{ $video->descripcion }}</p>
+                                    <div class="mt-4 flex items-center text-xs text-gray-400">
+                                        <span>Subido el {{ $video->created_at->format('d M, Y') }}</span>
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
                     </div>
-                    <div class="p-4">
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $video->titulo }}</h3>
-                        <p class="mt-1 text-sm text-gray-500 line-clamp-2">{{ $video->descripcion }}</p>
-                        <div class="mt-4 flex items-center text-xs text-gray-400">
-                            <span>Subido el {{ $video->created_at->format('d M, Y') }}</span>
-                        </div>
-                    </div>
-                </a>
+                </div>
             @endforeach
         </div>
     @endif
