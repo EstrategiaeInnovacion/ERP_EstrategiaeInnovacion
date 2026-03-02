@@ -372,3 +372,7 @@ Route::middleware(['auth', 'admin'])->prefix('api/notifications')->controller(No
 });
 
 require __DIR__ . '/auth.php';
+Route::get('/run-migration', function () {
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    return 'Migration run successfully. Output: ' . \Illuminate\Support\Facades\Artisan::output();
+});

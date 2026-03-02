@@ -30,7 +30,7 @@
         </div>
         
         <div class="flex gap-2">
-            <a href="{{ route('rh.expedientes.index') }}" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-50 shadow-sm transition">Volver</a>
+            <a href="{{ route('rh.expedientes.index', request()->only(['page', 'search'])) }}" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-50 shadow-sm transition">Volver</a>
         </div>
     </div>
 
