@@ -334,10 +334,9 @@
                                                  title="Click para justificar"
                                              @endif
                                         >
-                                            {{-- Fecha --}}
                                             <div class="flex justify-between items-center mb-2">
-                                                <span class="text-xs font-bold text-gray-500">{{ $fechaObj->format('d M') }}</span>
-                                                <span class="text-[10px] uppercase text-gray-400">{{ $fechaObj->isoFormat('ddd') }}</span>
+                                                <span class="text-xs font-bold text-gray-500">{{ $fechaObj->translatedFormat('d M') }}</span>
+                                                <span class="text-[10px] uppercase text-gray-400">{{ $fechaObj->translatedFormat('D') }}</span>
                                             </div>
 
                                             {{-- Contenido Central --}}
