@@ -16,25 +16,26 @@ class EvaluacionController extends Controller
     private function isEvaluationWindowOpen()
     {
         // --- MODO PRUEBAS: SIEMPRE ABIERTO ---
-        return true; 
-        
-        /*
-        $now = Carbon::now();
-        return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) || 
-                ($now->month == 12 && $now->day >= 1 && $now->day <= 31);
-        */
+        return true;
+
+    /*
+     $now = Carbon::now();
+     return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) || 
+     ($now->month == 12 && $now->day >= 1 && $now->day <= 31);
+     */
     }
 
     // --- DETECCIÓN DE PUESTO (POSICIÓN) ---
     private function isAdminRH($empleado)
     {
-        if (!$empleado) return false;
+        if (!$empleado)
+            return false;
         $pos = mb_strtolower($empleado->posicion, 'UTF-8');
-        
-        return str_contains($pos, 'administración rh') || 
-               str_contains($pos, 'administracion rh') ||
-               str_contains($pos, 'administracion de rh') ||
-               str_contains($pos, 'administración de rh');
+
+        return str_contains($pos, 'administración rh') ||
+            str_contains($pos, 'administracion rh') ||
+            str_contains($pos, 'administracion de rh') ||
+            str_contains($pos, 'administración de rh');
     }
 
     // --- NUEVO MÉTODO INTELIGENTE PARA DETECTAR ÁREA TÉCNICA ---
@@ -44,25 +45,25 @@ class EvaluacionController extends Controller
 
         // Mapeo: Palabra clave en el puesto => Área en CriteriosEvaluacion
         $mapa = [
-            'logistica'      => 'Logistica',
-            'logística'      => 'Logistica',
-            'legal'          => 'Legal',
-            'abogado'        => 'Legal',
-            'anexo 24'       => 'Anexo 24',
-            'anexo 31'       => 'Anexo 24',
-            'ti'             => 'TI',
-            'sistemas'       => 'TI',
-            'programador'    => 'TI',
-            'soporte'        => 'TI',
-            'pedimentos'     => 'Pedimentos',
-            'glosa'          => 'Pedimentos',
-            'auditoria'      => 'Auditoria',
-            'auditor'        => 'Auditoria',
+            'logistica' => 'Logistica',
+            'logística' => 'Logistica',
+            'legal' => 'Legal',
+            'abogado' => 'Legal',
+            'anexo 24' => 'Anexo 24',
+            'anexo 31' => 'Anexo 24',
+            'ti' => 'TI',
+            'sistemas' => 'TI',
+            'programador' => 'TI',
+            'soporte' => 'TI',
+            'pedimentos' => 'Pedimentos',
+            'glosa' => 'Pedimentos',
+            'auditoria' => 'Auditoria',
+            'auditor' => 'Auditoria',
             'post-operacion' => 'Post-Operacion',
             'post operacion' => 'Post-Operacion',
-            'postoperacion'  => 'Post-Operacion',
+            'postoperacion' => 'Post-Operacion',
             'administracion rh' => 'Gestion RH', // Parte técnica de RH
-            'recursos humanos'  => 'Gestion RH',
+            'recursos humanos' => 'Gestion RH',
         ];
 
         foreach ($mapa as $keyword => $area) {
@@ -77,15 +78,16 @@ class EvaluacionController extends Controller
     private function hasFullVisibility($user)
     {
         $empleado = Empleado::where('correo', $user->email)->first();
-        if (!$empleado) return false;
+        if (!$empleado)
+            return false;
 
         $pos = mb_strtolower($empleado->posicion, 'UTF-8');
         $area = mb_strtolower($empleado->area, 'UTF-8');
 
-        return str_contains($pos, 'dirección') || 
-               str_contains($pos, 'direccion') || 
-               $this->isAdminRH($empleado) ||
-               str_contains($area, 'recursos humanos');
+        return str_contains($pos, 'dirección') ||
+            str_contains($pos, 'direccion') ||
+            $this->isAdminRH($empleado) ||
+            str_contains($area, 'recursos humanos');
     }
 
     public function index(Request $request)
@@ -94,7 +96,7 @@ class EvaluacionController extends Controller
         $currentMonth = Carbon::now()->month;
         $defaultPeriod = ($currentMonth <= 6) ? "$currentYear | Enero - Junio" : "$currentYear | Julio - Diciembre";
         $selectedPeriod = $request->input('periodo', $defaultPeriod);
-        
+
         $periodos = [
             ($currentYear + 1) . " | Enero - Junio",
             "$currentYear | Julio - Diciembre",
@@ -114,17 +116,19 @@ class EvaluacionController extends Controller
             if ($request->has('area') && $request->area !== 'Todos') {
                 $query->where('posicion', 'LIKE', '%' . $request->area . '%');
             }
-        } elseif ($me) {
-            $query->where(function($q) use ($me) {
+        }
+        elseif ($me) {
+            $query->where(function ($q) use ($me) {
                 $q->where('supervisor_id', $me->id)
-                  ->orWhere('id', $me->supervisor_id);
+                    ->orWhere('id', $me->supervisor_id);
             });
-        } else {
+        }
+        else {
             $query->where('id', 0);
         }
 
         // Nota: Idealmente usar eager loading (with) aquí en el futuro
-        $empleados = $query->get()->map(function($target) use ($selectedPeriod, $user) {
+        $empleados = $query->get()->map(function ($target) use ($selectedPeriod, $user) {
             $target->mi_evaluacion = Evaluacion::where('empleado_id', $target->id)
                 ->where('evaluador_id', $user->id)
                 ->where('periodo', $selectedPeriod)
@@ -144,7 +148,8 @@ class EvaluacionController extends Controller
         $me = Empleado::where('correo', $user->email)->first();
         $periodo = $request->query('periodo');
 
-        if (!$periodo) return back()->with('error', 'Periodo requerido');
+        if (!$periodo)
+            return back()->with('error', 'Periodo requerido');
 
         $isAdminRH = $this->isAdminRH($me);
         $hasFullVisibility = $this->hasFullVisibility($user);
@@ -162,10 +167,12 @@ class EvaluacionController extends Controller
         if ($me) {
             $isDirectSupervisor = ($target->supervisor_id == $me->id);
             $isBoss = ($me->supervisor_id == $target->id);
-            if ($isDirectSupervisor || $isBoss) $canEvaluate = true;
+            if ($isDirectSupervisor || $isBoss)
+                $canEvaluate = true;
         }
 
-        if ($isAdminRH) $canEvaluate = true;
+        if ($isAdminRH)
+            $canEvaluate = true;
 
         if (!$canEvaluate && !$hasFullVisibility) {
             return redirect()->route('rh.evaluacion.index')->with('error', 'No autorizado.');
@@ -193,33 +200,34 @@ class EvaluacionController extends Controller
 
         // CASO A: Evaluación Hacia Arriba (Analista -> Jefe)
         if ($isBoss) {
-             $queryCriterios->where('area', 'Evaluación Supervisor'); 
-             $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
+            $queryCriterios->where('area', 'Evaluación Supervisor');
+            $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
         }
         // CASO B: Evaluación Hacia Abajo (Jefe -> Subordinado)
         elseif ($isDirectSupervisor) {
             // Detectamos el área técnica basada en el PUESTO del evaluado
             $areaTecnica = $this->getTechnicalArea($target->posicion);
-            
-            $queryCriterios->where(function($q) use ($areaTecnica) {
-                $q->where('area', $areaTecnica)          // Preguntas técnicas
-                  ->orWhere('area', 'Recursos Humanos'); // Preguntas Soft Skills
+
+            $queryCriterios->where(function ($q) use ($areaTecnica) {
+                $q->where('area', $areaTecnica) // Preguntas técnicas
+                    ->orWhere('area', 'Cultura y Valores') // Preguntas Soft Skills (Valores)
+                    ->orWhere('area', 'Competencias Core'); // Preguntas Soft Skills (Competencias)
             });
-            $areaDisplay = "Evaluación de Desempeño ($areaTecnica + RH)";
+            $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Cultura + Competencias)";
         }
         // CASO C: Admin RH que no es jefe directo (Solo ve Soft Skills)
         elseif ($isAdminRH) {
-             $queryCriterios->where('area', 'Recursos Humanos');
-             $areaDisplay = 'Evaluación de Habilidades Blandas (RH)';
+            $queryCriterios->whereIn('area', ['Cultura y Valores', 'Competencias Core']);
+            $areaDisplay = 'Evaluación de Habilidades Blandas y Valores (RH)';
         }
         // CASO D: Default
         else {
-             $queryCriterios->where('area', 'Recursos Humanos');
-             $areaDisplay = 'Evaluación General';
+            $queryCriterios->whereIn('area', ['Cultura y Valores', 'Competencias Core']);
+            $areaDisplay = 'Evaluación General';
         }
 
         $criterios = $queryCriterios->get();
-        
+
         $isWindowOpen = $this->isEvaluationWindowOpen();
         $isFinalized = ($evaluacion && $evaluacion->edit_count >= 1);
         $canEdit = $isWindowOpen && !$isFinalized;
@@ -240,17 +248,20 @@ class EvaluacionController extends Controller
 
     public function store(Request $request)
     {
-        if (!$this->isEvaluationWindowOpen()) return back()->with('error', 'Periodo cerrado.');
-        
+        if (!$this->isEvaluationWindowOpen())
+            return back()->with('error', 'Periodo cerrado.');
+
         $existe = Evaluacion::where('empleado_id', $request->empleado_id)
             ->where('evaluador_id', Auth::id())
             ->where('periodo', $request->periodo)
             ->exists();
-        if ($existe) return back()->with('error', 'Ya evaluaste a esta persona.');
+        if ($existe)
+            return back()->with('error', 'Ya evaluaste a esta persona.');
 
         $target = Empleado::find($request->empleado_id);
         $me = Empleado::where('correo', Auth::user()->email)->first();
-        if ($me && $me->id == $target->id) return abort(403);
+        if ($me && $me->id == $target->id)
+            return abort(403);
 
         try {
             DB::beginTransaction();
@@ -285,7 +296,8 @@ class EvaluacionController extends Controller
             }
             DB::commit();
             return redirect()->route('rh.evaluacion.index', ['periodo' => $request->periodo])->with('success', 'Enviado.');
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
@@ -294,8 +306,9 @@ class EvaluacionController extends Controller
     public function update(Request $request, $id)
     {
         $evaluacion = Evaluacion::findOrFail($id);
-        if ($evaluacion->evaluador_id != Auth::id()) return abort(403);
-        
+        if ($evaluacion->evaluador_id != Auth::id())
+            return abort(403);
+
         try {
             DB::beginTransaction();
             $criteriosDb = CriterioEvaluacion::whereIn('id', array_keys($request->calificaciones))->get();
@@ -314,7 +327,7 @@ class EvaluacionController extends Controller
                 'comentarios_generales' => $request->comentarios_generales,
                 'edit_count' => $evaluacion->edit_count + 1
             ]);
-            
+
             $evaluacion->detalles()->delete();
             foreach ($request->calificaciones as $criterioId => $valor) {
                 EvaluacionDetalle::create([
@@ -326,7 +339,8 @@ class EvaluacionController extends Controller
             }
             DB::commit();
             return redirect()->route('rh.evaluacion.index', ['periodo' => $evaluacion->periodo])->with('success', 'Actualizado.');
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
@@ -335,30 +349,35 @@ class EvaluacionController extends Controller
     public function resultados(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$this->hasFullVisibility($user)) return redirect()->route('rh.evaluacion.index');
+        if (!$this->hasFullVisibility($user))
+            return redirect()->route('rh.evaluacion.index');
 
         $empleado = Empleado::findOrFail($id);
         $periodo = $request->query('periodo');
-        
+
         $evaluaciones = Evaluacion::with(['evaluador.empleado'])
             ->where('empleado_id', $id)
             ->where('periodo', $periodo)
             ->get();
 
-        if ($evaluaciones->isEmpty()) return back()->with('error', 'Sin datos.');
+        if ($evaluaciones->isEmpty())
+            return back()->with('error', 'Sin datos.');
 
         $promedioGeneral = $evaluaciones->avg('promedio_final');
 
-        $desglose = $evaluaciones->map(function($eval) use ($empleado) {
+        $desglose = $evaluaciones->map(function ($eval) use ($empleado) {
             $evaluador = $eval->evaluador->empleado;
             $rol = 'Colaborador';
             if ($evaluador) {
                 $pos = mb_strtolower($evaluador->posicion ?? '', 'UTF-8');
                 $esAdminRH = str_contains($pos, 'administración rh') || str_contains($pos, 'administracion rh');
 
-                if ($empleado->supervisor_id == $evaluador->id) $rol = 'Supervisor Directo';
-                elseif ($evaluador->supervisor_id == $empleado->id) $rol = 'Subordinado';
-                elseif ($esAdminRH) $rol = 'Administración RH';
+                if ($empleado->supervisor_id == $evaluador->id)
+                    $rol = 'Supervisor Directo';
+                elseif ($evaluador->supervisor_id == $empleado->id)
+                    $rol = 'Subordinado';
+                elseif ($esAdminRH)
+                    $rol = 'Administración RH';
             }
             $eval->rol_evaluador = $rol;
             $eval->nombre_evaluador = $evaluador ? ($evaluador->nombre . ' ' . $evaluador->apellido_paterno) : $eval->evaluador->name;

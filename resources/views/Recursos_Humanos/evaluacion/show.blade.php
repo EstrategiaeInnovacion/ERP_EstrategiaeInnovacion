@@ -116,11 +116,11 @@
                                                 <div class="grid grid-cols-5 gap-2 mb-3">
                                                     @php
                                                         $opciones = [
-                                                            ['val' => 100, 'label' => 'Excelente'],
-                                                            ['val' => 75, 'label' => 'Bueno'],
-                                                            ['val' => 50, 'label' => 'Regular'],
+                                                            ['val' => 100, 'label' => 'Supera Expectativas'],
+                                                            ['val' => 75, 'label' => 'Cumple Satisfactoriamente'],
+                                                            ['val' => 50, 'label' => 'Necesita Mejorar'],
                                                             ['val' => 25, 'label' => 'Deficiente'],
-                                                            ['val' => 0, 'label' => 'Inaceptable']
+                                                            ['val' => 0, 'label' => 'No Cumple']
                                                         ];
                                                     @endphp
                                                     @foreach($opciones as $op)
