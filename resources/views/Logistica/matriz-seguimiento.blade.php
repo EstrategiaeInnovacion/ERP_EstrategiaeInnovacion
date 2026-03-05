@@ -301,7 +301,11 @@
                                     {{-- Campos Personalizados --}}
                                     @foreach($camposPersonalizados ?? [] as $campo)
                                         <td class="px-3 py-2.5 text-xs bg-indigo-50/30">
-                                            @include('Logistica.partials.campo-personalizado-celda', ['operacion' => $op, 'campo' => $campo])
+                                            @include('Logistica.partials.campo-personalizado-celda', [
+                                                'operacion' => $op, 
+                                                'campo' => $campo, 
+                                                'valorCampo' => $valoresMap[$op->id][$campo->id] ?? null
+                                            ])
                                         </td>
                                     @endforeach
 

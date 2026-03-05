@@ -1,5 +1,4 @@
 @php
-    $valorCampo = $operacion->valoresCamposPersonalizados->where('campo_personalizado_id', $campo->id)->first();
     $valorMostrar = $valorCampo ? $valorCampo->valor : '-';
     if ($campo->tipo === 'fecha' && $valorCampo && $valorCampo->valor) {
         try {
