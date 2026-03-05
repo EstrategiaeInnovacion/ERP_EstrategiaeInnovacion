@@ -196,13 +196,14 @@ class EvaluacionController extends Controller
             }
         }
 
-        // --- SELECCIÓN DE CRITERIOS (LOGICA MEJORADA) ---
+        // --- SELECCIÓN DE CRITERIOS (LOGICA CORREGIDA) ---
         $queryCriterios = CriterioEvaluacion::query();
         $areaDisplay = '';
 
         // CASO A: Evaluación Hacia Arriba (Analista -> Jefe)
         if ($isBoss) {
-            $queryCriterios->where('area', 'Evaluación Supervisor');
+            // CORRECCIÓN: Sin acento, así está en el Seeder
+            $queryCriterios->where('area', 'Evaluacion Supervisor');
             $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
         }
         // CASO B: Evaluación Hacia Abajo (Jefe -> Subordinado)
@@ -211,20 +212,22 @@ class EvaluacionController extends Controller
             $areaTecnica = $this->getTechnicalArea($target->posicion);
 
             $queryCriterios->where(function ($q) use ($areaTecnica) {
-                $q->where('area', $areaTecnica) // Preguntas técnicas
-                    ->orWhere('area', 'Cultura y Valores') // Preguntas Soft Skills (Valores)
-                    ->orWhere('area', 'Competencias Core'); // Preguntas Soft Skills (Competencias)
+                // CORRECCIÓN: Buscamos el área técnica y las soft skills generales
+                $q->where('area', $areaTecnica)
+                    ->orWhere('area', 'Recursos Humanos');
             });
-            $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Cultura + Competencias)";
+            $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Soft Skills)";
         }
         // CASO C: Admin RH que no es jefe directo (Solo ve Soft Skills)
         elseif ($isAdminRH) {
-            $queryCriterios->whereIn('area', ['Cultura y Valores', 'Competencias Core']);
+            // CORRECCIÓN: Busca exactamente el bloque de 12.5% que creamos para RH
+            $queryCriterios->where('area', 'Administracion RH');
             $areaDisplay = 'Evaluación de Habilidades Blandas y Valores (RH)';
         }
         // CASO D: Default
         else {
-            $queryCriterios->whereIn('area', ['Cultura y Valores', 'Competencias Core']);
+            // CORRECCIÓN: Fallback a las soft skills generales
+            $queryCriterios->where('area', 'Recursos Humanos');
             $areaDisplay = 'Evaluación General';
         }
 
