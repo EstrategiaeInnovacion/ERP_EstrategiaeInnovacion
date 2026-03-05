@@ -163,11 +163,13 @@ class EvaluacionController extends Controller
         $canEvaluate = false;
         $isDirectSupervisor = false;
         $isBoss = false;
+        $isSelf = false;
 
         if ($me) {
             $isDirectSupervisor = ($target->supervisor_id == $me->id);
             $isBoss = ($me->supervisor_id == $target->id);
-            if ($isDirectSupervisor || $isBoss)
+            $isSelf = ($me->id == $target->id);
+            if ($isDirectSupervisor || $isBoss || $isSelf)
                 $canEvaluate = true;
         }
 
@@ -206,17 +208,19 @@ class EvaluacionController extends Controller
             $queryCriterios->where('area', 'Evaluacion Supervisor');
             $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
         }
-        // CASO B: Evaluación Hacia Abajo (Jefe -> Subordinado)
-        elseif ($isDirectSupervisor) {
+        // CASO B: Evaluación Hacia Abajo (Jefe -> Subordinado) O Autoevaluación
+        elseif ($isDirectSupervisor || $isSelf) { // <-- AGREGAR || $isSelf
             // Detectamos el área técnica basada en el PUESTO del evaluado
             $areaTecnica = $this->getTechnicalArea($target->posicion);
 
             $queryCriterios->where(function ($q) use ($areaTecnica) {
-                // CORRECCIÓN: Buscamos el área técnica y las soft skills generales
                 $q->where('area', $areaTecnica)
                     ->orWhere('area', 'Recursos Humanos');
             });
-            $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Soft Skills)";
+
+            // Un pequeño detalle para que el título cambie si es él mismo
+            $tipoEvaluacion = $isSelf ? 'Autoevaluación' : 'Evaluación de Desempeño';
+            $areaDisplay = "$tipoEvaluacion ($areaTecnica + Soft Skills)";
         }
         // CASO C: Admin RH que no es jefe directo (Solo ve Soft Skills)
         elseif ($isAdminRH) {
@@ -265,8 +269,6 @@ class EvaluacionController extends Controller
 
         $target = Empleado::find($request->empleado_id);
         $me = Empleado::where('correo', Auth::user()->email)->first();
-        if ($me && $me->id == $target->id)
-            return abort(403);
 
         try {
             DB::beginTransaction();
