@@ -34,37 +34,37 @@ class LogisticaEvaluacionSeeder extends Seeder
         // 2. HARD SKILLS (COMPETENCIAS TÉCNICAS POR ÁREA)
         // ==========================================
         $areasTecnicas = [
-            'Logistica' => [ 
+            'Logistica' => [
                 ['criterio' => 'Operatividad Import/Export', 'descripcion' => 'Seguimiento puntual de operaciones logísticas.', 'peso' => 20],
                 ['criterio' => 'Trato con Proveedores', 'descripcion' => 'Negociación efectiva con transportistas y agentes.', 'peso' => 20],
                 ['criterio' => 'Mejora de Rutas', 'descripcion' => 'Optimización de costos y tiempos de entrega.', 'peso' => 20],
             ],
-            'Legal' => [ 
+            'Legal' => [
                 ['criterio' => 'Elaboración de Contratos', 'descripcion' => 'Redacción precisa y legalmente blindada.', 'peso' => 20],
                 ['criterio' => 'Normatividad Vigente', 'descripcion' => 'Aplicación correcta de leyes actuales.', 'peso' => 20],
                 ['criterio' => 'Gestión de Litigios', 'descripcion' => 'Seguimiento oportuno a casos legales.', 'peso' => 20],
             ],
-            'Anexo 24' => [ 
+            'Anexo 24' => [
                 ['criterio' => 'Control de Inventarios (Anexo 24)', 'descripcion' => 'Exactitud en el registro de entradas y salidas.', 'peso' => 20],
                 ['criterio' => 'Reporte de Descargos', 'descripcion' => 'Generación correcta de reportes mensuales.', 'peso' => 20],
                 ['criterio' => 'Conciliación de Saldos', 'descripcion' => 'Validación de datos contra glosa (DataStage).', 'peso' => 20],
             ],
-            'Post-Operacion' => [ 
+            'Post-Operacion' => [
                 ['criterio' => 'Integración de Expedientes', 'descripcion' => 'Expedientes digitales y físicos completos.', 'peso' => 20],
                 ['criterio' => 'Auditoría Preventiva', 'descripcion' => 'Revisión de pedimentos post-despacho.', 'peso' => 20],
                 ['criterio' => 'Atención al Cliente', 'descripcion' => 'Resolución de dudas sobre operaciones cerradas.', 'peso' => 20],
             ],
-            'TI' => [ 
+            'TI' => [
                 ['criterio' => 'Soporte a Usuarios', 'descripcion' => 'Atención rápida y efectiva a tickets.', 'peso' => 20],
                 ['criterio' => 'Mantenimiento de Redes', 'descripcion' => 'Estabilidad y seguridad de la infraestructura.', 'peso' => 20],
                 ['criterio' => 'Desarrollo e Innovación', 'descripcion' => 'Implementación de nuevas herramientas tecnológicas.', 'peso' => 20],
             ],
-            'Auditoria' => [ 
+            'Auditoria' => [
                 ['criterio' => 'Detección de Riesgos', 'descripcion' => 'Identificación proactiva de irregularidades.', 'peso' => 20],
                 ['criterio' => 'Calidad de Informes', 'descripcion' => 'Reportes claros, objetivos y basados en evidencia.', 'peso' => 20],
                 ['criterio' => 'Seguimiento a Hallazgos', 'descripcion' => 'Verificación del cierre de no conformidades.', 'peso' => 20],
             ],
-            'Pedimentos' => [ 
+            'Pedimentos' => [
                 ['criterio' => 'Captura de Pedimentos', 'descripcion' => 'Velocidad y precisión en la captura de datos.', 'peso' => 20],
                 ['criterio' => 'Clasificación Arancelaria', 'descripcion' => 'Asignación correcta de fracciones.', 'peso' => 20],
                 ['criterio' => 'Validación Previa', 'descripcion' => 'Revisión de documentos antes del pago.', 'peso' => 20],
@@ -94,12 +94,12 @@ class LogisticaEvaluacionSeeder extends Seeder
         // ==========================================
         // PROCESO DE INSERCIÓN SEGURA (UpdateOrCreate)
         // ==========================================
-        
+
         // 1. Soft Skills (RH)
         foreach ($softSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(
-                ['area' => 'Recursos Humanos', 'criterio' => $skill['criterio']], 
-                ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
+            ['area' => 'Recursos Humanos', 'criterio' => $skill['criterio']],
+            ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
             );
         }
 
@@ -107,8 +107,8 @@ class LogisticaEvaluacionSeeder extends Seeder
         foreach ($areasTecnicas as $area => $criterios) {
             foreach ($criterios as $skill) {
                 CriterioEvaluacion::updateOrCreate(
-                    ['area' => $area, 'criterio' => $skill['criterio']],
-                    ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
+                ['area' => $area, 'criterio' => $skill['criterio']],
+                ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
                 );
             }
         }
@@ -116,8 +116,8 @@ class LogisticaEvaluacionSeeder extends Seeder
         // 3. Supervisor Skills
         foreach ($supervisorSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(
-                ['area' => 'Evaluación Supervisor', 'criterio' => $skill['criterio']],
-                ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
+            ['area' => 'Evaluacion Supervisor', 'criterio' => $skill['criterio']],
+            ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
             );
         }
     }
