@@ -3,6 +3,13 @@
 @section('title', 'Nuevo Ticket')
 
 {{-- 1. ESTILOS --}}
+{{-- 
+Tailwind JIT Safelist
+bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-100 shadow-indigo-200 hover:text-indigo-600 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-indigo-50/50 hover:border-indigo-300 group-hover:text-indigo-500 text-indigo-600
+bg-slate-600 hover:bg-slate-700 focus:ring-slate-100 shadow-slate-200 hover:text-slate-600 focus:border-slate-500 focus:ring-slate-500 hover:bg-slate-50/50 hover:border-slate-300 group-hover:text-slate-500 text-slate-600
+bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-100 shadow-emerald-200 hover:text-emerald-600 focus:border-emerald-500 focus:ring-emerald-500 hover:bg-emerald-50/50 hover:border-emerald-300 group-hover:text-emerald-500 text-emerald-600
+bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blue-600 focus:border-blue-500 focus:ring-blue-500 hover:bg-blue-50/50 hover:border-blue-300 group-hover:text-blue-500 text-blue-600
+--}}
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
