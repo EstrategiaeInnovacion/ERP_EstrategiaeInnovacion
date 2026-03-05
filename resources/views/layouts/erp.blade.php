@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="Plataforma de gestión integral corporativa para recursos humanos, logística y servicios de TI.">
+    <meta property="og:title" content="ERP Corporativo | Estrategia e Innovación">
+    <meta property="og:description" content="Plataforma de gestión de recursos, capital humano y servicios tecnológicos.">
+    <meta property="og:type" content="website">
 
     <title>@yield('title', 'ERP Corporativo') | Estrategia e Innovación</title>
 
@@ -50,7 +54,7 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                    <img src="{{ asset('images/logo-ei.png') }}" alt="E&I" class="h-6 w-auto">
+                    <img src="{{ asset('images/logo-ei.png') }}" alt="Estrategia e Innovación" width="80" height="24" loading="lazy" class="h-6 w-auto">
                 </div>
             </div>
         </footer>

@@ -16,13 +16,13 @@ class EvaluacionController extends Controller
     private function isEvaluationWindowOpen()
     {
         // --- MODO PRUEBAS: SIEMPRE ABIERTO ---
-        return true;
+        //return true;
 
-    /*
+    
      $now = Carbon::now();
      return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) || 
      ($now->month == 12 && $now->day >= 1 && $now->day <= 31);
-     */
+     
     }
 
     // --- DETECCIÓN DE PUESTO (POSICIÓN) ---
