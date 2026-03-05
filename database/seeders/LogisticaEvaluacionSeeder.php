@@ -92,6 +92,21 @@ class LogisticaEvaluacionSeeder extends Seeder
         ];
 
         // ==========================================
+        // 4. EVALUACIÓN TRANSVERSAL (Administración RH)
+        // ==========================================
+        // RH evalúa solo Soft Skills, por lo que el peso se redistribuye para sumar 100% (12.5 c/u)
+        $evaluacionRH = [
+            ['criterio' => 'Puntualidad y Asistencia', 'descripcion' => 'Cumple con horarios y asistencia.', 'peso' => 12.5],
+            ['criterio' => 'Iniciativa y Proactividad', 'descripcion' => 'Actúa sin supervisión constante.', 'peso' => 12.5],
+            ['criterio' => 'Trabajo en Equipo', 'descripcion' => 'Colabora para alcanzar objetivos comunes.', 'peso' => 12.5],
+            ['criterio' => 'Comunicación Efectiva', 'descripcion' => 'Transmite ideas de forma clara y respetuosa.', 'peso' => 12.5],
+            ['criterio' => 'Actitud de Servicio', 'descripcion' => 'Disposición amable y profesional.', 'peso' => 12.5],
+            ['criterio' => 'Adaptabilidad', 'descripcion' => 'Se ajusta a cambios en el entorno laboral.', 'peso' => 12.5],
+            ['criterio' => 'Resolución de Problemas', 'descripcion' => 'Encuentra soluciones prácticas.', 'peso' => 12.5],
+            ['criterio' => 'Ética Profesional', 'descripcion' => 'Comportamiento íntegro y honesto.', 'peso' => 12.5],
+        ];
+
+        // ==========================================
         // PROCESO DE INSERCIÓN SEGURA (UpdateOrCreate)
         // ==========================================
 
@@ -117,6 +132,14 @@ class LogisticaEvaluacionSeeder extends Seeder
         foreach ($supervisorSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(
             ['area' => 'Evaluacion Supervisor', 'criterio' => $skill['criterio']],
+            ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
+            );
+        }
+
+        // Insertar en base de datos bajo el área que lee el controlador para RH
+        foreach ($evaluacionRH as $skill) {
+            CriterioEvaluacion::updateOrCreate(
+            ['area' => 'Administracion RH', 'criterio' => $skill['criterio']],
             ['descripcion' => $skill['descripcion'], 'peso' => $skill['peso']]
             );
         }

@@ -171,8 +171,10 @@ class EvaluacionController extends Controller
                 $canEvaluate = true;
         }
 
-        if ($isAdminRH)
+        if ($isAdminRH) {
             $canEvaluate = true;
+            $criterios = CriterioEvaluacion::where('area', 'Administracion RH')->get();
+        }
 
         if (!$canEvaluate && !$hasFullVisibility) {
             return redirect()->route('rh.evaluacion.index')->with('error', 'No autorizado.');
