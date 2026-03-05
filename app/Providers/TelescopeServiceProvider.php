@@ -52,7 +52,23 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewTelescope', function ($user) {
-            return true; // Permitir el acceso temporalmente a todos durante el desarrollo
+            // Debe ser rol admin
+            if (!$user->hasRole('admin')) {
+                return false;
+            }
+
+            // Debe existir su relación de empleado
+            if (!$user->empleado) {
+                return false;
+            }
+
+            // Debe estar en el departamento de Sistemas/TI
+            $posicion = strtolower(trim($user->empleado->posicion ?? ''));
+            return str_contains($posicion, ' ti')
+            || str_contains($posicion, 'ti ')
+            || $posicion === 'ti'
+            || $posicion === 'it'
+            || str_contains($posicion, 'sistemas');
         });
     }
 }
