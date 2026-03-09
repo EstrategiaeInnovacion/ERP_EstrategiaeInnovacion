@@ -4,11 +4,16 @@
     // 1. Detección de Contexto (¿En qué módulo estoy navegando?)
     $isRH = request()->routeIs('rh.*') || request()->routeIs('recursos-humanos.*');
     $isLogistica = request()->routeIs('logistica.*');
+
+    // 1b. ¿El usuario logueado es estrictamente empleado de RH?
+    $areaNorm = $user?->empleado?->area ? mb_strtolower(preg_replace('/\s+/u',' ',$user->empleado->area),'UTF-8') : null;
+    $posNorm  = $user?->empleado?->posicion ? mb_strtolower(preg_replace('/\s+/u',' ',$user->empleado->posicion),'UTF-8') : null;
+    $esUsuarioRH = ($areaNorm === 'rh' || $areaNorm === 'recursos humanos') || ($posNorm && str_contains($posNorm, 'administracion rh'));
     
     // 2. Definir ruta del Logo (Inicio Inteligente)
     $homeRoute = route('welcome'); // Por defecto
     
-    if ($isRH) {
+    if ($isRH && $esUsuarioRH) {
         $homeRoute = route('recursos-humanos.index');
     } elseif ($isLogistica) {
         $homeRoute = route('logistica.index');
@@ -47,12 +52,14 @@
                     
                     {{-- MENÚ RH --}}
                     @if($isRH)
-                        <x-nav-link :href="route('rh.expedientes.index')" :active="request()->routeIs('rh.expedientes.*')">
-                            Expedientes
-                        </x-nav-link>
-                        <x-nav-link :href="route('rh.reloj.index')" :active="request()->routeIs('rh.reloj.*')">
-                            Reloj Checador
-                        </x-nav-link>
+                        @if($esUsuarioRH)
+                            <x-nav-link :href="route('rh.expedientes.index')" :active="request()->routeIs('rh.expedientes.*')">
+                                Expedientes
+                            </x-nav-link>
+                            <x-nav-link :href="route('rh.reloj.index')" :active="request()->routeIs('rh.reloj.*')">
+                                Reloj Checador
+                            </x-nav-link>
+                        @endif
                         <x-nav-link :href="route('rh.evaluacion.index')" :active="request()->routeIs('rh.evaluacion.*')">
                             Evaluaciones
                         </x-nav-link>
@@ -156,12 +163,14 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-slate-50 border-t border-slate-200 shadow-inner">
         <div class="pt-2 pb-3 space-y-1">
             @if($isRH)
-                <x-responsive-nav-link :href="route('recursos-humanos.index')" :active="request()->routeIs('recursos-humanos.index')">
-                    Dashboard RH
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('rh.reloj.index')" :active="request()->routeIs('rh.reloj.*')">
-                    Reloj Checador
-                </x-responsive-nav-link>
+                @if($esUsuarioRH)
+                    <x-responsive-nav-link :href="route('recursos-humanos.index')" :active="request()->routeIs('recursos-humanos.index')">
+                        Dashboard RH
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('rh.reloj.index')" :active="request()->routeIs('rh.reloj.*')">
+                        Reloj Checador
+                    </x-responsive-nav-link>
+                @endif
                 <x-responsive-nav-link :href="route('rh.evaluacion.index')" :active="request()->routeIs('rh.evaluacion.*')">
                     Evaluaciones
                 </x-responsive-nav-link>
