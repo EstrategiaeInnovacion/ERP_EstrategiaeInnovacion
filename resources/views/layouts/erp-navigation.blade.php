@@ -5,10 +5,9 @@
     $isRH = request()->routeIs('rh.*') || request()->routeIs('recursos-humanos.*');
     $isLogistica = request()->routeIs('logistica.*');
 
-    // 1b. ¿El usuario logueado es estrictamente empleado de RH?
-    $areaNorm = $user?->empleado?->area ? mb_strtolower(preg_replace('/\s+/u',' ',$user->empleado->area),'UTF-8') : null;
-    $posNorm  = $user?->empleado?->posicion ? mb_strtolower(preg_replace('/\s+/u',' ',$user->empleado->posicion),'UTF-8') : null;
-    $esUsuarioRH = ($areaNorm === 'rh' || $areaNorm === 'recursos humanos') || ($posNorm && str_contains($posNorm, 'administracion rh'));
+    // 1b. ¿El usuario tiene posición autorizada para acceso completo a RH?
+    $posNorm = $user?->empleado?->posicion ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($user->empleado->posicion)), 'UTF-8') : null;
+    $esUsuarioRH = $posNorm && in_array($posNorm, ['direccion', 'administracion rh', 'ti']);
     
     // 2. Definir ruta del Logo (Inicio Inteligente)
     $homeRoute = route('welcome'); // Por defecto

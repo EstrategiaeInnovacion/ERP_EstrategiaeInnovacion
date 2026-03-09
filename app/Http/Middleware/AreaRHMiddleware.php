@@ -12,20 +12,16 @@ class AreaRHMiddleware
     {
         $user = $request->user();
         
-        // Verificar área Y posición
-        $area = $user?->empleado?->area;
+        // Verificar posicion del empleado
         $posicion = $user?->empleado?->posicion;
+        $posNorm = $posicion ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($posicion)), 'UTF-8') : null;
         
-        $areaNorm = $area ? mb_strtolower(preg_replace('/\s+/u',' ',$area),'UTF-8') : null;
-        $posNorm = $posicion ? mb_strtolower(preg_replace('/\s+/u',' ',$posicion),'UTF-8') : null;
-        
-        // Permitir si el área es RH o Recursos Humanos, o si la posición contiene "administracion rh"
-        $esRH = ($areaNorm === 'rh' || $areaNorm === 'recursos humanos') || 
-                ($posNorm && str_contains($posNorm, 'administracion rh'));
+        // Solo Direccion, Administracion RH y TI tienen acceso completo a RH
+        $esRH = $posNorm && in_array($posNorm, ['direccion', 'administracion rh', 'ti']);
         
         if (!$user || !$esRH) {
             return redirect()->route('rh.evaluacion.index')
-                ->with('info', 'Acceso restringido únicamente a personal de Recursos Humanos.');
+                ->with('info', 'Acceso restringido a personal autorizado de Recursos Humanos.');
         }
         
         return $next($request);
