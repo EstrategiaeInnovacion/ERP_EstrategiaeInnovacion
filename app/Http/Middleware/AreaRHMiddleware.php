@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Middleware;
 
@@ -12,11 +12,6 @@ class AreaRHMiddleware
     {
         $user = $request->user();
         
-        // Permitir acceso a administradores
-        if ($user && $user->hasRole('admin')) {
-            return $next($request);
-        }
-        
         // Verificar área Y posición
         $area = $user?->empleado?->area;
         $posicion = $user?->empleado?->posicion;
@@ -29,7 +24,8 @@ class AreaRHMiddleware
                 ($posNorm && str_contains($posNorm, 'administracion rh'));
         
         if (!$user || !$esRH) {
-            return redirect()->route('login')->with('info','Acceso restringido a Recursos Humanos');
+            return redirect()->route('rh.evaluacion.index')
+                ->with('info', 'Acceso restringido únicamente a personal de Recursos Humanos.');
         }
         
         return $next($request);
