@@ -672,6 +672,10 @@
         function cerrarModalJustificar() {
             document.getElementById('modalJustificar').classList.add('hidden');
         }
+        document.getElementById('justificar_motivo').addEventListener('change', function() {
+            var selected = this.options[this.selectedIndex];
+            document.getElementById('justificar_es_justificado').value = selected.getAttribute('data-justificado') || '1';
+        });
 
         // Modal Asistencia Manual
         function abrirModalAsistencia(empleadoId, empleadoNombre) {
@@ -750,6 +754,7 @@
                     <input type="hidden" name="empleado_id" id="justificar_empleado_id">
                     <input type="hidden" name="fecha_inicio" id="justificar_fecha_inicio">
                     <input type="hidden" name="fecha_fin" id="justificar_fecha_fin">
+                    <input type="hidden" name="es_justificado" id="justificar_es_justificado" value="1">
 
                     <div class="px-6 pt-6 pb-4">
                         <div class="flex items-center gap-3 mb-5">
@@ -769,11 +774,12 @@
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">Motivo *</label>
                                 <select name="tipo_registro" id="justificar_motivo" required class="w-full rounded-xl border-slate-300 text-sm focus:ring-orange-500 focus:border-orange-500">
-                                    <option value="falta">❌ Falta Justificada</option>
-                                    <option value="vacaciones">🌴 Vacaciones</option>
-                                    <option value="incapacidad">🏥 Incapacidad</option>
-                                    <option value="permiso">📄 Permiso con Goce</option>
-                                    <option value="descanso">🏠 Día de Descanso</option>
+                                    <option value="falta" data-justificado="1">✅ Falta Justificada</option>
+                                    <option value="falta" data-justificado="0">❌ Falta Injustificada</option>
+                                    <option value="vacaciones" data-justificado="1">🌴 Vacaciones</option>
+                                    <option value="incapacidad" data-justificado="1">🏥 Incapacidad</option>
+                                    <option value="permiso" data-justificado="1">📄 Permiso con Goce</option>
+                                    <option value="descanso" data-justificado="1">🏠 Día de Descanso</option>
                                 </select>
                             </div>
                             <div>

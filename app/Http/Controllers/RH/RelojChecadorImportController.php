@@ -204,7 +204,7 @@ class RelojChecadorImportController extends Controller
                         'nombre' => $empleado->nombre . ' ' . $empleado->apellido_paterno,
                         'tipo_registro' => $request->tipo_registro,
                         'comentarios' => $request->comentarios,
-                        'es_justificado' => true,
+                        'es_justificado' => $request->input('es_justificado', true) ? true : false,
                         'es_retardo' => false,
                         'updated_at' => now(),
                     ];
