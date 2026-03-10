@@ -331,11 +331,15 @@
                                                     $cardClass = $asistencia->es_justificado ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200';
                                                     $textClass = $asistencia->es_justificado ? 'text-orange-700' : 'text-red-700';
                                                     $icon = '❌';
+                                                } elseif($tipo == 'incompleto') {
+                                                    $cardClass = 'bg-yellow-50 border-yellow-300';
+                                                    $textClass = 'text-yellow-700';
+                                                    $icon = '⚠️';
                                                 } else {
-                                                    // Vacaciones, Incapacidad
+                                                    // Vacaciones, Incapacidad, Permiso, Descanso
                                                     $cardClass = 'bg-blue-50 border-blue-200';
                                                     $textClass = 'text-blue-700';
-                                                    $icon = ($tipo == 'vacaciones' ? '🌴' : '🏥');
+                                                    $icon = ($tipo == 'vacaciones' ? '🌴' : ($tipo == 'descanso' ? '🏠' : '🏥'));
                                                 }
                                             } else {
                                                 // Sin Registro
@@ -359,35 +363,39 @@
 
                                             {{-- Contenido Central --}}
                                             <div class="text-center h-12 flex flex-col justify-center items-center">
-                                                @if($asistencia && $asistencia->tipo_registro == 'asistencia')
-                                                    <div class="text-xs font-mono font-bold text-gray-800 block">
+                                                @if($asistencia && in_array($asistencia->tipo_registro, ['asistencia', 'incompleto']))
+                                                    <div class="text-xs font-mono font-bold {{ $asistencia->tipo_registro == 'incompleto' ? 'text-yellow-800' : 'text-gray-800' }} block">
                                                         {{ $asistencia->entrada ? substr($asistencia->entrada, 0, 5) : '--:--' }}
                                                         <span class="text-gray-300 mx-0.5">-</span>
                                                         {{ $asistencia->salida ? substr($asistencia->salida, 0, 5) : '--:--' }}
                                                     </div>
                                                     
-                                                    {{-- Cálculo de Horas Diarias --}}
-                                                    @php
-                                                        $horasDia = null;
-                                                        if($asistencia->entrada && $asistencia->salida) {
-                                                            try {
-                                                                $entrada = \Carbon\Carbon::parse($asistencia->entrada);
-                                                                $salida = \Carbon\Carbon::parse($asistencia->salida);
-                                                                if($salida->gt($entrada)) {
-                                                                    $diff = $entrada->diffInMinutes($salida);
-                                                                    $horasDia = floor($diff/60) . 'h ' . ($diff%60) . 'm';
-                                                                }
-                                                            } catch(\Exception $e) {}
-                                                        }
-                                                    @endphp
-                                                    
-                                                    @if($horasDia)
-                                                        <span class="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 rounded mt-0.5">
-                                                            {{ $horasDia }}
-                                                        </span>
-                                                    @endif
+                                                    @if($asistencia->tipo_registro == 'incompleto')
+                                                        <span class="text-[9px] font-bold text-yellow-600 bg-yellow-100 px-1 rounded mt-0.5">⚠️ Incompleto</span>
+                                                    @else
+                                                        {{-- Cálculo de Horas Diarias --}}
+                                                        @php
+                                                            $horasDia = null;
+                                                            if($asistencia->entrada && $asistencia->salida) {
+                                                                try {
+                                                                    $entrada = \Carbon\Carbon::parse($asistencia->entrada);
+                                                                    $salida = \Carbon\Carbon::parse($asistencia->salida);
+                                                                    if($salida->gt($entrada)) {
+                                                                        $diff = $entrada->diffInMinutes($salida);
+                                                                        $horasDia = floor($diff/60) . 'h ' . ($diff%60) . 'm';
+                                                                    }
+                                                                } catch(\Exception $e) {}
+                                                            }
+                                                        @endphp
+                                                        
+                                                        @if($horasDia)
+                                                            <span class="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 rounded mt-0.5">
+                                                                {{ $horasDia }}
+                                                            </span>
+                                                        @endif
 
-                                                    @if($icon) <span class="text-[10px] mt-0.5 block">{{ $icon }}</span> @endif
+                                                        @if($icon) <span class="text-[10px] mt-0.5 block">{{ $icon }}</span> @endif
+                                                    @endif
                                                 @elseif($asistencia)
                                                     <span class="text-xs font-bold {{ $textClass }} truncate w-full">
                                                         {{ $icon }} {{ ucfirst($asistencia->tipo_registro) }}
