@@ -231,6 +231,66 @@ class RelojChecadorImportController extends Controller
     }
 
     /**
+     * Registra asistencia manual para un empleado individual (entrada/salida).
+     * Soporta rango de fechas para cubrir periodos completos.
+     */
+    public function storeManual(Request $request)
+    {
+        $request->validate([
+            'empleado_id' => 'required|exists:empleados,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'entrada' => 'nullable|date_format:H:i',
+            'salida' => 'nullable|date_format:H:i',
+        ]);
+
+        $empleado = Empleado::findOrFail($request->empleado_id);
+
+        $entrada = $request->entrada;
+        $salida = $request->salida;
+
+        // Determinar si es retardo (entrada después de las 9:00)
+        $esRetardo = false;
+        if ($entrada) {
+            $horaEntrada = Carbon::createFromFormat('H:i', $entrada);
+            $limite = Carbon::createFromFormat('H:i', '09:00');
+            $esRetardo = $horaEntrada->gt($limite);
+        }
+
+        $inicio = Carbon::parse($request->fecha_inicio);
+        $fin = $request->fecha_fin ?Carbon::parse($request->fecha_fin) : $inicio->copy();
+        $contador = 0;
+
+        $loopDate = $inicio->copy();
+        while ($loopDate->lte($fin)) {
+            // Saltar fines de semana
+            if (!$loopDate->isWeekend()) {
+                Asistencia::updateOrCreate(
+                [
+                    'empleado_id' => $empleado->id,
+                    'fecha' => $loopDate->toDateString(),
+                ],
+                [
+                    'empleado_no' => $empleado->id_empleado ?? 'S/N',
+                    'nombre' => $empleado->nombre . ' ' . ($empleado->apellido_paterno ?? ''),
+                    'entrada' => $entrada,
+                    'salida' => $salida,
+                    'tipo_registro' => 'asistencia',
+                    'es_retardo' => $esRetardo,
+                    'es_justificado' => false,
+                    'checadas' => json_encode(array_filter([$entrada, $salida])),
+                    'comentarios' => 'Registro manual',
+                ]
+                );
+                $contador++;
+            }
+            $loopDate->addDay();
+        }
+
+        return back()->with('success', "Se registraron {$contador} día(s) de asistencia para {$empleado->nombre}.");
+    }
+
+    /**
      * Proceso de Importación (Async con Cache)
      */
     public function start(Request $request)
@@ -256,12 +316,18 @@ class RelojChecadorImportController extends Controller
 
             $service = new ProcesarAsistenciaService();
 
+            // Filtro de empleados (opcional) - solo procesar estos IDs
+            $filtroEmpleados = $request->input('empleados_filtro', []);
+            if (is_string($filtroEmpleados)) {
+                $filtroEmpleados = array_filter(explode(',', $filtroEmpleados));
+            }
+
             // La transacción está implementada DENTRO del servicio para no bloquear 
             // la base de datos mientras se lee el archivo Excel (que es lento).
             $resultado = $service->process($fullPath, true, function ($estado) use ($key) {
                 $percent = ($estado['total'] > 0) ? round(($estado['indice'] / $estado['total']) * 100) : 0;
                 $this->updateProgress($key, 'procesando', max(5, $percent), "Procesando registros...");
-            });
+            }, $filtroEmpleados);
 
             $this->updateProgress($key, 'completado', 100, "Completado. " . ($resultado['total_registros'] ?? 0) . " registros.", true);
 

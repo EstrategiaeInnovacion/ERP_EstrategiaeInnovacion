@@ -267,6 +267,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::get('/progreso/{key}', 'progress')->name('import.progress');
             Route::post('/store', 'store')->name('store');
             Route::put('/update/{id}', 'update')->name('update');
+            Route::post('/store-manual', 'storeManual')->name('storeManual');
             Route::delete('/clear', 'clear')->name('clear');
         }
         );
@@ -296,6 +297,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::delete('/adjunto/{id}', 'destroyAdjunto')->name('destroyAdjunto');
         }
         );
+
 
 
 

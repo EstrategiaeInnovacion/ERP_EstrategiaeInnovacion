@@ -15,11 +15,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class ProcesarAsistenciaService
 {
     protected string $horaRegex = '/\\b(2[0-3]|[01]?\\d):([0-5]\\d)\\b/u';
-    protected string $horaEntradaLimite = '08:45:00'; 
+    protected string $horaEntradaLimite = '08:45:00';
     protected bool $persistRegistros = true;
     protected array $collectedRegistros = [];
 
-    public function process(string $path, bool $persist = true, callable $onSheetProgress = null): array
+    public function process(string $path, bool $persist = true, callable $onSheetProgress = null, array $onlyEmpleadoNos = []): array
     {
         $this->persistRegistros = $persist;
         $this->collectedRegistros = [];
@@ -31,7 +31,7 @@ class ProcesarAsistenciaService
         try {
             $inputFileType = IOFactory::identify($path);
             $reader = IOFactory::createReader($inputFileType);
-            
+
             if ($inputFileType === 'Csv') {
                 /** @var Csv $reader */
                 $reader->setDelimiter(',');
@@ -40,7 +40,8 @@ class ProcesarAsistenciaService
             }
 
             $spreadsheet = $reader->load($path);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error("Error crítico cargando archivo: " . $e->getMessage());
             throw new \Exception("Error leyendo el archivo: " . $e->getMessage());
         }
@@ -66,13 +67,14 @@ class ProcesarAsistenciaService
                 }
 
                 $dayColumns = $this->mapDayColumns($sheet);
-                
+
                 if (!$periodo || empty($dayColumns)) {
                     continue;
                 }
 
                 $highestRow = $sheet->getHighestDataRow();
                 $empleadoActual = null;
+                $empleadoFiltrado = false; // true = este empleado NO está en el filtro, skip
 
                 for ($row = 1; $row <= $highestRow; $row++) {
                     $rowValues = $this->getRowValues($sheet, $row);
@@ -83,11 +85,19 @@ class ProcesarAsistenciaService
                         $nuevoNombre = $this->extraerValorPosterior($rowValues, ['Nombre', 'Name']);
 
                         if (!empty($nuevoId)) {
-                            if ($empleadoActual) $empleadosProcesados++;
+                            if ($empleadoActual && !$empleadoFiltrado)
+                                $empleadosProcesados++;
                             $empleadoActual = ['no' => $nuevoId, 'nombre' => $nuevoNombre];
+
+                            // Si hay filtro activo, verificar si este empleado está en la lista
+                            $empleadoFiltrado = !empty($onlyEmpleadoNos) && !in_array($nuevoId, $onlyEmpleadoNos) && !in_array((string)(int)$nuevoId, $onlyEmpleadoNos);
                         }
                         continue;
                     }
+
+                    // Si el empleado actual no está en el filtro, saltar
+                    if ($empleadoFiltrado)
+                        continue;
 
                     // B. Buscar nombre
                     if ($empleadoActual && empty($empleadoActual['nombre']) && $this->isNombreHeader($rowValues)) {
@@ -100,7 +110,8 @@ class ProcesarAsistenciaService
                         $totalRegistros += $this->procesarFilaDeChecadas($rowValues, $dayColumns, $periodo, $empleadoActual);
                     }
                 }
-                if ($empleadoActual) $empleadosProcesados++;
+                if ($empleadoActual)
+                    $empleadosProcesados++;
 
                 if ($onSheetProgress) {
                     $onSheetProgress(['total' => count($sheets), 'indice' => $index + 1]);
@@ -117,7 +128,8 @@ class ProcesarAsistenciaService
                 'registros' => $this->collectedRegistros
             ];
 
-        } catch (\Throwable $e) {
+        }
+        catch (\Throwable $e) {
             // Si ocurre CUALQUIER error durante el bucle, revertimos todo
             DB::rollBack();
             Log::error("Error durante transacción de importación: " . $e->getMessage());
@@ -126,7 +138,7 @@ class ProcesarAsistenciaService
     }
 
     // ... (El resto de métodos auxiliares se mantiene idéntico) ...
-    
+
     // Solo mostramos procesarFilaDeChecadas para confirmar que no necesita cambios internos
     // ya que la transacción lo envuelve desde arriba.
     protected function procesarFilaDeChecadas(array $rowValues, array $dayColumns, array $periodo, array $empleado): int
@@ -134,24 +146,28 @@ class ProcesarAsistenciaService
         $count = 0;
         foreach ($dayColumns as $day => $colIdx) {
             $raw = $rowValues[$colIdx] ?? '';
-            if (empty($raw) || !preg_match($this->horaRegex, $raw)) continue;
+            if (empty($raw) || !preg_match($this->horaRegex, $raw))
+                continue;
 
             $horas = $this->extraerHoras($raw);
-            if (count($horas) < 1) continue;
+            if (count($horas) < 1)
+                continue;
 
             $fecha = $this->construirFecha($periodo, $day);
-            
+
             $empleadoId = $this->persistRegistros ? $this->buscarEmpleadoId($empleado['no'], $empleado['nombre']) : null;
-            
+
             for ($i = 0; $i < count($horas); $i += 2) {
                 $entrada = $horas[$i];
-                $salida = $horas[$i+1] ?? null;
+                $salida = $horas[$i + 1] ?? null;
 
                 $esRetardo = false;
                 if ($entrada) {
                     try {
                         $esRetardo = Carbon::parse($entrada)->format('H:i:s') > $this->horaEntradaLimite;
-                    } catch (\Exception $e) {}
+                    }
+                    catch (\Exception $e) {
+                    }
                 }
 
                 if ($this->persistRegistros) {
@@ -159,30 +175,31 @@ class ProcesarAsistenciaService
                     $existing = DB::table('asistencias')
                         ->where('empleado_no', $empleado['no'])
                         ->where('fecha', $fecha->toDateString())
-                        ->where('entrada', $entrada) 
+                        ->where('entrada', $entrada)
                         ->first();
 
                     if ($existing && $existing->tipo_registro !== 'asistencia') {
-                        continue; 
+                        continue;
                     }
 
                     DB::table('asistencias')->updateOrInsert(
-                        [
-                            'empleado_no' => $empleado['no'],
-                            'fecha' => $fecha->toDateString(),
-                            'entrada' => $entrada, 
-                        ],
-                        [
-                            'nombre' => $empleado['nombre'] ?? 'Desconocido',
-                            'salida' => $salida,
-                            'checadas' => json_encode($horas),
-                            'empleado_id' => $empleadoId,
-                            'tipo_registro' => 'asistencia',
-                            'es_retardo' => $esRetardo,
-                            'updated_at' => now(),
-                        ]
+                    [
+                        'empleado_no' => $empleado['no'],
+                        'fecha' => $fecha->toDateString(),
+                        'entrada' => $entrada,
+                    ],
+                    [
+                        'nombre' => $empleado['nombre'] ?? 'Desconocido',
+                        'salida' => $salida,
+                        'checadas' => json_encode($horas),
+                        'empleado_id' => $empleadoId,
+                        'tipo_registro' => 'asistencia',
+                        'es_retardo' => $esRetardo,
+                        'updated_at' => now(),
+                    ]
                     );
-                } else {
+                }
+                else {
                     $this->collectedRegistros[] = compact('empleado', 'fecha', 'entrada', 'salida');
                 }
                 $count++;
@@ -206,11 +223,15 @@ class ProcesarAsistenciaService
                     $endDay = (int)$m[6];
                     try {
                         $end = Carbon::create($endYear, $endMonth, $endDay);
-                    } catch (\Exception $ex) {
+                    }
+                    catch (\Exception $ex) {
                         $end = $start->copy()->endOfMonth();
                     }
                     return ['inicio' => $start, 'fin' => $end];
-                } catch (\Throwable $e) { continue; }
+                }
+                catch (\Throwable $e) {
+                    continue;
+                }
             }
         }
         return null;
@@ -219,11 +240,11 @@ class ProcesarAsistenciaService
     protected function mapDayColumns(Worksheet $sheet): array
     {
         $highestCol = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
-        for ($row = 1; $row <= 30; $row++) { 
+        for ($row = 1; $row <= 30; $row++) {
             $map = [];
             for ($col = 1; $col <= $highestCol; $col++) {
                 $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
-                $val = $cell->getValue(); 
+                $val = $cell->getValue();
                 if (is_numeric($val)) {
                     $num = (int)$val;
                     if ($num >= 1 && $num <= 31) {
@@ -231,7 +252,8 @@ class ProcesarAsistenciaService
                     }
                 }
             }
-            if (count($map) >= 5) return $map;
+            if (count($map) >= 5)
+                return $map;
         }
         return [];
     }
@@ -244,7 +266,9 @@ class ProcesarAsistenciaService
         foreach ($matches[0] ?? [] as $h) {
             try {
                 $horas[] = Carbon::createFromFormat('H:i', $h)->format('H:i:s');
-            } catch (\Exception $e) {}
+            }
+            catch (\Exception $e) {
+            }
         }
         return $horas;
     }
@@ -252,19 +276,23 @@ class ProcesarAsistenciaService
     protected function construirFecha(array $periodo, int $day): Carbon
     {
         $date = $periodo['inicio']->copy()->day($day);
-        if ($day < $periodo['inicio']->day) $date->addMonth();
-        if ($periodo['inicio']->month == 12 && $date->month == 1) $date->addYear();
+        if ($day < $periodo['inicio']->day)
+            $date->addMonth();
+        if ($periodo['inicio']->month == 12 && $date->month == 1)
+            $date->addYear();
         return $date;
     }
 
     protected function buscarEmpleadoId(string $no, ?string $nombre): ?int
     {
         $emp = Empleado::where('id_empleado', $no)->orWhere('id_empleado', (int)$no)->first();
-        if ($emp) return $emp->id;
+        if ($emp)
+            return $emp->id;
         if ($nombre) {
             $cleanName = str_replace(' ', '', Str::lower($nombre));
             $emp = Empleado::whereRaw("LOWER(REPLACE(nombre, ' ', '')) LIKE ?", ["%{$cleanName}%"])->first();
-            if ($emp) return $emp->id;
+            if ($emp)
+                return $emp->id;
         }
         return null;
     }
@@ -274,34 +302,42 @@ class ProcesarAsistenciaService
         $highestCol = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $values = [];
         for ($col = 1; $col <= $highestCol; $col++) {
-            $val = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row)->getValue(); 
+            $val = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row)->getValue();
             $values[] = trim((string)$val);
         }
         return $values;
     }
 
-    protected function isEmpleadoHeader(array $vals): bool {
+    protected function isEmpleadoHeader(array $vals): bool
+    {
         $s = implode(' ', $vals);
         return (bool)preg_match('/\b(No|Num|ID)\s*[:\.]/i', $s);
     }
 
-    protected function isNombreHeader(array $vals): bool {
+    protected function isNombreHeader(array $vals): bool
+    {
         $s = implode(' ', $vals);
         return (bool)preg_match('/\b(Nombre|Name)\s*[:\.]/i', $s);
     }
 
-    protected function filaTieneChecadas(array $vals): bool {
-        foreach ($vals as $v) { if (preg_match($this->horaRegex, $v)) return true; }
+    protected function filaTieneChecadas(array $vals): bool
+    {
+        foreach ($vals as $v) {
+            if (preg_match($this->horaRegex, $v))
+                return true;
+        }
         return false;
     }
 
-    protected function extraerValorPosterior(array $vals, array $keys): ?string {
+    protected function extraerValorPosterior(array $vals, array $keys): ?string
+    {
         foreach ($vals as $i => $val) {
             foreach ($keys as $key) {
                 if (stripos($val, $key) !== false) {
                     for ($j = $i + 1; $j < min(count($vals), $i + 4); $j++) {
                         $c = trim($vals[$j]);
-                        if (!empty($c) && $c !== ':' && $c !== '.') return $c;
+                        if (!empty($c) && $c !== ':' && $c !== '.')
+                            return $c;
                     }
                 }
             }
