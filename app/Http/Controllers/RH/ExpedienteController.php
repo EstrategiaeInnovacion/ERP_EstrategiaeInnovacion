@@ -19,16 +19,25 @@ class ExpedienteController extends Controller
     public function index(Request $request)
     {
         $query = Empleado::query();
-        
+
         if ($request->search) {
             $query->where('nombre', 'like', "%{$request->search}%")
-                  ->orWhere('apellido_paterno', 'like', "%{$request->search}%");
+                ->orWhere('apellido_paterno', 'like', "%{$request->search}%");
+        }
+
+        // Filtro por estado activo/baja
+        $status = $request->input('status', 'todos');
+        if ($status === 'activos') {
+            $query->where('es_activo', true);
+        }
+        elseif ($status === 'bajas') {
+            $query->where('es_activo', false);
         }
 
         // Usamos 'with' para traer los documentos y calcular el % óptimamente
         $empleados = $query->with('documentos')->paginate(12);
 
-        return view('Recursos_Humanos.expedientes.index', compact('empleados'));
+        return view('Recursos_Humanos.expedientes.index', compact('empleados', 'status'));
     }
 
     /**
@@ -37,7 +46,7 @@ class ExpedienteController extends Controller
     public function show($id)
     {
         $empleado = Empleado::with('documentos')->findOrFail($id);
-        
+
         // Agrupamos documentos por categoría para la vista
         $docsGrouped = $empleado->documentos->groupBy('categoria');
 
@@ -45,14 +54,14 @@ class ExpedienteController extends Controller
         // Asegúrate de haber implementado el método estático getRequisitos en tu Modelo Empleado
         // Si no lo tienes, descomenta la lógica manual abajo.
         $checklistDocs = Empleado::getRequisitos($empleado->es_practicante);
-        
+
         /* // Lógica manual (Legacy) si no has actualizado el Modelo:
-        if ($empleado->es_practicante) {
-            $checklistDocs = ['INE', 'CURP', 'Comprobante de Domicilio', 'Estado de Cuenta', 'Formato ID', 'Contrato'];
-        } else {
-            $checklistDocs = ['INE', 'CURP', 'Comprobante de Domicilio', 'NSS', 'Titulo', 'Constancia de Situacion Fiscal', 'Formato ID', 'Contrato'];
-        }
-        */
+         if ($empleado->es_practicante) {
+         $checklistDocs = ['INE', 'CURP', 'Comprobante de Domicilio', 'Estado de Cuenta', 'Formato ID', 'Contrato'];
+         } else {
+         $checklistDocs = ['INE', 'CURP', 'Comprobante de Domicilio', 'NSS', 'Titulo', 'Constancia de Situacion Fiscal', 'Formato ID', 'Contrato'];
+         }
+         */
 
         return view('Recursos_Humanos.expedientes.show', compact('empleado', 'docsGrouped', 'checklistDocs'));
     }
@@ -95,7 +104,8 @@ class ExpedienteController extends Controller
                 'nombre_manual' => 'required|string|max:150'
             ]);
             $nombreFinal = $request->nombre_manual;
-        } else {
+        }
+        else {
             // Si no es "Otro", el nombre debe venir del select
             $request->validate([
                 'nombre' => 'required|string'
@@ -131,13 +141,13 @@ class ExpedienteController extends Controller
     public function deleteDocument($id)
     {
         $doc = EmpleadoDocumento::findOrFail($id);
-        
+
         if (Storage::disk('local')->exists($doc->ruta_archivo)) {
             Storage::disk('local')->delete($doc->ruta_archivo);
         }
-        
+
         $doc->delete();
-        
+
         return back()->with('success', 'Documento eliminado.');
     }
 
@@ -163,26 +173,26 @@ class ExpedienteController extends Controller
         // ---------------------------------------------------------
         // PASO A: GUARDAR EL ARCHIVO COMO DOCUMENTO
         // ---------------------------------------------------------
-        
+
         $filename = 'Formato_ID_' . time() . '.' . $file->getClientOriginalExtension();
-        
+
         $path = $file->storeAs(
-            "expedientes/{$empleado->id}", 
-            $filename, 
+            "expedientes/{$empleado->id}",
+            $filename,
             'local'
         );
 
         // Registramos (o actualizamos) que ya entregó el "Formato ID"
         EmpleadoDocumento::updateOrCreate(
-            [
-                'empleado_id' => $empleado->id,
-                'nombre'      => 'Formato ID', // Debe coincidir con la lista de requisitos
-            ],
-            [
-                'categoria'         => 'Interno',
-                'ruta_archivo'      => $path,
-                'fecha_vencimiento' => null
-            ]
+        [
+            'empleado_id' => $empleado->id,
+            'nombre' => 'Formato ID', // Debe coincidir con la lista de requisitos
+        ],
+        [
+            'categoria' => 'Interno',
+            'ruta_archivo' => $path,
+            'fecha_vencimiento' => null
+        ]
         );
 
         // ---------------------------------------------------------
@@ -198,19 +208,21 @@ class ExpedienteController extends Controller
 
             foreach ($rows as $row) {
                 // Si la columna A está vacía, saltamos
-                if (empty($row[0])) continue;
+                if (empty($row[0]))
+                    continue;
 
                 $rawLabel = $row[0];
                 $value = $row[1] ?? null;
-                
+
                 // Normalizamos etiqueta: "Teléfono Celular" -> "telefono-celular"
                 $slug = Str::slug($rawLabel);
 
                 // Si no hay valor o dice "No llenar", saltamos
-                if (!$value || Str::contains(Str::lower($value), ['no llenar', 'rh', 'administracion'])) continue;
+                if (!$value || Str::contains(Str::lower($value), ['no llenar', 'rh', 'administracion']))
+                    continue;
 
                 // --- MAPEO INTELIGENTE DE CAMPOS ---
-                
+
                 // Dirección
                 if (Str::contains($slug, ['direccion', 'domicilio', 'calle'])) {
                     $data['direccion'] = $value;
@@ -261,13 +273,15 @@ class ExpedienteController extends Controller
             if (count($data) > 0) {
                 $empleado->update($data);
                 $msg = '¡Proceso Exitoso! Documento archivado y ' . count($data) . ' datos del perfil actualizados.';
-            } else {
+            }
+            else {
                 $msg = 'Documento archivado correctamente. (Nota: No se detectaron datos nuevos para actualizar en el perfil).';
             }
 
             return back()->with('success', $msg);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             // Si falla la lectura, al menos el archivo ya se guardó
             return back()->with('warning', 'El archivo se guardó en el expediente, pero hubo un error leyendo los datos internos: ' . $e->getMessage());
         }

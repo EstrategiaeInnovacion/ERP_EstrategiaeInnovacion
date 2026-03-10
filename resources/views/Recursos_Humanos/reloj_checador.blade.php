@@ -223,15 +223,20 @@
                     </div>
                 @else
                     @foreach($empleados as $empleado)
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-all duration-300">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-all duration-300 {{ !$empleado->es_activo ? 'opacity-60 border-red-200' : '' }}">
                             {{-- ENCABEZADO EMPLEADO --}}
                             <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-full bg-white border-2 border-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shadow-sm">
+                                    <div class="w-12 h-12 rounded-full {{ !$empleado->es_activo ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-indigo-100 text-indigo-600' }} border-2 flex items-center justify-center text-sm font-bold shadow-sm">
                                         {{ substr($empleado->nombre, 0, 2) }}
                                     </div>
                                     <div>
-                                        <h3 class="text-base font-bold text-gray-900 leading-tight">{{ $empleado->nombre }}</h3>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-base font-bold text-gray-900 leading-tight">{{ $empleado->nombre }}</h3>
+                                            @if(!$empleado->es_activo)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">BAJA</span>
+                                            @endif
+                                        </div>
                                         <div class="flex items-center gap-2 mt-1">
                                             <span class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">ID: {{ $empleado->id_empleado ?? 'S/N' }}</span>
                                             {{-- Resumen Rápido (Opcional, se puede calcular si se desea mayor detalle) --}}
@@ -468,7 +473,7 @@
                                     </option>
                                     <option disabled>──────────────────────────</option>
 
-                                    @foreach(\App\Models\Empleado::orderBy('nombre')->get() as $emp)
+                                    @foreach(\App\Models\Empleado::where('es_activo', true)->orderBy('nombre')->get() as $emp)
                                         <option value="{{ $emp->id }}">{{ $emp->nombre }} ({{ $emp->id_empleado }})</option>
                                     @endforeach
                                 </select>

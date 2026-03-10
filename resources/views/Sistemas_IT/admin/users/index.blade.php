@@ -150,6 +150,11 @@
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                             </a>
                                             @if($user->id !== auth()->id())
+                                                <button class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-amber-200 text-amber-400 hover:text-amber-600 hover:border-amber-300 hover:shadow-sm transition-all"
+                                                        onclick="abrirModalBaja({{ $user->id }}, '{{ addslashes($user->name) }}')"
+                                                        title="Dar de Baja">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                                </button>
                                                 <button class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all"
                                                         data-delete-user
                                                         data-user-id="{{ $user->id }}"
@@ -247,14 +252,25 @@
                                                 </div>
                                             </td>
                                             <td class="px-8 py-4 text-right">
-                                                <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
-                                                      onsubmit="return confirm('¿Eliminar permanentemente a {{ $baja->nombre ?? $user->name }}? Esta acción no se puede deshacer.');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all" title="Eliminar permanentemente">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                    </button>
-                                                </form>
+                                                <div class="flex justify-end gap-2">
+                                                    @if($baja)
+                                                        <form method="POST" action="{{ route('admin.users.reactivar', $user) }}">
+                                                            @csrf
+                                                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors" title="Reactivar empleado" onclick="return confirm('¿Reactivar a {{ addslashes($baja->nombre ?? $user->name) }}? Volverá a aparecer como usuario activo.')">
+                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                                                Reactivar
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                    <form method="POST" action="{{ route('admin.users.rejections.destroy', $user) }}"
+                                                          onsubmit="return confirm('¿Eliminar permanentemente a {{ addslashes($baja->nombre ?? $user->name) }}? Esta acción no se puede deshacer.');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all" title="Eliminar permanentemente">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -312,4 +328,61 @@
 
     </div>
 </div>
+
+{{-- MODAL DAR DE BAJA --}}
+<div id="modalBaja" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalBaja()"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full z-10">
+            <form id="formBaja" method="POST">
+                @csrf
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-amber-100 rounded-full">
+                            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Dar de Baja</h3>
+                            <p class="text-sm text-slate-500">Usuario: <span id="bajaUserName" class="font-bold text-slate-700"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Motivo de Baja *</label>
+                            <select name="motivo_baja" required class="w-full rounded-xl border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">-- Seleccionar motivo --</option>
+                                <option value="Renuncia voluntaria">Renuncia voluntaria</option>
+                                <option value="Despido">Despido</option>
+                                <option value="Fin de contrato">Fin de contrato</option>
+                                <option value="Fin de prácticas">Fin de prácticas</option>
+                                <option value="Mutuo acuerdo">Mutuo acuerdo</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Observaciones</label>
+                            <textarea name="observaciones" rows="3" class="w-full rounded-xl border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500" placeholder="Detalles adicionales (opcional)..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
+                    <button type="button" onclick="cerrarModalBaja()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition shadow-sm">Confirmar Baja</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalBaja(userId, userName) {
+        document.getElementById('formBaja').action = `/admin/users/${userId}/baja`;
+        document.getElementById('bajaUserName').textContent = userName;
+        document.getElementById('modalBaja').classList.remove('hidden');
+    }
+    function cerrarModalBaja() {
+        document.getElementById('modalBaja').classList.add('hidden');
+    }
+</script>
 @endsection

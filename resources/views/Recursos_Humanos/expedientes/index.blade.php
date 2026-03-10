@@ -15,6 +15,7 @@
             
             {{-- Buscador --}}
             <form method="GET" class="flex gap-2 w-full sm:w-auto">
+                <input type="hidden" name="status" value="{{ $status }}">
                 <div class="relative w-full sm:w-64">
                     <input type="text" name="search" placeholder="Buscar por nombre, puesto..." value="{{ request('search') }}" class="w-full pl-4 pr-10 py-2 rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
                     <button type="submit" class="absolute right-2 top-2 text-slate-400 hover:text-indigo-600">
@@ -22,6 +23,23 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        {{-- Filtros por estado --}}
+        <div class="flex gap-2 mb-4">
+            @php
+                $filters = [
+                    'todos' => ['label' => 'Todos', 'icon' => '👥'],
+                    'activos' => ['label' => 'Activos', 'icon' => '✅'],
+                    'bajas' => ['label' => 'Dados de Baja', 'icon' => '🚫'],
+                ];
+            @endphp
+            @foreach($filters as $key => $filter)
+                <a href="{{ route('rh.expedientes.index', array_merge(request()->only('search'), ['status' => $key])) }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $status === $key ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
+                    {{ $filter['icon'] }} {{ $filter['label'] }}
+                </a>
+            @endforeach
         </div>
 
         {{-- Tabla --}}
@@ -40,16 +58,21 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
                         @forelse($empleados as $empleado)
-                            <tr id="emp-{{ $empleado->id }}" class="hover:bg-slate-50 transition group">
+                            <tr id="emp-{{ $empleado->id }}" class="hover:bg-slate-50 transition group {{ !$empleado->es_activo ? 'opacity-60' : '' }}">
                                 
                                 {{-- Empleado --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shadow-sm ring-2 ring-white text-xs">
+                                        <div class="h-10 w-10 rounded-full {{ !$empleado->es_activo ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700' }} flex items-center justify-center font-bold shadow-sm ring-2 ring-white text-xs">
                                             {{ substr($empleado->nombre, 0, 1) }}{{ substr($empleado->apellido_paterno, 0, 1) }}
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-bold text-slate-900">{{ $empleado->nombre }} {{ $empleado->apellido_paterno }}</div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="text-sm font-bold text-slate-900">{{ $empleado->nombre }} {{ $empleado->apellido_paterno }}</div>
+                                                @if(!$empleado->es_activo)
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">BAJA</span>
+                                                @endif
+                                            </div>
                                             <div class="text-xs text-slate-500">{{ $empleado->email }}</div>
                                         </div>
                                     </div>
@@ -89,7 +112,11 @@
 
                                 {{-- Estatus (Badge Calculado en Controller) --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    @if($empleado->doc_status == 'missing')
+                                    @if(!$empleado->es_activo)
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Baja
+                                        </span>
+                                    @elseif($empleado->doc_status == 'missing')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Incompleto
                                         </span>
