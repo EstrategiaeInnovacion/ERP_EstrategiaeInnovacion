@@ -742,49 +742,44 @@
 
     {{-- MODAL JUSTIFICAR FALTA --}}
     <div id="modalJustificar" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalJustificar()"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full z-10">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
                 <form method="POST" action="{{ route('rh.reloj.store') }}">
                     @csrf
                     <input type="hidden" name="empleado_id" id="justificar_empleado_id">
                     <input type="hidden" name="fecha_inicio" id="justificar_fecha_inicio">
                     <input type="hidden" name="fecha_fin" id="justificar_fecha_fin">
-
-                    <div class="px-6 pt-6 pb-4">
-                        <div class="flex items-center gap-3 mb-5">
-                            <div class="p-2 bg-orange-100 rounded-full">
-                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-900">Justificar Falta</h3>
-                                <p class="text-sm text-slate-500">
-                                    <span id="justificar_empleado_nombre" class="font-bold text-slate-700"></span>
-                                    — <span id="justificar_fecha_display" class="text-slate-600"></span>
-                                </p>
-                            </div>
-                        </div>
-
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">Justificar Falta</h3>
+                        <p class="text-sm text-gray-500 mb-4">
+                            <span id="justificar_empleado_nombre" class="font-bold text-gray-700"></span>
+                            — <span id="justificar_fecha_display" class="text-gray-600"></span>
+                        </p>
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">Motivo *</label>
-                                <select name="tipo_registro" id="justificar_motivo" required class="w-full rounded-xl border-slate-300 text-sm focus:ring-orange-500 focus:border-orange-500">
-                                    <option value="falta">❌ Falta Justificada</option>
-                                    <option value="vacaciones">🌴 Vacaciones</option>
-                                    <option value="incapacidad">🏥 Incapacidad</option>
-                                    <option value="permiso">📄 Permiso con Goce</option>
-                                    <option value="descanso">🏠 Día de Descanso</option>
+                                <label class="block text-sm font-medium text-gray-700">Tipo de Incidencia</label>
+                                <select name="tipo_registro" id="justificar_motivo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    <option value="falta">Falta</option>
+                                    <option value="vacaciones">Vacaciones</option>
+                                    <option value="incapacidad">Incapacidad</option>
+                                    <option value="permiso">Permiso con Goce</option>
+                                    <option value="descanso">Día de Descanso</option>
                                 </select>
                             </div>
+                            <div class="flex items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                <input id="justificar_checkbox" name="es_justificado" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" value="1">
+                                <label for="justificar_checkbox" class="ml-2 block text-sm text-gray-900 font-medium">Justificar Retardo / Falta</label>
+                            </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">Comentarios / Observaciones</label>
-                                <textarea name="comentarios" id="justificar_comentarios" rows="3" placeholder="Ej: Cita médica, permiso autorizado por gerencia..." class="w-full rounded-xl border-slate-300 text-sm focus:ring-orange-500 focus:border-orange-500 placeholder:text-slate-400"></textarea>
+                                <label class="block text-sm font-medium text-gray-700">Comentarios</label>
+                                <textarea name="comentarios" id="justificar_comentarios" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-slate-50 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
-                        <button type="button" onclick="cerrarModalJustificar()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition shadow-sm">Guardar Justificación</button>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Guardar</button>
+                        <button type="button" onclick="cerrarModalJustificar()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
                     </div>
                 </form>
             </div>
