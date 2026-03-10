@@ -376,6 +376,21 @@
 </div>
 
 <script>
+    // === Scroll Preservation ===
+    (function() {
+        const KEY = 'users_scroll';
+        const saved = sessionStorage.getItem(KEY);
+        if (saved) {
+            window.scrollTo(0, parseInt(saved));
+            sessionStorage.removeItem(KEY);
+        }
+        document.querySelectorAll('form').forEach(function(form) {
+            form.addEventListener('submit', function() {
+                sessionStorage.setItem(KEY, window.scrollY);
+            });
+        });
+    })();
+
     function abrirModalBaja(userId, userName) {
         document.getElementById('formBaja').action = `/admin/users/${userId}/baja`;
         document.getElementById('bajaUserName').textContent = userName;

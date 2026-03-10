@@ -421,6 +421,7 @@
                                 <select name="tipo_registro" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                     <option value="asistencia">Asistencia Normal</option>
                                     <option value="falta">Falta</option>
+                                    <option value="incompleto">Incompleto</option>
                                     <option value="vacaciones">Vacaciones</option>
                                     <option value="incapacidad">Incapacidad</option>
                                     <option value="permiso">Permiso con Goce</option>
@@ -527,6 +528,21 @@
     </div>
     
     <script>
+        // === Scroll Preservation ===
+        (function() {
+            const KEY = 'reloj_scroll';
+            const saved = sessionStorage.getItem(KEY);
+            if (saved) {
+                window.scrollTo(0, parseInt(saved));
+                sessionStorage.removeItem(KEY);
+            }
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    sessionStorage.setItem(KEY, window.scrollY);
+                });
+            });
+        })();
+
         // Importador JS (Sin cambios)
         document.getElementById('importForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -577,7 +593,10 @@
                 progressBar.style.width = '100%';
                 progressPercent.innerText = '100%';
                 progressMessage.innerText = '¡Completado!';
-                setTimeout(() => window.location.reload(), 1000);
+                setTimeout(() => {
+                    sessionStorage.setItem('reloj_scroll', window.scrollY);
+                    window.location.reload();
+                }, 1000);
             })
             .catch(error => {
                 clearInterval(pollInterval);
