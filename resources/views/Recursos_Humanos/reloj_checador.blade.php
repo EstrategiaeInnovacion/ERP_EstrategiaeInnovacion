@@ -294,6 +294,14 @@
                                         </button>
                                     @endif
 
+                                    {{-- Botón de Historial de Avisos (Solo si tiene avisos previos) --}}
+                                    @if($empleado->avisosAsistencia->count() > 0)
+                                        <button onclick="abrirModalHistorialAvisos('{{ addslashes($empleado->nombre) }}', {{ json_encode($empleado->avisosAsistencia) }})" class="inline-flex items-center px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-lg text-xs font-medium text-amber-700 shadow-sm hover:bg-amber-100 transition" title="Ver historial de avisos">
+                                            <svg class="w-3.5 h-3.5 mr-1.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            Historial Avisos
+                                        </button>
+                                    @endif
+
                                     <button onclick="abrirModalAsistencia({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}')" class="inline-flex items-center px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Registrar Asistencia
@@ -915,6 +923,45 @@
         </div>
     </div>
 
+    {{-- MODAL HISTORIAL DE AVISOS --}}
+    <div id="modalHistorialAvisos" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalHistorialAvisos()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Historial de Avisos: <span id="historial_nombre_display" class="font-bold"></span></h3>
+                            <div class="mt-4 overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha / Tipo</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período / Incidencias</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enviado por</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="historial_avisos_body" class="bg-white divide-y divide-gray-200">
+                                        {{-- Llenado por JS --}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="cerrarModalHistorialAvisos()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
         // Modal Aviso
@@ -969,6 +1016,56 @@
                 cantidadDisplay.innerText = '0 (Llamado General)';
                 mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\n`;
             }
+        }
+
+        // Historial de Avisos
+        function abrirModalHistorialAvisos(nombre, avisos) {
+            document.getElementById('historial_nombre_display').innerText = nombre;
+            let tbody = document.getElementById('historial_avisos_body');
+            tbody.innerHTML = '';
+
+            avisos.forEach(aviso => {
+                let tr = document.createElement('tr');
+                
+                // Formatear Fecha
+                let fechaObj = new Date(aviso.created_at);
+                let fechaStr = fechaObj.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                
+                // Tipo y Color
+                let tipoBadge = '';
+                if(aviso.tipo === 'retardos') tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Retardos</span>';
+                else if(aviso.tipo === 'faltas') tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Faltas</span>';
+                else tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">General</span>';
+
+                // Estado de Lectura
+                let estadoBadge = aviso.leido 
+                    ? `<span class="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Leído</span><br><span class="text-[10px] text-gray-400">el ${new Date(aviso.leido_at).toLocaleDateString('es-ES')}</span>` 
+                    : '<span class="inline-flex items-center gap-1 text-xs text-amber-500 font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Pendiente</span>';
+
+                tr.innerHTML = `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <div class="font-medium">${fechaStr}</div>
+                        <div class="mt-1">${tipoBadge}</div>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <div class="font-medium text-gray-900">${aviso.periodo}</div>
+                        <div class="text-xs">${aviso.cantidad_incidencias} incidencias</div>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
+                        ${aviso.enviado_por ? aviso.enviado_por.name : 'Sistema'}
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">
+                        ${estadoBadge}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('modalHistorialAvisos').classList.remove('hidden');
+        }
+
+        function cerrarModalHistorialAvisos() {
+            document.getElementById('modalHistorialAvisos').classList.add('hidden');
         }
     </script>
     @endpush

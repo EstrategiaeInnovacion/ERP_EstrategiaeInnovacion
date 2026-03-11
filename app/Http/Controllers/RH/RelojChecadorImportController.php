@@ -55,10 +55,15 @@ class RelojChecadorImportController extends Controller
                 );
             })
             ->orderBy('nombre')
-            ->with(['asistencias' => function ($q) use ($inicio, $dbFechaFin) {
-            $q->where('fecha', '>=', $inicio)
-                ->where('fecha', '<', $dbFechaFin);
-        }])
+            ->with([
+                'asistencias' => function ($q) use ($inicio, $dbFechaFin) {
+                    $q->where('fecha', '>=', $inicio)
+                      ->where('fecha', '<', $dbFechaFin);
+                },
+                'avisosAsistencia' => function ($q) {
+                    $q->orderBy('created_at', 'desc')->with('enviadoPor');
+                }
+            ])
             ->paginate(15)
             ->withQueryString();
 
