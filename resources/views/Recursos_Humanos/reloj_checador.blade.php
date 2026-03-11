@@ -463,9 +463,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse">
+                    <div class="bg-gray-50 px-4 py-3 flex flex-col sm:flex-row-reverse gap-2">
                         <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Guardar Cambios</button>
-                        <button type="button" onclick="cerrarModalEdicion()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
+                        <button type="button" onclick="cerrarModalEdicion()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
+                        <button type="button" onclick="eliminarRegistro()" class="w-full inline-flex justify-center items-center gap-1.5 rounded-md border border-red-300 shadow-sm px-4 py-2 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 sm:w-auto sm:mr-auto">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                            Revertir / Deshacer
+                        </button>
                     </div>
                 </form>
             </div>
@@ -652,16 +656,44 @@
         });
 
         // Modales
+        var currentRecordId = null;
+
         function abrirModalEdicion(asistencia) {
             const form = document.getElementById('formEdicion');
             form.action = `/recursos-humanos/reloj/update/${asistencia.id}`;
             form.querySelector('[name="tipo_registro"]').value = asistencia.tipo_registro;
             form.querySelector('[name="comentarios"]').value = asistencia.comentarios || '';
             form.querySelector('[name="es_justificado"]').checked = asistencia.es_justificado;
+            currentRecordId = asistencia.id;
             document.getElementById('modalEdicion').classList.remove('hidden');
         }
         function cerrarModalEdicion() {
             document.getElementById('modalEdicion').classList.add('hidden');
+        }
+        function eliminarRegistro() {
+            if (!currentRecordId) return;
+            if (!confirm('¿Deshacer los cambios de este registro?\n\n• Si tiene horario: volverá a su estado original (retardo/asistencia).\n• Si fue creado manualmente: se eliminará por completo.')) return;
+            
+            sessionStorage.setItem('reloj_scroll', window.scrollY.toString());
+            
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/recursos-humanos/reloj/revertir/' + currentRecordId;
+            
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            var method = document.createElement('input');
+            method.type = 'hidden';
+            method.name = '_method';
+            method.value = 'DELETE';
+            form.appendChild(method);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         // Nueva función para abrir modal desde "Sin Registro" pre-llenado

@@ -268,6 +268,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::post('/store', 'store')->name('store');
             Route::put('/update/{id}', 'update')->name('update');
             Route::post('/store-manual', 'storeManual')->name('storeManual');
+            Route::delete('/revertir/{id}', 'revertir')->name('revertir');
             Route::delete('/clear', 'clear')->name('clear');
         }
         );

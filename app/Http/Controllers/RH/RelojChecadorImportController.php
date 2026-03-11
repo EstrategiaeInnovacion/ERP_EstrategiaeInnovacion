@@ -362,4 +362,53 @@ class RelojChecadorImportController extends Controller
         Asistencia::truncate();
         return redirect()->route('rh.reloj.index')->with('success', 'Base de datos de asistencia vaciada correctamente.');
     }
+
+    /**
+     * Revertir un registro a su estado original.
+     * - Si tiene entrada/salida: vuelve a 'asistencia', recalcula retardo, quita justificación.
+     * - Si no tiene horarios (creado manualmente): lo elimina por completo.
+     */
+    public function revertir($id)
+    {
+        $asistencia = Asistencia::findOrFail($id);
+
+        // Si tiene horarios, revertir al estado original
+        if ($asistencia->entrada || $asistencia->salida) {
+            // Recalcular si era retardo (entrada después de las 9:00)
+            $esRetardo = false;
+            if ($asistencia->entrada) {
+                try {
+                    $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
+                    $limite = Carbon::createFromFormat('H:i', '09:00');
+                    $esRetardo = $horaEntrada->gt($limite);
+                } catch (\Exception $e) {
+                    try {
+                        $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
+                        $limite = Carbon::createFromFormat('H:i', '09:00');
+                        $esRetardo = $horaEntrada->gt($limite);
+                    } catch (\Exception $e2) {}
+                }
+            }
+
+            // Determinar tipo: si falta salida es 'incompleto', si no es 'asistencia'
+            $tipo = 'asistencia';
+            if ($asistencia->entrada && !$asistencia->salida) {
+                $tipo = 'incompleto';
+            }
+
+            $asistencia->update([
+                'tipo_registro' => $tipo,
+                'es_justificado' => false,
+                'es_retardo' => $esRetardo,
+                'comentarios' => null,
+            ]);
+
+            return back()->with('success', 'Registro revertido a su estado original.');
+        }
+
+        // Si no tiene horarios, fue creado manualmente — eliminar
+        $asistencia->delete();
+
+        return back()->with('success', 'Registro eliminado correctamente. El día queda disponible para un nuevo registro.');
+    }
 }
