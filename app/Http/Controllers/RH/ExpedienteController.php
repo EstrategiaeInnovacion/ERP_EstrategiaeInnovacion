@@ -5,6 +5,8 @@ namespace App\Http\Controllers\RH;
 use App\Http\Controllers\Controller;
 use App\Models\Empleado;
 use App\Models\EmpleadoDocumento;
+use App\Models\EmpleadoBaja;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -302,5 +304,75 @@ class ExpedienteController extends Controller
 
         // Retorna el archivo para descarga/visualización
         return Storage::disk('local')->response($doc->ruta_archivo);
+    }
+
+    /**
+     * Dar de baja a un empleado desde el módulo RH.
+     */
+    public function darDeBaja(Request $request, $id)
+    {
+        $data = $request->validate([
+            'motivo_baja' => 'required|string|max:255',
+            'observaciones' => 'nullable|string|max:1000',
+        ]);
+
+        $empleado = Empleado::findOrFail($id);
+
+        if (!$empleado->es_activo) {
+            return back()->with('info', 'Este empleado ya está dado de baja.');
+        }
+
+        // Registrar la baja
+        EmpleadoBaja::create([
+            'empleado_id' => $empleado->id,
+            'user_id' => $empleado->user_id,
+            'nombre' => $empleado->nombre,
+            'correo' => $empleado->correo,
+            'motivo_baja' => $data['motivo_baja'],
+            'fecha_baja' => now()->toDateString(),
+            'observaciones' => $data['observaciones'],
+        ]);
+
+        // Desactivar empleado
+        $empleado->update(['es_activo' => false]);
+
+        // Desactivar cuenta de usuario asociada
+        if ($empleado->user_id) {
+            User::where('id', $empleado->user_id)->update([
+                'status' => User::STATUS_REJECTED,
+                'rejected_at' => now(),
+            ]);
+        }
+
+        return back()->with('success', $empleado->nombre . ' ha sido dado(a) de baja exitosamente.');
+    }
+
+    /**
+     * Reactivar a un empleado dado de baja.
+     */
+    public function reactivar($id)
+    {
+        $empleado = Empleado::findOrFail($id);
+
+        if ($empleado->es_activo) {
+            return back()->with('info', 'Este empleado ya está activo.');
+        }
+
+        // Reactivar empleado
+        $empleado->update(['es_activo' => true]);
+
+        // Reactivar cuenta de usuario asociada
+        if ($empleado->user_id) {
+            User::where('id', $empleado->user_id)->update([
+                'status' => User::STATUS_APPROVED,
+                'approved_at' => now(),
+                'rejected_at' => null,
+            ]);
+        }
+
+        // Eliminar registro de baja
+        EmpleadoBaja::where('empleado_id', $empleado->id)->delete();
+
+        return back()->with('success', $empleado->nombre . ' ha sido reactivado(a) exitosamente.');
     }
 }

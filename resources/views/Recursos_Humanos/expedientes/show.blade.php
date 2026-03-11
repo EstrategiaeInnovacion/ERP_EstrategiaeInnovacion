@@ -30,6 +30,20 @@
         </div>
         
         <div class="flex gap-2">
+            @if($empleado->es_activo)
+                <button onclick="document.getElementById('modalBaja').classList.remove('hidden')" class="px-4 py-2 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm font-medium hover:bg-red-100 shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                    Dar de Baja
+                </button>
+            @else
+                <form action="{{ route('rh.expedientes.reactivar', $empleado->id) }}" method="POST" onsubmit="return confirm('¿Reactivar a {{ addslashes($empleado->nombre) }}? Volverá a aparecer como empleado activo.')">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-700 text-sm font-medium hover:bg-emerald-100 shadow-sm transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Reactivar
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('rh.expedientes.index', request()->only(['page', 'search'])) }}" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-50 shadow-sm transition">Volver</a>
         </div>
     </div>
@@ -556,4 +570,55 @@
         }
     });
 </script>
+
+{{-- MODAL DAR DE BAJA --}}
+<div id="modalBaja" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="document.getElementById('modalBaja').classList.add('hidden')"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full z-10">
+            <form method="POST" action="{{ route('rh.expedientes.baja', $empleado->id) }}">
+                @csrf
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="p-2 bg-red-100 rounded-full">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Dar de Baja</h3>
+                            <p class="text-sm text-slate-500">{{ $empleado->nombre }}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Motivo de Baja *</label>
+                            <select name="motivo_baja" required class="w-full rounded-xl border-slate-300 text-sm focus:ring-red-500 focus:border-red-500">
+                                <option value="">-- Seleccionar motivo --</option>
+                                <option value="Renuncia voluntaria">Renuncia voluntaria</option>
+                                <option value="Despido justificado">Despido justificado</option>
+                                <option value="Fin de contrato">Fin de contrato</option>
+                                <option value="Jubilación">Jubilación</option>
+                                <option value="Abandono de empleo">Abandono de empleo</option>
+                                <option value="Restructuración">Restructuración</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Observaciones</label>
+                            <textarea name="observaciones" rows="3" placeholder="Detalles adicionales sobre la baja..." class="w-full rounded-xl border-slate-300 text-sm focus:ring-red-500 focus:border-red-500 placeholder:text-slate-400"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-xs text-red-700 font-medium">⚠️ Esta acción desactivará al empleado y su cuenta de acceso al sistema. Podrá ser reactivado posteriormente.</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modalBaja').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition shadow-sm">Confirmar Baja</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

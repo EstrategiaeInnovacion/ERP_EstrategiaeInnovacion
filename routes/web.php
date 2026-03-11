@@ -284,6 +284,8 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::delete('/documento/{id}', 'deleteDocument')->name('delete-doc');
             Route::post('/{id}/import-excel', 'importFormatoId')->name('import-excel');
             Route::get('/documento/{id}/descargar', 'downloadDocument')->name('download');
+            Route::post('/{id}/baja', 'darDeBaja')->name('baja');
+            Route::post('/{id}/reactivar', 'reactivar')->name('reactivar');
         }
         );
 
