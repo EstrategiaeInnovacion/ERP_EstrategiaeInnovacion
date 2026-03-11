@@ -97,6 +97,37 @@
                     </div>
                 </div>
 
+                {{-- SECCIÓN DE AVISOS DE ASISTENCIA (SI HAY PENDIENTES) --}}
+                @if(isset($avisosPendientes) && $avisosPendientes->count() > 0)
+                    <div class="mb-10 space-y-4">
+                        @foreach($avisosPendientes as $aviso)
+                            <div class="bg-amber-50 rounded-2xl p-6 border border-amber-200 shadow-sm flex flex-col sm:flex-row gap-5 items-start sm:items-center relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-amber-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-50"></div>
+                                
+                                <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                </div>
+                                <div class="flex-1 relative z-10">
+                                    <h3 class="text-lg font-bold text-amber-900 flex items-center gap-2">
+                                        {{ $aviso->tipo == 'retardos' ? 'Aviso por Retardos' : ($aviso->tipo == 'faltas' ? 'Aviso por Faltas' : 'Aviso de Asistencia') }}
+                                        <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-800 border border-amber-300">{{ $aviso->cantidad_incidencias }} incidencias en {{ $aviso->periodo }}</span>
+                                    </h3>
+                                    <p class="mt-2 text-sm text-amber-800 bg-white/50 p-3 rounded-lg border border-amber-100 whitespace-pre-line">{{ $aviso->mensaje }}</p>
+                                </div>
+                                <div class="relative z-10 sm:ml-auto w-full sm:w-auto">
+                                    <form action="{{ route('rh.reloj.aviso_leido', $aviso->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-white border-2 border-amber-600 text-amber-700 font-bold rounded-xl hover:bg-amber-600 hover:text-white transition-all duration-300 shadow-sm flex items-center justify-center gap-2 group">
+                                            <svg class="w-4 h-4 text-amber-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Entendido
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
                 {{-- 2. SECCIÓN: GESTIÓN Y PRODUCTIVIDAD (Módulos Principales) --}}
                 <div class="mb-10">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">

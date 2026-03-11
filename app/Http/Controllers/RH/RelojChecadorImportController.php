@@ -5,6 +5,7 @@ namespace App\Http\Controllers\RH;
 use App\Http\Controllers\Controller;
 use App\Models\Asistencia;
 use App\Models\Empleado;
+use App\Models\AvisoAsistencia;
 use App\Services\ProcesarAsistenciaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -410,5 +411,31 @@ class RelojChecadorImportController extends Controller
         $asistencia->delete();
 
         return back()->with('success', 'Registro eliminado correctamente. El día queda disponible para un nuevo registro.');
+    }
+
+    /**
+     * Enviar aviso de asistencia al empleado (visible en dashboard).
+     */
+    public function enviarAviso(Request $request)
+    {
+        $request->validate([
+            'empleado_id' => 'required|exists:empleados,id',
+            'tipo' => 'required|in:retardos,faltas,general',
+            'cantidad_incidencias' => 'required|integer|min:0',
+            'periodo' => 'required|string|max:255',
+            'mensaje' => 'required|string',
+        ]);
+
+        AvisoAsistencia::create([
+            'empleado_id' => $request->empleado_id,
+            'enviado_por' => auth()->id(),
+            'tipo' => $request->tipo,
+            'periodo' => $request->periodo,
+            'cantidad_incidencias' => $request->cantidad_incidencias,
+            'mensaje' => $request->mensaje,
+            'leido' => false,
+        ]);
+
+        return back()->with('success', 'Aviso enviado exitosamente al dashboard del empleado.');
     }
 }

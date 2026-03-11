@@ -286,6 +286,14 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
+                                    {{-- Botón de Aviso (Solo si tiene retardos o faltas) --}}
+                                    @if($retardosEmp > 0 || $faltasEmp > 0)
+                                        <button onclick="abrirModalAviso({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', {{ $retardosEmp }}, {{ $faltasEmp }}, '{{ $fechaInicioFormato }} al {{ $fechaFinFormato }}')" class="inline-flex items-center px-3 py-1.5 bg-rose-50 border border-rose-300 rounded-lg text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-100 transition" title="Enviar aviso al empleado">
+                                            <svg class="w-3.5 h-3.5 mr-1.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                            Enviar Aviso
+                                        </button>
+                                    @endif
+
                                     <button onclick="abrirModalAsistencia({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}')" class="inline-flex items-center px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Registrar Asistencia
@@ -852,4 +860,116 @@
             </div>
         </div>
     </div>
+    {{-- MODAL ENVIAR AVISO --}}
+    <div id="modalAviso" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalAviso()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <form action="{{ route('rh.reloj.aviso') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="empleado_id" id="aviso_empleado_id">
+                    <input type="hidden" name="cantidad_incidencias" id="aviso_cantidad">
+                    <input type="hidden" name="periodo" id="aviso_periodo">
+
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-rose-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="aviso_titulo_modal">Enviar Aviso de Asistencia</h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Tipo de Alerta</label>
+                                        <select name="tipo" id="aviso_tipo" onchange="actualizarMensajeAviso()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                            <option value="retardos">Acumulación de Retardos</option>
+                                            <option value="faltas">Acumulación de Faltas</option>
+                                            <option value="general">Llamado de Atención General</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 flex justify-between">
+                                            <span>Mensaje a enviar</span>
+                                            <span class="text-xs text-gray-400 font-normal">Saldrá en el dashboard de <span id="aviso_nombre_display">el empleado</span></span>
+                                        </label>
+                                        <textarea name="mensaje" id="aviso_mensaje" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required></textarea>
+                                    </div>
+                                    <div class="bg-gray-50 border border-gray-200 rounded p-3 text-sm text-gray-600">
+                                        Período evaluado: <span id="aviso_periodo_display" class="font-semibold text-gray-800"></span><br>
+                                        Incidencias: <span id="aviso_cantidad_display" class="font-semibold text-rose-600">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-rose-600 text-base font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Enviar Aviso
+                        </button>
+                        <button type="button" onclick="cerrarModalAviso()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        // Modal Aviso
+        let currentAvisoNombre = '';
+        let currentAvisoRetardos = 0;
+        let currentAvisoFaltas = 0;
+
+        function abrirModalAviso(id, nombre, retardos, faltas, periodo) {
+            document.getElementById('aviso_empleado_id').value = id;
+            document.getElementById('aviso_periodo').value = periodo;
+            document.getElementById('aviso_periodo_display').innerText = periodo;
+            document.getElementById('aviso_nombre_display').innerText = nombre;
+            
+            currentAvisoNombre = nombre;
+            currentAvisoRetardos = retardos;
+            currentAvisoFaltas = faltas;
+
+            // Preseleccionar tipo según las incidencias (prioridad a faltas si hay ambos, o retardos si hay más, etc.)
+            let selectTipo = document.getElementById('aviso_tipo');
+            if (faltas > 0 && faltas >= retardos) {
+                selectTipo.value = 'faltas';
+            } else if (retardos > 0) {
+                selectTipo.value = 'retardos';
+            } else {
+                selectTipo.value = 'general';
+            }
+
+            actualizarMensajeAviso();
+            document.getElementById('modalAviso').classList.remove('hidden');
+        }
+
+        function cerrarModalAviso() {
+            document.getElementById('modalAviso').classList.add('hidden');
+        }
+
+        function actualizarMensajeAviso() {
+            let tipo = document.getElementById('aviso_tipo').value;
+            let mensaje = document.getElementById('aviso_mensaje');
+            let cantidadInput = document.getElementById('aviso_cantidad');
+            let cantidadDisplay = document.getElementById('aviso_cantidad_display');
+
+            if (tipo === 'retardos') {
+                cantidadInput.value = currentAvisoRetardos;
+                cantidadDisplay.innerText = currentAvisoRetardos + ' retardos';
+                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nSe le recuerda de manera atenta la importancia de cumplir con su horario de entrada. Actualmente, en este período se han registrado ${currentAvisoRetardos} retardos injustificados en su asistencia.\n\nLe solicitamos tomar las medidas necesarias.`;
+            } else if (tipo === 'faltas') {
+                cantidadInput.value = currentAvisoFaltas;
+                cantidadDisplay.innerText = currentAvisoFaltas + ' faltas';
+                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nHemos detectado ${currentAvisoFaltas} faltas sin justificación en el período actual.\n\nLe recordamos la obligación de reportar o justificar sus inasistencias en tiempo y forma con el departamento correspondiente.`;
+            } else {
+                cantidadInput.value = 0;
+                cantidadDisplay.innerText = '0 (Llamado General)';
+                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\n`;
+            }
+        }
+    </script>
+    @endpush
 @endsection

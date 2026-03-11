@@ -180,4 +180,9 @@ class Empleado extends Model
             'msg' => 'Expediente al día'
         ];
     }
+
+    public function avisosAsistencia()
+    {
+        return $this->hasMany(AvisoAsistencia::class);
+    }
 }

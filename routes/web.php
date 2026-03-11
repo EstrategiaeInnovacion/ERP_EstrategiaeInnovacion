@@ -37,6 +37,16 @@ use App\Http\Controllers\Logistica\ColumnaVisibleController;
 
 // 1. RUTAS PÚBLICAS
 Route::get('/', function () {
+    if (auth()->check()) {
+        $empleado = auth()->user()->empleado;
+        $avisosPendientes = [];
+        if ($empleado) {
+            $avisosPendientes = \App\Models\AvisoAsistencia::where('empleado_id', $empleado->id)
+                ->where('leido', false)
+                ->get();
+        }
+        return view('welcome', compact('avisosPendientes'));
+    }
     return view('welcome');
 })->name('welcome');
 
@@ -270,6 +280,14 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::post('/store-manual', 'storeManual')->name('storeManual');
             Route::delete('/revertir/{id}', 'revertir')->name('revertir');
             Route::delete('/clear', 'clear')->name('clear');
+            Route::post('/aviso', 'enviarAviso')->name('aviso');
+            
+            // Ruta para marcar aviso como leído en el dashboard
+            Route::post('/aviso-leido/{id}', function(\Illuminate\Http\Request $request, $id) {
+                $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
+                $aviso->update(['leido' => true, 'leido_at' => now()]);
+                return back()->with('success', 'Aviso marcado como leído.');
+            })->name('aviso_leido');
         }
         );
 
