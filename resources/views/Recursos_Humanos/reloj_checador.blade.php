@@ -363,17 +363,25 @@
 
                                             {{-- Contenido Central --}}
                                             <div class="text-center h-12 flex flex-col justify-center items-center">
-                                                @if($asistencia && in_array($asistencia->tipo_registro, ['asistencia', 'incompleto']))
-                                                    <div class="text-xs font-mono font-bold {{ $asistencia->tipo_registro == 'incompleto' ? 'text-yellow-800' : 'text-gray-800' }} block">
-                                                        {{ $asistencia->entrada ? substr($asistencia->entrada, 0, 5) : '--:--' }}
-                                                        <span class="text-gray-300 mx-0.5">-</span>
-                                                        {{ $asistencia->salida ? substr($asistencia->salida, 0, 5) : '--:--' }}
-                                                    </div>
-                                                    
+                                                @if($asistencia)
+                                                    {{-- Mostrar horarios si existen, sin importar el tipo --}}
+                                                    @if($asistencia->entrada || $asistencia->salida)
+                                                        <div class="text-xs font-mono font-bold {{ $asistencia->tipo_registro == 'incompleto' ? 'text-yellow-800' : 'text-gray-800' }} block">
+                                                            {{ $asistencia->entrada ? substr($asistencia->entrada, 0, 5) : '--:--' }}
+                                                            <span class="text-gray-300 mx-0.5">-</span>
+                                                            {{ $asistencia->salida ? substr($asistencia->salida, 0, 5) : '--:--' }}
+                                                        </div>
+                                                    @endif
+
                                                     @if($asistencia->tipo_registro == 'incompleto')
                                                         <span class="text-[9px] font-bold text-yellow-600 bg-yellow-100 px-1 rounded mt-0.5">⚠️ Incompleto</span>
+                                                    @elseif(!in_array($asistencia->tipo_registro, ['asistencia']))
+                                                        {{-- Mostrar etiqueta del tipo para registros no-asistencia --}}
+                                                        <span class="text-[9px] font-bold {{ $textClass }} truncate w-full mt-0.5">
+                                                            {{ $icon }} {{ ucfirst($asistencia->tipo_registro) }}
+                                                        </span>
                                                     @else
-                                                        {{-- Cálculo de Horas Diarias --}}
+                                                        {{-- Cálculo de Horas Diarias (solo asistencia normal) --}}
                                                         @php
                                                             $horasDia = null;
                                                             if($asistencia->entrada && $asistencia->salida) {
@@ -387,7 +395,7 @@
                                                                 } catch(\Exception $e) {}
                                                             }
                                                         @endphp
-                                                        
+
                                                         @if($horasDia)
                                                             <span class="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 rounded mt-0.5">
                                                                 {{ $horasDia }}
@@ -396,10 +404,6 @@
 
                                                         @if($icon) <span class="text-[10px] mt-0.5 block">{{ $icon }}</span> @endif
                                                     @endif
-                                                @elseif($asistencia)
-                                                    <span class="text-xs font-bold {{ $textClass }} truncate w-full">
-                                                        {{ $icon }} {{ ucfirst($asistencia->tipo_registro) }}
-                                                    </span>
                                                 @else
                                                     <span class="text-[10px] text-gray-300 italic group-hover/day:text-indigo-400">
                                                         -- Vacío --
@@ -552,15 +556,27 @@
         // === Scroll Preservation ===
         (function() {
             const KEY = 'reloj_scroll';
-            const saved = sessionStorage.getItem(KEY);
-            if (saved) {
-                window.scrollTo(0, parseInt(saved));
-                sessionStorage.removeItem(KEY);
-            }
-            document.querySelectorAll('form').forEach(function(form) {
-                form.addEventListener('submit', function() {
-                    sessionStorage.setItem(KEY, window.scrollY);
+
+            // Save scroll position on ANY form submit
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('form').forEach(function(form) {
+                    form.addEventListener('submit', function() {
+                        sessionStorage.setItem(KEY, window.scrollY.toString());
+                    });
                 });
+            });
+
+            // Restore scroll AFTER page is fully loaded and rendered
+            window.addEventListener('load', function() {
+                const saved = sessionStorage.getItem(KEY);
+                if (saved) {
+                    sessionStorage.removeItem(KEY);
+                    const pos = parseInt(saved, 10);
+                    // Use rAF to ensure the browser has finished painting
+                    requestAnimationFrame(function() {
+                        window.scrollTo(0, pos);
+                    });
+                }
             });
         })();
 

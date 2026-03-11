@@ -21,8 +21,12 @@ class ExpedienteController extends Controller
         $query = Empleado::query();
 
         if ($request->search) {
-            $query->where('nombre', 'like', "%{$request->search}%")
-                ->orWhere('apellido_paterno', 'like', "%{$request->search}%");
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('id_empleado', 'like', "%{$search}%")
+                  ->orWhere('posicion', 'like', "%{$search}%");
+            });
         }
 
         // Filtro por estado activo/baja
@@ -35,7 +39,7 @@ class ExpedienteController extends Controller
         }
 
         // Usamos 'with' para traer los documentos y calcular el % óptimamente
-        $empleados = $query->with('documentos')->paginate(12);
+        $empleados = $query->with('documentos')->paginate(12)->withQueryString();
 
         return view('Recursos_Humanos.expedientes.index', compact('empleados', 'status'));
     }
