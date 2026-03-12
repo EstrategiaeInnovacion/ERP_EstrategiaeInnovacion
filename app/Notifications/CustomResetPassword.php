@@ -14,14 +14,9 @@ class CustomResetPassword extends Notification
     /**
      * Create a new notification instance.
      */
-    public $token;
-
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct($token)
+    public function __construct()
     {
-        $this->token = $token;
+        //
     }
 
     /**
@@ -39,17 +34,10 @@ class CustomResetPassword extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $url = url(route('password.reset', [
-            'token' => $this->token,
-            'email' => $notifiable->getEmailForPasswordReset(),
-        ], false));
-
         return (new MailMessage)
-            ->subject('Restablecimiento de Contraseña')
-            ->markdown('Sistemas_IT.emails.auth.reset_password', [
-                'url' => $url,
-                'user' => $notifiable,
-            ]);
+            ->line('The introduction to the notification.')
+            ->action('Notification Action', url('/'))
+            ->line('Thank you for using our application!');
     }
 
     /**
