@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\MicrosoftGraph\Transport\MicrosoftGraphTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,21 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        Mail::extend('microsoft-graph', function (array $config) {
+            $factory = new MicrosoftGraphTransportFactory();
+            
+            $dsn = new Dsn(
+                'microsoftgraph+api',
+                'default',
+                $config['client_id'] ?? env('MICROSOFT_GRAPH_CLIENT_ID'),
+                $config['client_secret'] ?? env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+                null,
+                ['tenantId' => $config['tenant_id'] ?? env('MICROSOFT_GRAPH_TENANT_ID')]
+            );
+
+            return $factory->create($dsn);
+        });
 
         // Definir gates para acceso a paneles por posición
         Gate::define('ver_rh', function ($user) {
