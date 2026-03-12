@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Bridge\MicrosoftGraph\Transport\MicrosoftGraphTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
+use Symfony\Component\HttpClient\HttpClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Mail::extend('microsoft-graph', function (array $config) {
-            $factory = new MicrosoftGraphTransportFactory();
+            $factory = new MicrosoftGraphTransportFactory(null, HttpClient::create());
             
             $dsn = new Dsn(
                 'microsoftgraph+api',
