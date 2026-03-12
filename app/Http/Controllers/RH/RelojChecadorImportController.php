@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Asistencia;
 use App\Models\Empleado;
 use App\Models\AvisoAsistencia;
+use App\Mail\AvisoAsistenciaMailable;
 use App\Services\ProcesarAsistenciaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB; // Importante para las transacciones
 use Carbon\Carbon;
@@ -431,7 +433,7 @@ class RelojChecadorImportController extends Controller
             'mensaje' => 'required|string',
         ]);
 
-        AvisoAsistencia::create([
+        $aviso = AvisoAsistencia::create([
             'empleado_id' => $request->empleado_id,
             'enviado_por' => auth()->id(),
             'tipo' => $request->tipo,
@@ -441,6 +443,22 @@ class RelojChecadorImportController extends Controller
             'leido' => false,
         ]);
 
-        return back()->with('success', 'Aviso enviado exitosamente al dashboard del empleado.');
+        // Enviar Correo Electrónico
+        try {
+            // Obtener el usuario del empleado para saber su correo
+            $usuarioEmpleado = $aviso->empleado->user;
+            
+            if ($usuarioEmpleado && $usuarioEmpleado->email) {
+                // Enviar correo principal al empleado, y poner con copia al jefe de RH (o a quien envíe)
+                Mail::to($usuarioEmpleado->email)
+                    ->cc(auth()->user()->email)
+                    ->send(new AvisoAsistenciaMailable($aviso));
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al enviar correo de aviso de asistencia: ' . $e->getMessage());
+            // No interrumpimos el flujo si falla el correo, el aviso igual queda en el dashboard
+        }
+
+        return back()->with('success', 'Aviso enviado exitosamente al dashboard y por correo electrónico (si aplica).');
     }
 }
