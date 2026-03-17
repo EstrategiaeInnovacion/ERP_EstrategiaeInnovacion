@@ -41,6 +41,9 @@ class StoreOperacionRequest extends FormRequest
             
             // Si manejas arrays de mercancías o extras
             'mercancias'          => 'nullable|array',
+            
+            // Status
+            'status_manual'       => 'nullable|string|in:,In Process,Done,Out of Metric',
         ];
     }
 

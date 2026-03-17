@@ -338,9 +338,13 @@ class OperacionLogistica extends Model
             $nuevoColor = 'amarillo';
         }
 
-        if ($this->status_manual === 'Done') {
-            $nuevoStatus = 'Done';
-            $nuevoColor = 'verde';
+        if (!empty($this->status_manual)) {
+            $nuevoStatus = $this->status_manual;
+            $nuevoColor = match($this->status_manual) {
+                'Done' => 'verde',
+                'Out of Metric' => 'rojo',
+                default => 'amarillo',
+            };
         }
 
         $this->dias_transcurridos_calculados = $diasTranscurridos ?? 0;

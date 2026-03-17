@@ -49,6 +49,9 @@ class UpdateOperacionRequest extends FormRequest
             
             // Configuración
             'mail_subject'        => 'nullable|string|max:255',
+            
+            // Status
+            'status_manual'       => 'nullable|string|in:,In Process,Done,Out of Metric',
         ];
     }
 
