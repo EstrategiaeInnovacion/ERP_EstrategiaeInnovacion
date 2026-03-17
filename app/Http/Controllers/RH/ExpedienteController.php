@@ -87,6 +87,13 @@ class ExpedienteController extends Controller
             return back()->with('success', 'Tipo de expediente actualizado correctamente.');
         }
 
+        // Validar que id_empleado no pueda ser vacío o nulo
+        // Si viene vacío, mantener el valor actual
+        $idEmpleado = $request->input('id_empleado');
+        if (empty($idEmpleado)) {
+            $request->merge(['id_empleado' => $empleado->id_empleado]);
+        }
+
         // Actualización estándar de campos
         $empleado->update($request->all());
 
