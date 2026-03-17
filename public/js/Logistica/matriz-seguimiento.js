@@ -139,17 +139,36 @@ document.addEventListener('DOMContentLoaded', function() {
             const isPut = document.getElementById('isEditing').value === 'PUT';
             const id = document.getElementById('operacionId').value;
             const url = isPut ? `/logistica/operaciones/${id}` : '/logistica/operaciones';
-            
-            fetch(url, { 
+
+            // Botón de guardar: indicador visual mientras procesa
+            const btnGuardar = document.querySelector('#modalOperacion button[type="submit"], #formOperacion button[type="submit"]');
+            const textoOriginal = btnGuardar ? btnGuardar.textContent : '';
+            if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
+
+            fetch(url, {
                 method: 'POST', // Laravel usa POST simulando PUT si enviamos _method
-                headers: {'X-CSRF-TOKEN': token}, 
-                body: formData 
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',  // Fuerza respuesta JSON para detectar errores
+                },
+                body: formData
             })
-            .then(res => {
-                if(res.ok) window.location.reload();
-                else alert('Error al guardar. Verifica los datos.');
+            .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+            .then(({ ok, status, data }) => {
+                if (ok && data.success) {
+                    window.location.reload();
+                } else if (status === 422 && data.errors) {
+                    // Errores de validación detallados
+                    const msgs = Object.values(data.errors).flat().join('\n');
+                    alert('No se pudo guardar. Revisa los campos:\n\n' + msgs);
+                } else {
+                    alert(data.message || 'Error al guardar. Verifica los datos.');
+                }
             })
-            .catch(err => alert('Error de conexión'));
+            .catch(err => alert('Error de conexión al guardar.'))
+            .finally(() => {
+                if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = textoOriginal; }
+            });
         });
     }
 

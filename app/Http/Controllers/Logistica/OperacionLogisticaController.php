@@ -182,16 +182,21 @@ class OperacionLogisticaController extends Controller
 
             $operacion = OperacionLogistica::create($data);
             $this->generarHistorialInicial($operacion);
-            
+
             // Guardar campos personalizados
             $this->guardarCamposPersonalizados($request, $operacion->id);
 
-            return redirect()->route('logistica.matriz-seguimiento')
-                ->with('success', 'Operación creada exitosamente. Folio: ' . $operacion->id);
+            return response()->json([
+                'success' => true,
+                'message' => 'Operación creada exitosamente. Folio: #' . $operacion->id,
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Error creando operación: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Error al guardar: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -202,29 +207,38 @@ class OperacionLogisticaController extends Controller
         try {
             $data = $request->validated();
             $statusManual = $data['status_manual'] ?? null;
-            $operacion->update($data);
-            
+
+            // Actualizar los campos validados (excluir campos que no existen en la tabla)
+            $operacion->fill(array_filter($data, fn($v) => $v !== null || in_array($v, ['comentarios', 'status_manual'])));
+
+            // Preservar status_manual antes del recálculo
+            if (!empty($statusManual)) {
+                $operacion->status_manual      = $statusManual;
+                $operacion->fecha_status_manual = $operacion->fecha_status_manual ?? now();
+            }
+
+            // Recalcular sin borrar el status_manual
+            if (method_exists($operacion, 'calcularStatusPorDias')) {
+                $operacion->calcularStatusPorDias();
+            }
+
+            $operacion->save();
+
             // Actualizar campos personalizados
             $this->guardarCamposPersonalizados($request, $operacion->id);
 
-            // Forzar recálculo tras edición (pero preservar status_manual si está definido)
-            if (method_exists($operacion, 'actualizarStatusAutomaticamente')) {
-                $operacion->actualizarStatusAutomaticamente(true);
-                
-                // Si el usuario definió un status_manual, lo restauramos después del recálculo
-                if (!empty($statusManual)) {
-                    $operacion->status_manual = $statusManual;
-                    $operacion->fecha_status_manual = $operacion->fecha_status_manual ?? now();
-                    $operacion->saveQuietly();
-                }
-            }
-
-            return redirect()->route('logistica.matriz-seguimiento')
-                ->with('success', 'Operación actualizada correctamente.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Operación actualizada correctamente.',
+                'status_manual' => $operacion->status_manual,
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('Error actualizando: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
+            Log::error('Error actualizando operación: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -384,10 +398,13 @@ class OperacionLogisticaController extends Controller
     {
         \App\Models\Logistica\HistoricoMatrizSgm::create([
             'operacion_logistica_id' => $operacion->id,
-            'fecha_registro' => now(),
-            'dias_transcurridos' => 0,
-            'operacion_status' => 'In Process',
-            'observaciones' => 'Operación creada - Estado inicial'
+            'fecha_registro'         => now(),
+            'fecha_arribo_aduana'    => $operacion->fecha_arribo_aduana,
+            'dias_transcurridos'     => 0,
+            'target_dias'            => $operacion->target ?? $operacion->calcularTargetAutomatico() ?? 3,
+            'color_status'           => $operacion->color_status ?? 'amarillo',
+            'operacion_status'       => $operacion->status_manual ?? $operacion->status_calculado ?? 'In Process',
+            'observaciones'          => 'Operación creada - Estado inicial'
         ]);
     }
 

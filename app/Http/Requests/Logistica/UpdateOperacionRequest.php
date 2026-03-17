@@ -19,38 +19,51 @@ class UpdateOperacionRequest extends FormRequest
      */
     public function rules(): array
     {
-        // TRUCO SENIOR:
-        // Obtenemos el ID de la operación que viene en la URL (ej: /logistica/operaciones/15)
-        // Esto sirve para decirle a la BD: "Verifica que sea único, EXCEPTO para este ID (15)".
-        // Verifica en tu archivo de rutas si el parámetro se llama {id} o {operacion}
-        $id = $this->route('id'); 
-
         return [
-            // Datos Generales
+            // Datos Generales — mismos campos que envía el formulario modal
             'operacion'           => 'required|in:EXPORTACION,IMPORTACION',
             'tipo_operacion_enum' => 'required|in:Terrestre,Aerea,Maritima,Ferrocarril',
-            'cliente_id'          => 'required|exists:clientes,id',
-            'ejecutivo_id'        => 'required|exists:users,id',
-            
+            'cliente'             => 'required|string|max:255',
+            'ejecutivo'           => 'required|string|max:255',
+            'transporte'          => 'nullable|string|max:255',
+            'agente_aduanal'      => 'nullable|string|max:255',
+            'proveedor_o_cliente' => 'nullable|string|max:255',
+            'proveedor'           => 'nullable|string|max:255',
+
             // Fechas
             'fecha_embarque'      => 'required|date',
-            'eta'                 => 'nullable|date',
-            
-            // Referencias
+            'fecha_etd'           => 'nullable|date',
+            'fecha_zarpe'         => 'nullable|date',
+            'fecha_arribo_aduana' => 'nullable|date',
+            'fecha_modulacion'    => 'nullable|date',
+            'fecha_arribo_planta' => 'nullable|date',
+
+            // Referencias y Aduanal
             'referencia_cliente'  => 'nullable|string|max:100',
-            
-            // EJEMPLO DE CÓMO VALIDAR UNIQUE IGNORANDO EL ID ACTUAL
-            // Si tuvieras que validar que el pedimento sea único:
-            // 'pedimento' => 'nullable|string|max:20|unique:operacion_logisticas,pedimento,' . $id,
-            'pedimento'           => 'nullable|string|max:20',
-            
-            // Arrays o JSON
-            'mercancias'          => 'nullable|array',
-            
+            'referencia_interna'  => 'nullable|string|max:100',
+            'referencia_aa'       => 'nullable|string|max:100',
+            'clave'               => 'nullable|string|max:100',
+            'no_factura'          => 'nullable|string|max:100',
+            'no_pedimento'        => 'nullable|string|max:20',
+            'guia_bl'             => 'nullable|string|max:100',
+            'aduana'              => 'nullable|string|max:100',
+            'tipo_incoterm'       => 'nullable|string|max:50',
+            'tipo_carga'          => 'nullable|string|max:50',
+            'puerto_salida'       => 'nullable|string|max:100',
+            'in_charge'           => 'nullable|string|max:255',
+            'tipo_previo'         => 'nullable|string|max:100',
+            'pedimento_en_carpeta'=> 'nullable|boolean',
+
+            // Métricas
+            'target'              => 'nullable|integer|min:0',
+            'dias_transito'       => 'nullable|integer|min:0',
+            'resultado'           => 'nullable|integer|min:0',
+
             // Configuración
-            'mail_subject'        => 'nullable|string|max:255',
-            
-            // Status
+            'mail_subject'        => 'nullable|string|max:500',
+            'comentarios'         => 'nullable|string|max:2000',
+
+            // Status — campo clave para marcar como Completado
             'status_manual'       => 'nullable|string|in:,In Process,Done,Out of Metric',
         ];
     }
@@ -58,8 +71,10 @@ class UpdateOperacionRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'cliente_id' => 'Cliente',
+            'cliente'             => 'Cliente',
+            'ejecutivo'           => 'Ejecutivo',
             'tipo_operacion_enum' => 'Tipo de Operación',
+            'fecha_embarque'      => 'Fecha de Embarque',
         ];
     }
 }
