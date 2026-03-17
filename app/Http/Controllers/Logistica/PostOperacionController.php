@@ -80,9 +80,11 @@ class PostOperacionController extends Controller
     public function bulkUpdate(Request $request, $operacionId)
     {
         $request->validate(['cambios' => 'required|array']);
+        $operacion = OperacionLogistica::findOrFail($operacionId);
         
         foreach ($request->cambios as $postOpId => $data) {
-            $estado = $data['estado'];
+            // Soportar ambos formatos: {id: "Completado"} y {id: {estado: "Completado"}}
+            $estado = is_array($data) ? ($data['estado'] ?? 'Pendiente') : $data;
             
             // Buscar si ya existe la relación
             $relacion = PostOperacionOperacion::where('post_operacion_id', $postOpId)
@@ -97,6 +99,28 @@ class PostOperacionController extends Controller
                 );
             }
         }
+
+        // Sincronizar status general de la operación con el avance del checklist.
+        // Si todas las tareas globales están Completadas o No Aplica, marcamos Done.
+        $totalPlantillas = PostOperacion::where('status', 'Plantilla')->count();
+        $totalCerradas = PostOperacionOperacion::where('operacion_logistica_id', $operacionId)
+            ->whereIn('status', ['Completado', 'No Aplica'])
+            ->count();
+
+        $todasCompletadas = $totalPlantillas > 0 && $totalCerradas >= $totalPlantillas;
+
+        if ($todasCompletadas) {
+            $operacion->status_manual = 'Done';
+            $operacion->fecha_status_manual = now();
+        } elseif (empty($operacion->status_manual) || in_array($operacion->status_manual, ['Done', 'In Process'])) {
+            $operacion->status_manual = 'In Process';
+        }
+
+        if (method_exists($operacion, 'calcularStatusPorDias')) {
+            $operacion->calcularStatusPorDias();
+        }
+        $operacion->save();
+
         return response()->json(['success' => true, 'message' => 'Actualizado']);
     }
 }

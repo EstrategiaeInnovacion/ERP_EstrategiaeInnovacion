@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Llamada al backend para guardar cambios masivos
-        fetch(`/logistica/post-operaciones/operaciones/${operacionActualId}/actualizar-estados`, {
+        fetch(`/logistica/post-operaciones/operaciones/${operacionActualId}/actualizar`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': token},
             body: JSON.stringify({ cambios: cambiosPostOp })
@@ -330,7 +330,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Éxito
                 cerrarModalPostOperaciones();
                 window.location.reload(); // Recargar para actualizar barra de progreso
+            } else {
+                alert(data.message || 'No se pudieron guardar los cambios.');
             }
+        }).catch(() => {
+            alert('Error de conexión al guardar post-operaciones.');
         });
     };
 

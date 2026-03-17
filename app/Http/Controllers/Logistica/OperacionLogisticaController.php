@@ -41,6 +41,8 @@ class OperacionLogisticaController extends Controller
      */
     public function index(Request $request)
     {
+        $verCompletadas = $request->boolean('ver_completadas');
+
         // 1. Lógica de verificación de permisos
         $usuarioActual = auth()->user();
         $empleadoActual = null;
@@ -106,10 +108,40 @@ class OperacionLogisticaController extends Controller
             ->when(!$esAdmin && !$empleadoActual, function($q) {
                 $q->where('id', 0); // Bloquear si no hay empleado asociado
             })
+            // Vista principal: ocultar completadas para reducir ruido operativo.
+            ->when(!$verCompletadas, function ($q) {
+                $q->where(function($sub) {
+                    $sub->whereNull('status_manual')
+                        ->orWhereNotIn('status_manual', ['Done', 'Completado']);
+                })->where(function($sub) {
+                    $sub->whereNull('status_calculado')
+                        ->orWhereNotIn('status_calculado', ['Done', 'Completado']);
+                });
+            })
+            // Apartado de completadas: mostrar solo operaciones finalizadas.
+            ->when($verCompletadas, function ($q) {
+                $q->where(function($sub) {
+                    $sub->whereIn('status_manual', ['Done', 'Completado'])
+                        ->orWhereIn('status_calculado', ['Done', 'Completado']);
+                });
+            })
             ->allowedSorts(['created_at', 'fecha_arribo', 'cliente', 'operacion'])
             ->defaultSort('-created_at')
             ->paginate(10)
             ->appends($request->query()); // Mantiene los filtros al paginar
+
+        $conteoCompletadas = OperacionLogistica::query()
+            ->when(!$esAdmin && $empleadoActual, function($q) use ($empleadoActual) {
+                $q->where('ejecutivo', 'LIKE', '%' . $empleadoActual->nombre . '%');
+            })
+            ->when(!$esAdmin && !$empleadoActual, function($q) {
+                $q->where('id', 0);
+            })
+            ->where(function($sub) {
+                $sub->whereIn('status_manual', ['Done', 'Completado'])
+                    ->orWhereIn('status_calculado', ['Done', 'Completado']);
+            })
+            ->count();
 
         // 3. Cargar catálogos para los filtros de la vista
         $datosVista = $this->cargarDatosVista($esAdmin, $empleadoActual, $modoPreview, $empleadoPreview);
@@ -118,7 +150,7 @@ class OperacionLogisticaController extends Controller
         $datosVista['ejecutivos'] = $datosVista['empleados'];
 
         return view('Logistica.matriz-seguimiento', array_merge(
-            compact('operaciones', 'empleadoActual', 'esAdmin', 'modoPreview', 'empleadoPreview'),
+            compact('operaciones', 'empleadoActual', 'esAdmin', 'modoPreview', 'empleadoPreview', 'verCompletadas', 'conteoCompletadas'),
             $datosVista,
             $request->all()
         ));
