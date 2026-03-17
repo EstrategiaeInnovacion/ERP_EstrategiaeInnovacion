@@ -169,14 +169,22 @@ class OperacionLogisticaController extends Controller
 
         try {
             $data = $request->validated();
+            $statusManual = $data['status_manual'] ?? null;
             $operacion->update($data);
             
             // Actualizar campos personalizados
             $this->guardarCamposPersonalizados($request, $operacion->id);
 
-            // Forzar recálculo tras edición
+            // Forzar recálculo tras edición (pero preservar status_manual si está definido)
             if (method_exists($operacion, 'actualizarStatusAutomaticamente')) {
-                $operacion->actualizarStatusAutomaticamente(true); 
+                $operacion->actualizarStatusAutomaticamente(true);
+                
+                // Si el usuario definió un status_manual, lo restauramos después del recálculo
+                if (!empty($statusManual)) {
+                    $operacion->status_manual = $statusManual;
+                    $operacion->fecha_status_manual = $operacion->fecha_status_manual ?? now();
+                    $operacion->saveQuietly();
+                }
             }
 
             return redirect()->route('logistica.matriz-seguimiento')
