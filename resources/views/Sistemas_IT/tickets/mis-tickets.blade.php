@@ -106,10 +106,13 @@
                                             @if(is_array($imagenes) && count($imagenes) > 0)
                                                 <div class="flex -space-x-2">
                                                     @foreach(array_slice($imagenes, 0, 3) as $index => $imagen)
-                                                        @if(!empty($imagen))
+                                                        @php
+                                                            $imagenData = is_array($imagen) ? ($imagen['data'] ?? '') : $imagen;
+                                                        @endphp
+                                                        @if(!empty($imagenData))
                                                         <div class="relative group/image">
                                                             <img 
-                                                                src="data:image/jpeg;base64,{{ $imagen }}" 
+                                                                src="data:image/jpeg;base64,{{ $imagenData }}" 
                                                                 alt="Evidencia {{ $index + 1 }}"
                                                                 class="w-10 h-10 rounded-lg object-cover border-2 border-white shadow-sm cursor-pointer hover:scale-110 hover:z-10 transition-transform"
                                                                 onclick="event.stopPropagation(); showImageModal(this.src)"
@@ -192,9 +195,12 @@
                                                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Evidencia del Soporte</h4>
                                                 <div class="flex flex-wrap gap-2">
                                                     @foreach($imagenesAdmin as $index => $imagen)
-                                                        @if(!empty($imagen))
+                                                        @php
+                                                            $imagenData = is_array($imagen) ? ($imagen['data'] ?? '') : $imagen;
+                                                        @endphp
+                                                        @if(!empty($imagenData))
                                                         <img 
-                                                            src="data:image/jpeg;base64,{{ $imagen }}" 
+                                                            src="data:image/jpeg;base64,{{ $imagenData }}" 
                                                             alt="Evidencia soporte {{ $index + 1 }}"
                                                             class="w-16 h-16 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80 transition"
                                                             onclick="showImageModal(this.src)"
