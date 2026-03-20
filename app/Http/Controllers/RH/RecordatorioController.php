@@ -15,6 +15,8 @@ class RecordatorioController extends Controller
 
         $query = Recordatorio::with('empleado')
             ->where('activo', true)
+            ->whereDate('fecha_evento', '>=', Carbon::today()->subDays(7))
+            ->whereDate('fecha_evento', '<=', Carbon::today()->addDays(30))
             ->orderByRaw("CASE WHEN fecha_evento >= date('now') THEN 0 ELSE 1 END")
             ->orderBy('fecha_evento');
 

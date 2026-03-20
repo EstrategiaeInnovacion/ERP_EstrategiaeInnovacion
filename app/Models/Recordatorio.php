@@ -208,6 +208,10 @@ class Recordatorio extends Model
             $proximoCumple->addYear();
         }
 
+        if ($proximoCumple->gt(Carbon::today()->addDays(30))) {
+            return null;
+        }
+
         $existe = self::where('empleado_id', $empleado->id)
             ->where('tipo', self::TIPO_CUMPLEAÑOS)
             ->whereYear('fecha_evento', $proximoCumple->year)

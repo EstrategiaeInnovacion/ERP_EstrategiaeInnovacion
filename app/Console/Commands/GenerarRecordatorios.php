@@ -42,9 +42,16 @@ class GenerarRecordatorios extends Command
 
     private function limpiarAntiguos(): void
     {
-        $ayer = Carbon::yesterday();
+        $limite = Carbon::today()->addDays(30);
 
-        Recordatorio::where('fecha_evento', '<', $ayer)
+        Recordatorio::where('fecha_evento', '>', $limite)
+            ->whereIn('tipo', [
+                Recordatorio::TIPO_CUMPLEAÑOS,
+                Recordatorio::TIPO_ANIVERSARIO,
+            ])
+            ->delete();
+
+        Recordatorio::where('fecha_evento', '<', Carbon::yesterday())
             ->whereIn('tipo', [
                 Recordatorio::TIPO_CUMPLEAÑOS,
                 Recordatorio::TIPO_ANIVERSARIO,
