@@ -22,46 +22,23 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between h-32 group hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start">
-                    <div class="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    </div>
-                    <span class="text-3xl font-bold text-slate-800">{{ $tickets->count() }}</span>
-                </div>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Tickets</p>
-            </div>
-            
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between h-32 group hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start">
-                    <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                    <span class="text-3xl font-bold text-slate-800">{{ $tickets->where('estado', 'Abierto')->count() }}</span>
-                </div>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Abiertos</p>
-            </div>
-
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between h-32 group hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start">
-                    <div class="p-2 bg-amber-50 text-amber-600 rounded-xl group-hover:bg-amber-100 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <span class="text-3xl font-bold text-slate-800">{{ $tickets->where('estado', 'En Proceso')->count() }}</span>
-                </div>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">En Proceso</p>
-            </div>
-            
-             <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between h-32 group hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start">
-                    <div class="p-2 bg-slate-100 text-slate-600 rounded-xl group-hover:bg-slate-200 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
-                    <span class="text-3xl font-bold text-slate-800">{{ $tickets->where('estado', 'Cerrado')->count() }}</span>
-                </div>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Resueltos</p>
-            </div>
+        <div class="flex gap-2 mb-8">
+            <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-slate-300 transition text-left min-w-[120px]">
+                <span class="text-2xl font-bold text-slate-800">{{ $tickets->count() }}</span>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total</p>
+            </button>
+            <button class="px-4 py-2 bg-emerald-50/50 border border-emerald-100 rounded-xl hover:shadow-md hover:border-emerald-200 transition text-left min-w-[120px]">
+                <span class="text-2xl font-bold text-emerald-600">{{ $tickets->where('estado', 'Abierto')->count() }}</span>
+                <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Abiertos</p>
+            </button>
+            <button class="px-4 py-2 bg-amber-50/50 border border-amber-100 rounded-xl hover:shadow-md hover:border-amber-200 transition text-left min-w-[120px]">
+                <span class="text-2xl font-bold text-amber-600">{{ $tickets->where('estado', 'En Proceso')->count() }}</span>
+                <p class="text-[10px] text-amber-500 font-bold uppercase tracking-wider">En Proceso</p>
+            </button>
+            <button class="px-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl hover:shadow-md hover:border-slate-300 transition text-left min-w-[120px]">
+                <span class="text-2xl font-bold text-slate-500">{{ $tickets->where('estado', 'Cerrado')->count() }}</span>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Resueltos</p>
+            </button>
         </div>
 
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
@@ -85,6 +62,7 @@
                             <tr class="bg-slate-50/80 border-b border-slate-100">
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Folio</th>
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Detalles</th>
+                                <th class="px-4 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Archivos</th>
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</th>
                                 <th class="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Prioridad</th>
                             </tr>
@@ -115,6 +93,34 @@
                                                 <span class="text-slate-300">•</span>
                                                 <span class="text-xs text-slate-400">{{ $ticket->created_at->diffForHumans() }}</span>
                                             </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-5">
+                                        <div class="flex items-center justify-center gap-1">
+                                            @php
+                                                $imagenes = $ticket->imagenes ?? [];
+                                            @endphp
+                                            @if(count($imagenes) > 0)
+                                                <div class="flex -space-x-2">
+                                                    @foreach(array_slice($imagenes, 0, 3) as $index => $imagen)
+                                                        <div class="relative group/image">
+                                                            <img 
+                                                                src="data:image/jpeg;base64,{{ $imagen }}" 
+                                                                alt="Evidencia {{ $index + 1 }}"
+                                                                class="w-10 h-10 rounded-lg object-cover border-2 border-white shadow-sm cursor-pointer hover:scale-110 hover:z-10 transition-transform"
+                                                                onclick="showImageModal(this.src)"
+                                                            >
+                                                            @if($index == 2 && count($imagenes) > 3)
+                                                                <span class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg text-white text-xs font-bold">
+                                                                    +{{ count($imagenes) - 3 }}
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-slate-300 text-xs">Sin archivos</span>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-8 py-5 whitespace-nowrap">
@@ -160,4 +166,27 @@
         </div>
     </div>
 </div>
+
+<div id="imageModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4" onclick="closeImageModal()">
+    <img id="modalImage" src="" alt="Imagen ampliada" class="max-w-full max-h-full object-contain rounded-lg">
+    <button class="absolute top-4 right-4 text-white hover:text-slate-300 transition">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+</div>
+
+@push('scripts')
+<script>
+    function showImageModal(src) {
+        document.getElementById('modalImage').src = src;
+        document.getElementById('imageModal').classList.remove('hidden');
+        document.getElementById('imageModal').classList.add('flex');
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').classList.add('hidden');
+        document.getElementById('imageModal').classList.remove('flex');
+    }
+</script>
+@endpush
+
 @endsection
