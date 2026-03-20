@@ -512,6 +512,13 @@ class TicketController extends Controller
 
         \Log::info('Tickets found: ' . $tickets->count());
 
+        foreach ($tickets as $ticket) {
+            \Log::info('Ticket #' . $ticket->id . ' - titulo: ' . gettype($ticket->titulo) . ', categoria: ' . gettype($ticket->categoria) . ', descripcion: ' . gettype($ticket->descripcion_problema));
+            if (is_array($ticket->categoria)) {
+                \Log::info('TICKET #' . $ticket->id . ' categoria IS ARRAY: ' . json_encode($ticket->categoria));
+            }
+        }
+
         $notificationsCount = $tickets->where('user_has_updates', true)->count();
         $supportEmail = config('support.contact_email');
         $supportTeamsUrl = config('support.teams_url');
