@@ -513,10 +513,12 @@ class TicketController extends Controller
         \Log::info('Tickets found: ' . $tickets->count());
 
         foreach ($tickets as $ticket) {
-            \Log::info('Ticket #' . $ticket->id . ' - estado: ' . gettype($ticket->estado) . ' = ' . json_encode($ticket->estado));
-            \Log::info('Ticket #' . $ticket->id . ' - prioridad: ' . gettype($ticket->prioridad) . ' = ' . json_encode($ticket->prioridad));
-            \Log::info('Ticket #' . $ticket->id . ' - titulo: ' . gettype($ticket->titulo) . ', categoria: ' . gettype($ticket->categoria));
-            \Log::info('Ticket #' . $ticket->id . ' - ALL DATA: ' . json_encode($ticket->toArray()));
+            $data = $ticket->toArray();
+            foreach ($data as $key => $value) {
+                if (is_array($value)) {
+                    \Log::error('TICKET #' . $ticket->id . ' CAMPO ARRAY: ' . $key . ' = ' . json_encode($value));
+                }
+            }
         }
 
         $notificationsCount = $tickets->where('user_has_updates', true)->count();
