@@ -81,51 +81,94 @@
         </div>
 
         @php
-            $recordatoriosUrgentes = \App\Models\Recordatorio::where('activo', true)
-                ->whereDate('fecha_evento', '<=', now()->addDays(7))
+            $recordatoriosSemana = \App\Models\Recordatorio::where('activo', true)
+                ->whereDate('fecha_evento', '>=', now()->startOfWeek())
+                ->whereDate('fecha_evento', '<=', now()->endOfWeek()->addDays(7))
                 ->orderBy('fecha_evento')
-                ->take(5)
-                ->get();
+                ->get()
+                ->groupBy(function($rec) {
+                    return $rec->fecha_evento->format('Y-m-d');
+                });
             $totalRecordatorios = \App\Models\Recordatorio::where('activo', true)
                 ->whereDate('fecha_evento', '>=', now()->subDays(7))
                 ->whereDate('fecha_evento', '<=', now()->addDays(30))
                 ->count();
         @endphp
 
-        <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white shadow-lg shadow-amber-200/50 relative overflow-hidden">
-            <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-amber-400/20 to-transparent"></div>
-            <div class="relative z-10 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3 text-white">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                     </div>
                     <div>
-                        <p class="text-amber-100 text-xs font-bold uppercase tracking-wider mb-1">Alertas</p>
-                        <h5 class="text-xl font-bold">Recordatorios Pendientes</h5>
-                        <p class="text-amber-100 text-sm mt-1">{{ $recordatoriosUrgentes->count() }} próximos en 7 días</p>
+                        <h5 class="text-lg font-bold">Recordatorios de la Semana</h5>
+                        <p class="text-amber-100 text-xs">{{ now()->startOfWeek()->locale('es')->format('d MMM') }} - {{ now()->endOfWeek()->addDays(7)->locale('es')->format('d MMM') }}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    @if($recordatoriosUrgentes->isNotEmpty())
-                    <div class="hidden md:block">
-                        @foreach($recordatoriosUrgentes->take(3) as $rec)
-                        <div class="flex items-center gap-2 text-sm mb-1 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                            <span>{{ $rec->icono_tipo }}</span>
-                            <span class="truncate max-w-[150px]">{{ $rec->titulo }}</span>
-                        </div>
-                        @endforeach
-                    </div>
-                    @endif
-                    <a href="{{ route('rh.recordatorios.index') }}" class="bg-white text-amber-600 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-amber-50 transition-all flex items-center gap-2">
-                        Ver Todos ({{ $totalRecordatorios }})
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
+                <a href="{{ route('rh.recordatorios.index') }}" class="bg-white text-amber-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-amber-50 transition-all flex items-center gap-2">
+                    Ver mes ({{ $totalRecordatorios }})
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
             </div>
+            
+            @if($recordatoriosSemana->isEmpty())
+                <div class="p-8 text-center">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <p class="text-slate-500 font-medium">Sin recordatorios esta semana</p>
+                </div>
+            @else
+                <div class="divide-y divide-slate-100">
+                    @foreach($recordatoriosSemana as $fecha => $recs)
+                        <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-12 h-12 rounded-xl {{ $recs->first()->color_urgencia['bg'] ?? 'bg-slate-100' }} flex flex-col items-center justify-center">
+                                        <span class="text-xs font-bold {{ $recs->first()->color_urgencia['text'] ?? 'text-slate-600' }}">
+                                            {{ $fecha ? \Carbon\Carbon::parse($fecha)->locale('es')->format('d') : '?' }}
+                                        </span>
+                                        <span class="text-[10px] font-medium {{ $recs->first()->color_urgencia['text'] ?? 'text-slate-500' }} uppercase">
+                                            {{ $fecha ? \Carbon\Carbon::parse($fecha)->locale('es')->format('M') : '' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    @foreach($recs as $rec)
+                                        <div class="flex items-center gap-3 mb-2 last:mb-0">
+                                            <span class="text-xl">{{ $rec->icono_tipo }}</span>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-slate-900 truncate">{{ $rec->titulo }}</p>
+                                                <p class="text-xs text-slate-500">{{ $rec->descripcion }}</p>
+                                            </div>
+                                            @if($rec->dias_restantes !== null && $rec->dias_restantes < 0)
+                                                <span class="flex-shrink-0 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                                                    Vencido
+                                                </span>
+                                            @elseif($rec->dias_restantes == 0)
+                                                <span class="flex-shrink-0 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
+                                                    Hoy
+                                                </span>
+                                            @else
+                                                <span class="flex-shrink-0 text-xs font-medium text-slate-500">
+                                                    En {{ $rec->dias_restantes }} días
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
