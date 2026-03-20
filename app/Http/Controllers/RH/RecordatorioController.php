@@ -36,9 +36,17 @@ class RecordatorioController extends Controller
 
         $recordatorios = $query->paginate(15);
 
+        $rangoInicio = Carbon::today()->subDays(7);
+        $rangoFin = Carbon::today()->addDays(30);
+
         $estadisticas = [
-            'total' => Recordatorio::where('activo', true)->count(),
-            'no_leidos' => Recordatorio::where('activo', true)->where('leido', false)->count(),
+            'total' => Recordatorio::where('activo', true)
+                ->whereBetween('fecha_evento', [$rangoInicio, $rangoFin])
+                ->count(),
+            'no_leidos' => Recordatorio::where('activo', true)
+                ->where('leido', false)
+                ->whereBetween('fecha_evento', [$rangoInicio, $rangoFin])
+                ->count(),
             'urgentes' => Recordatorio::where('activo', true)
                 ->whereDate('fecha_evento', '<=', Carbon::today()->addDays(7))
                 ->count(),
@@ -51,7 +59,10 @@ class RecordatorioController extends Controller
         foreach (Recordatorio::TIPOS as $key => $nombre) {
             $porTipo[$key] = [
                 'nombre' => $nombre,
-                'cantidad' => Recordatorio::where('tipo', $key)->where('activo', true)->count(),
+                'cantidad' => Recordatorio::where('tipo', $key)
+                    ->where('activo', true)
+                    ->whereBetween('fecha_evento', [$rangoInicio, $rangoFin])
+                    ->count(),
             ];
         }
 
