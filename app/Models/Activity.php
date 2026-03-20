@@ -99,22 +99,20 @@ class Activity extends Model
             }
 
             // 4. Estatus Automático
-            if ($activity->fecha_final) {
-                if ($final->gt($compromiso)) {
-                    $activity->estatus = 'Completado con retardo';
-                } else {
-                    $activity->estatus = 'Completado';
-                }
-            } else {
-                if ($compromiso && $hoy->gt($compromiso)) {
+            // IMPORTANTE: Solo cambiar estatus si la actividad no está ya completada/aprobada
+            $estatusBloqueados = ['Completado', 'Completado con retardo', 'Por Aprobar', 'Por Validar', 'Planeado', 'Rechazado'];
+            
+            if (!in_array($activity->estatus, $estatusBloqueados)) {
+                if ($activity->fecha_final) {
+                    if ($compromiso && $final->gt($compromiso)) {
+                        $activity->estatus = 'Completado con retardo';
+                    } else {
+                        $activity->estatus = 'Completado';
+                    }
+                } elseif ($compromiso && $hoy->gt($compromiso)) {
                     $activity->estatus = 'Retardo';
                 } else {
-                    if ($activity->estatus === 'Retardo') {
-                        $activity->estatus = 'En proceso';
-                    }
-                    if (empty($activity->estatus)) {
-                        $activity->estatus = 'En blanco';
-                    }
+                    $activity->estatus = 'En proceso';
                 }
             }
         });

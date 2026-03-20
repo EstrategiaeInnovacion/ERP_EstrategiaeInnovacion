@@ -190,7 +190,7 @@ class ActivityController extends Controller
             'total' => $activitiesList->count(),
             'completadas' => $activitiesList->where('estatus', 'Completado')->count(),
             'proceso' => $activitiesList->where('estatus', 'En proceso')->count(),
-            'pendientes' => $activitiesList->where('estatus', 'En blanco')->count(),
+            'planeadas' => $activitiesList->where('estatus', 'Planeado')->count(),
             'retardos' => $activitiesList->where('estatus', 'Retardo')->count(),
         ];
 
@@ -229,7 +229,7 @@ class ActivityController extends Controller
 
         // --- REGLA DE JERARQUÍA ---
         if ($targetUserId == $currentUser->id) {
-            $data['estatus'] = 'En blanco';
+            $data['estatus'] = 'En proceso';
         } else {
             $soyDireccion = $currentUser->empleado && Str::contains(strtolower($currentUser->empleado->posicion), 'direcc');
             $targetUser = User::with('empleado')->find($targetUserId);
@@ -336,7 +336,7 @@ class ActivityController extends Controller
         // Permiso extendido: El creador también puede editar (importante para jefes que asignan)
         $esAsignador = ($activity->asignado_por === $user->id);
 
-        $puedeEditarTodo = $esDireccion || $esSupervisor || ($esDueno && $activity->estatus === 'En blanco') || $esAsignador;
+        $puedeEditarTodo = $esDireccion || $esSupervisor || $esAsignador;
 
         $original = $activity->toArray(); 
 
@@ -435,7 +435,7 @@ class ActivityController extends Controller
         
         $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
         $esSupervisor = $user->empleado && $activity->user->empleado && $user->empleado->id === $activity->user->empleado->supervisor_id;
-        $esDuenoBorrador = ($activity->user_id === $user->id && $activity->estatus === 'En blanco');
+        $esDuenoBorrador = ($activity->user_id === $user->id && $activity->estatus === 'En proceso');
         $esAsignador = ($activity->asignado_por === $user->id);
 
         if ($esDireccion || $esSupervisor || $esDuenoBorrador || $esAsignador) {
