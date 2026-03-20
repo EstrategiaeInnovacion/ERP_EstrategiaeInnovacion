@@ -98,11 +98,12 @@
                                     <td class="px-4 py-5">
                                         <div class="flex items-center justify-center gap-1">
                                             @php
-                                                $imagenes = $ticket->imagenes ?? [];
+                                                $imagenes = is_array($ticket->imagenes) ? $ticket->imagenes : json_decode($ticket->imagenes, true) ?? [];
                                             @endphp
-                                            @if(count($imagenes) > 0)
+                                            @if(is_array($imagenes) && count($imagenes) > 0)
                                                 <div class="flex -space-x-2">
                                                     @foreach(array_slice($imagenes, 0, 3) as $index => $imagen)
+                                                        @if(!empty($imagen))
                                                         <div class="relative group/image">
                                                             <img 
                                                                 src="data:image/jpeg;base64,{{ $imagen }}" 
@@ -116,6 +117,7 @@
                                                                 </span>
                                                             @endif
                                                         </div>
+                                                        @endif
                                                     @endforeach
                                                 </div>
                                             @else
