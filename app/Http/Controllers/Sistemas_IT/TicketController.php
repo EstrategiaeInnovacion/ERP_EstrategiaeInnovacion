@@ -497,9 +497,20 @@ class TicketController extends Controller
 
     public function misTickets(Request $request)
     {
+        $user = auth()->user();
+        
+        \Log::info('=== DEBUG MIS-TICKETS ===');
+        \Log::info('User ID: ' . $user->id);
+        \Log::info('User Email: ' . $user->email);
+        \Log::info('User Role: ' . $user->role);
+        \Log::info('Has Empleado: ' . ($user->empleado ? 'YES - Area: ' . $user->empleado->area . ', Posicion: ' . $user->empleado->posicion : 'NO'));
+        \Log::info('=========================');
+
         $tickets = Ticket::where('user_id', auth()->id())
                         ->orderBy('created_at', 'desc')
                         ->get();
+
+        \Log::info('Tickets found: ' . $tickets->count());
 
         $notificationsCount = $tickets->where('user_has_updates', true)->count();
         $supportEmail = config('support.contact_email');
