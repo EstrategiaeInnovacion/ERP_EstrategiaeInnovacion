@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Sistemas_IT\Ticket;
+use App\Models\Empleado;
+use App\Observers\EmpleadoObserver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -31,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        Empleado::observe(EmpleadoObserver::class);
 
         Mail::extend('microsoft-graph', function (array $config) {
             $factory = new MicrosoftGraphTransportFactory(null, HttpClient::create());

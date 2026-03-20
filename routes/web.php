@@ -319,6 +319,18 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
         }
         );
 
+        // Recordatorios
+        Route::prefix('recursos-humanos/recordatorios')->name('rh.recordatorios.')->controller(\App\Http\Controllers\RH\RecordatorioController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/calendario', 'calendario')->name('calendario');
+            Route::get('/{id}', 'show')->name('show');
+            Route::post('/{id}/marcar-leido', 'marcarLeido')->name('marcar-leido');
+            Route::post('/marcar-todos', 'marcarTodosLeidos')->name('marcar-todos');
+            Route::delete('/{id}', 'destruir')->name('destruir');
+            Route::post('/generar', 'generarManual')->name('generar');
+        }
+        );
+
 
 
 

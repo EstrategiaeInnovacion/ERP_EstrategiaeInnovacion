@@ -11,8 +11,14 @@ class Empleado extends Model
 {
     use HasFactory;
 
-    // ... (Mantén tu código existente de $table, $fillable y relaciones) ...
     protected $table = 'empleados';
+
+    protected $casts = [
+        'fecha_nacimiento' => 'date',
+        'fecha_ingreso' => 'date',
+        'fecha_inicio_contrato' => 'date',
+        'fecha_fin_contrato' => 'date',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -33,7 +39,9 @@ class Empleado extends Model
         'ciudad', 'estado_federativo', 'codigo_postal', 'telefono_casa',
         'alergias', 'enfermedades_cronicas',
         'contacto_emergencia_nombre', 'contacto_emergencia_numero', 'contacto_emergencia_parentesco',
-        'rfc', 'curp', 'nss'
+        'rfc', 'curp', 'nss',
+        'fecha_nacimiento', 'fecha_ingreso',
+        'fecha_inicio_contrato', 'fecha_fin_contrato', 'tipo_contrato'
     ];
 
     public function user()

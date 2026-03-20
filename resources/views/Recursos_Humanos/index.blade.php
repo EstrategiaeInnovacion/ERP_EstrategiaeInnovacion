@@ -80,6 +80,51 @@
             </a>
         </div>
 
+        @php
+            $recordatoriosUrgentes = \App\Models\Recordatorio::where('activo', true)
+                ->whereDate('fecha_evento', '<=', now()->addDays(7))
+                ->orderBy('fecha_evento')
+                ->take(5)
+                ->get();
+            $totalRecordatorios = \App\Models\Recordatorio::where('activo', true)->count();
+        @endphp
+
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white shadow-lg shadow-amber-200/50 relative overflow-hidden">
+            <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-amber-400/20 to-transparent"></div>
+            <div class="relative z-10 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-amber-100 text-xs font-bold uppercase tracking-wider mb-1">Alertas</p>
+                        <h5 class="text-xl font-bold">Recordatorios Pendientes</h5>
+                        <p class="text-amber-100 text-sm mt-1">{{ $recordatoriosUrgentes->count() }} próximos en 7 días</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    @if($recordatoriosUrgentes->isNotEmpty())
+                    <div class="hidden md:block">
+                        @foreach($recordatoriosUrgentes->take(3) as $rec)
+                        <div class="flex items-center gap-2 text-sm mb-1 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5">
+                            <span>{{ $rec->icono_tipo }}</span>
+                            <span class="truncate max-w-[150px]">{{ $rec->titulo }}</span>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                    <a href="{{ route('rh.recordatorios.index') }}" class="bg-white text-amber-600 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-amber-50 transition-all flex items-center gap-2">
+                        Ver Todos ({{ $totalRecordatorios }})
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-indigo-600 rounded-3xl p-6 text-white flex items-center justify-between shadow-lg shadow-indigo-200 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-50 group-hover:opacity-100 transition-opacity"></div>

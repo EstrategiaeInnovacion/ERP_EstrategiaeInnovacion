@@ -453,6 +453,49 @@
                             </div>
                          </div>
                     </div>
+                    {{-- 3.5 Fechas Importantes --}}
+                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                         <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider mb-3">Fechas Importantes (para Recordatorios)</h4>
+                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Fecha de Nacimiento</label>
+                                <input type="date" name="fecha_nacimiento" value="{{ $empleado->fecha_nacimiento?->format('Y-m-d') ?? '' }}" class="w-full rounded-lg border-slate-300 text-xs focus:ring-amber-500" />
+                                <p class="text-[9px] text-slate-400 mt-1">Para generar recordatorios de cumpleaños</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Fecha de Ingreso</label>
+                                <input type="date" name="fecha_ingreso" value="{{ $empleado->fecha_ingreso?->format('Y-m-d') ?? '' }}" class="w-full rounded-lg border-slate-300 text-xs focus:ring-amber-500" />
+                                <p class="text-[9px] text-slate-400 mt-1">Para generar recordatorios de aniversario laboral</p>
+                            </div>
+                          </div>
+                    </div>
+                    {{-- 3.6 Vigencia de Contrato --}}
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                         <h4 class="text-xs font-bold text-purple-900 uppercase tracking-wider mb-3">Vigencia de Contrato</h4>
+                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Tipo de Contrato</label>
+                                <select name="tipo_contrato" class="w-full rounded-lg border-slate-300 text-xs focus:ring-purple-500 bg-white">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Indeterminado" {{ $empleado->tipo_contrato == 'Indeterminado' ? 'selected' : '' }}>Indeterminado</option>
+                                    <option value="Determinado" {{ $empleado->tipo_contrato == 'Determinado' ? 'selected' : '' }}>Determinado</option>
+                                    <option value="Por obra" {{ $empleado->tipo_contrato == 'Por obra' ? 'selected' : '' }}>Por obra</option>
+                                    <option value="Temporal" {{ $empleado->tipo_contrato == 'Temporal' ? 'selected' : '' }}>Temporal</option>
+                                </select>
+                                <p class="text-[9px] text-slate-400 mt-1">Cláusula/condición del contrato</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Inicio de Contrato</label>
+                                <input type="date" name="fecha_inicio_contrato" value="{{ $empleado->fecha_inicio_contrato?->format('Y-m-d') ?? '' }}" class="w-full rounded-lg border-slate-300 text-xs focus:ring-purple-500" />
+                                <p class="text-[9px] text-slate-400 mt-1">Fecha de inicio laboral</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Fin de Contrato</label>
+                                <input type="date" name="fecha_fin_contrato" value="{{ $empleado->fecha_fin_contrato?->format('Y-m-d') ?? '' }}" class="w-full rounded-lg border-slate-300 text-xs focus:ring-purple-500" />
+                                <p class="text-[9px] text-slate-400 mt-1">Vencimiento del contrato</p>
+                            </div>
+                         </div>
+                    </div>
                     {{-- 4. Emergencia --}}
                     <div class="bg-red-50 p-4 rounded-xl border border-red-100">
                          <h4 class="text-xs font-bold text-red-900 uppercase tracking-wider mb-3">Emergencia</h4>

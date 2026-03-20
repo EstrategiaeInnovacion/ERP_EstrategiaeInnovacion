@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('logistica:actualizar-status')->hourly();
+Schedule::command('rh:generar-recordatorios')->daily();
