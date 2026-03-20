@@ -224,7 +224,7 @@ class Recordatorio extends Model
         return self::create([
             'tipo' => self::TIPO_CUMPLEAÑOS,
             'titulo' => "Cumpleaños de {$empleado->nombre}",
-            'descripcion' => "{$empleado->nombre} cumple años el {$proximoCumple->format('d \d\e F')}",
+            'descripcion' => "{$empleado->nombre} cumple años el {$proximoCumple->locale('es')->translatedFormat('j \d\e F')}",
             'fecha_evento' => $proximoCumple,
             'dias_anticipacion' => 7,
             'tabla_relacionada' => 'empleados',
@@ -271,7 +271,7 @@ class Recordatorio extends Model
         return self::create([
             'tipo' => self::TIPO_ANIVERSARIO,
             'titulo' => ($anios + 1) . " años - {$empleado->nombre}",
-            'descripcion' => "{$empleado->nombre} cumple " . ($anios + 1) . " años en la empresa el " . $proximoAniversario->format('d \d\e F'),
+            'descripcion' => "{$empleado->nombre} cumple " . ($anios + 1) . " años en la empresa el " . $proximoAniversario->locale('es')->translatedFormat('j \d\e F'),
             'fecha_evento' => $proximoAniversario,
             'dias_anticipacion' => 7,
             'tabla_relacionada' => 'empleados',
@@ -307,7 +307,7 @@ class Recordatorio extends Model
                 $existe->update([
                     'tipo' => self::TIPO_DOCUMENTO_VENCIDO,
                     'titulo' => "Documento Vencido: {$documento->nombre}",
-                    'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} venció el {$documento->fecha_vencimiento->format('d/m/Y')}",
+                    'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} venció el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
                     'activo' => true,
                 ]);
             }
@@ -322,7 +322,7 @@ class Recordatorio extends Model
         return self::create([
             'tipo' => $tipo,
             'titulo' => ($tipo === self::TIPO_CONTRATO_VENCER ? "Fin de Contrato: " : "Documento por Vencer: ") . $documento->nombre,
-            'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} vence el {$documento->fecha_vencimiento->format('d/m/Y')}",
+            'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} vence el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
             'fecha_evento' => $documento->fecha_vencimiento,
             'dias_anticipacion' => $diasAnticipacion,
             'tabla_relacionada' => 'empleado_documentos',
@@ -359,7 +359,7 @@ class Recordatorio extends Model
             $existe->update([
                 'tipo' => $tipo,
                 'titulo' => "Fin de Contrato: {$empleado->nombre}",
-                'descripcion' => "El contrato de {$empleado->nombre} (" . ($empleado->tipo_contrato ?? 'Determinado') . ") " . ($tipo === self::TIPO_DOCUMENTO_VENCIDO ? 'venció' : 'vence') . " el " . $empleado->fecha_fin_contrato->format('d/m/Y'),
+                'descripcion' => "El contrato de {$empleado->nombre} (" . ($empleado->tipo_contrato ?? 'Determinado') . ") " . ($tipo === self::TIPO_DOCUMENTO_VENCIDO ? 'venció' : 'vence') . " el " . $empleado->fecha_fin_contrato->locale('es')->translatedFormat('j \d\e F'),
                 'activo' => true,
             ]);
             return $existe;
@@ -373,7 +373,7 @@ class Recordatorio extends Model
         return self::create([
             'tipo' => $tipo,
             'titulo' => "Fin de Contrato: {$empleado->nombre}",
-            'descripcion' => "El contrato de {$empleado->nombre} (" . ($empleado->tipo_contrato ?? 'Determinado') . ") " . ($tipo === self::TIPO_DOCUMENTO_VENCIDO ? 'venció' : 'vence') . " el " . $empleado->fecha_fin_contrato->format('d/m/Y'),
+            'descripcion' => "El contrato de {$empleado->nombre} (" . ($empleado->tipo_contrato ?? 'Determinado') . ") " . ($tipo === self::TIPO_DOCUMENTO_VENCIDO ? 'venció' : 'vence') . " el " . $empleado->fecha_fin_contrato->locale('es')->translatedFormat('j \d\e F'),
             'fecha_evento' => $empleado->fecha_fin_contrato,
             'dias_anticipacion' => $diasAnticipacion,
             'tabla_relacionada' => 'empleados_contrato',
