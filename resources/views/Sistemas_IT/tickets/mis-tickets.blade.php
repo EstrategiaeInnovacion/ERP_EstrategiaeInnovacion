@@ -69,16 +69,19 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @foreach($tickets as $ticket)
-                                <tr class="hover:bg-slate-50/80 transition-colors group">
+                                <tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" onclick="toggleDetails({{ $ticket->id }})" id="row-{{ $ticket->id }}">
                                     <td class="px-8 py-5 whitespace-nowrap">
                                         <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg font-mono text-xs font-bold">#{{ $ticket->id }}</span>
                                     </td>
                                     <td class="px-8 py-5">
                                         <div class="flex flex-col">
-                                            <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors mb-1">
-                                                {{ Str::limit($ticket->titulo, 50) }}
-                                            </span>
                                             <div class="flex items-center gap-2">
+                                                <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                                                    {{ Str::limit($ticket->titulo, 50) }}
+                                                </span>
+                                                <svg class="w-4 h-4 text-slate-400 transition-transform details-arrow-{{ $ticket->id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </div>
+                                            <div class="flex items-center gap-2 mt-1">
                                                 @php
                                                     $catColor = match(strtolower($ticket->categoria)) {
                                                         'software' => 'text-indigo-500',
@@ -109,7 +112,7 @@
                                                                 src="data:image/jpeg;base64,{{ $imagen }}" 
                                                                 alt="Evidencia {{ $index + 1 }}"
                                                                 class="w-10 h-10 rounded-lg object-cover border-2 border-white shadow-sm cursor-pointer hover:scale-110 hover:z-10 transition-transform"
-                                                                onclick="showImageModal(this.src)"
+                                                                onclick="event.stopPropagation(); showImageModal(this.src)"
                                                             >
                                                             @if($index == 2 && count($imagenes) > 3)
                                                                 <span class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg text-white text-xs font-bold">
@@ -154,6 +157,56 @@
                                         </div>
                                     </td>
                                 </tr>
+                                <tr id="details-{{ $ticket->id }}" class="hidden bg-slate-50/50">
+                                    <td colspan="5" class="px-8 py-6">
+                                        <div class="bg-white rounded-xl border border-slate-200 p-6">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción</h4>
+                                                    <p class="text-sm text-slate-700">{{ $ticket->descripcion_problema ?? 'Sin descripción' }}</p>
+                                                </div>
+                                                <div class="space-y-4">
+                                                    <div>
+                                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha de Creación</h4>
+                                                        <p class="text-sm text-slate-700">{{ $ticket->created_at->format('d/m/Y H:i') }}</p>
+                                                    </div>
+                                                    @if($ticket->fecha_cierre)
+                                                    <div>
+                                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha de Cierre</h4>
+                                                        <p class="text-sm text-slate-700">{{ $ticket->fecha_cierre->format('d/m/Y H:i') }}</p>
+                                                    </div>
+                                                    @endif
+                                                    @if($ticket->observaciones)
+                                                    <div>
+                                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Observaciones</h4>
+                                                        <p class="text-sm text-slate-700">{{ $ticket->observaciones }}</p>
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            @php
+                                                $imagenesAdmin = is_array($ticket->imagenes_admin) ? $ticket->imagenes_admin : json_decode($ticket->imagenes_admin, true) ?? [];
+                                            @endphp
+                                            @if(is_array($imagenesAdmin) && count($imagenesAdmin) > 0)
+                                            <div class="mt-6 pt-6 border-t border-slate-100">
+                                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Evidencia del Soporte</h4>
+                                                <div class="flex flex-wrap gap-2">
+                                                    @foreach($imagenesAdmin as $index => $imagen)
+                                                        @if(!empty($imagen))
+                                                        <img 
+                                                            src="data:image/jpeg;base64,{{ $imagen }}" 
+                                                            alt="Evidencia soporte {{ $index + 1 }}"
+                                                            class="w-16 h-16 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80 transition"
+                                                            onclick="showImageModal(this.src)"
+                                                        >
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -184,6 +237,19 @@
             function closeImageModal() {
                 document.getElementById('imageModal').classList.add('hidden');
                 document.getElementById('imageModal').classList.remove('flex');
+            }
+
+            function toggleDetails(id) {
+                const details = document.getElementById('details-' + id);
+                const arrow = document.querySelector('.details-arrow-' + id);
+                
+                if (details.classList.contains('hidden')) {
+                    details.classList.remove('hidden');
+                    if (arrow) arrow.style.transform = 'rotate(180deg)';
+                } else {
+                    details.classList.add('hidden');
+                    if (arrow) arrow.style.transform = 'rotate(0deg)';
+                }
             }
         </script>
     </div>
