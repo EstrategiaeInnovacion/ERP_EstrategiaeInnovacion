@@ -86,7 +86,10 @@
                 ->orderBy('fecha_evento')
                 ->take(5)
                 ->get();
-            $totalRecordatorios = \App\Models\Recordatorio::where('activo', true)->count();
+            $totalRecordatorios = \App\Models\Recordatorio::where('activo', true)
+                ->whereDate('fecha_evento', '>=', now()->subDays(7))
+                ->whereDate('fecha_evento', '<=', now()->addDays(30))
+                ->count();
         @endphp
 
         <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white shadow-lg shadow-amber-200/50 relative overflow-hidden">
