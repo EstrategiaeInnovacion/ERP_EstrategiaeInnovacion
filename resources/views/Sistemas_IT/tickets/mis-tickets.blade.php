@@ -164,29 +164,26 @@
                 @endif
             @endif
         </div>
+
+        <div id="imageModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4" onclick="closeImageModal()">
+            <img id="modalImage" src="" alt="Imagen ampliada" class="max-w-full max-h-full object-contain rounded-lg">
+            <button class="absolute top-4 right-4 text-white hover:text-slate-300 transition">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <script>
+            function showImageModal(src) {
+                document.getElementById('modalImage').src = src;
+                document.getElementById('imageModal').classList.remove('hidden');
+                document.getElementById('imageModal').classList.add('flex');
+            }
+
+            function closeImageModal() {
+                document.getElementById('imageModal').classList.add('hidden');
+                document.getElementById('imageModal').classList.remove('flex');
+            }
+        </script>
     </div>
 </div>
-
-<div id="imageModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4" onclick="closeImageModal()">
-    <img id="modalImage" src="" alt="Imagen ampliada" class="max-w-full max-h-full object-contain rounded-lg">
-    <button class="absolute top-4 right-4 text-white hover:text-slate-300 transition">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-    </button>
-</div>
-
-@push('scripts')
-<script>
-    function showImageModal(src) {
-        document.getElementById('modalImage').src = src;
-        document.getElementById('imageModal').classList.remove('hidden');
-        document.getElementById('imageModal').classList.add('flex');
-    }
-
-    function closeImageModal() {
-        document.getElementById('imageModal').classList.add('hidden');
-        document.getElementById('imageModal').classList.remove('flex');
-    }
-</script>
-@endpush
-
 @endsection
