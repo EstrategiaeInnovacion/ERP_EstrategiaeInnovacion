@@ -17,6 +17,17 @@ use App\Http\Controllers\Api\UserController;
 */
 
 // ============================================================================
+// RUTAS DE CONSULTA EXTERNA (Solo requieren X-API-Key header)
+// ============================================================================
+
+Route::prefix('v1')->middleware('api.key')->group(function () {
+
+    // Obtener usuarios activos del sistema
+    Route::get('/users', [UserController::class, 'index'])
+        ->name('api.users.index');
+});
+
+// ============================================================================
 // RUTAS PÚBLICAS (Sin autenticación)
 // ============================================================================
 
@@ -55,9 +66,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             ->name('api.auth.refresh');
     });
     
-    // --- Usuarios activos (para sistemas externos) ---
-    Route::get('/users', [UserController::class, 'index'])
-        ->name('api.users.index');
+
 
     // --- Aquí puedes agregar más rutas protegidas ---
     // Ejemplo:
