@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             ->name('api.auth.refresh');
     });
     
+    // --- Usuarios activos (para sistemas externos) ---
+    Route::get('/users', [UserController::class, 'index'])
+        ->name('api.users.index');
+
     // --- Aquí puedes agregar más rutas protegidas ---
     // Ejemplo:
     // Route::apiResource('usuarios', UserApiController::class);
