@@ -99,7 +99,7 @@ class Activity extends Model
             }
 
             // 4. Estatus Automático
-            // IMPORTANTE: Solo cambiar estatus si la actividad no está ya completada/aprobada
+            // IMPORTANTE: Solo cambiar estatus si la actividad no está ya completada/aprobada/bloqueada
             $estatusBloqueados = ['Completado', 'Completado con retardo', 'Por Aprobar', 'Por Validar', 'Planeado', 'Rechazado'];
             
             if (!in_array($activity->estatus, $estatusBloqueados)) {
@@ -109,10 +109,10 @@ class Activity extends Model
                     } else {
                         $activity->estatus = 'Completado';
                     }
-                } elseif ($compromiso && $hoy->gt($compromiso)) {
+                }
+                // Solo asignar "Retardo" si la actividad estaba en proceso (no si estaba planeada o por aprobar)
+                elseif ($compromiso && $hoy->gt($compromiso) && $activity->estatus === 'En proceso') {
                     $activity->estatus = 'Retardo';
-                } else {
-                    $activity->estatus = 'En proceso';
                 }
             }
         });

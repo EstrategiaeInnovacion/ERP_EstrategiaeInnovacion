@@ -252,10 +252,10 @@ class ActivityController extends Controller
 
             if ($soyDireccion) {
                 $data['estatus'] = 'Planeado'; 
-            } elseif ($soySupervisor && $esDestinoSupervisor) {
-                $data['estatus'] = 'Por Aprobar';
             } elseif ($soySuJefe) {
                 $data['estatus'] = 'Planeado'; 
+            } elseif ($soySupervisor && $esDestinoSupervisor) {
+                $data['estatus'] = 'Por Aprobar';
             } else {
                 $data['estatus'] = 'Por Aprobar'; 
             }
@@ -347,14 +347,24 @@ class ActivityController extends Controller
             $activity->comentarios = $request->comentarios;
             
             // --- LOGICA DE CIERRE CON VALIDACIÓN ---
-            if ($request->estatus === 'Completado') {
+            $estatusActual = $activity->estatus;
+            $nuevoEstatus = $request->estatus;
+
+            if ($nuevoEstatus === 'Completado') {
                 if ($esDireccion || $esSupervisor) {
                     $activity->estatus = 'Completado'; // Jefes cierran directo
                 } else {
                     $activity->estatus = 'Por Validar'; // Empleados piden validación
                 }
+            } elseif (in_array($estatusActual, ['Completado', 'Completado con retardo', 'Por Validar'])) {
+                // No permitir que analistas modifiquen estatus de actividades completadas o en validación
+                // El estatus se mantiene igual, solo se guardan comentarios
+            } elseif ($nuevoEstatus === 'En proceso' && $estatusActual === 'Rechazado') {
+                // Permitir que el analista reabra una actividad rechazada
+                $activity->estatus = 'En proceso';
             } else {
-                $activity->estatus = $request->estatus;
+                // Para actividades en proceso o planeadas, permitir cambios normales de estatus
+                $activity->estatus = $nuevoEstatus;
             }
         }
 
@@ -435,10 +445,8 @@ class ActivityController extends Controller
         
         $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
         $esSupervisor = $user->empleado && $activity->user->empleado && $user->empleado->id === $activity->user->empleado->supervisor_id;
-        $esDuenoBorrador = ($activity->user_id === $user->id && $activity->estatus === 'En proceso');
-        $esAsignador = ($activity->asignado_por === $user->id);
 
-        if ($esDireccion || $esSupervisor || $esDuenoBorrador || $esAsignador) {
+        if ($esDireccion || $esSupervisor) {
             $activity->delete();
             return redirect()->back()->with('success', 'Eliminado.');
         }
@@ -487,6 +495,15 @@ class ActivityController extends Controller
     public function reject(Request $request, $id)
     {
         $act = Activity::findOrFail($id);
+        $user = Auth::user();
+        
+        $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
+        $esSupervisor = $user->empleado && $act->user->empleado && $user->empleado->id === $act->user->empleado->supervisor_id;
+
+        if (!$esDireccion && !$esSupervisor) {
+            abort(403, 'No tienes permiso para rechazar esta actividad.');
+        }
+        
         $act->estatus = 'Rechazado';
         $act->motivo_rechazo = $request->input('motivo', 'Revisión');
         $act->save();
@@ -497,6 +514,11 @@ class ActivityController extends Controller
     public function start($id)
     {
         $act = Activity::findOrFail($id);
+        
+        if ($act->user_id !== Auth::id()) {
+            abort(403, 'Solo el responsable puede iniciar esta actividad.');
+        }
+        
         $act->estatus = 'En proceso';
         $act->fecha_inicio = now(); 
         $act->save();

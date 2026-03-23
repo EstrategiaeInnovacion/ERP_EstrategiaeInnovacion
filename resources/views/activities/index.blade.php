@@ -394,8 +394,8 @@
                                             <form action="{{ route('activities.start', $act->id) }}" method="POST">@csrf @method('PUT')<button class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[9px] font-bold hover:bg-indigo-700">INICIAR</button></form>
                                         @else
                                             <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }})' class="text-slate-400 hover:text-indigo-600 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                                            @if(($esSupervisor || $esDireccion) || ($act->asignado_por == Auth::id()))
-                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar?')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
+                                            @if($esSupervisor || $esDireccion)
+                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar?')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @endif
 
@@ -497,12 +497,7 @@
                             </div>
                             <div id="div-estatus-selector">
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Estatus</label>
-                                    <select name="estatus" id="modal-estatus" class="w-full text-sm rounded-lg border-slate-300 py-2.5 font-bold text-slate-700">
-                                    <option value="En proceso">En proceso</option>
-                                    <option value="Completado">Completado</option>
-                                    <option value="Por Aprobar">Por Aprobar (Revisión)</option>
-                                    <option value="Por Validar">Por Validar (Revisión de Cierre)</option>
-                                </select>
+                                    <select name="estatus" id="modal-estatus" class="w-full text-sm rounded-lg border-slate-300 py-2.5 font-bold text-slate-700"></select>
                             </div>
                             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Comentarios</label><textarea name="comentarios" id="modal-comentarios" rows="3" class="w-full text-sm rounded-lg border-slate-300 placeholder-slate-400 py-2.5"></textarea></div>
                         </div>
@@ -642,7 +637,6 @@
     function openNotes(act, canEditAll) {
         const f = document.getElementById('notesForm'); f.action = "/activities/" + act.id;
         document.getElementById('modal-activity-name').value = act.nombre_actividad;
-        document.getElementById('modal-estatus').value = act.estatus;
         document.getElementById('modal-prioridad').value = act.prioridad || 'Media';
         document.getElementById('modal-fecha').value = act.fecha_compromiso ? act.fecha_compromiso.split('T')[0] : '';
         document.getElementById('modal-hora-inicio').value = act.hora_inicio_programada ? act.hora_inicio_programada.substring(0,5) : '';
@@ -652,6 +646,30 @@
         document.getElementById('modal-cliente').value = act.cliente || '';
         document.getElementById('modal-responsable').innerText = act.user ? act.user.name : '-';
         document.getElementById('modal-supervisor').innerText = (act.user && act.user.empleado && act.user.empleado.supervisor) ? act.user.empleado.supervisor.nombre : 'N/A';
+        
+        // Opciones dinámicas de estatus según contexto
+        const estatusSelect = document.getElementById('modal-estatus');
+        estatusSelect.innerHTML = '';
+        
+        const opcionesPermitidas = {
+            'En proceso': ['En proceso', 'Completado'],
+            'Planeado': canEditAll ? ['Planeado', 'En proceso', 'Completado'] : ['En proceso'],
+            'Completado': ['Completado'],
+            'Completado con retardo': ['Completado con retardo'],
+            'Por Aprobar': ['Por Aprobar'],
+            'Por Validar': ['Por Validar'],
+            'Rechazado': canEditAll ? ['Rechazado', 'En proceso', 'Planeado'] : ['En proceso'],
+            'Retardo': canEditAll ? ['Retardo', 'En proceso', 'Completado'] : ['En proceso', 'Completado']
+        };
+        
+        const opciones = opcionesPermitidas[act.estatus] || ['En proceso', 'Completado'];
+        opciones.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === act.estatus) option.selected = true;
+            estatusSelect.appendChild(option);
+        });
         
         const inputs = ['modal-activity-name','modal-fecha','modal-prioridad','modal-hora-inicio','modal-hora-fin','modal-area','modal-cliente'];
         inputs.forEach(id => {
