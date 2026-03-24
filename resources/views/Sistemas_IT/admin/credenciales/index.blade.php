@@ -251,9 +251,37 @@
 
                 {{-- ---- Step: Select available device ---- --}}
                 <div x-show="step === 'select_device'">
-                    <p class="text-sm font-semibold text-slate-700 mb-2">Este usuario no tiene equipo asignado. Selecciona uno disponible:</p>
-                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                        <template x-for="d in disponibles" :key="d.uuid">
+                    <p class="text-sm font-semibold text-slate-700 mb-3">Este usuario no tiene equipo asignado. Selecciona uno disponible:</p>
+
+                    {{-- Tabs --}}
+                    <div class="flex gap-1 bg-slate-100 rounded-lg p-1 mb-3">
+                        <button type="button"
+                                @click="tabEquipo = 'computer'"
+                                :class="tabEquipo === 'computer' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                                class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Computadoras
+                            <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'computer').length + ')'"></span>
+                        </button>
+                        <button type="button"
+                                @click="tabEquipo = 'peripheral'"
+                                :class="tabEquipo === 'peripheral' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                                class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 4v1m0 14v1m-7-8H4m16 0h-1M5.636 5.636l.707.707m11.314 11.314.707.707M5.636 18.364l.707-.707m11.314-11.314.707-.707"/>
+                            </svg>
+                            Periféricos
+                            <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'peripheral').length + ')'"></span>
+                        </button>
+                    </div>
+
+                    {{-- Device list filtered by tab --}}
+                    <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <template x-for="d in disponibles.filter(d => d.type === tabEquipo)" :key="d.uuid">
                             <button type="button"
                                     @click="seleccionarDisponible(d)"
                                     class="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center gap-4 group">
@@ -271,14 +299,17 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-medium text-slate-800 truncate" x-text="d.name ?? d.nombre ?? 'Sin nombre'"></p>
-                                    <p class="text-xs text-slate-500 truncate" x-text="(d.model ?? d.modelo ?? '') + (d.type_label ? ' · ' + d.type_label : '')"></p>
-                                    <p class="text-xs text-slate-400 font-mono" x-text="'S/N: ' + (d.serial_number ?? d.serie ?? 'N/A')"></p>
+                                    <p class="text-xs text-slate-500 truncate" x-text="(d.brand ?? '') + (d.model ? ' · ' + d.model : '')"></p>
+                                    <p class="text-xs text-slate-400 font-mono" x-text="'S/N: ' + (d.serial_number ?? 'N/A')"></p>
                                 </div>
                                 <svg class="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
                             </button>
                         </template>
+                        <div x-show="!disponibles.filter(d => d.type === tabEquipo).length && disponibles.length" class="text-sm text-slate-400 text-center py-6">
+                            No hay <span x-text="tabEquipo === 'computer' ? 'computadoras' : 'periféricos'"></span> disponibles.
+                        </div>
                         <div x-show="!disponibles.length" class="text-sm text-slate-400 text-center py-6">
                             No hay equipos disponibles en el sistema de activos.
                         </div>
@@ -534,6 +565,9 @@ function equipoModal() {
         perifericos_disponibles: [],
         selectedPerUuid: '',
 
+        // tab para selección de equipo disponible
+        tabEquipo: 'computer',
+
         // ui state
         enviando: false,
         errorMsg: null,
@@ -565,6 +599,7 @@ function equipoModal() {
             this.enviando = false;
             this.errorMsg = null;
             this.userHasDevice = false;
+            this.tabEquipo = 'computer';
         },
 
         // ---- device lookup ----
@@ -582,6 +617,7 @@ function equipoModal() {
 
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
+                console.log('[Activos] devicesByUser:', data);
                 this.userHasDevice = data.has_device;
 
                 if (data.has_device && data.devices && data.devices.length) {
