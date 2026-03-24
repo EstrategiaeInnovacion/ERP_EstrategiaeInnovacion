@@ -57,7 +57,8 @@ class ActivosApiService
 
             if ($response->successful()) {
                 $data = $response->json();
-                return is_array($data) ? $data : ($data['data'] ?? []);
+                // API devuelve wrapper {success, data: [...]}
+                return $data['data'] ?? (array_is_list($data ?? []) ? $data : []);
             }
 
             Log::warning('ActivosApi: assigned-devices no exitoso', [
@@ -85,10 +86,9 @@ class ActivosApiService
             $response = $this->client()->get($this->url('/api/v1/devices'));
 
             if ($response->successful()) {
-                $all = $response->json();
-                if (!is_array($all)) {
-                    $all = $all['data'] ?? [];
-                }
+                $json = $response->json();
+                // API devuelve wrapper {success, total, data: [...]}
+                $all = $json['data'] ?? (array_is_list($json ?? []) ? $json : []);
                 return array_values(
                     array_filter($all, fn ($d) => empty($d['assignment']))
                 );
