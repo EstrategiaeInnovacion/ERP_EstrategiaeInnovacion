@@ -12,6 +12,8 @@ use App\Http\Controllers\Sistemas_IT\AdminController;
 use App\Http\Controllers\Sistemas_IT\NotificationController;
 use App\Http\Controllers\Sistemas_IT\TicketController;
 use App\Http\Controllers\Sistemas_IT\MaintenanceController;
+use App\Http\Controllers\Sistemas_IT\CredencialEquipoController;
+use App\Http\Controllers\Sistemas_IT\ActivosApiController;
 use App\Http\Controllers\Users\UsersController;
 
 // --- Controllers de Recursos Humanos ---
@@ -399,6 +401,15 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
 
         // Alias: admin.users apunta a admin.users.index
         Route::get('/users-list', [UsersController::class , 'index'])->name('users');
+
+        // Contraseñas y Equipos IT
+        Route::prefix('activos-api')->name('activos.')->group(function () {
+            Route::get('/usuario/{userId}/equipo',   [ActivosApiController::class, 'devicesByUser'])->name('devices-by-user');
+            Route::get('/equipos-disponibles',        [ActivosApiController::class, 'availableDevices'])->name('available-devices');
+            Route::get('/fotos/{id}',                 [ActivosApiController::class, 'photo'])->name('photo');
+        });
+        Route::resource('credenciales', CredencialEquipoController::class)
+            ->parameters(['credenciales' => 'credencial']);
     });
 
 // API Notificaciones Admin
