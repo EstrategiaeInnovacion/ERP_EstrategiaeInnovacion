@@ -271,7 +271,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-medium text-slate-800 truncate" x-text="d.name ?? d.nombre ?? 'Sin nombre'"></p>
-                                    <p class="text-xs text-slate-500 truncate" x-text="(d.model ?? d.modelo ?? '') + (d.device_type ? ' · ' + d.device_type.name : '')"></p>
+                                    <p class="text-xs text-slate-500 truncate" x-text="(d.model ?? d.modelo ?? '') + (d.type_label ? ' · ' + d.type_label : '')"></p>
                                     <p class="text-xs text-slate-400 font-mono" x-text="'S/N: ' + (d.serial_number ?? d.serie ?? 'N/A')"></p>
                                 </div>
                                 <svg class="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,7 +444,7 @@
                                 <option value="">— Seleccionar periférico disponible —</option>
                                 <template x-for="d in perifericos_disponibles.filter(d => d.uuid !== device?.uuid && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
                                     <option :value="d.uuid"
-                                            x-text="`${d.name ?? d.nombre ?? 'Sin nombre'} ${d.device_type ? '(' + d.device_type.name + ')' : ''} — S/N: ${d.serial_number ?? d.serie ?? 'N/A'}`">
+                                            x-text="`${d.name ?? d.nombre ?? 'Sin nombre'} ${d.type_label ? '(' + d.type_label + ')' : ''} — S/N: ${d.serial_number ?? d.serie ?? 'N/A'}`">
                                     </option>
                                 </template>
                             </select>
@@ -627,12 +627,15 @@ function equipoModal() {
         },
 
         mapDevice(d, assign_new) {
+            // assigned-devices API devuelve el device bajo d.device
+            // available-devices API devuelve los campos directamente en d
+            const dev = d.device ?? d;
             return {
-                uuid:      d.uuid ?? d.id ?? '',
-                nombre:    d.name ?? d.nombre ?? '',
-                modelo:    d.model ?? d.modelo ?? '',
-                serie:     d.serial_number ?? d.serie ?? '',
-                photo_id:  (d.photos && d.photos.length) ? d.photos[0].id : null,
+                uuid:      dev.uuid ?? dev.id ?? '',
+                nombre:    dev.name ?? dev.nombre ?? '',
+                modelo:    dev.model ?? dev.modelo ?? '',
+                serie:     dev.serial_number ?? dev.serie ?? '',
+                photo_id:  (dev.photos && dev.photos.length) ? dev.photos[0].id : null,
                 assign_new: assign_new,
             };
         },
