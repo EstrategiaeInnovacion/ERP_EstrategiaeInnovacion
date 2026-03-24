@@ -256,7 +256,7 @@
                                     class="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center gap-4 group">
                                 <div class="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
                                     <template x-if="d.photos && d.photos.length">
-                                        <img :src="`{{ route('admin.activos.photo', '') }}/${d.photos[0].id}`"
+                                        <img :src="`{{ url('admin/activos-api/fotos') }}/${d.photos[0].id}`"
                                              class="w-full h-full object-cover">
                                     </template>
                                     <template x-if="!d.photos || !d.photos.length">
@@ -287,7 +287,7 @@
                     <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-start gap-4">
                         <div class="w-16 h-16 bg-white rounded-lg border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                             <template x-if="device.photo_id">
-                                <img :src="`{{ route('admin.activos.photo', '') }}/${device.photo_id}`"
+                                <img :src="`{{ url('admin/activos-api/fotos') }}/${device.photo_id}`"
                                      class="w-full h-full object-cover">
                             </template>
                             <template x-if="!device.photo_id">
