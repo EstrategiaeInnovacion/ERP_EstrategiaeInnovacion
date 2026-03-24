@@ -42,25 +42,25 @@ class GenerarRecordatorios extends Command
 
     private function limpiarAntiguos(): void
     {
-        $limite = Carbon::today()->addDays(30);
+        $limiteFuturo = Carbon::today()->addDays(30);
+        $limitePasado = Carbon::today()->subDays(30);
 
-        Recordatorio::where('fecha_evento', '>', $limite)
-            ->whereIn('tipo', [
+        Recordatorio::whereIn('tipo', [
                 Recordatorio::TIPO_CUMPLEAÑOS,
                 Recordatorio::TIPO_ANIVERSARIO,
             ])
+            ->where(function ($q) use ($limiteFuturo, $limitePasado) {
+                $q->where('fecha_evento', '>', $limiteFuturo)
+                  ->orWhere('fecha_evento', '<', $limitePasado);
+            })
             ->delete();
 
-        Recordatorio::where('fecha_evento', '<', Carbon::yesterday())
-            ->whereIn('tipo', [
-                Recordatorio::TIPO_CUMPLEAÑOS,
-                Recordatorio::TIPO_ANIVERSARIO,
+        Recordatorio::whereIn('tipo', [
+                Recordatorio::TIPO_DOCUMENTO_VENCIDO,
+                Recordatorio::TIPO_DOCUMENTO_VENCER,
+                Recordatorio::TIPO_CONTRATO_VENCER,
             ])
-            ->delete();
-
-        $limiteVencidos = Carbon::today()->subDays(60);
-        Recordatorio::where('tipo', Recordatorio::TIPO_DOCUMENTO_VENCIDO)
-            ->where('fecha_evento', '<', $limiteVencidos)
+            ->where('fecha_evento', '<', $limitePasado)
             ->delete();
 
         $this->info('  - Limpieza completada');
