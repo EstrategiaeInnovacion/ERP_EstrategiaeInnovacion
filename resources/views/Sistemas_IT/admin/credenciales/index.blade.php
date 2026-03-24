@@ -3,7 +3,10 @@
 @section('title', 'Contraseñas y Equipos - IT')
 
 @section('content')
-<div class="min-h-screen bg-slate-50 pb-12" x-data="equipoModal(@json($usuarios))">
+<script>
+    window._equipoUsuarios = {!! json_encode($usuarios, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+</script>
+<div class="min-h-screen bg-slate-50 pb-12" x-data="equipoModal()">
 
     {{-- Header --}}
     <div class="bg-white border-b border-slate-200 mb-8">
@@ -506,12 +509,12 @@
 
 @push('scripts')
 <script>
-function equipoModal(usuarios) {
+function equipoModal() {
     return {
         // state
         modalOpen: false,
         step: 'select_user', // select_user | loading | select_device | credentials
-        usuarios: usuarios,
+        usuarios: window._equipoUsuarios || [],
         userId: '',
         userHasDevice: false,
         disponibles: [],
