@@ -476,11 +476,8 @@
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">Tipo de Contrato</label>
                                 <select name="tipo_contrato" class="w-full rounded-lg border-slate-300 text-xs focus:ring-purple-500 bg-white">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="Indeterminado" {{ $empleado->tipo_contrato == 'Indeterminado' ? 'selected' : '' }}>Indeterminado</option>
                                     <option value="Determinado" {{ $empleado->tipo_contrato == 'Determinado' ? 'selected' : '' }}>Determinado</option>
-                                    <option value="Por obra" {{ $empleado->tipo_contrato == 'Por obra' ? 'selected' : '' }}>Por obra</option>
-                                    <option value="Temporal" {{ $empleado->tipo_contrato == 'Temporal' ? 'selected' : '' }}>Temporal</option>
+                                    <option value="Indeterminado" {{ $empleado->tipo_contrato == 'Indeterminado' ? 'selected' : '' }}>Indeterminado</option>
                                 </select>
                                 <p class="text-[9px] text-slate-400 mt-1">Cláusula/condición del contrato</p>
                             </div>

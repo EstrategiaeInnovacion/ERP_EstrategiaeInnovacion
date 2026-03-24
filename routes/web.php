@@ -328,6 +328,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::post('/marcar-todos', 'marcarTodosLeidos')->name('marcar-todos');
             Route::delete('/{id}', 'destruir')->name('destruir');
             Route::post('/generar', 'generarManual')->name('generar');
+            Route::post('/evento-manual', 'crearEventoManual')->name('crear-manual');
         }
         );
 

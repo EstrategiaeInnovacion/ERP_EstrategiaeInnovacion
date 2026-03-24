@@ -18,6 +18,7 @@ class Recordatorio extends Model
     const TIPO_DOCUMENTO_VENCIDO = 'documento_vencido';
     const TIPO_CONTRATO_VENCER = 'contrato_por_vencer';
     const TIPO_EVALUACION_PENDIENTE = 'evaluacion_pendiente';
+    const TIPO_EVENTO_PERSONAL = 'evento_personal';
 
     const TIPOS = [
         self::TIPO_CUMPLEAÑOS => 'Cumpleaños',
@@ -26,6 +27,20 @@ class Recordatorio extends Model
         self::TIPO_DOCUMENTO_VENCIDO => 'Documento Vencido',
         self::TIPO_CONTRATO_VENCER => 'Fin de Contrato',
         self::TIPO_EVALUACION_PENDIENTE => 'Evaluación Pendiente',
+        self::TIPO_EVENTO_PERSONAL => 'Evento Personal',
+    ];
+
+    const COLORES_EVENTO = [
+        '#EF4444' => 'Rojo',
+        '#F97316' => 'Naranja',
+        '#EAB308' => 'Amarillo',
+        '#22C55E' => 'Verde',
+        '#14B8A6' => 'Teal',
+        '#3B82F6' => 'Azul',
+        '#8B5CF6' => 'Morado',
+        '#EC4899' => 'Rosa',
+        '#6366F1' => 'Índigo',
+        '#64748B' => 'Gris',
     ];
 
     protected $fillable = [
@@ -41,13 +56,8 @@ class Recordatorio extends Model
         'leido',
         'leido_at',
         'activo',
-    ];
-
-    protected $casts = [
-        'fecha_evento' => 'date',
-        'leido_at' => 'datetime',
-        'leido' => 'boolean',
-        'activo' => 'boolean',
+        'color_evento',
+        'es_manual',
     ];
 
     public function empleado()
@@ -88,12 +98,30 @@ class Recordatorio extends Model
         return $query->where('empleado_id', $empleadoId);
     }
 
+    public function scopeManuales($query)
+    {
+        return $query->where('es_manual', true);
+    }
+
     public function getDiasRestantesAttribute(): ?int
     {
         if (!$this->fecha_evento) {
             return null;
         }
         return Carbon::today()->diffInDays($this->fecha_evento, false);
+    }
+
+    public function getColorAttribute(): ?string
+    {
+        if ($this->color_evento) {
+            return $this->color_evento;
+        }
+
+        if ($this->es_manual) {
+            return '#8B5CF6';
+        }
+
+        return null;
     }
 
     public function getUrgenciaAttribute(): string
@@ -288,18 +316,19 @@ class Recordatorio extends Model
             return null;
         }
 
-        $tipo = $documento->fecha_vencimiento->isPast()
-            ? self::TIPO_DOCUMENTO_VENCIDO
-            : self::TIPO_DOCUMENTO_VENCER;
-
+        $esVencido = $documento->fecha_vencimiento->isPast();
+        
         if (stripos($documento->nombre, 'contrato') !== false) {
-            $tipo = self::TIPO_CONTRATO_VENCER;
+            $tipo = $esVencido ? self::TIPO_DOCUMENTO_VENCIDO : self::TIPO_CONTRATO_VENCER;
+        } else {
+            $tipo = $esVencido ? self::TIPO_DOCUMENTO_VENCIDO : self::TIPO_DOCUMENTO_VENCER;
         }
 
         $existe = self::where('tabla_relacionada', 'empleado_documentos')
             ->where('registro_id', $documento->id)
             ->whereYear('fecha_evento', $documento->fecha_vencimiento->year)
             ->whereMonth('fecha_evento', $documento->fecha_vencimiento->month)
+            ->whereDay('fecha_evento', $documento->fecha_vencimiento->day)
             ->first();
 
         if ($existe) {
@@ -308,6 +337,13 @@ class Recordatorio extends Model
                     'tipo' => self::TIPO_DOCUMENTO_VENCIDO,
                     'titulo' => "Documento Vencido: {$documento->nombre}",
                     'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} venció el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
+                    'activo' => true,
+                ]);
+            } elseif ($tipo === self::TIPO_CONTRATO_VENCER) {
+                $existe->update([
+                    'tipo' => self::TIPO_CONTRATO_VENCER,
+                    'titulo' => "Fin de Contrato: {$documento->nombre}",
+                    'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} vence el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
                     'activo' => true,
                 ]);
             }

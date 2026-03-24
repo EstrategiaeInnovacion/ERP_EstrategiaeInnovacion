@@ -113,14 +113,6 @@ class RecordatorioController extends Controller
         return redirect()->back()->with('success', 'Todos los recordatorios marcados como leídos');
     }
 
-    public function destruir(int $id)
-    {
-        $recordatorio = Recordatorio::findOrFail($id);
-        $recordatorio->update(['activo' => false]);
-
-        return redirect()->back()->with('success', 'Recordatorio eliminado');
-    }
-
     public function generarManual()
     {
         \Illuminate\Support\Facades\Artisan::call('rh:generar-recordatorios');
@@ -141,17 +133,83 @@ class RecordatorioController extends Controller
             ])
             ->get()
             ->map(function ($r) {
-                return [
+                $event = [
                     'id' => $r->id,
                     'title' => $r->titulo,
                     'start' => $r->fecha_evento->format('Y-m-d'),
-                    'className' => ' urgency-' . $r->urgencia,
+                    'className' => ' urgency-' . $r->urgencia . ($r->es_manual ? ' event-manual' : ''),
                     'url' => route('rh.recordatorios.show', $r->id),
                 ];
+
+                if ($r->color) {
+                    $event['backgroundColor'] = $r->color;
+                    $event['borderColor'] = $r->color;
+                }
+
+                return $event;
             });
 
         return view('Recursos_Humanos.recordatorios.calendario', [
             'recordatorios' => $recordatorios,
         ]);
+    }
+
+    public function crearEventoManual(Request $request)
+    {
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:255',
+            'descripcion' => 'nullable|string|max:1000',
+            'fecha_evento' => 'required|date',
+            'color_evento' => 'nullable|string|max:20',
+        ]);
+
+        $recordatorio = Recordatorio::create([
+            'tipo' => Recordatorio::TIPO_EVENTO_PERSONAL,
+            'titulo' => $validated['titulo'],
+            'descripcion' => $validated['descripcion'] ?? null,
+            'fecha_evento' => $validated['fecha_evento'],
+            'color_evento' => $validated['color_evento'] ?? null,
+            'es_manual' => true,
+            'creado_por' => auth()->id(),
+            'leido' => false,
+            'activo' => true,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'recordatorio' => [
+                    'id' => $recordatorio->id,
+                    'title' => $recordatorio->titulo,
+                    'start' => $recordatorio->fecha_evento->format('Y-m-d'),
+                    'backgroundColor' => $recordatorio->color,
+                    'borderColor' => $recordatorio->color,
+                    'className' => ' event-manual',
+                    'url' => route('rh.recordatorios.show', $recordatorio->id),
+                ],
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Evento creado correctamente');
+    }
+
+    public function destruir(int $id, Request $request)
+    {
+        $recordatorio = Recordatorio::findOrFail($id);
+        
+        if (!$recordatorio->es_manual) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Solo se pueden eliminar eventos manuales'], 403);
+            }
+            return redirect()->back()->with('error', 'Solo se pueden eliminar eventos manuales');
+        }
+
+        $recordatorio->update(['activo' => false]);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Evento eliminado');
     }
 }
