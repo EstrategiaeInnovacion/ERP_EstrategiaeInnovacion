@@ -33,6 +33,7 @@ class ActivosApiController extends Controller
             'user'       => ['id' => $user->id, 'name' => $user->name],
             'has_device' => $hasDevice,
             'devices'    => $devices,
+            '_debug'     => ['searched_by' => $user->name],
         ]);
     }
 
