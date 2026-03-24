@@ -60,6 +60,14 @@ class Recordatorio extends Model
         'es_manual',
     ];
 
+    protected $casts = [
+        'fecha_evento' => 'date',
+        'leido_at' => 'datetime',
+        'leido' => 'boolean',
+        'activo' => 'boolean',
+        'es_manual' => 'boolean',
+    ];
+
     public function empleado()
     {
         return $this->belongsTo(Empleado::class);
