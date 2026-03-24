@@ -51,6 +51,17 @@
                     'hover_border' => 'hover:border-sky-200',
                     'btn_color' => 'bg-sky-600 hover:bg-sky-700 shadow-sky-200',
                 ],
+                [
+                    'title' => 'Contraseñas y Equipos',
+                    'description' => 'Gestiona las credenciales y equipos asignados a cada colaborador.',
+                    'route' => route('admin.credenciales.index'),
+                    'cta' => 'Ver registros',
+                    'icon' => 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+                    'color_bg' => 'bg-violet-50',
+                    'color_text' => 'text-violet-600',
+                    'hover_border' => 'hover:border-violet-200',
+                    'btn_color' => 'bg-violet-600 hover:bg-violet-700 shadow-violet-200',
+                ],
                 // Puedes agregar más tarjetas aquí siguiendo el mismo formato
             ];
         @endphp
