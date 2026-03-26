@@ -28,14 +28,25 @@
             $legalCards = [
                 [
                     'title'        => 'Matriz de Consulta',
-                    'description'  => 'Consulta y seguimiento de expedientes, casos y gestiones legales.',
-                    'route'        => '#',
+                    'description'  => 'Consulta y seguimiento de expedientes, casos y gestiones jurídicas por empresa y categoría.',
+                    'route'        => route('legal.matriz.index'),
                     'cta'          => 'Ir a la matriz',
                     'icon'         => 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
                     'color_bg'     => 'bg-amber-50',
                     'color_text'   => 'text-amber-600',
                     'hover_border' => 'hover:border-amber-200',
                     'btn_color'    => 'bg-amber-600 hover:bg-amber-700 shadow-amber-200',
+                ],
+                [
+                    'title'        => 'Programas y Páginas',
+                    'description'  => 'Acceso a programas, plataformas y páginas de referencia del área legal.',
+                    'route'        => '#',
+                    'cta'          => 'Ver recursos',
+                    'icon'         => 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+                    'color_bg'     => 'bg-slate-100',
+                    'color_text'   => 'text-slate-600',
+                    'hover_border' => 'hover:border-slate-300',
+                    'btn_color'    => 'bg-slate-600 hover:bg-slate-700 shadow-slate-200',
                 ],
             ];
         @endphp

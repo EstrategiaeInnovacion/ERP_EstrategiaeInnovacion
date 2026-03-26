@@ -24,6 +24,8 @@ use App\Http\Controllers\EvaluacionController;
 
 // --- Controllers de Legal ---
 use App\Http\Controllers\Legal\LegalController;
+use App\Http\Controllers\Legal\MatrizConsultaController;
+use App\Http\Controllers\Legal\CategoriaLegalController;
 
 // --- Controllers de Logística ---
 use App\Http\Controllers\Logistica\OperacionLogisticaController;
@@ -349,6 +351,19 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
 // 7. MÓDULO LEGAL
 Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('legal.')->group(function () {
     Route::get('/', [LegalController::class, 'dashboard'])->name('dashboard');
+
+    // Matriz de Consulta
+    Route::get('/matriz', [MatrizConsultaController::class, 'index'])->name('matriz.index');
+    Route::post('/matriz', [MatrizConsultaController::class, 'store'])->name('matriz.store');
+    Route::get('/matriz/{id}', [MatrizConsultaController::class, 'show'])->name('matriz.show');
+    Route::delete('/matriz/{id}', [MatrizConsultaController::class, 'destroy'])->name('matriz.destroy');
+    Route::delete('/matriz/archivo/{id}', [MatrizConsultaController::class, 'destroyArchivo'])->name('matriz.archivo.destroy');
+    Route::get('/matriz/archivo/{id}/download', [MatrizConsultaController::class, 'downloadArchivo'])->name('matriz.archivo.download');
+
+    // Categorías
+    Route::get('/categorias', [CategoriaLegalController::class, 'index'])->name('categorias.index');
+    Route::post('/categorias', [CategoriaLegalController::class, 'store'])->name('categorias.store');
+    Route::delete('/categorias/{id}', [CategoriaLegalController::class, 'destroy'])->name('categorias.destroy');
 });
 
 
