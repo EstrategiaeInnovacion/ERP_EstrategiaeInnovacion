@@ -357,6 +357,7 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
     Route::get('/matriz', [MatrizConsultaController::class, 'index'])->name('matriz.index');
     Route::post('/matriz', [MatrizConsultaController::class, 'store'])->name('matriz.store');
     Route::get('/matriz/{id}', [MatrizConsultaController::class, 'show'])->name('matriz.show');
+    Route::put('/matriz/{id}', [MatrizConsultaController::class, 'update'])->name('matriz.update');
     Route::delete('/matriz/{id}', [MatrizConsultaController::class, 'destroy'])->name('matriz.destroy');
     Route::delete('/matriz/archivo/{id}', [MatrizConsultaController::class, 'destroyArchivo'])->name('matriz.archivo.destroy');
     Route::get('/matriz/archivo/{id}/download', [MatrizConsultaController::class, 'downloadArchivo'])->name('matriz.archivo.download');

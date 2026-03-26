@@ -19,6 +19,14 @@ class MatrizConsultaController extends Controller
             $query->where('empresa', 'like', '%' . $request->empresa . '%');
         }
 
+        if ($request->filled('buscar')) {
+            $term = '%' . $request->buscar . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('empresa', 'like', $term)
+                  ->orWhere('consulta', 'like', $term);
+            });
+        }
+
         if ($request->filled('categoria_id')) {
             $catId = $request->categoria_id;
             // Incluir proyectos de la categoría seleccionada y sus subcategorías
@@ -37,12 +45,11 @@ class MatrizConsultaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'empresa'      => 'required|string|max:255',
-            'categoria_id' => 'required|exists:legal_categorias,id',
-            'consulta'     => 'required|string',
-            'resultado'    => 'required|string',
+            'empresa'         => 'nullable|string|max:255',
+            'categoria_id'    => 'required|exists:legal_categorias,id',
+            'consulta'        => 'required|string',
+            'resultado'       => 'nullable|string',
             'archivos_file.*' => 'nullable|file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,webp',
-            'ruta_valor.*'    => 'nullable|string|max:500',
         ]);
 
         $proyecto = LegalProyecto::create([
@@ -78,6 +85,28 @@ class MatrizConsultaController extends Controller
             ->with('success', 'Proyecto "' . $proyecto->empresa . '" agregado correctamente.');
     }
 
+    public function update(Request $request, $id)
+    {
+        $proyecto = LegalProyecto::findOrFail($id);
+
+        $request->validate([
+            'empresa'      => 'nullable|string|max:255',
+            'categoria_id' => 'required|exists:legal_categorias,id',
+            'consulta'     => 'required|string',
+            'resultado'    => 'nullable|string',
+        ]);
+
+        $proyecto->update([
+            'empresa'      => $request->empresa,
+            'categoria_id' => $request->categoria_id,
+            'consulta'     => $request->consulta,
+            'resultado'    => $request->resultado,
+        ]);
+
+        return redirect()->route('legal.matriz.index')
+            ->with('success', 'Proyecto actualizado correctamente.');
+    }
+
     public function show($id)
     {
         $proyecto = LegalProyecto::with(['categoria.parent', 'archivos'])->findOrFail($id);
@@ -85,9 +114,10 @@ class MatrizConsultaController extends Controller
         if (request()->expectsJson()) {
             return response()->json([
                 'proyecto' => [
-                    'id'         => $proyecto->id,
-                    'empresa'    => $proyecto->empresa,
-                    'categoria'  => $proyecto->categoria?->nombre,
+                    'id'          => $proyecto->id,
+                    'empresa'     => $proyecto->empresa,
+                    'categoria_id'=> $proyecto->categoria_id,
+                    'categoria'   => $proyecto->categoria?->nombre,
                     'consulta'   => $proyecto->consulta,
                     'resultado'  => $proyecto->resultado,
                     'archivos'   => $proyecto->archivos->map(fn($a) => [
