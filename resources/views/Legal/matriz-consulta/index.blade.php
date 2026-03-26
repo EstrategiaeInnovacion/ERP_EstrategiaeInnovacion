@@ -324,14 +324,6 @@
     let archivoIdx = 0;
     let rutaIdx    = 0;
 
-    const tiposArchivo = [
-        { value: 'otro',   label: 'Otro'   },
-        { value: 'pdf',    label: 'PDF'    },
-        { value: 'excel',  label: 'Excel'  },
-        { value: 'word',   label: 'Word'   },
-        { value: 'imagen', label: 'Imagen' },
-    ];
-
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -340,12 +332,6 @@
     function cerrarModal(id) {
         document.getElementById(id).classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
-    }
-
-    function tipoOptions(selected = 'otro') {
-        return tiposArchivo.map(t =>
-            `<option value="${t.value}" ${t.value === selected ? 'selected' : ''}>${t.label}</option>`
-        ).join('');
     }
 
     function agregarArchivoRow() {
@@ -357,15 +343,9 @@
             <div class="flex-1 space-y-1.5">
                 <input type="text" name="archivos_nombre[${idx}]" placeholder="Nombre del archivo (opcional)"
                     class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-700 focus:border-amber-500 focus:ring-amber-500 text-xs py-2 px-3">
-                <div class="flex gap-2">
-                    <input type="file" name="archivos_file[${idx}]"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
-                        class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
-                    <select name="archivos_tipo[${idx}]"
-                        class="rounded-xl border-slate-200 bg-slate-50 text-slate-700 text-xs py-2 px-2 focus:border-amber-500 focus:ring-amber-500 flex-shrink-0">
-                        ${tipoOptions()}
-                    </select>
-                </div>
+                <input type="file" name="archivos_file[${idx}]"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
+                    class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
             </div>
             <button type="button" onclick="this.closest('div').remove()"
                 class="mt-1 p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex-shrink-0">
@@ -444,8 +424,7 @@
                     : `<span class="tipo-badge ${cls}">${icono} ${a.tipo.toUpperCase()}</span>`;
 
                 const action = a.es_url
-                    ? `<a href="${a.url_publica}" target="_blank"
-                            class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Abrir →</a>`
+                    ? buildRutaAction(a.url_publica)
                     : `<a href="/legal/matriz/archivo/${a.id}/download"
                             class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Descargar ↓</a>`;
 
@@ -488,6 +467,50 @@
             if (data.success) {
                 btn.closest('.flex.items-center.justify-between').remove();
             }
+        });
+    }
+
+    /**
+     * Construye el bloque de acción para rutas/URLs externas.
+     * - http/https  → enlace normal en nueva pestaña
+     * - \\servidor\carpeta (UNC) → convierte a file://servidor/carpeta/ + botón copiar
+     * - C:\carpeta (ruta local Windows) → convierte a file:///C:/carpeta + botón copiar
+     */
+    function buildRutaAction(ruta) {
+        if (/^https?:\/\//i.test(ruta)) {
+            // URL web normal
+            return `<a href="${ruta}" target="_blank" rel="noopener"
+                        class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Abrir →</a>`;
+        }
+
+        // Construir href para file://
+        let fileHref = ruta;
+        if (ruta.startsWith('\\\\')) {
+            // UNC: \\servidor\carpeta → file://servidor/carpeta
+            fileHref = 'file:' + ruta.replace(/\\/g, '/');
+        } else if (/^[A-Za-z]:\\/.test(ruta)) {
+            // Ruta local: C:\carpeta → file:///C:/carpeta
+            fileHref = 'file:///' + ruta.replace(/\\/g, '/');
+        }
+
+        const escaped = ruta.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+        return `<a href="${fileHref}" title="Abrir ruta en el explorador"
+                    class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Abrir →</a>
+                <button type="button" onclick="copiarRuta('${escaped}')" title="Copiar ruta al portapapeles"
+                    class="text-xs text-slate-500 hover:text-slate-700 transition ml-1" aria-label="Copiar ruta">📋</button>`;
+    }
+
+    function copiarRuta(ruta) {
+        navigator.clipboard.writeText(ruta).then(() => {
+            // Feedback visual breve en el botón disparador (si está disponible)
+            const btn = event && event.target ? event.target : null;
+            if (btn) {
+                const orig = btn.textContent;
+                btn.textContent = '✅';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            }
+        }).catch(() => {
+            prompt('Copia esta ruta:', ruta);
         });
     }
 
