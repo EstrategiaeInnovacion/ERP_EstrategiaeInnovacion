@@ -165,7 +165,12 @@ class MatrizConsultaController extends Controller
             abort(404, 'Archivo no encontrado.');
         }
 
-        return Storage::disk('public')->download($archivo->ruta, $archivo->nombre);
+        // Preservar la extensión original del archivo almacenado
+        $extension      = pathinfo($archivo->ruta, PATHINFO_EXTENSION);
+        $nombreBase     = pathinfo($archivo->nombre, PATHINFO_FILENAME) ?: $archivo->nombre;
+        $nombreDescarga = $extension ? "{$nombreBase}.{$extension}" : $archivo->nombre;
+
+        return Storage::disk('public')->download($archivo->ruta, $nombreDescarga);
     }
 
     private function detectarTipo(string $ext): string
