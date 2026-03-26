@@ -58,7 +58,6 @@ class MatrizConsultaController extends Controller
                 if (!$file || !$file->isValid()) continue;
 
                 $nombre    = $request->input("archivos_nombre.{$index}") ?: $file->getClientOriginalName();
-                $tipo      = $request->input("archivos_tipo.{$index}", 'otro');
                 $extension = strtolower($file->getClientOriginalExtension());
                 $tipoAuto  = $this->detectarTipo($extension);
 
@@ -67,7 +66,7 @@ class MatrizConsultaController extends Controller
                 LegalArchivo::create([
                     'proyecto_id' => $proyecto->id,
                     'nombre'      => $nombre,
-                    'tipo'        => $tipo !== 'otro' ? $tipo : $tipoAuto,
+                    'tipo'        => $tipoAuto,
                     'ruta'        => $ruta,
                     'es_url'      => false,
                     'mime_type'   => $file->getMimeType(),
