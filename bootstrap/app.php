@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sistemas_admin' => \App\Http\Middleware\SistemasAdminMiddleware::class,
             'area.rh' => \App\Http\Middleware\AreaRHMiddleware::class,
             'area.logistica' => \App\Http\Middleware\AreaLogisticaMiddleware::class,
+            'area.legal' => \App\Http\Middleware\AreaLegalMiddleware::class,
             'api.key' => \App\Http\Middleware\CheckApiKey::class,
         ]);
     })

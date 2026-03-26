@@ -166,13 +166,41 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     /**
+     * Verificar si el usuario es del área Legal
+     */
+    public function isLegal(): bool
+    {
+        $valoresAChecar = [
+            $this->role,
+            $this->area ?? '',
+        ];
+
+        if ($this->empleado) {
+            $valoresAChecar[] = $this->empleado->departamento ?? '';
+            $valoresAChecar[] = $this->empleado->puesto ?? '';
+            $valoresAChecar[] = $this->empleado->area ?? '';
+            $valoresAChecar[] = $this->empleado->posicion ?? '';
+        }
+
+        foreach ($valoresAChecar as $valor) {
+            $normalizado = $this->normalizeString($valor);
+            if (str_contains($normalizado, 'legal') || str_contains($normalizado, 'juridico')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Obtener información del panel según la posición del usuario
      * Retorna un array con 'route', 'label' y 'available'
      */
     public function getPanelInfo(): array
     {
-        // Obtener posición normalizada
+        // Obtener posición y área normalizadas
         $posicion = $this->normalizeString($this->empleado->posicion ?? '');
+        $area     = $this->normalizeString($this->empleado->area ?? '');
 
         // Determinar panel según posición (orden específico para evitar coincidencias parciales)
         // Logística: cualquier usuario con posición "logistica" puede acceder (no requiere admin)
@@ -181,6 +209,16 @@ class User extends Authenticatable implements CanResetPasswordContract
                 'available' => true,
                 'route' => route('logistica.index'),
                 'label' => 'Panel Logística',
+            ];
+        }
+
+        // Legal: cualquier usuario del área Legal puede acceder (no requiere admin)
+        if (str_contains($posicion, 'legal') || str_contains($area, 'legal') ||
+            str_contains($posicion, 'juridico') || str_contains($area, 'juridico')) {
+            return [
+                'available' => true,
+                'route' => route('legal.dashboard'),
+                'label' => 'Panel Legal',
             ];
         }
 
