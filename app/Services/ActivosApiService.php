@@ -58,11 +58,18 @@ class ActivosApiService
             if ($response->successful()) {
                 $data = $response->json();
                 // API devuelve wrapper {success, data: [...]}
-                return $data['data'] ?? (array_is_list($data ?? []) ? $data : []);
+                $devices = $data['data'] ?? (array_is_list($data ?? []) ? $data : []);
+                Log::info('ActivosApi: assigned-devices OK', [
+                    'username'    => $username,
+                    'total_found' => count($devices),
+                    'keys'        => array_keys($data),
+                ]);
+                return $devices;
             }
 
             Log::warning('ActivosApi: assigned-devices no exitoso', [
                 'status'   => $response->status(),
+                'body'     => $response->body(),
                 'username' => $username,
             ]);
         } catch (\Exception $e) {

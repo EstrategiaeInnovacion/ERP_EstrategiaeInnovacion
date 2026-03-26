@@ -22,6 +22,9 @@ use App\Http\Controllers\RH\RelojChecadorImportController;
 use App\Http\Controllers\RH\CapacitacionController;
 use App\Http\Controllers\EvaluacionController;
 
+// --- Controllers de Legal ---
+use App\Http\Controllers\Legal\LegalController;
+
 // --- Controllers de Logística ---
 use App\Http\Controllers\Logistica\OperacionLogisticaController;
 use App\Http\Controllers\Logistica\ClienteController;
@@ -340,6 +343,12 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
 
 
     
+});
+
+
+// 7. MÓDULO LEGAL
+Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('legal.')->group(function () {
+    Route::get('/', [LegalController::class, 'dashboard'])->name('dashboard');
 });
 
 
