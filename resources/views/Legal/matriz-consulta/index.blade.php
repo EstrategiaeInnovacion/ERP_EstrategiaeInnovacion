@@ -58,6 +58,11 @@
 <form method="GET" action="{{ route('legal.matriz.index') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
     <div class="flex flex-col sm:flex-row gap-3 items-end">
         <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Buscar</label>
+            <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Empresa o consulta..."
+                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5 px-3">
+        </div>
+        <div class="flex-1">
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Empresa</label>
             <select name="empresa" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                 <option value="">Todas las empresas</option>
@@ -86,7 +91,7 @@
             <button type="submit" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-sm">
                 Filtrar
             </button>
-            @if(request('empresa') || request('categoria_id'))
+            @if(request('empresa') || request('categoria_id') || request('buscar'))
                 <a href="{{ route('legal.matriz.index') }}" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm">
                     Limpiar
                 </a>
@@ -149,16 +154,24 @@
                             </button>
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <form action="{{ route('legal.matriz.destroy', $proyecto->id) }}" method="POST"
-                                  onsubmit="return confirm('¿Eliminar el proyecto de {{ addslashes($proyecto->empresa) }}? Se borrarán también sus archivos.')">
-                                @csrf @method('DELETE')
-                                <button type="submit"
-                                    class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="abrirEditar({{ $proyecto->id }})"
+                                    class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-transparent hover:border-slate-200 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                     </svg>
                                 </button>
-                            </form>
+                                <form action="{{ route('legal.matriz.destroy', $proyecto->id) }}" method="POST"
+                                      onsubmit="return confirm('¿Eliminar el proyecto de {{ addslashes($proyecto->empresa) }}? Se borrarán también sus archivos.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -190,8 +203,8 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Empresa *</label>
-                        <input type="text" name="empresa" required placeholder="Nombre de la empresa"
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Empresa <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" name="empresa" placeholder="Nombre de la empresa"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
@@ -216,8 +229,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado *</label>
-                    <textarea name="resultado" rows="3" required placeholder="Resultado o resolución de la consulta..."
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
+                    <textarea name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
                         class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
                 </div>
 
@@ -253,6 +266,75 @@
                     <button type="submit"
                         class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-amber-200">
                         Guardar Proyecto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- ==================== MODAL: EDITAR PROYECTO ==================== --}}
+<div id="modalEditarProyecto" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="cerrarModal('modalEditarProyecto')"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl my-8">
+            <div class="flex items-center justify-between p-6 border-b border-slate-100">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Editar Proyecto</h2>
+                    <p class="text-sm text-slate-500 mt-0.5" id="editSubtitulo">Modifica los datos de la consulta.</p>
+                </div>
+                <button onclick="cerrarModal('modalEditarProyecto')" class="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="editCargando" class="p-10 text-center text-slate-400">
+                <svg class="w-8 h-8 mx-auto animate-spin mb-3 text-amber-400" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                Cargando...
+            </div>
+            <form id="formEditarProyecto" action="" method="POST" class="p-6 space-y-5 hidden">
+                @csrf
+                @method('PUT')
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Empresa <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre de la empresa"
+                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
+                        <select id="editCategoria" name="categoria_id" required
+                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                            <option value="">Selecciona una categoría</option>
+                            @foreach($categorias as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                                @foreach($cat->subcategorias as $sub)
+                                    <option value="{{ $sub->id }}">&nbsp;&nbsp;↳ {{ $sub->nombre }}</option>
+                                @endforeach
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta *</label>
+                    <textarea id="editConsulta" name="consulta" rows="3" required placeholder="Descripción detallada de la consulta..."
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
+                    <textarea id="editResultado" name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="cerrarModal('modalEditarProyecto')"
+                        class="flex-1 py-3 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-50 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-amber-200">
+                        Guardar Cambios
                     </button>
                 </div>
             </form>
@@ -471,10 +553,48 @@
         });
     }
 
+    /**
+     * Abre el modal de edición pre-rellenando los datos del proyecto via AJAX.
+     */
+    function abrirEditar(id) {
+        const cargando = document.getElementById('editCargando');
+        const form     = document.getElementById('formEditarProyecto');
+        cargando.classList.remove('hidden');
+        form.classList.add('hidden');
+        abrirModal('modalEditarProyecto');
+
+        fetch(`/legal/matriz/${id}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const p = data.proyecto;
+            document.getElementById('editEmpresa').value   = p.empresa   || '';
+            document.getElementById('editConsulta').value  = p.consulta  || '';
+            document.getElementById('editResultado').value = p.resultado || '';
+            document.getElementById('editSubtitulo').textContent = p.empresa
+                ? `Editando: ${p.empresa}`
+                : 'Modifica los datos de la consulta.';
+
+            const sel = document.getElementById('editCategoria');
+            if (p.categoria_id) {
+                sel.value = p.categoria_id;
+            }
+
+            form.action = `/legal/matriz/${id}`;
+            cargando.classList.add('hidden');
+            form.classList.remove('hidden');
+        })
+        .catch(() => {
+            cerrarModal('modalEditarProyecto');
+            alert('Error al cargar los datos del proyecto.');
+        });
+    }
+
     // Cerrar modal con Escape
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            ['modalAgregarProyecto', 'modalExpediente'].forEach(id => {
+            ['modalAgregarProyecto', 'modalEditarProyecto', 'modalExpediente'].forEach(id => {
                 if (!document.getElementById(id).classList.contains('hidden')) {
                     cerrarModal(id);
                 }
