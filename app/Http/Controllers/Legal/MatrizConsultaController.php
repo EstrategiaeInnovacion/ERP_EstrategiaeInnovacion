@@ -74,24 +74,6 @@ class MatrizConsultaController extends Controller
             }
         }
 
-        // Rutas/URLs externas
-        $rutasValor  = $request->input('ruta_valor', []);
-        $rutasNombre = $request->input('ruta_nombre', []);
-
-        foreach ($rutasValor as $i => $ruta) {
-            $ruta = trim($ruta);
-            if (empty($ruta)) continue;
-
-            LegalArchivo::create([
-                'proyecto_id' => $proyecto->id,
-                'nombre'      => !empty($rutasNombre[$i]) ? $rutasNombre[$i] : $ruta,
-                'tipo'        => 'otro',
-                'ruta'        => $ruta,
-                'es_url'      => true,
-                'mime_type'   => null,
-            ]);
-        }
-
         return redirect()->route('legal.matriz.index')
             ->with('success', 'Proyecto "' . $proyecto->empresa . '" agregado correctamente.');
     }

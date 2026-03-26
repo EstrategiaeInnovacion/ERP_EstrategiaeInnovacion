@@ -244,29 +244,6 @@
                     </button>
                 </div>
 
-                {{-- Sección: Rutas externas --}}
-                <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                            </svg>
-                            Rutas o URLs externas
-                        </p>
-                        <span class="text-xs text-slate-400">Links, rutas de red</span>
-                    </div>
-
-                    <div id="rutasContainer" class="space-y-2"></div>
-
-                    <button type="button" onclick="agregarRutaRow()"
-                        class="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Añadir ruta / URL
-                    </button>
-                </div>
-
                 {{-- Footer --}}
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="cerrarModal('modalAgregarProyecto')"
@@ -322,7 +299,6 @@
 @push('scripts')
 <script>
     let archivoIdx = 0;
-    let rutaIdx    = 0;
 
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
@@ -349,25 +325,6 @@
             </div>
             <button type="button" onclick="this.closest('div').remove()"
                 class="mt-1 p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>`;
-        container.appendChild(row);
-    }
-
-    function agregarRutaRow() {
-        const container = document.getElementById('rutasContainer');
-        const idx = rutaIdx++;
-        const row = document.createElement('div');
-        row.className = 'flex gap-2 items-center';
-        row.innerHTML = `
-            <input type="text" name="ruta_nombre[${idx}]" placeholder="Descripción"
-                class="w-32 rounded-xl border-slate-200 bg-slate-50 text-slate-700 focus:border-slate-400 focus:ring-slate-400 text-xs py-2 px-3 flex-shrink-0">
-            <input type="text" name="ruta_valor[${idx}]" placeholder="https://... o \\\\servidor\\ruta"
-                class="flex-1 rounded-xl border-slate-200 bg-slate-50 text-slate-700 focus:border-slate-400 focus:ring-slate-400 text-xs py-2 px-3">
-            <button type="button" onclick="this.closest('div').remove()"
-                class="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex-shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>

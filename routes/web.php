@@ -24,6 +24,7 @@ use App\Http\Controllers\EvaluacionController;
 
 // --- Controllers de Legal ---
 use App\Http\Controllers\Legal\LegalController;
+use App\Http\Controllers\Legal\PaginaLegalController;
 use App\Http\Controllers\Legal\MatrizConsultaController;
 use App\Http\Controllers\Legal\CategoriaLegalController;
 
@@ -364,6 +365,12 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
     Route::get('/categorias', [CategoriaLegalController::class, 'index'])->name('categorias.index');
     Route::post('/categorias', [CategoriaLegalController::class, 'store'])->name('categorias.store');
     Route::delete('/categorias/{id}', [CategoriaLegalController::class, 'destroy'])->name('categorias.destroy');
+
+    // Programas y Páginas
+    Route::get('/programas', [PaginaLegalController::class, 'index'])->name('programas.index');
+    Route::post('/programas', [PaginaLegalController::class, 'store'])->name('programas.store');
+    Route::put('/programas/{id}', [PaginaLegalController::class, 'update'])->name('programas.update');
+    Route::delete('/programas/{id}', [PaginaLegalController::class, 'destroy'])->name('programas.destroy');
 });
 
 
