@@ -80,6 +80,21 @@ return [
             ]) : [],
         ],
 
+        // Segunda BD: sistema de activos (Auditoria_Activos)
+        'activos' => [
+            'driver'    => 'mysql',
+            'host'      => env('DB_ACTIVOS_HOST', '127.0.0.1'),
+            'port'      => env('DB_ACTIVOS_PORT', '3306'),
+            'database'  => env('DB_ACTIVOS_DATABASE', 'Auditoria_Activos'),
+            'username'  => env('DB_ACTIVOS_USERNAME', 'root'),
+            'password'  => env('DB_ACTIVOS_PASSWORD', ''),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'engine'    => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
