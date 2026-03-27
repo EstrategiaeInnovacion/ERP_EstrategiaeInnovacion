@@ -206,21 +206,21 @@
                             </form>
                         </div>
                         <div class="border-l border-blue-200 pl-8 flex flex-col justify-center">
-                            <h4 class="text-sm font-bold text-red-900 mb-2">Zona de Peligro</h4>
-                            <p class="text-xs text-red-700 mb-4">Eliminar registros de asistencia de forma total o por rango de fechas.</p>
+                            <h4 class="text-sm font-bold text-red-900 mb-2">Zona de Peligro — Reloj Checador</h4>
+                            <p class="text-xs text-red-700 mb-4">Eliminar registros de asistencia del reloj checador por rango de fechas o por completo.</p>
                             <div class="flex flex-col gap-2">
                                 {{-- Borrar por rango --}}
                                 <button type="button" onclick="document.getElementById('modalClearRango').classList.remove('hidden')"
                                     class="text-orange-600 hover:text-orange-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-orange-300">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    Borrar por Rango de Fechas
+                                    Borrar Asistencias por Rango de Fechas
                                 </button>
                                 {{-- Borrar todo --}}
-                                <form action="{{ route('rh.reloj.clear') }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODO el historial de asistencia. ¿Está seguro?');">
+                                <form action="{{ route('rh.reloj.clear') }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODOS los registros del reloj checador.\n\nNo afecta ningún otro módulo del sistema. ¿Está seguro?');">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-red-300">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        Vaciar Base de Datos Completa
+                                        Vaciar Todos los Registros del Reloj
                                     </button>
                                 </form>
                             </div>
@@ -552,13 +552,13 @@
                                         <label class="block text-sm font-medium text-gray-700">Desde</label>
                                         <input type="date" name="fecha_inicio" id="modal_fecha_inicio" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                     </div>
-                                    <div x-show="['vacaciones', 'incapacidad', 'permiso'].includes(tipo)" x-transition>
-                                        <label class="block text-sm font-medium text-gray-700">Hasta (Inclusive)</label>
-                                        <input type="date" name="fecha_fin" id="modal_fecha_fin" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Hasta <span class="text-gray-400 font-normal">(mismo día si igual)</span></label>
+                                        <input type="date" name="fecha_fin" id="modal_fecha_fin" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                     </div>
                                 </div>
-                                <p x-show="['vacaciones', 'incapacidad', 'permiso'].includes(tipo)" class="text-xs text-gray-500 mt-2">
-                                    * Se crearán registros para todos los días del rango seleccionado.
+                                <p class="text-xs text-gray-500 mt-2">
+                                    * Se crean registros para cada día del rango indicado. Si es un solo día, pon la misma fecha en ambos campos.
                                 </p>
                             </div>
 
@@ -599,8 +599,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-bold text-slate-900">Borrar Registros por Rango</h3>
-                                <p class="text-sm text-slate-500">Se eliminarán <span class="font-semibold text-orange-600">todos los registros</span> del período indicado.</p>
+                                <h3 class="text-lg font-bold text-slate-900">Borrar Asistencias del Reloj Checador</h3>
+                                <p class="text-sm text-slate-500">Se eliminarán los registros de asistencia del período indicado. <span class="font-semibold text-orange-600">No afecta otros módulos.</span></p>
                             </div>
                         </div>
 
@@ -754,56 +754,106 @@
 
         // Modales
         var currentRecordId = null;
+        var currentEmpleadoId = null;
 
         function abrirModalEdicion(asistencia) {
-            guardarScrollReloj(asistencia.empleado_id);
             const form = document.getElementById('formEdicion');
             form.action = `/recursos-humanos/reloj/update/${asistencia.id}`;
             form.querySelector('[name="tipo_registro"]').value = asistencia.tipo_registro;
             form.querySelector('[name="comentarios"]').value = asistencia.comentarios || '';
             form.querySelector('[name="es_justificado"]').checked = asistencia.es_justificado;
             currentRecordId = asistencia.id;
+            currentEmpleadoId = asistencia.empleado_id;
             document.getElementById('modalEdicion').classList.remove('hidden');
         }
         function cerrarModalEdicion() {
             document.getElementById('modalEdicion').classList.add('hidden');
         }
+
+        // === AJAX: Guardar edición sin recargar la página ===
+        document.getElementById('formEdicion').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const btn = form.querySelector('button[type="submit"]');
+            const prevHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Guardando...';
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) {
+                if (!r.ok) throw new Error('server_error');
+                return r.json();
+            })
+            .then(function(data) {
+                cerrarModalEdicion();
+                mostrarToastReloj(data.message || 'Registro actualizado.');
+            })
+            .catch(function() {
+                alert('Error al guardar. Intente de nuevo.');
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = prevHTML;
+            });
+        });
+
         function eliminarRegistro() {
             if (!currentRecordId) return;
             if (!confirm('¿Deshacer los cambios de este registro?\n\n• Si tiene horario: volverá a su estado original (retardo/asistencia).\n• Si fue creado manualmente: se eliminará por completo.')) return;
-            
-            // guardarScrollReloj already called by abrirModalEdicion; nothing extra needed here.
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/recursos-humanos/reloj/revertir/' + currentRecordId;
-            
-            var csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = '_token';
-            csrf.value = '{{ csrf_token() }}';
-            form.appendChild(csrf);
-            
-            var method = document.createElement('input');
-            method.type = 'hidden';
-            method.name = '_method';
-            method.value = 'DELETE';
-            form.appendChild(method);
-            
-            document.body.appendChild(form);
-            form.submit();
+
+            fetch('/recursos-humanos/reloj/revertir/' + currentRecordId, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: '_method=DELETE'
+            })
+            .then(function(r) {
+                if (!r.ok) throw new Error('server_error');
+                return r.json();
+            })
+            .then(function(data) {
+                cerrarModalEdicion();
+                mostrarToastReloj(data.message || 'Registro revertido.');
+            })
+            .catch(function() {
+                alert('Error al revertir. Intente de nuevo.');
+            });
+        }
+
+        // Toast de confirmación ligero
+        function mostrarToastReloj(msg) {
+            var t = document.getElementById('toastReloj');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'toastReloj';
+                t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;background:#1e293b;color:#fff;border-radius:10px;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);transition:opacity .3s';
+                document.body.appendChild(t);
+            }
+            t.textContent = '✓ ' + msg;
+            t.style.opacity = '1';
+            clearTimeout(t._hide);
+            t._hide = setTimeout(function() { t.style.opacity = '0'; }, 3000);
         }
 
         // Nueva función para abrir modal desde "Sin Registro" pre-llenado
         function abrirModalIncidencia(empleadoId = null, fecha = null) {
             guardarScrollReloj(empleadoId);
-            if(empleadoId && fecha) {
-                // Pre-llenar datos para justificación rápida
+            // Siempre resetear fechas para evitar que queden valores de usos anteriores
+            const today = new Date().toISOString().slice(0, 10);
+            const fechaUso = fecha || today;
+            document.getElementById('modal_fecha_inicio').value = fechaUso;
+            document.getElementById('modal_fecha_fin').value = fechaUso;
+
+            if (empleadoId) {
                 document.getElementById('modal_empleado_id').value = empleadoId;
-                document.getElementById('modal_fecha_inicio').value = fecha;
-                document.getElementById('modal_fecha_fin').value = fecha; // Por defecto 1 día
-                document.getElementById('modal_tipo_registro').value = 'falta'; // Sugerir Falta/Justificación
-                
-                // Disparar evento para actualizar x-data si fuera necesario (opcional)
+                document.getElementById('modal_tipo_registro').value = 'falta';
                 document.getElementById('modal_tipo_registro').dispatchEvent(new Event('change'));
             }
             document.getElementById('modalIncidencia').classList.remove('hidden');
@@ -891,7 +941,7 @@
                 const preview = document.getElementById('clearRango_preview');
                 if (inicio && fin) {
                     preview.classList.remove('hidden');
-                    preview.textContent = `⚠️ Se eliminarán todos los registros del ${inicio} al ${fin}.`;
+                    preview.textContent = `⚠️ Se eliminarán todos los registros del reloj checador del ${inicio} al ${fin}. El resto del sistema no se verá afectado.`;
                 } else {
                     preview.classList.add('hidden');
                 }
