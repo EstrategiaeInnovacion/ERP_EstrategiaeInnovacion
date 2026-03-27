@@ -489,7 +489,7 @@
                         </div>
                     </div>
                     <div class="bg-gray-50 px-4 py-3 flex flex-col sm:flex-row-reverse gap-2">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Guardar Cambios</button>
+                        <button type="button" onclick="guardarEdicion()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Guardar Cambios</button>
                         <button type="button" onclick="cerrarModalEdicion()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
                         <button type="button" onclick="eliminarRegistro()" class="w-full inline-flex justify-center items-center gap-1.5 rounded-md border border-red-300 shadow-sm px-4 py-2 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 sm:w-auto sm:mr-auto">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
@@ -553,7 +553,7 @@
                                         <input type="date" name="fecha_inicio" id="modal_fecha_inicio" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Hasta <span class="text-gray-400 font-normal">(mismo día si igual)</span></label>
+                                        <label class="block text-sm font-medium text-gray-700">Hasta</label>
                                         <input type="date" name="fecha_fin" id="modal_fecha_fin" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                     </div>
                                 </div>
@@ -772,9 +772,12 @@
 
         // === AJAX: Guardar edición sin recargar la página ===
         document.getElementById('formEdicion').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = this;
-            const btn = form.querySelector('button[type="submit"]');
+            e.preventDefault(); // fallback: por si algún input dispara submit
+        });
+
+        function guardarEdicion() {
+            const form = document.getElementById('formEdicion');
+            const btn = form.closest('[id="modalEdicion"]').querySelector('button[onclick="guardarEdicion()"]');
             const prevHTML = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = 'Guardando...';
@@ -799,7 +802,7 @@
                 btn.disabled = false;
                 btn.innerHTML = prevHTML;
             });
-        });
+        }
 
         function eliminarRegistro() {
             if (!currentRecordId) return;
