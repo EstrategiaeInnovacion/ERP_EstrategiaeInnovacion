@@ -114,7 +114,12 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3">
-                                <p class="font-medium text-slate-800">{{ $equipo->nombre_equipo }}</p>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <p class="font-medium text-slate-800">{{ $equipo->nombre_equipo }}</p>
+                                    @if(!($equipo->es_principal ?? true))
+                                        <span class="text-xs bg-amber-100 text-amber-700 font-semibold rounded-full px-1.5 py-0.5">Secundario</span>
+                                    @endif
+                                </div>
                                 <p class="text-xs text-slate-400">{{ $equipo->modelo ?? '—' }}</p>
                             </td>
                             <td class="px-4 py-3 text-slate-600 font-mono text-xs">

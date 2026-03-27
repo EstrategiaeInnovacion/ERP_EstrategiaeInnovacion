@@ -143,7 +143,12 @@ class CredencialEquipoController extends Controller
     public function show(EquipoAsignado $credencial)
     {
         $credencial->load(['user', 'correos', 'perifericos']);
-        return view('admin.credenciales.show', compact('credencial'));
+        $equiposSecundarios = EquipoAsignado::where('user_id', $credencial->user_id)
+            ->where('es_principal', false)
+            ->with(['correos', 'perifericos'])
+            ->orderBy('created_at')
+            ->get();
+        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios'));
     }
 
     public function edit(EquipoAsignado $credencial)
@@ -175,5 +180,133 @@ class CredencialEquipoController extends Controller
         $credencial->delete();
         return redirect()->route('admin.credenciales.index')
             ->with('success', 'Registro eliminado correctamente.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EQUIPOS SECUNDARIOS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function storeSecundario(Request $request, EquipoAsignado $credencial)
+    {
+        $request->validate([
+            'assign_new'        => 'sometimes|boolean',
+            'uuid_activos'      => 'required|string|max:255',
+            'nombre_equipo'     => 'required|string|max:255',
+            'modelo'            => 'nullable|string|max:255',
+            'numero_serie'      => 'nullable|string|max:255',
+            'photo_id'          => 'nullable|integer',
+            'nombre_usuario_pc' => 'required|string|max:255',
+            'contrasena_equipo' => 'required|string',
+            'notas'             => 'nullable|string',
+            'correos'           => 'sometimes|array',
+            'correos.*.correo'             => 'required_with:correos.*|email|max:255',
+            'correos.*.contrasena_correo'  => 'nullable|string',
+            'perifericos'       => 'sometimes|array',
+            'perifericos.*.uuid'    => 'required_with:perifericos.*|string',
+            'perifericos.*.nombre'  => 'required_with:perifericos.*|string|max:255',
+            'perifericos.*.tipo'    => 'nullable|string|max:255',
+            'perifericos.*.serie'   => 'nullable|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $user = $credencial->user;
+
+            // Anteponer etiqueta en notas si no viene ya indicado
+            $notas = $request->notas ?? '';
+            if (!str_starts_with($notas, '[Equipo Secundario')) {
+                $notas = '[Equipo Secundario / Cliente]' . ($notas ? ' ' . $notas : '');
+            }
+
+            $secundario = EquipoAsignado::create([
+                'user_id'           => $credencial->user_id,
+                'uuid_activos'      => $request->uuid_activos,
+                'nombre_equipo'     => $request->nombre_equipo,
+                'modelo'            => $request->modelo,
+                'numero_serie'      => $request->numero_serie,
+                'photo_id'          => $request->photo_id,
+                'nombre_usuario_pc' => $request->nombre_usuario_pc,
+                'contrasena_equipo' => $request->contrasena_equipo,
+                'notas'             => $notas,
+                'es_principal'      => false,
+            ]);
+
+            foreach (($request->correos ?? []) as $correoData) {
+                if (!empty($correoData['correo'])) {
+                    $secundario->correos()->create([
+                        'correo'            => $correoData['correo'],
+                        'contrasena_correo' => $correoData['contrasena_correo'] ?? null,
+                    ]);
+                }
+            }
+
+            foreach (($request->perifericos ?? []) as $per) {
+                $secundario->perifericos()->create([
+                    'uuid_activos' => $per['uuid'],
+                    'nombre'       => $per['nombre'],
+                    'tipo'         => $per['tipo'] ?? null,
+                    'numero_serie' => $per['serie'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            // Sincronizar con AuditoriaActivos (mismo flujo, nota ya incluye [Equipo Secundario / Cliente])
+            if ($request->boolean('assign_new')) {
+                $empleado   = $user->empleado;
+                $badge      = $empleado?->id_empleado ?: null;
+                $assignedTo = $empleado?->nombre ?? $user->name;
+
+                $this->activos->assignDeviceInActivos(
+                    $request->uuid_activos,
+                    $assignedTo,
+                    $badge,
+                    $notas
+                );
+
+                foreach (($request->perifericos ?? []) as $per) {
+                    if (!empty($per['uuid'])) {
+                        $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
+                    }
+                }
+            }
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Equipo secundario registrado correctamente.',
+                'redirect' => route('admin.credenciales.show', $credencial),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('CredencialEquipo storeSecundario error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al guardar.'], 500);
+        }
+    }
+
+    public function destroySecundario(EquipoAsignado $credencial, EquipoAsignado $secundario)
+    {
+        // Validar que pertenece al mismo usuario y es secundario
+        abort_if(
+            $secundario->user_id !== $credencial->user_id || $secundario->es_principal,
+            403,
+            'No permitido.'
+        );
+
+        $secundario->load('perifericos');
+
+        if ($secundario->uuid_activos) {
+            $this->activos->returnDeviceInActivos($secundario->uuid_activos);
+        }
+        foreach ($secundario->perifericos as $per) {
+            if ($per->uuid_activos) {
+                $this->activos->returnDeviceInActivos($per->uuid_activos);
+            }
+        }
+
+        $secundario->delete();
+
+        return back()->with('success', 'Equipo secundario eliminado correctamente.');
     }
 }
