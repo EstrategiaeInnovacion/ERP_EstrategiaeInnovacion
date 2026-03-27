@@ -117,8 +117,11 @@ class RelojChecadorImportController extends Controller
         // Flag para indicar si hubo búsqueda sin resultados
         $sinResultados = $search && $empleados->isEmpty();
 
+        $todosEmpleados = Empleado::orderBy('nombre')->get(['id', 'nombre']);
+
         return view('Recursos_Humanos.reloj_checador', compact(
             'empleados',
+            'todosEmpleados',
             'fechas',
             'porcentajeAsistencia',
             'topRetardos',
@@ -393,6 +396,66 @@ class RelojChecadorImportController extends Controller
         return redirect()->route('rh.reloj.index')->with(
             'success',
             "Se eliminaron {$eliminados} registros del período {$request->fecha_inicio} al {$request->fecha_fin}."
+        );
+    }
+
+    /**
+     * Revertir todos los registros de un empleado en un rango de fechas.
+     */
+    public function revertirRango(Request $request)
+    {
+        $request->validate([
+            'empleado_id'  => 'required|exists:empleados,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin'    => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+
+        $asistencias = Asistencia::where('empleado_id', $request->empleado_id)
+            ->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin])
+            ->get();
+
+        $revertidos = 0;
+        $eliminados = 0;
+
+        foreach ($asistencias as $asistencia) {
+            if ($asistencia->entrada || $asistencia->salida) {
+                $esRetardo = false;
+                if ($asistencia->entrada) {
+                    try {
+                        $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
+                        $limite = Carbon::createFromFormat('H:i', '09:00');
+                        $esRetardo = $horaEntrada->gt($limite);
+                    } catch (\Exception $e) {
+                        try {
+                            $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
+                            $limite = Carbon::createFromFormat('H:i', '09:00');
+                            $esRetardo = $horaEntrada->gt($limite);
+                        } catch (\Exception $e2) {}
+                    }
+                }
+                $tipo = ($asistencia->entrada && !$asistencia->salida) ? 'incompleto' : 'asistencia';
+                $asistencia->update([
+                    'tipo_registro'  => $tipo,
+                    'es_justificado' => false,
+                    'es_retardo'     => $esRetardo,
+                    'comentarios'    => null,
+                ]);
+                $revertidos++;
+            } else {
+                $asistencia->delete();
+                $eliminados++;
+            }
+        }
+
+        $empleado = Empleado::findOrFail($request->empleado_id);
+        $partes = [];
+        if ($revertidos > 0) $partes[] = "{$revertidos} revertido(s) al estado original";
+        if ($eliminados > 0)  $partes[] = "{$eliminados} manual(es) eliminado(s)";
+        $resumen = empty($partes) ? 'Sin registros en ese rango' : implode(', ', $partes);
+
+        return redirect()->route('rh.reloj.index')->with(
+            'success',
+            "Rango revertido para {$empleado->nombre}: {$resumen} ({$request->fecha_inicio} al {$request->fecha_fin})."
         );
     }
 
