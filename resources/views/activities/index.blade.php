@@ -441,7 +441,7 @@
                         <div class="space-y-5">
                             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Descripción</label><input type="text" name="nombre_actividad" class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 py-2.5" placeholder="¿Qué se debe hacer?" required></div>
                             <div class="grid grid-cols-2 gap-5">
-                                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Fecha</label><input type="date" name="fecha_compromiso" value="{{ now()->format('Y-m-d') }}" class="w-full rounded-lg border-slate-300 text-sm py-2.5"></div>
+                                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Fecha Compromiso</label><input type="date" name="fecha_compromiso" value="{{ now()->format('Y-m-d') }}" class="w-full rounded-lg border-slate-300 text-sm py-2.5"></div>
                                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Prioridad</label><select name="prioridad" class="w-full rounded-lg border-slate-300 text-sm py-2.5"><option value="Media">Media</option><option value="Alta">Alta 🔥</option><option value="Baja">Baja</option></select></div>
                             </div>
                             <div class="grid grid-cols-2 gap-5">

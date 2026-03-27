@@ -5,14 +5,12 @@ namespace App\Http\Controllers\Sistemas_IT;
 use App\Http\Controllers\Controller;
 use App\Models\Sistemas_IT\EquipoAsignado;
 use App\Models\User;
-use App\Services\ActivosApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CredencialEquipoController extends Controller
 {
-    public function __construct(protected ActivosApiService $activos) {}
 
     public function index(Request $request)
     {
@@ -69,24 +67,6 @@ class CredencialEquipoController extends Controller
         try {
             $user = User::findOrFail($request->user_id);
 
-            // Asignar equipo principal en sistema de activos si es nuevo
-            if ($request->boolean('assign_new')) {
-                $result = $this->activos->assignDevice(
-                    $request->uuid_activos,
-                    $user->name,
-                    null,
-                    'Asignado desde ERP'
-                );
-
-                if (!$result['success']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No se pudo asignar el equipo en el sistema de activos: ' . ($result['message'] ?? ''),
-                    ], 422);
-                }
-            }
-
             $equipo = EquipoAsignado::create([
                 'user_id'           => $request->user_id,
                 'uuid_activos'      => $request->uuid_activos,
@@ -111,18 +91,6 @@ class CredencialEquipoController extends Controller
 
             // Periféricos
             foreach (($request->perifericos ?? []) as $per) {
-                // Asignar en sistema de activos (error no bloquea)
-                try {
-                    $this->activos->assignDevice(
-                        $per['uuid'],
-                        $user->name,
-                        null,
-                        'Periférico asignado desde ERP'
-                    );
-                } catch (\Exception $e) {
-                    Log::warning("ActivosApi: no se pudo asignar periférico {$per['uuid']}: " . $e->getMessage());
-                }
-
                 $equipo->perifericos()->create([
                     'uuid_activos' => $per['uuid'],
                     'nombre'       => $per['nombre'],
