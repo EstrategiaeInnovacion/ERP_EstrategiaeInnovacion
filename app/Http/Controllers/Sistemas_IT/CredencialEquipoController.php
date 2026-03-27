@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Sistemas_IT;
 use App\Http\Controllers\Controller;
 use App\Models\Sistemas_IT\EquipoAsignado;
 use App\Models\User;
+use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CredencialEquipoController extends Controller
 {
+    public function __construct(protected ActivosDbService $activos) {}
 
     public function index(Request $request)
     {
@@ -101,6 +103,30 @@ class CredencialEquipoController extends Controller
 
             DB::commit();
 
+            // ── Sincronizar con AuditoriaActivos ──────────────────────────────
+            // Solo cuando assign_new = true (equipo seleccionado de los disponibles)
+            if ($request->boolean('assign_new')) {
+                $empleado   = $user->empleado;
+                $badge      = $empleado?->id_empleado ?: null;
+                $assignedTo = $empleado?->nombre ?? $user->name;
+
+                // Equipo principal
+                $this->activos->assignDeviceInActivos(
+                    $request->uuid_activos,
+                    $assignedTo,
+                    $badge,
+                    $request->notas
+                );
+
+                // Periféricos
+                foreach (($request->perifericos ?? []) as $per) {
+                    if (! empty($per['uuid'])) {
+                        $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
+                    }
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             return response()->json([
                 'success'  => true,
                 'message'  => 'Registro creado correctamente.',
@@ -132,6 +158,20 @@ class CredencialEquipoController extends Controller
 
     public function destroy(EquipoAsignado $credencial)
     {
+        // ── Liberar en AuditoriaActivos antes de eliminar localmente ──────────
+        $credencial->load('perifericos');
+
+        if ($credencial->uuid_activos) {
+            $this->activos->returnDeviceInActivos($credencial->uuid_activos);
+        }
+
+        foreach ($credencial->perifericos as $per) {
+            if ($per->uuid_activos) {
+                $this->activos->returnDeviceInActivos($per->uuid_activos);
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         $credencial->delete();
         return redirect()->route('admin.credenciales.index')
             ->with('success', 'Registro eliminado correctamente.');

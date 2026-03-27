@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sistemas_IT;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ActivosDbService;
+use Illuminate\Support\Facades\Log;
 
 class ActivosApiController extends Controller
 {
@@ -60,12 +61,43 @@ class ActivosApiController extends Controller
 
     /**
      * GET /admin/activos-api/fotos/{id}
-     * Las fotos ya no se sirven desde esta app (no hay proxy a API externa).
-     * El frontend muestra ícono SVG cuando photo_id es null.
+     * Proxy de fotos: lee el archivo desde el storage privado de AuditoriaActivos
+     * y lo devuelve como imagen.
+     *
+     * Requiere ACTIVOS_STORAGE_PATH en .env apuntando al directorio
+     * storage/app/private de AuditoriaActivos (p.ej. /var/www/AuditoriaActivos/storage/app/private).
      */
     public function photo(int $id)
     {
-        return response()->json(['error' => 'Fotos no disponibles.'], 404);
+        if (! $this->activos->isConfigured()) {
+            abort(503, 'BD de activos no disponible.');
+        }
+
+        $filePath = $this->activos->getPhotoPath($id);
+        if (! $filePath) {
+            abort(404);
+        }
+
+        $storagePath = rtrim(env('ACTIVOS_STORAGE_PATH', ''), '\/ ');
+        if (empty($storagePath)) {
+            Log::warning('ActivosApi: ACTIVOS_STORAGE_PATH no configurado en .env');
+            abort(503, 'Ruta de almacenamiento de activos no configurada.');
+        }
+
+        $fullPath = $storagePath . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
+
+        if (! file_exists($fullPath) || ! is_file($fullPath)) {
+            abort(404);
+        }
+
+        // Seguridad: verificar que el archivo está dentro del directorio permitido
+        $realStorage = realpath($storagePath);
+        $realFile    = realpath($fullPath);
+        if (! $realStorage || ! $realFile || ! str_starts_with($realFile, $realStorage)) {
+            abort(403);
+        }
+
+        return response()->file($realFile);
     }
 }
 

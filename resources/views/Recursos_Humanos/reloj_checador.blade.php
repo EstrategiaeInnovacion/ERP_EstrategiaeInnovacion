@@ -232,7 +232,7 @@
                     </div>
                 @else
                     @foreach($empleados as $empleado)
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-all duration-300 {{ !$empleado->es_activo ? 'opacity-60 border-red-200' : '' }}">
+                        <div id="empleado-{{ $empleado->id }}" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-all duration-300 {{ !$empleado->es_activo ? 'opacity-60 border-red-200' : '' }}">
                             {{-- ENCABEZADO EMPLEADO --}}
                             <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
                                 <div class="flex items-center gap-4">
@@ -573,33 +573,28 @@
     </div>
     
     <script>
-        // === Scroll Preservation ===
+        // === Scroll Preservation — element-based (immune to layout shifts) ===
         (function() {
-            const KEY = 'reloj_scroll';
+            const KEY = 'reloj_empleado_id';
 
-            // Prevent browser from interfering with manual scroll restoration.
-            if ('scrollRestoration' in history) {
-                history.scrollRestoration = 'manual';
-            }
-
-            // Expose helper so modal openers can call it.
-            window.guardarScrollReloj = function() {
-                sessionStorage.setItem(KEY, window.scrollY.toString());
+            // Called when any modal opens. Saves the empleado_id, NOT pixel scroll.
+            window.guardarScrollReloj = function(empleadoId) {
+                if (empleadoId) {
+                    sessionStorage.setItem(KEY, String(empleadoId));
+                }
             };
 
-            // Listen for Alpine.js "alpine:initialized" — this fires AFTER Alpine has
-            // processed all x-show / x-data directives and the layout is fully stable.
-            // Using window.load is too early: Alpine runs after it and shifts the layout,
-            // which resets any scroll we applied.
+            // After reload, find the employee card by id and scroll it into view.
+            // We use alpine:initialized so Alpine has already processed x-show and
+            // the final layout height is stable before we scroll.
             document.addEventListener('alpine:initialized', function() {
-                const saved = sessionStorage.getItem(KEY);
-                if (saved) {
+                const savedId = sessionStorage.getItem(KEY);
+                if (savedId) {
                     sessionStorage.removeItem(KEY);
-                    const pos = parseInt(saved, 10);
-                    if (pos > 0) {
-                        // Extra tick to let any pending Alpine renders flush.
+                    const el = document.getElementById('empleado-' + savedId);
+                    if (el) {
                         setTimeout(function() {
-                            window.scrollTo({ top: pos, behavior: 'instant' });
+                            el.scrollIntoView({ behavior: 'instant', block: 'center' });
                         }, 30);
                     }
                 }
@@ -681,7 +676,7 @@
         var currentRecordId = null;
 
         function abrirModalEdicion(asistencia) {
-            guardarScrollReloj();
+            guardarScrollReloj(asistencia.empleado_id);
             const form = document.getElementById('formEdicion');
             form.action = `/recursos-humanos/reloj/update/${asistencia.id}`;
             form.querySelector('[name="tipo_registro"]').value = asistencia.tipo_registro;
@@ -697,8 +692,7 @@
             if (!currentRecordId) return;
             if (!confirm('¿Deshacer los cambios de este registro?\n\n• Si tiene horario: volverá a su estado original (retardo/asistencia).\n• Si fue creado manualmente: se eliminará por completo.')) return;
             
-            sessionStorage.setItem('reloj_scroll', window.scrollY.toString());
-            
+            // guardarScrollReloj already called by abrirModalEdicion; nothing extra needed here.
             var form = document.createElement('form');
             form.method = 'POST';
             form.action = '/recursos-humanos/reloj/revertir/' + currentRecordId;
@@ -721,7 +715,7 @@
 
         // Nueva función para abrir modal desde "Sin Registro" pre-llenado
         function abrirModalIncidencia(empleadoId = null, fecha = null) {
-            guardarScrollReloj();
+            guardarScrollReloj(empleadoId);
             if(empleadoId && fecha) {
                 // Pre-llenar datos para justificación rápida
                 document.getElementById('modal_empleado_id').value = empleadoId;
@@ -740,7 +734,7 @@
 
         // Modal Justificar Falta
         function abrirModalJustificar(empleadoId, empleadoNombre, fecha, fechaDisplay) {
-            guardarScrollReloj();
+            guardarScrollReloj(empleadoId);
             document.getElementById('justificar_empleado_id').value = empleadoId;
             document.getElementById('justificar_fecha_inicio').value = fecha;
             document.getElementById('justificar_fecha_fin').value = fecha;
@@ -760,7 +754,7 @@
 
         // Modal Asistencia Manual
         function abrirModalAsistencia(empleadoId, empleadoNombre) {
-            guardarScrollReloj();
+            guardarScrollReloj(empleadoId);
             document.getElementById('manual_empleado_id').value = empleadoId;
             document.getElementById('manual_empleado_nombre').textContent = empleadoNombre;
             document.getElementById('manual_fecha').value = new Date().toISOString().slice(0, 10);
