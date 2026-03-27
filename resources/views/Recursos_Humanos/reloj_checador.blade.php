@@ -653,6 +653,23 @@
     </div>
 
     <script>
+        // === Restaurar scroll (píxeles) después de cualquier recarga ===
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedScroll = sessionStorage.getItem('reloj_scroll');
+            if (savedScroll !== null) {
+                window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' });
+                sessionStorage.removeItem('reloj_scroll');
+            }
+        });
+
+        // === Guardar scroll antes de cualquier form que cause recarga ===
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.method && form.action && !form.action.includes('javascript')) {
+                sessionStorage.setItem('reloj_scroll', window.scrollY);
+            }
+        });
+
         // === Scroll Preservation — element-based (immune to layout shifts) ===
         (function() {
             const KEY = 'reloj_empleado_id';
@@ -793,7 +810,9 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
+                sessionStorage.setItem('reloj_scroll', window.scrollY);
                 mostrarToastReloj(data.message || 'Registro actualizado.');
+                setTimeout(function() { window.location.reload(); }, 500);
             })
             .catch(function() {
                 alert('Error al guardar. Intente de nuevo.');
@@ -823,7 +842,9 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
+                sessionStorage.setItem('reloj_scroll', window.scrollY);
                 mostrarToastReloj(data.message || 'Registro revertido.');
+                setTimeout(function() { window.location.reload(); }, 500);
             })
             .catch(function() {
                 alert('Error al revertir. Intente de nuevo.');
