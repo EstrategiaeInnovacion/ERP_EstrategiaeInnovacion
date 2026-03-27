@@ -288,6 +288,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::post('/store-manual', 'storeManual')->name('storeManual');
             Route::delete('/revertir/{id}', 'revertir')->name('revertir');
             Route::delete('/clear', 'clear')->name('clear');
+            Route::delete('/clear-rango', 'clearRango')->name('clearRango');
             Route::post('/aviso', 'enviarAviso')->name('aviso');
             
             // Ruta para marcar aviso como leído en el dashboard
