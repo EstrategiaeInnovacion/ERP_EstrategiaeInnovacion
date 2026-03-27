@@ -653,12 +653,24 @@
     </div>
 
     <script>
-        // === Restaurar scroll (píxeles) después de cualquier recarga ===
+        // === Guardar scroll (vertical y horizontal) ===
+        function guardarScrollReloj() {
+            sessionStorage.setItem('reloj_scroll_top', window.scrollY);
+            sessionStorage.setItem('reloj_scroll_left', window.scrollX);
+        }
+
+        // === Restaurar scroll (vertical y horizontal) después de cualquier recarga ===
         document.addEventListener('DOMContentLoaded', function() {
-            const savedScroll = sessionStorage.getItem('reloj_scroll');
-            if (savedScroll !== null) {
-                window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' });
-                sessionStorage.removeItem('reloj_scroll');
+            const savedTop = sessionStorage.getItem('reloj_scroll_top');
+            const savedLeft = sessionStorage.getItem('reloj_scroll_left');
+            if (savedTop !== null || savedLeft !== null) {
+                window.scrollTo({
+                    top: savedTop ? parseInt(savedTop) : 0,
+                    left: savedLeft ? parseInt(savedLeft) : 0,
+                    behavior: 'instant'
+                });
+                sessionStorage.removeItem('reloj_scroll_top');
+                sessionStorage.removeItem('reloj_scroll_left');
             }
         });
 
@@ -666,7 +678,7 @@
         document.addEventListener('submit', function(e) {
             const form = e.target;
             if (form.method && form.action && !form.action.includes('javascript')) {
-                sessionStorage.setItem('reloj_scroll', window.scrollY);
+                guardarScrollReloj();
             }
         });
 
@@ -756,7 +768,7 @@
                 progressPercent.innerText = '100%';
                 progressMessage.innerText = '¡Completado!';
                 setTimeout(() => {
-                    sessionStorage.setItem('reloj_scroll', window.scrollY);
+                    guardarScrollReloj();
                     window.location.reload();
                 }, 1000);
             })
@@ -810,7 +822,7 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
-                sessionStorage.setItem('reloj_scroll', window.scrollY);
+                guardarScrollReloj();
                 mostrarToastReloj(data.message || 'Registro actualizado.');
                 setTimeout(function() { window.location.reload(); }, 500);
             })
@@ -842,7 +854,7 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
-                sessionStorage.setItem('reloj_scroll', window.scrollY);
+                guardarScrollReloj();
                 mostrarToastReloj(data.message || 'Registro revertido.');
                 setTimeout(function() { window.location.reload(); }, 500);
             })
