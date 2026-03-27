@@ -287,6 +287,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::put('/update/{id}', 'update')->name('update');
             Route::post('/store-manual', 'storeManual')->name('storeManual');
             Route::delete('/revertir/{id}', 'revertir')->name('revertir');
+            Route::delete('/revertir-rango', 'revertirRango')->name('revertirRango');
             Route::delete('/clear', 'clear')->name('clear');
             Route::delete('/clear-rango', 'clearRango')->name('clearRango');
             Route::post('/aviso', 'enviarAviso')->name('aviso');

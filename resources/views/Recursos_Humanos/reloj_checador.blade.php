@@ -209,6 +209,12 @@
                             <h4 class="text-sm font-bold text-red-900 mb-2">Zona de Peligro — Reloj Checador</h4>
                             <p class="text-xs text-red-700 mb-4">Eliminar registros de asistencia del reloj checador por rango de fechas o por completo.</p>
                             <div class="flex flex-col gap-2">
+                                {{-- Revertir por rango --}}
+                                <button type="button" onclick="document.getElementById('modalRevertirRango').classList.remove('hidden')"
+                                    class="text-amber-600 hover:text-amber-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-amber-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                    Revertir por Rango (por Empleado)
+                                </button>
                                 {{-- Borrar por rango --}}
                                 <button type="button" onclick="document.getElementById('modalClearRango').classList.remove('hidden')"
                                     class="text-orange-600 hover:text-orange-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-orange-300">
@@ -574,6 +580,87 @@
                         </button>
                         <button type="button" onclick="cerrarModalIncidencia()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL: Revertir por Rango de Fechas (por Empleado) --}}
+    <div id="modalRevertirRango" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity" onclick="document.getElementById('modalRevertirRango').classList.add('hidden')"></div>
+            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full z-10 overflow-hidden">
+                <form id="formRevertirRango" method="POST" action="{{ route('rh.reloj.revertirRango') }}"
+                      onsubmit="return confirmarRevertirRango(event)">
+                    @csrf @method('DELETE')
+
+                    <div class="px-6 pt-6 pb-4">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="p-2 bg-amber-100 rounded-full flex-shrink-0">
+                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Revertir Asistencias por Rango</h3>
+                                <p class="text-sm text-slate-500">Revierte los registros de un empleado a su estado original (sin justificaciones ni ediciones manuales).</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            {{-- Empleado --}}
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">Empleado *</label>
+                                <select name="empleado_id" id="revertirRango_empleado" required
+                                        class="w-full rounded-xl border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                    <option value="">— Seleccionar empleado —</option>
+                                    @foreach($todosEmpleados as $emp)
+                                        <option value="{{ $emp->id }}">{{ $emp->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Atajos de mes --}}
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Atajo rápido — Seleccionar mes</label>
+                                <div class="grid grid-cols-3 gap-2" id="botonesRapidosMesRevertir"></div>
+                            </div>
+
+                            <div class="flex items-center gap-2 text-xs text-slate-400">
+                                <div class="flex-1 h-px bg-slate-200"></div>
+                                <span>o elige un rango personalizado</span>
+                                <div class="flex-1 h-px bg-slate-200"></div>
+                            </div>
+
+                            {{-- Rango manual --}}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Fecha Inicio *</label>
+                                    <input type="date" name="fecha_inicio" id="revertirRango_inicio" required
+                                           class="w-full rounded-xl border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Fecha Fin *</label>
+                                    <input type="date" name="fecha_fin" id="revertirRango_fin" required
+                                           class="w-full rounded-xl border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                </div>
+                            </div>
+
+                            <div id="revertirRango_preview" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 font-medium"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+                        <button type="button" onclick="document.getElementById('modalRevertirRango').classList.add('hidden')"
+                                class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                            Revertir Registros
                         </button>
                     </div>
                 </form>
@@ -1007,6 +1094,68 @@
             const fin    = document.getElementById('clearRango_fin').value;
             if (!inicio || !fin) return false;
             return confirm(`¿Estás seguro de eliminar TODOS los registros de asistencia del ${inicio} al ${fin}?\n\nEsta acción no se puede deshacer.`);
+        }
+
+        // === Modal Revertir por Rango ===
+        (function () {
+            const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const hoy = new Date();
+            const contenedor = document.getElementById('botonesRapidosMesRevertir');
+
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                const year  = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const lastDay = new Date(year, d.getMonth() + 1, 0).getDate();
+                const inicio = `${year}-${month}-01`;
+                const fin    = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                const label  = `${MESES[d.getMonth()]} ${year}`;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = label;
+                btn.className = 'text-xs font-semibold px-2 py-1.5 rounded-lg border border-amber-200 bg-white text-amber-700 hover:bg-amber-50 transition';
+                btn.addEventListener('click', function () {
+                    document.getElementById('revertirRango_inicio').value = inicio;
+                    document.getElementById('revertirRango_fin').value   = fin;
+                    actualizarPreviewRevertir();
+                    contenedor.querySelectorAll('button').forEach(b => b.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'));
+                    btn.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400');
+                });
+                contenedor.appendChild(btn);
+            }
+
+            ['revertirRango_inicio', 'revertirRango_fin', 'revertirRango_empleado'].forEach(id => {
+                document.getElementById(id).addEventListener('change', function () {
+                    actualizarPreviewRevertir();
+                    if (id !== 'revertirRango_empleado') {
+                        contenedor.querySelectorAll('button').forEach(b => b.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'));
+                    }
+                });
+            });
+
+            function actualizarPreviewRevertir() {
+                const inicio   = document.getElementById('revertirRango_inicio').value;
+                const fin      = document.getElementById('revertirRango_fin').value;
+                const sel      = document.getElementById('revertirRango_empleado');
+                const empleado = sel.options[sel.selectedIndex]?.text || '';
+                const preview  = document.getElementById('revertirRango_preview');
+                if (inicio && fin && sel.value) {
+                    preview.classList.remove('hidden');
+                    preview.textContent = `↺ Se revertirán los registros de "${empleado}" del ${inicio} al ${fin} a su estado original importado.`;
+                } else {
+                    preview.classList.add('hidden');
+                }
+            }
+        })();
+
+        function confirmarRevertirRango(e) {
+            const inicio   = document.getElementById('revertirRango_inicio').value;
+            const fin      = document.getElementById('revertirRango_fin').value;
+            const sel      = document.getElementById('revertirRango_empleado');
+            const empleado = sel.options[sel.selectedIndex]?.text || 'el empleado seleccionado';
+            if (!inicio || !fin || !sel.value) return false;
+            return confirm(`¿Revertir los registros de "${empleado}" del ${inicio} al ${fin}?\n\n• Registros con horario: volverán al estado original (sin ediciones ni justificaciones).\n• Registros manuales sin horario: serán eliminados.\n\nEsta acción no se puede deshacer.`);
         }
     </script>
 
