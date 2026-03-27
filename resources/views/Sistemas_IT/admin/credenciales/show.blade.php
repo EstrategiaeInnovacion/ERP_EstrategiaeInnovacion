@@ -367,39 +367,16 @@
                         Consultando sistema de activos…
                     </div>
 
-                    {{-- Step: pick_device --}}
+                    {{-- Step: pick_device (solo computadoras) --}}
                     <div x-show="step === 'pick_device'">
-                        <p class="text-sm font-semibold text-slate-700 mb-3">Selecciona el equipo disponible:</p>
+                        <p class="text-sm font-semibold text-slate-700 mb-3">
+                            Selecciona el equipo disponible:
+                            <span class="text-xs font-normal text-slate-400 ml-1" x-text="'(' + disponibles.filter(d => d.type === 'computer').length + ' computadora(s))'"></span>
+                        </p>
 
-                        {{-- Tabs --}}
-                        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 mb-3">
-                            <button type="button"
-                                    @click="tabEquipo = 'computer'"
-                                    :class="tabEquipo === 'computer' ? 'bg-white text-amber-700 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
-                                    class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                </svg>
-                                Computadoras
-                                <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'computer').length + ')'"></span>
-                            </button>
-                            <button type="button"
-                                    @click="tabEquipo = 'peripheral'"
-                                    :class="tabEquipo === 'peripheral' ? 'bg-white text-amber-700 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
-                                    class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                </svg>
-                                Periféricos
-                                <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'peripheral').length + ')'"></span>
-                            </button>
-                        </div>
-
-                        {{-- Device list --}}
+                        {{-- Device list: solo computadoras --}}
                         <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                            <template x-for="d in disponibles.filter(d => d.type === tabEquipo)" :key="d.uuid">
+                            <template x-for="d in disponibles.filter(d => d.type === 'computer')" :key="d.uuid">
                                 <button type="button"
                                         @click="seleccionarEquipo(d)"
                                         class="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50 transition flex items-center gap-4 group">
@@ -425,13 +402,9 @@
                                     </svg>
                                 </button>
                             </template>
-                            <div x-show="!disponibles.filter(d => d.type === tabEquipo).length && disponibles.length"
+                            <div x-show="!disponibles.filter(d => d.type === 'computer').length"
                                  class="text-sm text-slate-400 italic text-center py-6">
-                                No hay <span x-text="tabEquipo === 'computer' ? 'computadoras' : 'periféricos'"></span> disponibles.
-                            </div>
-                            <div x-show="!disponibles.length && step === 'pick_device'"
-                                 class="text-sm text-slate-400 italic text-center py-6">
-                                No hay equipos disponibles en el sistema de activos.
+                                No hay computadoras disponibles en el sistema de activos.
                             </div>
                         </div>
                     </div>
@@ -505,6 +478,52 @@
                             </div>
                         </div>
 
+                        {{-- Periféricos adicionales --}}
+                        <div class="border-t border-amber-100 pt-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                    OTROS (Periféricos)
+                                </h4>
+                            </div>
+                            <div class="flex gap-2 mb-2">
+                                <select x-model="selectedPerUuid"
+                                        class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white min-w-0">
+                                    <option value="">— Seleccionar periférico disponible —</option>
+                                    <template x-for="d in disponibles.filter(d => d.type === 'peripheral' && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
+                                        <option :value="d.uuid"
+                                                x-text="(d.name ?? d.nombre ?? 'Sin nombre') + (d.serial_number ? ' — S/N: ' + d.serial_number : '')"></option>
+                                    </template>
+                                </select>
+                                <button type="button" @click="addPeriferico()"
+                                        :disabled="!selectedPerUuid"
+                                        class="px-3 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition shrink-0">
+                                    Añadir
+                                </button>
+                            </div>
+                            <div class="space-y-1.5">
+                                <template x-for="(p, i) in perifericos" :key="p.uuid">
+                                    <div class="flex items-center gap-3 bg-violet-50 rounded-lg px-3 py-2 text-sm">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="font-medium text-slate-800" x-text="p.nombre"></span>
+                                            <span x-show="p.tipo" class="ml-2 text-xs text-violet-600 bg-violet-100 rounded-full px-2 py-0.5" x-text="p.tipo"></span>
+                                            <span x-show="p.serie" class="ml-1 text-xs text-slate-400 font-mono" x-text="'S/N: ' + p.serie"></span>
+                                        </div>
+                                        <button type="button" @click="perifericos.splice(i, 1)"
+                                                class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition shrink-0">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                                <p x-show="!perifericos.length" class="text-xs text-slate-400 italic">Sin periféricos añadidos.</p>
+                            </div>
+                        </div>
+
                         <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
                             <input type="checkbox" x-model="assignNew"
                                    class="rounded border-slate-300 text-amber-600 focus:ring-amber-400">
@@ -574,13 +593,14 @@ function secEquipoForm() {
         showFormSecundario: false,
         step: 'pick_device', // 'loading' | 'pick_device' | 'credentials'
         disponibles: [],
-        tabEquipo: 'computer',
         device: null,
         nombreUsuarioPc: '',
         contrasenaEquipo: '',
         showCont: false,
         notas: '',
         assignNew: false,
+        perifericos: [],
+        selectedPerUuid: '',
         guardando: false,
         errorMsg: '',
 
@@ -610,8 +630,23 @@ function secEquipoForm() {
             this.contrasenaEquipo = '';
             this.notas = '';
             this.assignNew = false;
+            this.perifericos = [];
+            this.selectedPerUuid = '';
             this.errorMsg = '';
             this.guardando = false;
+        },
+
+        addPeriferico() {
+            if (!this.selectedPerUuid) return;
+            const d = this.disponibles.find(x => x.uuid === this.selectedPerUuid);
+            if (!d || this.perifericos.find(p => p.uuid === d.uuid)) return;
+            this.perifericos.push({
+                uuid:   d.uuid ?? d.id ?? '',
+                nombre: d.name ?? d.nombre ?? '',
+                tipo:   d.device_type ? d.device_type.name : (d.type_label ?? ''),
+                serie:  d.serial_number ?? d.serie ?? '',
+            });
+            this.selectedPerUuid = '';
         },
 
         seleccionarEquipo(d) {
@@ -648,6 +683,12 @@ function secEquipoForm() {
                         contrasena_equipo: this.contrasenaEquipo,
                         notas:             this.notas.trim() || null,
                         assign_new:        this.assignNew,
+                        perifericos:       this.perifericos.map(p => ({
+                            uuid:   p.uuid,
+                            nombre: p.nombre,
+                            tipo:   p.tipo || null,
+                            serie:  p.serie || null,
+                        })),
                     })
                 });
                 const data = await resp.json();
