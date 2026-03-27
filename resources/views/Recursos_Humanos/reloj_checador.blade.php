@@ -653,23 +653,32 @@
     </div>
 
     <script>
-        // === Guardar scroll (vertical, horizontal y contenedor de fechas) ===
-        function guardarScrollReloj() {
+        // === Guardar scroll (vertical, horizontal general, y contenedores de fechas individuales) ===
+        window.guardarScrollReloj = function(empleadoId = null) {
+            // 1. Guardar scroll general de la ventana
             sessionStorage.setItem('reloj_scroll_top', window.scrollY);
             sessionStorage.setItem('reloj_scroll_left', window.scrollX);
             
-            // Guardar scroll horizontal del contenedor de fechas (primer elemento con overflow-x-auto)
-            const fechasContainer = document.querySelector('.overflow-x-auto');
-            if (fechasContainer) {
-                sessionStorage.setItem('reloj_fechas_scroll', fechasContainer.scrollLeft);
+            // 2. Guardar el ID del empleado seleccionado (para hacer focus después)
+            if (empleadoId) {
+                sessionStorage.setItem('reloj_empleado_id', String(empleadoId));
             }
-        }
 
-        // === Restaurar scroll después de cualquier recarga ===
+            // 3. Guardar scroll horizontal de TODOS los contenedores de fechas individualmente
+            const contenedoresFechas = document.querySelectorAll('.overflow-x-auto');
+            contenedoresFechas.forEach((container, index) => {
+                // Buscamos el div padre que tiene el ID del empleado para usarlo como llave única
+                const empleadoDiv = container.closest('[id^="empleado-"]');
+                const key = empleadoDiv ? 'reloj_fechas_scroll_' + empleadoDiv.id : 'reloj_fechas_scroll_idx_' + index;
+                sessionStorage.setItem(key, container.scrollLeft);
+            });
+        };
+
+        // === Restaurar scrolls después de la recarga del DOM ===
         document.addEventListener('DOMContentLoaded', function() {
+            // 1. Restaurar scroll general de la ventana
             const savedTop = sessionStorage.getItem('reloj_scroll_top');
             const savedLeft = sessionStorage.getItem('reloj_scroll_left');
-            const savedFechas = sessionStorage.getItem('reloj_fechas_scroll');
             
             if (savedTop !== null || savedLeft !== null) {
                 window.scrollTo({
@@ -681,15 +690,33 @@
                 sessionStorage.removeItem('reloj_scroll_left');
             }
             
-            // Restaurar scroll del contenedor de fechas después de un pequeño delay
-            if (savedFechas !== null) {
-                setTimeout(function() {
-                    const fechasContainer = document.querySelector('.overflow-x-auto');
-                    if (fechasContainer) {
-                        fechasContainer.scrollLeft = parseInt(savedFechas);
+            // 2. Restaurar scroll horizontal de CADA contenedor de fechas individualmente
+            setTimeout(function() {
+                const contenedoresFechas = document.querySelectorAll('.overflow-x-auto');
+                contenedoresFechas.forEach((container, index) => {
+                    const empleadoDiv = container.closest('[id^="empleado-"]');
+                    const key = empleadoDiv ? 'reloj_fechas_scroll_' + empleadoDiv.id : 'reloj_fechas_scroll_idx_' + index;
+                    const savedScroll = sessionStorage.getItem(key);
+                    
+                    if (savedScroll !== null) {
+                        container.scrollLeft = parseInt(savedScroll);
+                        sessionStorage.removeItem(key); // Limpiamos la sesión después de usarla
                     }
-                    sessionStorage.removeItem('reloj_fechas_scroll');
-                }, 50);
+                });
+            }, 50); // Un pequeño delay para asegurar que el DOM está renderizado completamente
+        });
+
+        // === Enfoque al empleado (Centrar pantalla) después de que Alpine procesa la UI ===
+        document.addEventListener('alpine:initialized', function() {
+            const savedId = sessionStorage.getItem('reloj_empleado_id');
+            if (savedId) {
+                sessionStorage.removeItem('reloj_empleado_id');
+                const el = document.getElementById('empleado-' + savedId);
+                if (el) {
+                    setTimeout(function() {
+                        el.scrollIntoView({ behavior: 'instant', block: 'center' });
+                    }, 30);
+                }
             }
         });
 
@@ -697,37 +724,9 @@
         document.addEventListener('submit', function(e) {
             const form = e.target;
             if (form.method && form.action && !form.action.includes('javascript')) {
-                guardarScrollReloj();
+                window.guardarScrollReloj();
             }
         });
-
-        // === Scroll Preservation — element-based (immune to layout shifts) ===
-        (function() {
-            const KEY = 'reloj_empleado_id';
-
-            // Called when any modal opens. Saves the empleado_id, NOT pixel scroll.
-            window.guardarScrollReloj = function(empleadoId) {
-                if (empleadoId) {
-                    sessionStorage.setItem(KEY, String(empleadoId));
-                }
-            };
-
-            // After reload, find the employee card by id and scroll it into view.
-            // We use alpine:initialized so Alpine has already processed x-show and
-            // the final layout height is stable before we scroll.
-            document.addEventListener('alpine:initialized', function() {
-                const savedId = sessionStorage.getItem(KEY);
-                if (savedId) {
-                    sessionStorage.removeItem(KEY);
-                    const el = document.getElementById('empleado-' + savedId);
-                    if (el) {
-                        setTimeout(function() {
-                            el.scrollIntoView({ behavior: 'instant', block: 'center' });
-                        }, 30);
-                    }
-                }
-            });
-        })();
 
         // Importador JS (Sin cambios)
         document.getElementById('importForm').addEventListener('submit', function(e) {
@@ -787,7 +786,7 @@
                 progressPercent.innerText = '100%';
                 progressMessage.innerText = '¡Completado!';
                 setTimeout(() => {
-                    guardarScrollReloj();
+                    window.guardarScrollReloj();
                     window.location.reload();
                 }, 1000);
             })
@@ -841,7 +840,7 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
-                guardarScrollReloj();
+                window.guardarScrollReloj(currentEmpleadoId);
                 mostrarToastReloj(data.message || 'Registro actualizado.');
                 setTimeout(function() { window.location.reload(); }, 500);
             })
@@ -873,7 +872,7 @@
             })
             .then(function(data) {
                 cerrarModalEdicion();
-                guardarScrollReloj();
+                window.guardarScrollReloj(currentEmpleadoId);
                 mostrarToastReloj(data.message || 'Registro revertido.');
                 setTimeout(function() { window.location.reload(); }, 500);
             })
@@ -899,7 +898,7 @@
 
         // Nueva función para abrir modal desde "Sin Registro" pre-llenado
         function abrirModalIncidencia(empleadoId = null, fecha = null) {
-            guardarScrollReloj(empleadoId);
+            window.guardarScrollReloj(empleadoId);
             // Siempre resetear fechas para evitar que queden valores de usos anteriores
             const today = new Date().toISOString().slice(0, 10);
             const fechaUso = fecha || today;
@@ -919,7 +918,7 @@
 
         // Modal Justificar Falta
         function abrirModalJustificar(empleadoId, empleadoNombre, fecha, fechaDisplay) {
-            guardarScrollReloj(empleadoId);
+            window.guardarScrollReloj(empleadoId);
             document.getElementById('justificar_empleado_id').value = empleadoId;
             document.getElementById('justificar_fecha_inicio').value = fecha;
             document.getElementById('justificar_fecha_fin').value = fecha;
@@ -939,7 +938,7 @@
 
         // Modal Asistencia Manual
         function abrirModalAsistencia(empleadoId, empleadoNombre) {
-            guardarScrollReloj(empleadoId);
+            window.guardarScrollReloj(empleadoId);
             document.getElementById('manual_empleado_id').value = empleadoId;
             document.getElementById('manual_empleado_nombre').textContent = empleadoNombre;
             document.getElementById('manual_fecha').value = new Date().toISOString().slice(0, 10);
