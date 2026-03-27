@@ -5,6 +5,7 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -36,7 +37,13 @@ class AvisoAsistenciaMailable extends Mailable
             default => 'Asistencia'
         };
 
+        $sender = $this->aviso->enviadoPor;
+        $from = $sender?->email
+            ? new Address($sender->email, $sender->name ?? $sender->email)
+            : new Address(config('mail.from.address'), config('mail.from.name'));
+
         return new Envelope(
+            from: $from,
             subject: 'Aviso Oficial de ' . $tipo . ' - Recursos Humanos',
         );
     }
