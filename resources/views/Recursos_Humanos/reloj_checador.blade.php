@@ -653,16 +653,24 @@
     </div>
 
     <script>
-        // === Guardar scroll (vertical y horizontal) ===
+        // === Guardar scroll (vertical, horizontal y contenedor de fechas) ===
         function guardarScrollReloj() {
             sessionStorage.setItem('reloj_scroll_top', window.scrollY);
             sessionStorage.setItem('reloj_scroll_left', window.scrollX);
+            
+            // Guardar scroll horizontal del contenedor de fechas (primer elemento con overflow-x-auto)
+            const fechasContainer = document.querySelector('.overflow-x-auto');
+            if (fechasContainer) {
+                sessionStorage.setItem('reloj_fechas_scroll', fechasContainer.scrollLeft);
+            }
         }
 
-        // === Restaurar scroll (vertical y horizontal) después de cualquier recarga ===
+        // === Restaurar scroll después de cualquier recarga ===
         document.addEventListener('DOMContentLoaded', function() {
             const savedTop = sessionStorage.getItem('reloj_scroll_top');
             const savedLeft = sessionStorage.getItem('reloj_scroll_left');
+            const savedFechas = sessionStorage.getItem('reloj_fechas_scroll');
+            
             if (savedTop !== null || savedLeft !== null) {
                 window.scrollTo({
                     top: savedTop ? parseInt(savedTop) : 0,
@@ -671,6 +679,17 @@
                 });
                 sessionStorage.removeItem('reloj_scroll_top');
                 sessionStorage.removeItem('reloj_scroll_left');
+            }
+            
+            // Restaurar scroll del contenedor de fechas después de un pequeño delay
+            if (savedFechas !== null) {
+                setTimeout(function() {
+                    const fechasContainer = document.querySelector('.overflow-x-auto');
+                    if (fechasContainer) {
+                        fechasContainer.scrollLeft = parseInt(savedFechas);
+                    }
+                    sessionStorage.removeItem('reloj_fechas_scroll');
+                }, 50);
             }
         });
 
