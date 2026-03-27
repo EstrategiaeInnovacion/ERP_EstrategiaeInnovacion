@@ -12,11 +12,14 @@ class ActivosApiController extends Controller
 
     /**
      * GET /admin/activos-api/usuario/{userId}/equipo
-     * Consulta los dispositivos asignados al usuario directamente desde la BD de activos.
+     * Consulta los dispositivos asignados al usuario desde la BD de activos.
+     *
+     * Usa `empleados.id_empleado` (badge del ERP) como llave primaria de correlación
+     * contra `employees.employee_id` en AuditoriaActivos; cae en nombre si no hay badge.
      */
     public function devicesByUser(int $userId)
     {
-        $user = User::findOrFail($userId);
+        $user = User::with('empleado')->findOrFail($userId);
 
         if (!$this->activos->isConfigured()) {
             return response()->json([
@@ -26,11 +29,15 @@ class ActivosApiController extends Controller
             ], 503);
         }
 
-        $devices   = $this->activos->getAssignedDevices($user->name);
+        $empleado = $user->empleado;
+        $badge    = $empleado?->id_empleado ?: null;
+        $nombre   = $empleado?->nombre ?? $user->name;
+
+        $devices   = $this->activos->getAssignedDevices($nombre, $badge);
         $hasDevice = count($devices) > 0;
 
         return response()->json([
-            'user'       => ['id' => $user->id, 'name' => $user->name],
+            'user'       => ['id' => $user->id, 'name' => $nombre],
             'has_device' => $hasDevice,
             'devices'    => $devices,
         ]);
