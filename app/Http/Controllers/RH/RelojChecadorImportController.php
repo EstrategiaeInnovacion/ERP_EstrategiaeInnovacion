@@ -156,6 +156,10 @@ class RelojChecadorImportController extends Controller
             ]);
         });
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Registro actualizado correctamente.']);
+        }
+
         return back()->with('success', 'Registro actualizado correctamente.');
     }
 
@@ -168,7 +172,7 @@ class RelojChecadorImportController extends Controller
         $request->validate([
             'empleado_id' => 'required',
             'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
             'tipo_registro' => 'required'
         ]);
 
@@ -397,7 +401,7 @@ class RelojChecadorImportController extends Controller
      * - Si tiene entrada/salida: vuelve a 'asistencia', recalcula retardo, quita justificación.
      * - Si no tiene horarios (creado manualmente): lo elimina por completo.
      */
-    public function revertir($id)
+    public function revertir(Request $request, $id)
     {
         $asistencia = Asistencia::findOrFail($id);
 
@@ -432,11 +436,19 @@ class RelojChecadorImportController extends Controller
                 'comentarios' => null,
             ]);
 
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'Registro revertido a su estado original.']);
+            }
+
             return back()->with('success', 'Registro revertido a su estado original.');
         }
 
         // Si no tiene horarios, fue creado manualmente — eliminar
         $asistencia->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Registro eliminado correctamente.']);
+        }
 
         return back()->with('success', 'Registro eliminado correctamente. El día queda disponible para un nuevo registro.');
     }
