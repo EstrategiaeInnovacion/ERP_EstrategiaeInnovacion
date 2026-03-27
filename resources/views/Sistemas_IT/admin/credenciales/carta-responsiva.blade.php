@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Carta Responsiva — {{ $user->name }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         /* ── Base ── */
@@ -95,19 +97,12 @@
             text-align: center;
             padding: 6pt;
         }
-        .header-logo-circle {
-            width: 54pt;
-            height: 54pt;
-            border-radius: 50%;
-            background: #1e3a5f;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 20pt;
-            font-weight: 900;
+        .header-logo-img {
+            max-width: 54pt;
+            max-height: 54pt;
+            object-fit: contain;
+            display: block;
             margin: 0 auto;
-            font-family: serif;
         }
         .header-table .title-cell {
             text-align: center;
@@ -234,6 +229,22 @@
             margin-bottom: 4pt;
         }
 
+        /* ── Signature image (after signing) ── */
+        .sig-img-wrap {
+            height: 60pt;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 2pt;
+        }
+        .sig-img {
+            max-height: 55pt;
+            max-width: 160pt;
+            object-fit: contain;
+        }
+        .btn-save { background: #059669; color: #fff; }
+        [x-cloak] { display: none !important; }
+
         /* ── Watermark ── */
         .watermark {
             position: absolute;
@@ -260,13 +271,7 @@
                 width: 210mm !important;
                 min-height: 297mm !important;
                 padding: 15mm 18mm !important;
-                page-break-after: always;
-                break-after: page;
             }
-            .page:last-of-type { page-break-after: auto; break-after: auto; }
-            .sig-canvas-wrap { border-style: solid !important; }
-            .sig-clear { display: none !important; }
-            .btn-sign { display: none !important; }
             @page { size: letter; margin: 0; }
         }
     </style>
@@ -288,19 +293,27 @@
                 </svg>
                 Volver
             </a>
-            <button class="btn-toolbar btn-sign" @click="toggleSign()">
+            <button class="btn-toolbar btn-sign" @click="abrirModal()">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                 </svg>
-                <span x-text="showSign ? 'Ocultar firma' : 'Firmar digitalmente'"></span>
+                <span x-text="signed ? 'Cambiar firma' : 'Firmar digitalmente'"></span>
+            </button>
+            <button x-show="signed" x-cloak class="btn-toolbar btn-save"
+                    @click="guardarCarta()" :disabled="guardando || guardado">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <span x-text="guardado ? '\u2713 Guardado en RH' : (guardando ? 'Guardando...' : 'Guardar en Expediente RH')"></span>
             </button>
             <button class="btn-toolbar btn-print" onclick="window.print()">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
-                Imprimir / Guardar PDF
+                Imprimir / PDF
             </button>
         </div>
     </div>
@@ -314,7 +327,7 @@
         <table class="header-table">
             <tr>
                 <td class="logo-cell" rowspan="2">
-                    <div class="header-logo-circle">E&amp;I</div>
+                    <img src="{{ asset('images/logo-ei.png') }}" class="header-logo-img" alt="E&amp;I">
                 </td>
                 <td class="title-cell" colspan="2">
                     Carta Responsiva de Custodia de Equipo
@@ -332,14 +345,15 @@
                 </td>
                 <td class="meta-cell">
                     <span class="meta-label">Fecha de emisión</span>
-                    {{ now()->format('d/m/Y') }}
+                    {{ $fechaCarta->format('d/m/Y') }}
                 </td>
             </tr>
         </table>
 
         {{-- Lugar y fecha --}}
+        @php $meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']; @endphp
         <p class="lugar-fecha">
-            San Luis Potosí, S.L.P., a <span class="blank"></span>
+            San Luis Potosí, S.L.P., a {{ $fechaCarta->day }} de {{ $meses[$fechaCarta->month - 1] }} de {{ $fechaCarta->year }}
         </p>
 
         {{-- Título --}}
@@ -388,24 +402,11 @@
 
         {{-- Firma página 1 --}}
         <div class="sig-section">
-            <div class="sig-box" x-show="showSign">
-                <div class="sig-canvas-wrap"
-                     @mousedown="startDraw($event, 'sig1')"
-                     @mousemove="draw($event, 'sig1')"
-                     @mouseup="stopDraw('sig1')"
-                     @mouseleave="stopDraw('sig1')"
-                     @touchstart.prevent="startDraw($event, 'sig1')"
-                     @touchmove.prevent="draw($event, 'sig1')"
-                     @touchend="stopDraw('sig1')">
-                    <canvas id="sig1" width="213" height="80"></canvas>
+            <div class="sig-box">
+                <div class="sig-img-wrap">
+                    <div x-show="!signed" style="width:160pt;height:55pt;"></div>
+                    <img x-show="signed" :src="sigData" class="sig-img" alt="">
                 </div>
-                <button class="sig-clear" @click="clearCanvas('sig1')">Limpiar firma</button>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
-                <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
-            </div>
-            <div class="sig-box" x-show="!showSign">
-                <div style="height:60pt;"></div>
                 <div class="sig-line"></div>
                 <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
                 <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
@@ -430,7 +431,7 @@
         <table class="header-table">
             <tr>
                 <td class="logo-cell" rowspan="2">
-                    <div class="header-logo-circle">E&amp;I</div>
+                    <img src="{{ asset('images/logo-ei.png') }}" class="header-logo-img" alt="E&amp;I">
                 </td>
                 <td class="title-cell" colspan="2">
                     Carta Responsiva de Custodia de Equipo
@@ -448,7 +449,7 @@
                 </td>
                 <td class="meta-cell">
                     <span class="meta-label">Fecha de emisión</span>
-                    {{ now()->format('d/m/Y') }}
+                    {{ $fechaCarta->format('d/m/Y') }}
                 </td>
             </tr>
         </table>
@@ -642,24 +643,11 @@
 
         {{-- ── Firma página 2 ── --}}
         <div class="sig-section">
-            <div class="sig-box" x-show="showSign">
-                <div class="sig-canvas-wrap"
-                     @mousedown="startDraw($event, 'sig2')"
-                     @mousemove="draw($event, 'sig2')"
-                     @mouseup="stopDraw('sig2')"
-                     @mouseleave="stopDraw('sig2')"
-                     @touchstart.prevent="startDraw($event, 'sig2')"
-                     @touchmove.prevent="draw($event, 'sig2')"
-                     @touchend="stopDraw('sig2')">
-                    <canvas id="sig2" width="213" height="80"></canvas>
+            <div class="sig-box">
+                <div class="sig-img-wrap">
+                    <div x-show="!signed" style="width:160pt;height:55pt;"></div>
+                    <img x-show="signed" :src="sigData" class="sig-img" alt="">
                 </div>
-                <button class="sig-clear" @click="clearCanvas('sig2')">Limpiar firma</button>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
-                <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
-            </div>
-            <div class="sig-box" x-show="!showSign">
-                <div style="height:60pt;"></div>
                 <div class="sig-line"></div>
                 <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
                 <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
@@ -680,86 +668,187 @@
 <script>
 function cartaFirma() {
     return {
-        showSign: false,
-        drawing: {},
-        lastPos: {},
-        canvases: {},
+        // Modal
+        mostrarModal: false,
+        modalCanvas: null,
+        modalCtx: null,
+        drawing: false,
+        lastPos: { x: 0, y: 0 },
 
-        toggleSign() {
-            this.showSign = !this.showSign;
-            if (this.showSign) {
-                this.$nextTick(() => this.initCanvases());
-            }
+        // Firma
+        signed: false,
+        sigData: null,
+
+        // Guardar
+        guardando: false,
+        guardado: false,
+
+        abrirModal() {
+            this.mostrarModal = true;
+            this.$nextTick(() => this.initModal());
         },
 
-        initCanvases() {
-            ['sig1', 'sig2'].forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas && !this.canvases[id]) {
-                    this.canvases[id] = canvas.getContext('2d');
-                    this.canvases[id].strokeStyle = '#1e293b';
-                    this.canvases[id].lineWidth = 2;
-                    this.canvases[id].lineCap = 'round';
-                    this.canvases[id].lineJoin = 'round';
-                }
-            });
+        cerrarModal() {
+            this.mostrarModal = false;
         },
 
-        getPos(event, canvas) {
+        initModal() {
+            this.modalCanvas = document.getElementById('sig-modal');
+            if (!this.modalCanvas) return;
+            this.modalCtx = this.modalCanvas.getContext('2d');
+            this.modalCtx.strokeStyle = '#1e293b';
+            this.modalCtx.lineWidth = 2.5;
+            this.modalCtx.lineCap = 'round';
+            this.modalCtx.lineJoin = 'round';
+        },
+
+        getPos(event) {
+            const canvas = this.modalCanvas;
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const src = event.touches ? event.touches[0] : event;
             return {
                 x: (src.clientX - rect.left) * scaleX,
-                y: (src.clientY - rect.top) * scaleY
+                y: (src.clientY - rect.top) * scaleY,
             };
         },
 
-        startDraw(event, id) {
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-            this.drawing[id] = true;
-            const pos = this.getPos(event, canvas);
-            this.lastPos[id] = pos;
-            const ctx = this.canvases[id] || (() => {
-                const c = canvas.getContext('2d');
-                c.strokeStyle = '#1e293b'; c.lineWidth = 2;
-                c.lineCap = 'round'; c.lineJoin = 'round';
-                this.canvases[id] = c; return c;
-            })();
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 1, 0, Math.PI * 2);
-            ctx.fillStyle = '#1e293b';
-            ctx.fill();
+        startDraw(event) {
+            if (!this.modalCtx) this.initModal();
+            this.drawing = true;
+            const pos = this.getPos(event);
+            this.lastPos = pos;
+            this.modalCtx.beginPath();
+            this.modalCtx.arc(pos.x, pos.y, 1.5, 0, Math.PI * 2);
+            this.modalCtx.fillStyle = '#1e293b';
+            this.modalCtx.fill();
         },
 
-        draw(event, id) {
-            if (!this.drawing[id]) return;
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-            const ctx = this.canvases[id];
-            if (!ctx) return;
-            const pos = this.getPos(event, canvas);
-            ctx.beginPath();
-            ctx.moveTo(this.lastPos[id].x, this.lastPos[id].y);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            this.lastPos[id] = pos;
+        draw(event) {
+            if (!this.drawing || !this.modalCtx) return;
+            const pos = this.getPos(event);
+            this.modalCtx.beginPath();
+            this.modalCtx.moveTo(this.lastPos.x, this.lastPos.y);
+            this.modalCtx.lineTo(pos.x, pos.y);
+            this.modalCtx.stroke();
+            this.lastPos = pos;
         },
 
-        stopDraw(id) {
-            this.drawing[id] = false;
+        stopDraw() {
+            this.drawing = false;
         },
 
-        clearCanvas(id) {
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-            const ctx = this.canvases[id] || canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        limpiarModal() {
+            if (!this.modalCtx || !this.modalCanvas) return;
+            this.modalCtx.clearRect(0, 0, this.modalCanvas.width, this.modalCanvas.height);
+        },
+
+        aplicarFirma() {
+            if (!this.modalCanvas) return;
+            this.sigData = this.modalCanvas.toDataURL('image/png');
+            this.signed = true;
+            this.guardado = false;
+            this.mostrarModal = false;
+        },
+
+        async guardarCarta() {
+            if (!this.signed) { alert('Primero debes firmar la carta.'); return; }
+            this.guardando = true;
+            try {
+                // Clonar las páginas (excluye toolbar) para html2pdf
+                const cont = document.createElement('div');
+                cont.style.cssText = 'background:#fff;';
+                document.querySelectorAll('.page').forEach(p => cont.appendChild(p.cloneNode(true)));
+
+                const opt = {
+                    margin: 0,
+                    filename: 'carta-responsiva.pdf',
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                };
+
+                const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
+
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(pdfBlob);
+                });
+
+                const resp = await fetch('{{ route("admin.credenciales.carta-responsiva.guardar", $user) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ pdf_base64: base64 }),
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    this.guardado = true;
+                } else {
+                    alert(data.message || 'Error al guardar.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error al generar el PDF: ' + e.message);
+            } finally {
+                this.guardando = false;
+            }
         },
     };
 }
 </script>
+
+{{-- ══ MODAL DE FIRMA HORIZONTAL ══ --}}
+<div x-show="mostrarModal" x-cloak
+     style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;"
+     @keydown.escape.window="cerrarModal()">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:min(840px,96vw);box-shadow:0 20px 60px rgba(0,0,0,.5);"
+         @click.stop>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;font-family:system-ui,sans-serif;">
+            <div>
+                <h3 style="font-size:16px;font-weight:700;color:#1e293b;margin:0;">Firma Digital</h3>
+                <p style="font-size:12px;color:#64748b;margin:6px 0 0;">Firme con el mouse o con el dedo en el área de abajo. Presione <strong>Aplicar firma</strong> al terminar.</p>
+            </div>
+            <button @click="cerrarModal()"
+                    style="font-size:20px;line-height:1;padding:4px 10px;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;color:#64748b;font-family:system-ui,sans-serif;flex-shrink:0;margin-left:12px;">×</button>
+        </div>
+        <div style="border:2px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fafafa;touch-action:none;">
+            <canvas id="sig-modal" width="800" height="220"
+                    style="display:block;width:100%;height:220px;cursor:crosshair;"
+                    @mousedown.prevent="startDraw($event)"
+                    @mousemove.prevent="draw($event)"
+                    @mouseup="stopDraw()"
+                    @mouseleave="stopDraw()"
+                    @touchstart.prevent="startDraw($event)"
+                    @touchmove.prevent="draw($event)"
+                    @touchend="stopDraw()"></canvas>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-family:system-ui,sans-serif;gap:12px;flex-wrap:wrap;">
+            <button @click="limpiarModal()"
+                    style="padding:8px 20px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                Limpiar
+            </button>
+            <div style="display:flex;gap:10px;">
+                <button @click="cerrarModal()"
+                        style="padding:8px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button @click="aplicarFirma()"
+                        style="padding:8px 24px;background:#6366f1;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">
+                    Aplicar firma ✓
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- ══ fin modal ══ --}}
+
 </body>
 </html>

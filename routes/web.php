@@ -454,6 +454,8 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         // Carta Responsiva
         Route::get('credenciales/carta-responsiva/{user}', [CredencialEquipoController::class, 'cartaResponsiva'])
             ->name('credenciales.carta-responsiva');
+        Route::post('credenciales/carta-responsiva/{user}/guardar', [CredencialEquipoController::class, 'guardarCartaResponsiva'])
+            ->name('credenciales.carta-responsiva.guardar');
     });
 
 // API Notificaciones Admin

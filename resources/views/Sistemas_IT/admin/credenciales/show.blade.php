@@ -31,6 +31,14 @@
                         </svg>
                         Volver
                     </a>
+                    <button type="button" onclick="document.getElementById('edit-modal').classList.remove('hidden')"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium text-sm rounded-xl hover:bg-indigo-700 transition">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar
+                    </button>
                     <form method="POST" action="{{ route('admin.credenciales.destroy', $credencial) }}"
                           onsubmit="return confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')">
                         @csrf
@@ -560,8 +568,7 @@
         </div>
 
         {{-- Metadata --}}
-        <p class="text-xs text-slate-400 text-center pb-4">
-            Registrado el {{ $credencial->created_at->format('d/m/Y \a \l\a\s H:i') }}
+        <p class="text-xs text-slate-400 text-center pb-4">            Registrado el {{ $credencial->created_at->format('d/m/Y \a \l\a\s H:i') }}
             @if($credencial->updated_at->ne($credencial->created_at))
                 · Última modificación {{ $credencial->updated_at->diffForHumans() }}
             @endif
@@ -569,6 +576,233 @@
 
     </div>
 </div>
+
+{{-- ══════════════ EDIT MODAL ══════════════ --}}
+<div id="edit-modal"
+     class="hidden fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 sm:p-6 overflow-y-auto"
+     x-data="editForm()"
+     x-init="cargarDisponibles()">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-6"
+         @click.stop>
+
+        {{-- Modal header --}}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Editar Equipo</h2>
+                <p class="text-sm text-slate-500">Modifica los datos del equipo, credenciales, correos y periféricos.</p>
+            </div>
+            <button type="button" onclick="cerrarEditModal()"
+                    class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Modal body --}}
+        <div class="px-6 py-5 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+
+            {{-- Información del equipo --}}
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Información del equipo
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1 sm:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">Nombre del equipo <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="nombreEquipo" placeholder="Ej. Dell Latitude E7450"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Modelo</label>
+                        <input type="text" x-model="modelo" placeholder="Ej. Latitude E7450"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Número de serie</label>
+                        <input type="text" x-model="numeroSerie" placeholder="Ej. 5CG0381XYZ"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Credenciales --}}
+            <div class="space-y-4 border-t border-slate-100 pt-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                    Credenciales del equipo
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Usuario de PC <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="nombreUsuarioPc" placeholder="Ej. jperez"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Nueva contraseña <span class="text-slate-400 font-normal">(dejar vacío para no cambiar)</span></label>
+                        <div class="relative">
+                            <input :type="showCont ? 'text' : 'password'" x-model="contrasenaEquipo"
+                                   placeholder="••••••••"
+                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                            <button type="button" @click="showCont = !showCont"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <svg x-show="!showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <svg x-show="showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1 sm:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">Notas</label>
+                        <textarea x-model="notas" rows="2" placeholder="Información adicional…"
+                                  class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Correos --}}
+            <div class="space-y-3 border-t border-slate-100 pt-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Correos
+                    </h3>
+                    <button type="button" @click="addCorreo()"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-lg hover:bg-sky-100 transition border border-sky-200">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Agregar
+                    </button>
+                </div>
+                <template x-for="(c, i) in correos" :key="i">
+                    <div class="flex items-center gap-2">
+                        <input type="email" x-model="c.correo" placeholder="correo@ejemplo.com"
+                               class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white min-w-0">
+                        <div class="relative">
+                            <input :type="c.showPass ? 'text' : 'password'" x-model="c.contrasena_correo"
+                                   :placeholder="c.id ? 'Nueva contraseña' : 'Contraseña'"
+                                   class="w-36 border border-slate-200 rounded-xl px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                            <button type="button" @click="c.showPass = !c.showPass"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <svg x-show="!c.showPass" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <svg x-show="c.showPass" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <button type="button" @click="removeCorreo(i)"
+                                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+                <p x-show="!correos.length" class="text-xs text-slate-400 italic">Sin correos. Usa "Agregar" para añadir uno.</p>
+            </div>
+
+            {{-- Periféricos --}}
+            <div class="space-y-3 border-t border-slate-100 pt-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Periféricos
+                </h3>
+
+                {{-- Existing and newly added peripherals --}}
+                <div class="space-y-1.5">
+                    <template x-for="(p, i) in perifericos" :key="p.uuid + (p.id ?? ('new-' + i))">
+                        <div class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm"
+                             :class="p.id ? 'bg-violet-50 border border-violet-100' : 'bg-green-50 border border-green-100'">
+                            <div class="flex-1 min-w-0">
+                                <span class="font-medium text-slate-800" x-text="p.nombre"></span>
+                                <span x-show="p.id" class="ml-2 text-xs text-violet-500 font-medium">existente</span>
+                                <span x-show="!p.id" class="ml-2 text-xs text-green-600 font-medium">nuevo</span>
+                                <span x-show="p.tipo" class="ml-2 text-xs text-slate-500 bg-slate-100 rounded-full px-2 py-0.5" x-text="p.tipo"></span>
+                                <span x-show="p.serie" class="ml-1 text-xs text-slate-400 font-mono" x-text="'S/N: ' + p.serie"></span>
+                            </div>
+                            <button type="button" @click="removePeriferico(i)"
+                                    class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition shrink-0"
+                                    :title="p.id ? 'Quitar (libera en Sistema de Activos)' : 'Quitar'">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                    <p x-show="!perifericos.length" class="text-xs text-slate-400 italic">Sin periféricos.</p>
+                </div>
+
+                {{-- Add new peripheral from available list --}}
+                <div class="flex gap-2 pt-1">
+                    <select x-model="selectedPerUuid"
+                            class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white min-w-0">
+                        <option value="">— Añadir periférico disponible —</option>
+                        <template x-for="d in disponibles.filter(d => d.type !== 'computer' && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
+                            <option :value="d.uuid"
+                                    x-text="(d.name ?? d.nombre ?? 'Sin nombre') + (d.serial_number ? ' — S/N: ' + d.serial_number : '')"></option>
+                        </template>
+                    </select>
+                    <button type="button" @click="addPeriferico()"
+                            :disabled="!selectedPerUuid"
+                            class="px-3 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition shrink-0">
+                        Añadir
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400">Los periféricos marcados como <span class="text-red-500 font-medium">eliminados</span> serán liberados en el Sistema de Activos. Los nuevos se marcarán como asignados.</p>
+            </div>
+
+        </div>
+
+        {{-- Modal footer --}}
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
+            <template x-if="errorMsg">
+                <p class="text-sm text-red-600 font-medium flex-1" x-text="errorMsg"></p>
+            </template>
+            <div class="flex items-center gap-3 ml-auto">
+                <button type="button" onclick="cerrarEditModal()"
+                        class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl hover:bg-slate-100 transition">
+                    Cancelar
+                </button>
+                <button type="button" @click="guardar()"
+                        :disabled="guardando || !nombreEquipo.trim() || !nombreUsuarioPc.trim()"
+                        class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition shadow-sm">
+                    <template x-if="guardando">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    </template>
+                    <span x-text="guardando ? 'Guardando...' : 'Guardar cambios'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- ══ end edit modal ══ --}}
 
 @push('scripts')
 <script>
@@ -587,6 +821,128 @@ function togglePass(spanId, btn) {
         span.classList.add('tracking-[0.25em]');
     }
 }
+
+// ─── Edit Modal ────────────────────────────────────────────────────────────
+const editModal = document.getElementById('edit-modal');
+
+function cerrarEditModal() {
+    editModal.classList.add('hidden');
+}
+
+function editForm() {
+    return {
+        // Main fields
+        nombreEquipo:    @json($credencial->nombre_equipo),
+        modelo:          @json($credencial->modelo ?? ''),
+        numeroSerie:     @json($credencial->numero_serie ?? ''),
+        nombreUsuarioPc: @json($credencial->nombre_usuario_pc),
+        contrasenaEquipo: '',
+        showCont: false,
+        notas:           @json($credencial->notas ?? ''),
+
+        // Correos: id=null for new rows
+        correos: @json($credencial->correos->map(fn($c) => ['id' => $c->id, 'correo' => $c->correo, 'contrasena_correo' => ''])),
+
+        // Periféricos: id=null for new rows
+        perifericos: @json($credencial->perifericos->map(fn($p) => ['id' => $p->id, 'uuid' => $p->uuid_activos, 'nombre' => $p->nombre, 'tipo' => $p->tipo ?? '', 'serie' => $p->numero_serie ?? ''])),
+
+        // Available peripherals loaded from Activos
+        disponibles: [],
+        disponiblesLoaded: false,
+        selectedPerUuid: '',
+
+        guardando: false,
+        errorMsg: '',
+
+        async cargarDisponibles() {
+            if (this.disponiblesLoaded) return;
+            try {
+                const resp = await fetch('{{ url("admin/activos-api/equipos-disponibles") }}', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (resp.ok) this.disponibles = await resp.json();
+            } catch (e) {
+                this.disponibles = [];
+            }
+            this.disponiblesLoaded = true;
+        },
+
+        addCorreo() {
+            this.correos.push({ id: null, correo: '', contrasena_correo: '', showPass: false });
+        },
+
+        removeCorreo(i) {
+            this.correos.splice(i, 1);
+        },
+
+        addPeriferico() {
+            if (!this.selectedPerUuid) return;
+            const d = this.disponibles.find(x => x.uuid === this.selectedPerUuid);
+            if (!d || this.perifericos.find(p => p.uuid === d.uuid)) return;
+            this.perifericos.push({
+                id:     null,
+                uuid:   d.uuid ?? '',
+                nombre: d.name ?? d.nombre ?? '',
+                tipo:   d.device_type ? d.device_type.name : (d.type_label ?? d.type ?? ''),
+                serie:  d.serial_number ?? d.serie ?? '',
+            });
+            this.selectedPerUuid = '';
+        },
+
+        removePeriferico(i) {
+            this.perifericos.splice(i, 1);
+        },
+
+        async guardar() {
+            if (!this.nombreEquipo.trim() || !this.nombreUsuarioPc.trim()) return;
+            this.guardando = true;
+            this.errorMsg  = '';
+            try {
+                const resp = await fetch('{{ route('admin.credenciales.update', $credencial) }}', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept':        'application/json',
+                        'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({
+                        nombre_equipo:     this.nombreEquipo.trim(),
+                        modelo:            this.modelo.trim() || null,
+                        numero_serie:      this.numeroSerie.trim() || null,
+                        nombre_usuario_pc: this.nombreUsuarioPc.trim(),
+                        contrasena_equipo: this.contrasenaEquipo || null,
+                        notas:             this.notas.trim() || null,
+                        correos:           this.correos
+                            .filter(c => c.correo.trim())
+                            .map(c => ({
+                                id:                c.id,
+                                correo:            c.correo.trim(),
+                                contrasena_correo: c.contrasena_correo || null,
+                            })),
+                        perifericos: this.perifericos.map(p => ({
+                            id:     p.id,
+                            uuid:   p.uuid,
+                            nombre: p.nombre,
+                            tipo:   p.tipo || null,
+                            serie:  p.serie || null,
+                        })),
+                    }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    this.errorMsg = data.message || 'Error al guardar.';
+                }
+            } catch (e) {
+                this.errorMsg = 'Error de conexión.';
+            } finally {
+                this.guardando = false;
+            }
+        },
+    };
+}
+// ───────────────────────────────────────────────────────────────────────────
 
 function secEquipoForm() {
     return {

@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\EmpleadoDocumento;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class CredencialEquipoController extends Controller
 {
@@ -157,7 +159,115 @@ class CredencialEquipoController extends Controller
 
     public function update(Request $request, EquipoAsignado $credencial)
     {
-        return redirect()->route('admin.credenciales.show', $credencial);
+        $request->validate([
+            'nombre_equipo'               => 'required|string|max:255',
+            'modelo'                      => 'nullable|string|max:255',
+            'numero_serie'                => 'nullable|string|max:255',
+            'nombre_usuario_pc'           => 'required|string|max:255',
+            'contrasena_equipo'           => 'nullable|string',
+            'notas'                       => 'nullable|string',
+            'correos'                     => 'sometimes|array',
+            'correos.*.id'                => 'nullable|integer',
+            'correos.*.correo'            => 'required_with:correos.*|email|max:255',
+            'correos.*.contrasena_correo' => 'nullable|string',
+            'perifericos'                 => 'sometimes|array',
+            'perifericos.*.id'            => 'nullable|integer',
+            'perifericos.*.uuid'          => 'required_with:perifericos.*|string',
+            'perifericos.*.nombre'        => 'required_with:perifericos.*|string|max:255',
+            'perifericos.*.tipo'          => 'nullable|string|max:255',
+            'perifericos.*.serie'         => 'nullable|string|max:255',
+        ]);
+
+        // Capture changes before the transaction
+        $credencial->load('perifericos');
+
+        $incomingPers = collect($request->perifericos ?? []);
+        $keepPerIds   = $incomingPers->pluck('id')->filter()->toArray();
+        $removedPers  = $credencial->perifericos->whereNotIn('id', $keepPerIds)->values();
+        $newPers      = $incomingPers->filter(fn ($p) => empty($p['id']))->values();
+
+        DB::beginTransaction();
+
+        try {
+            // Update main record fields
+            $updateData = [
+                'nombre_equipo'     => $request->nombre_equipo,
+                'modelo'            => $request->modelo,
+                'numero_serie'      => $request->numero_serie,
+                'nombre_usuario_pc' => $request->nombre_usuario_pc,
+                'notas'             => $request->notas,
+            ];
+            if ($request->filled('contrasena_equipo')) {
+                $updateData['contrasena_equipo'] = $request->contrasena_equipo;
+            }
+            $credencial->update($updateData);
+
+            // Sync correos: delete removed, update existing, create new
+            $incomingCorreos = collect($request->correos ?? []);
+            $keepCorreoIds   = $incomingCorreos->pluck('id')->filter()->toArray();
+            $credencial->correos()->whereNotIn('id', $keepCorreoIds)->delete();
+
+            foreach ($incomingCorreos as $correoData) {
+                if (empty($correoData['correo'])) continue;
+                if (!empty($correoData['id'])) {
+                    $existing = $credencial->correos()->find($correoData['id']);
+                    if ($existing) {
+                        $upd = ['correo' => $correoData['correo']];
+                        if (!empty($correoData['contrasena_correo'])) {
+                            $upd['contrasena_correo'] = $correoData['contrasena_correo'];
+                        }
+                        $existing->update($upd);
+                    }
+                } else {
+                    $credencial->correos()->create([
+                        'correo'            => $correoData['correo'],
+                        'contrasena_correo' => $correoData['contrasena_correo'] ?? null,
+                    ]);
+                }
+            }
+
+            // Sync perifericos: delete removed, add new
+            $credencial->perifericos()->whereNotIn('id', $keepPerIds)->delete();
+            foreach ($newPers as $per) {
+                if (empty($per['uuid'])) continue;
+                $credencial->perifericos()->create([
+                    'uuid_activos' => $per['uuid'],
+                    'nombre'       => $per['nombre'],
+                    'tipo'         => $per['tipo'] ?? null,
+                    'numero_serie' => $per['serie'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            // Sync AuditoriaActivos outside transaction
+            $user       = $credencial->user;
+            $empleado   = $user?->empleado;
+            $badge      = $empleado?->id_empleado ?: null;
+            $assignedTo = $empleado?->nombre ?? $user?->name ?? '';
+
+            foreach ($removedPers as $per) {
+                if ($per->uuid_activos) {
+                    $this->activos->returnDeviceInActivos($per->uuid_activos);
+                }
+            }
+            foreach ($newPers as $per) {
+                if (!empty($per['uuid'])) {
+                    $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
+                }
+            }
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Registro actualizado correctamente.',
+                'redirect' => route('admin.credenciales.show', $credencial),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('CredencialEquipo update error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al actualizar.'], 500);
+        }
     }
 
     public function destroy(EquipoAsignado $credencial)
@@ -328,10 +438,40 @@ class CredencialEquipoController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        $fechaCarta = $equipoPrincipal?->created_at ?? now();
+
         return view('admin.credenciales.carta-responsiva', compact(
             'user',
             'equipoPrincipal',
-            'equiposSecundarios'
+            'equiposSecundarios',
+            'fechaCarta'
         ));
+    }
+
+    public function guardarCartaResponsiva(Request $request, User $user)
+    {
+        $request->validate(['pdf_base64' => 'required|string|max:10485760']);
+
+        $user->load('empleado');
+        $empleado = $user->empleado;
+        abort_if(!$empleado, 422, 'El usuario no tiene expediente registrado.');
+
+        $raw = preg_replace('/^data:[^;]+;base64,/', '', $request->input('pdf_base64'));
+        $pdfContent = base64_decode($raw, true);
+
+        if ($pdfContent === false || !str_starts_with($pdfContent, '%PDF')) {
+            return response()->json(['success' => false, 'message' => 'El archivo PDF no es válido.'], 422);
+        }
+
+        $filename = 'carta-responsiva-' . now()->format('Y-m-d_His') . '.pdf';
+        $path = "expedientes/{$empleado->id}/{$filename}";
+        Storage::disk('local')->put($path, $pdfContent);
+
+        EmpleadoDocumento::updateOrCreate(
+            ['empleado_id' => $empleado->id, 'nombre' => 'Carta Responsiva IT'],
+            ['categoria' => 'Sistema IT', 'ruta_archivo' => $path]
+        );
+
+        return response()->json(['success' => true, 'message' => 'Carta responsiva guardada en el expediente.']);
     }
 }
