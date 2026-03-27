@@ -182,22 +182,40 @@ class ProcesarAsistenciaService
                         continue;
                     }
 
-                    DB::table('asistencias')->updateOrInsert(
-                    [
-                        'empleado_no' => $empleado['no'],
-                        'fecha' => $fecha->toDateString(),
-                        'entrada' => $entrada,
-                    ],
-                    [
-                        'nombre' => $empleado['nombre'] ?? 'Desconocido',
-                        'salida' => $salida,
-                        'checadas' => json_encode($horas),
-                        'empleado_id' => $empleadoId,
-                        'tipo_registro' => 'asistencia',
-                        'es_retardo' => $esRetardo,
-                        'updated_at' => now(),
-                    ]
-                    );
+                    if ($existing) {
+                        // Al actualizar: NO sobreescribir empleado_id con null.
+                        // Si la búsqueda no encontró match, conservar el ID existente.
+                        $updateData = [
+                            'nombre'        => $empleado['nombre'] ?? 'Desconocido',
+                            'salida'        => $salida,
+                            'checadas'      => json_encode($horas),
+                            'tipo_registro' => 'asistencia',
+                            'es_retardo'    => $esRetardo,
+                            'updated_at'    => now(),
+                        ];
+                        if ($empleadoId !== null) {
+                            $updateData['empleado_id'] = $empleadoId;
+                        }
+                        DB::table('asistencias')
+                            ->where('empleado_no', $empleado['no'])
+                            ->where('fecha', $fecha->toDateString())
+                            ->where('entrada', $entrada)
+                            ->update($updateData);
+                    } else {
+                        DB::table('asistencias')->insert([
+                            'empleado_no'   => $empleado['no'],
+                            'fecha'         => $fecha->toDateString(),
+                            'entrada'       => $entrada,
+                            'nombre'        => $empleado['nombre'] ?? 'Desconocido',
+                            'salida'        => $salida,
+                            'checadas'      => json_encode($horas),
+                            'empleado_id'   => $empleadoId,
+                            'tipo_registro' => 'asistencia',
+                            'es_retardo'    => $esRetardo,
+                            'updated_at'    => now(),
+                            'created_at'    => now(),
+                        ]);
+                    }
                 }
                 else {
                     $this->collectedRegistros[] = compact('empleado', 'fecha', 'entrada', 'salida');
