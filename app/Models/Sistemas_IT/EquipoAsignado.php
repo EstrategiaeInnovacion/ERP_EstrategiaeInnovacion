@@ -23,9 +23,14 @@ class EquipoAsignado extends Model
         'nombre_usuario_pc',
         'contrasena_equipo',
         'notas',
+        'es_principal',
     ];
 
     protected $hidden = ['contrasena_equipo'];
+
+    protected $casts = [
+        'es_principal' => 'boolean',
+    ];
 
     public function user()
     {

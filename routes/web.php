@@ -444,6 +444,12 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         });
         Route::resource('credenciales', CredencialEquipoController::class)
             ->parameters(['credenciales' => 'credencial']);
+
+        // Equipos secundarios (rutas explícitas antes del resource para evitar conflictos)
+        Route::post('credenciales/{credencial}/secundarios', [CredencialEquipoController::class, 'storeSecundario'])
+            ->name('credenciales.secundarios.store');
+        Route::delete('credenciales/{credencial}/secundarios/{secundario}', [CredencialEquipoController::class, 'destroySecundario'])
+            ->name('credenciales.secundarios.destroy');
     });
 
 // API Notificaciones Admin
