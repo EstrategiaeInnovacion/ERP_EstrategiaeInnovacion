@@ -260,30 +260,7 @@
 
         {{-- ---- Card: Equipos Secundarios / de Cliente ---- --}}
         <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden"
-             x-data="{
-                 showFormSecundario: false,
-                 guardando: false,
-                 errorMsg: '',
-                 f: { uuid_activos:'', nombre_equipo:'', modelo:'', numero_serie:'', nombre_usuario_pc:'', contrasena_equipo:'', notas:'', assign_new: false },
-                 resetForm() { this.f = { uuid_activos:'', nombre_equipo:'', modelo:'', numero_serie:'', nombre_usuario_pc:'', contrasena_equipo:'', notas:'', assign_new: false }; this.errorMsg = ''; },
-                 async guardar() {
-                     if (!this.f.uuid_activos || !this.f.nombre_equipo || !this.f.nombre_usuario_pc || !this.f.contrasena_equipo) {
-                         this.errorMsg = 'Los campos UUID, Nombre del equipo, Usuario PC y Contraseña son obligatorios.'; return;
-                     }
-                     this.guardando = true; this.errorMsg = '';
-                     try {
-                         const resp = await fetch('{{ route('admin.credenciales.secundarios.store', $credencial) }}', {
-                             method: 'POST',
-                             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
-                             body: JSON.stringify(this.f)
-                         });
-                         const data = await resp.json();
-                         if (data.success) { window.location.href = data.redirect; }
-                         else { this.errorMsg = data.message || 'Error al guardar.'; }
-                     } catch(e) { this.errorMsg = 'Error de conexión.'; }
-                     finally { this.guardando = false; }
-                 }
-             }">
+             x-data="secEquipoForm()">
             <div class="px-6 py-4 border-b border-amber-100 bg-amber-50/60 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-amber-700 flex items-center gap-2">
                     <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,12 +332,13 @@
                 @endif
 
                 {{-- Botón para abrir formulario --}}
-                <button type="button" @click="showFormSecundario = !showFormSecundario"
+                <button type="button" @click="abrirForm()"
+                        x-show="!showFormSecundario"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    <span x-text="showFormSecundario ? 'Cancelar' : 'Agregar Equipo Secundario'"></span>
+                    Agregar Equipo Secundario
                 </button>
 
                 {{-- Formulario colapsable --}}
@@ -370,81 +348,194 @@
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="border border-amber-200 rounded-2xl p-5 bg-amber-50/40 space-y-4">
 
-                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider">Nuevo Equipo Secundario / de Cliente</p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">UUID en Sistema de Activos *</label>
-                            <input type="text" x-model="f.uuid_activos"
-                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">Nombre del equipo *</label>
-                            <input type="text" x-model="f.nombre_equipo"
-                                   placeholder="Ej. Laptop Dell XPS"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">Modelo</label>
-                            <input type="text" x-model="f.modelo"
-                                   placeholder="Ej. XPS 15 9510"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">N° de Serie</label>
-                            <input type="text" x-model="f.numero_serie"
-                                   placeholder="Ej. ABC1234567"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">Usuario de PC *</label>
-                            <input type="text" x-model="f.nombre_usuario_pc"
-                                   placeholder="Ej. jperez"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-600">Contraseña del equipo *</label>
-                            <input type="text" x-model="f.contrasena_equipo"
-                                   placeholder="Contraseña"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                        </div>
-                        <div class="space-y-1 sm:col-span-2">
-                            <label class="text-xs font-semibold text-slate-600">Notas</label>
-                            <textarea x-model="f.notas" rows="2"
-                                      placeholder="Información adicional (ej. nombre del cliente, propósito del equipo...)"
-                                      class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white resize-none"></textarea>
-                            <p class="text-xs text-amber-600">Se añadirá automáticamente la etiqueta <strong>[Equipo Secundario / Cliente]</strong>.</p>
-                        </div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-bold text-amber-700 uppercase tracking-wider">Nuevo Equipo Secundario / de Cliente</p>
+                        <button type="button" @click="cerrarForm()"
+                                class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
                     </div>
 
-                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
-                        <input type="checkbox" x-model="f.assign_new"
-                               class="rounded border-slate-300 text-amber-600 focus:ring-amber-400">
-                        Marcar como asignado en Sistema de Activos
-                    </label>
+                    {{-- Step: loading --}}
+                    <div x-show="step === 'loading'" class="flex items-center gap-3 text-slate-500 text-sm py-2">
+                        <svg class="w-5 h-5 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                        Consultando sistema de activos…
+                    </div>
 
-                    <template x-if="errorMsg">
-                        <p class="text-sm text-red-600 font-medium" x-text="errorMsg"></p>
-                    </template>
+                    {{-- Step: pick_device --}}
+                    <div x-show="step === 'pick_device'">
+                        <p class="text-sm font-semibold text-slate-700 mb-3">Selecciona el equipo disponible:</p>
 
-                    <div class="flex items-center justify-end gap-3 pt-2">
-                        <button type="button" @click="showFormSecundario = false; resetForm()"
-                                class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl hover:bg-slate-100 transition">
-                            Cancelar
-                        </button>
-                        <button type="button" @click="guardar()" :disabled="guardando"
-                                class="inline-flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition shadow-sm">
-                            <template x-if="guardando">
-                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        {{-- Tabs --}}
+                        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 mb-3">
+                            <button type="button"
+                                    @click="tabEquipo = 'computer'"
+                                    :class="tabEquipo === 'computer' ? 'bg-white text-amber-700 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                                    class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                 </svg>
+                                Computadoras
+                                <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'computer').length + ')'"></span>
+                            </button>
+                            <button type="button"
+                                    @click="tabEquipo = 'peripheral'"
+                                    :class="tabEquipo === 'peripheral' ? 'bg-white text-amber-700 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                                    class="flex-1 flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-md transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                Periféricos
+                                <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'peripheral').length + ')'"></span>
+                            </button>
+                        </div>
+
+                        {{-- Device list --}}
+                        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            <template x-for="d in disponibles.filter(d => d.type === tabEquipo)" :key="d.uuid">
+                                <button type="button"
+                                        @click="seleccionarEquipo(d)"
+                                        class="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50 transition flex items-center gap-4 group">
+                                    <div class="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                                        <template x-if="d.photos && d.photos.length">
+                                            <img :src="`{{ url('admin/activos-api/fotos') }}/${d.photos[0].id}`"
+                                                 class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="!d.photos || !d.photos.length">
+                                            <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                            </svg>
+                                        </template>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-medium text-slate-800 truncate" x-text="d.name ?? d.nombre ?? 'Sin nombre'"></p>
+                                        <p class="text-xs text-slate-500 truncate" x-text="(d.brand ?? '') + (d.model ? ' · ' + d.model : '')"></p>
+                                        <p class="text-xs text-slate-400 font-mono" x-text="'S/N: ' + (d.serial_number ?? 'N/A')"></p>
+                                    </div>
+                                    <svg class="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
                             </template>
-                            <span x-text="guardando ? 'Guardando...' : 'Guardar Equipo Secundario'"></span>
-                        </button>
+                            <div x-show="!disponibles.filter(d => d.type === tabEquipo).length && disponibles.length"
+                                 class="text-sm text-slate-400 italic text-center py-6">
+                                No hay <span x-text="tabEquipo === 'computer' ? 'computadoras' : 'periféricos'"></span> disponibles.
+                            </div>
+                            <div x-show="!disponibles.length && step === 'pick_device'"
+                                 class="text-sm text-slate-400 italic text-center py-6">
+                                No hay equipos disponibles en el sistema de activos.
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- Step: credentials --}}
+                    <div x-show="step === 'credentials'" class="space-y-4">
+
+                        {{-- Device card selected --}}
+                        <template x-if="device">
+                            <div class="bg-white rounded-xl border border-amber-200 p-4 flex items-start gap-4">
+                                <div class="w-14 h-14 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                    <template x-if="device.photo_id">
+                                        <img :src="`{{ url('admin/activos-api/fotos') }}/${device.photo_id}`"
+                                             class="w-full h-full object-cover">
+                                    </template>
+                                    <template x-if="!device.photo_id">
+                                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                    </template>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-semibold text-slate-800" x-text="device.nombre"></p>
+                                    <p class="text-sm text-slate-500" x-text="device.modelo || '—'"></p>
+                                    <p class="text-xs text-slate-400 font-mono" x-text="'S/N: ' + (device.serie || 'N/A')"></p>
+                                </div>
+                                <button type="button" @click="step = 'pick_device'; device = null"
+                                        title="Cambiar equipo"
+                                        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Usuario de PC <span class="text-red-500">*</span></label>
+                                <input type="text" x-model="nombreUsuarioPc"
+                                       placeholder="Ej. jperez"
+                                       class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Contraseña del equipo <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <input :type="showCont ? 'text' : 'password'" x-model="contrasenaEquipo"
+                                           placeholder="••••••••"
+                                           class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                                    <button type="button" @click="showCont = !showCont"
+                                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <svg x-show="!showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <svg x-show="showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-1 sm:col-span-2">
+                                <label class="text-xs font-semibold text-slate-600">Notas</label>
+                                <textarea x-model="notas" rows="2"
+                                          placeholder="Información adicional (nombre del cliente, propósito del equipo…)"
+                                          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white resize-none"></textarea>
+                                <p class="text-xs text-amber-600">Se añadirá automáticamente la etiqueta <strong>[Equipo Secundario / Cliente]</strong>.</p>
+                            </div>
+                        </div>
+
+                        <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                            <input type="checkbox" x-model="assignNew"
+                                   class="rounded border-slate-300 text-amber-600 focus:ring-amber-400">
+                            Marcar como asignado en Sistema de Activos
+                        </label>
+
+                        <template x-if="errorMsg">
+                            <p class="text-sm text-red-600 font-medium" x-text="errorMsg"></p>
+                        </template>
+
+                        <div class="flex items-center justify-end gap-3 pt-1">
+                            <button type="button" @click="cerrarForm()"
+                                    class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl hover:bg-slate-100 transition">
+                                Cancelar
+                            </button>
+                            <button type="button" @click="guardar()" :disabled="guardando || !nombreUsuarioPc.trim() || !contrasenaEquipo.trim()"
+                                    class="inline-flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition shadow-sm">
+                                <template x-if="guardando">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                    </svg>
+                                </template>
+                                <span x-text="guardando ? 'Guardando...' : 'Guardar Equipo Secundario'"></span>
+                            </button>
+                        </div>
+                    </div>
+                    {{-- end step credentials --}}
+
                 </div>
+                {{-- end form --}}
 
             </div>
         </div>
@@ -476,6 +567,102 @@ function togglePass(spanId, btn) {
         span.textContent = '••••••••••';
         span.classList.add('tracking-[0.25em]');
     }
+}
+
+function secEquipoForm() {
+    return {
+        showFormSecundario: false,
+        step: 'pick_device', // 'loading' | 'pick_device' | 'credentials'
+        disponibles: [],
+        tabEquipo: 'computer',
+        device: null,
+        nombreUsuarioPc: '',
+        contrasenaEquipo: '',
+        showCont: false,
+        notas: '',
+        assignNew: false,
+        guardando: false,
+        errorMsg: '',
+
+        async abrirForm() {
+            this.showFormSecundario = true;
+            this.step = 'loading';
+            this.device = null;
+            this.errorMsg = '';
+            try {
+                const resp = await fetch('{{ url("admin/activos-api/equipos-disponibles") }}', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                this.disponibles = await resp.json();
+            } catch (e) {
+                this.disponibles = [];
+                this.errorMsg = 'No se pudieron cargar los equipos disponibles.';
+            }
+            this.step = 'pick_device';
+        },
+
+        cerrarForm() {
+            this.showFormSecundario = false;
+            this.step = 'pick_device';
+            this.device = null;
+            this.nombreUsuarioPc = '';
+            this.contrasenaEquipo = '';
+            this.notas = '';
+            this.assignNew = false;
+            this.errorMsg = '';
+            this.guardando = false;
+        },
+
+        seleccionarEquipo(d) {
+            const dev = d.device ?? d;
+            this.device = {
+                uuid:     dev.uuid ?? dev.id ?? '',
+                nombre:   dev.name ?? dev.nombre ?? '',
+                modelo:   dev.model ?? dev.modelo ?? '',
+                serie:    dev.serial_number ?? dev.serie ?? '',
+                photo_id: (dev.photos && dev.photos.length) ? dev.photos[0].id : null,
+            };
+            this.step = 'credentials';
+        },
+
+        async guardar() {
+            if (!this.device || !this.nombreUsuarioPc.trim() || !this.contrasenaEquipo.trim()) return;
+            this.guardando = true;
+            this.errorMsg = '';
+            try {
+                const resp = await fetch('{{ route('admin.credenciales.secundarios.store', $credencial) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({
+                        uuid_activos:      this.device.uuid,
+                        nombre_equipo:     this.device.nombre,
+                        modelo:            this.device.modelo,
+                        numero_serie:      this.device.serie,
+                        photo_id:          this.device.photo_id,
+                        nombre_usuario_pc: this.nombreUsuarioPc.trim(),
+                        contrasena_equipo: this.contrasenaEquipo,
+                        notas:             this.notas.trim() || null,
+                        assign_new:        this.assignNew,
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    this.errorMsg = data.message || 'Error al guardar.';
+                }
+            } catch (e) {
+                this.errorMsg = 'Error de conexión.';
+            } finally {
+                this.guardando = false;
+            }
+        },
+    };
 }
 </script>
 @endpush
