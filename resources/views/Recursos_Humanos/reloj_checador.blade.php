@@ -207,14 +207,23 @@
                         </div>
                         <div class="border-l border-blue-200 pl-8 flex flex-col justify-center">
                             <h4 class="text-sm font-bold text-red-900 mb-2">Zona de Peligro</h4>
-                            <p class="text-xs text-red-700 mb-4">Eliminar todos los registros actuales para reiniciar la base de datos.</p>
-                            <form action="{{ route('rh.reloj.clear') }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODO el historial de asistencia. ¿Está seguro?');">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-red-300">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    Vaciar Base de Datos
+                            <p class="text-xs text-red-700 mb-4">Eliminar registros de asistencia de forma total o por rango de fechas.</p>
+                            <div class="flex flex-col gap-2">
+                                {{-- Borrar por rango --}}
+                                <button type="button" onclick="document.getElementById('modalClearRango').classList.remove('hidden')"
+                                    class="text-orange-600 hover:text-orange-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-orange-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    Borrar por Rango de Fechas
                                 </button>
-                            </form>
+                                {{-- Borrar todo --}}
+                                <form action="{{ route('rh.reloj.clear') }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODO el historial de asistencia. ¿Está seguro?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-red-300">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Vaciar Base de Datos Completa
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -571,7 +580,78 @@
             </div>
         </div>
     </div>
-    
+
+    {{-- MODAL: Borrar por Rango de Fechas --}}
+    <div id="modalClearRango" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity" onclick="document.getElementById('modalClearRango').classList.add('hidden')"></div>
+            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full z-10 overflow-hidden">
+                <form id="formClearRango" method="POST" action="{{ route('rh.reloj.clearRango') }}"
+                      onsubmit="return confirmarBorradoRango(event)">
+                    @csrf @method('DELETE')
+
+                    {{-- Header --}}
+                    <div class="px-6 pt-6 pb-4">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="p-2 bg-orange-100 rounded-full flex-shrink-0">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Borrar Registros por Rango</h3>
+                                <p class="text-sm text-slate-500">Se eliminarán <span class="font-semibold text-orange-600">todos los registros</span> del período indicado.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            {{-- Atajos de mes --}}
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Atajo rápido — Seleccionar mes</label>
+                                <div class="grid grid-cols-3 gap-2" id="botonesRapidosMes"></div>
+                            </div>
+
+                            <div class="flex items-center gap-2 text-xs text-slate-400">
+                                <div class="flex-1 h-px bg-slate-200"></div>
+                                <span>o elige un rango personalizado</span>
+                                <div class="flex-1 h-px bg-slate-200"></div>
+                            </div>
+
+                            {{-- Rango manual --}}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Fecha Inicio *</label>
+                                    <input type="date" name="fecha_inicio" id="clearRango_inicio" required
+                                           class="w-full rounded-xl border-slate-300 text-sm focus:ring-orange-500 focus:border-orange-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Fecha Fin *</label>
+                                    <input type="date" name="fecha_fin" id="clearRango_fin" required
+                                           class="w-full rounded-xl border-slate-300 text-sm focus:ring-orange-500 focus:border-orange-500">
+                                </div>
+                            </div>
+
+                            <div id="clearRango_preview" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm text-orange-800 font-medium"></div>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+                        <button type="button" onclick="document.getElementById('modalClearRango').classList.add('hidden')"
+                                class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Eliminar Registros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // === Scroll Preservation — element-based (immune to layout shifts) ===
         (function() {
@@ -764,6 +844,65 @@
         }
         function cerrarModalAsistencia() {
             document.getElementById('modalAsistenciaManual').classList.add('hidden');
+        }
+
+        // === Modal Borrar por Rango ===
+        (function () {
+            const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const hoy = new Date();
+            const contenedor = document.getElementById('botonesRapidosMes');
+
+            // Generar botones de los últimos 6 meses
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const lastDay = new Date(year, d.getMonth() + 1, 0).getDate();
+                const inicio = `${year}-${month}-01`;
+                const fin    = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                const label  = `${MESES[d.getMonth()]} ${year}`;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = label;
+                btn.className = 'text-xs font-semibold px-2 py-1.5 rounded-lg border border-orange-200 bg-white text-orange-700 hover:bg-orange-50 transition';
+                btn.addEventListener('click', function () {
+                    document.getElementById('clearRango_inicio').value = inicio;
+                    document.getElementById('clearRango_fin').value   = fin;
+                    actualizarPreview();
+                    // Resaltar botón seleccionado
+                    contenedor.querySelectorAll('button').forEach(b => b.classList.remove('bg-orange-100', 'ring-2', 'ring-orange-400'));
+                    btn.classList.add('bg-orange-100', 'ring-2', 'ring-orange-400');
+                });
+                contenedor.appendChild(btn);
+            }
+
+            // Actualizar preview al cambiar fechas manualmente
+            ['clearRango_inicio', 'clearRango_fin'].forEach(id => {
+                document.getElementById(id).addEventListener('change', function () {
+                    actualizarPreview();
+                    contenedor.querySelectorAll('button').forEach(b => b.classList.remove('bg-orange-100', 'ring-2', 'ring-orange-400'));
+                });
+            });
+
+            function actualizarPreview() {
+                const inicio = document.getElementById('clearRango_inicio').value;
+                const fin    = document.getElementById('clearRango_fin').value;
+                const preview = document.getElementById('clearRango_preview');
+                if (inicio && fin) {
+                    preview.classList.remove('hidden');
+                    preview.textContent = `⚠️ Se eliminarán todos los registros del ${inicio} al ${fin}.`;
+                } else {
+                    preview.classList.add('hidden');
+                }
+            }
+        })();
+
+        function confirmarBorradoRango(e) {
+            const inicio = document.getElementById('clearRango_inicio').value;
+            const fin    = document.getElementById('clearRango_fin').value;
+            if (!inicio || !fin) return false;
+            return confirm(`¿Estás seguro de eliminar TODOS los registros de asistencia del ${inicio} al ${fin}?\n\nEsta acción no se puede deshacer.`);
         }
     </script>
 

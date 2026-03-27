@@ -372,6 +372,27 @@ class RelojChecadorImportController extends Controller
     }
 
     /**
+     * Eliminar registros de asistencia en un rango de fechas.
+     */
+    public function clearRango(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin'    => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+
+        $eliminados = Asistencia::whereBetween('fecha', [
+            $request->fecha_inicio,
+            $request->fecha_fin,
+        ])->delete();
+
+        return redirect()->route('rh.reloj.index')->with(
+            'success',
+            "Se eliminaron {$eliminados} registros del período {$request->fecha_inicio} al {$request->fecha_fin}."
+        );
+    }
+
+    /**
      * Revertir un registro a su estado original.
      * - Si tiene entrada/salida: vuelve a 'asistencia', recalcula retardo, quita justificación.
      * - Si no tiene horarios (creado manualmente): lo elimina por completo.
