@@ -577,25 +577,27 @@
         (function() {
             const KEY = 'reloj_scroll';
 
-            // Save scroll position on ANY form submit
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('form').forEach(function(form) {
-                    form.addEventListener('submit', function() {
-                        sessionStorage.setItem(KEY, window.scrollY.toString());
-                    });
-                });
-            });
+            // Expose helper so modal openers can call it
+            window.guardarScrollReloj = function() {
+                sessionStorage.setItem(KEY, window.scrollY.toString());
+            };
 
-            // Restore scroll AFTER page is fully loaded and rendered
+            // Restore scroll AFTER page is fully loaded and rendered.
+            // Double-RAF + timeout waits for Alpine.js and layout to fully stabilize.
             window.addEventListener('load', function() {
                 const saved = sessionStorage.getItem(KEY);
                 if (saved) {
                     sessionStorage.removeItem(KEY);
                     const pos = parseInt(saved, 10);
-                    // Use rAF to ensure the browser has finished painting
-                    requestAnimationFrame(function() {
-                        window.scrollTo(0, pos);
-                    });
+                    if (pos > 0) {
+                        requestAnimationFrame(function() {
+                            requestAnimationFrame(function() {
+                                setTimeout(function() {
+                                    window.scrollTo({ top: pos, behavior: 'instant' });
+                                }, 80);
+                            });
+                        });
+                    }
                 }
             });
         })();
@@ -675,6 +677,7 @@
         var currentRecordId = null;
 
         function abrirModalEdicion(asistencia) {
+            guardarScrollReloj();
             const form = document.getElementById('formEdicion');
             form.action = `/recursos-humanos/reloj/update/${asistencia.id}`;
             form.querySelector('[name="tipo_registro"]').value = asistencia.tipo_registro;
@@ -714,6 +717,7 @@
 
         // Nueva función para abrir modal desde "Sin Registro" pre-llenado
         function abrirModalIncidencia(empleadoId = null, fecha = null) {
+            guardarScrollReloj();
             if(empleadoId && fecha) {
                 // Pre-llenar datos para justificación rápida
                 document.getElementById('modal_empleado_id').value = empleadoId;
@@ -732,6 +736,7 @@
 
         // Modal Justificar Falta
         function abrirModalJustificar(empleadoId, empleadoNombre, fecha, fechaDisplay) {
+            guardarScrollReloj();
             document.getElementById('justificar_empleado_id').value = empleadoId;
             document.getElementById('justificar_fecha_inicio').value = fecha;
             document.getElementById('justificar_fecha_fin').value = fecha;
@@ -751,6 +756,7 @@
 
         // Modal Asistencia Manual
         function abrirModalAsistencia(empleadoId, empleadoNombre) {
+            guardarScrollReloj();
             document.getElementById('manual_empleado_id').value = empleadoId;
             document.getElementById('manual_empleado_nombre').textContent = empleadoNombre;
             document.getElementById('manual_fecha').value = new Date().toISOString().slice(0, 10);
