@@ -94,8 +94,8 @@ class ExpedienteController extends Controller
             $request->merge(['id_empleado' => $empleado->id_empleado]);
         }
 
-        // Actualización estándar de campos
-        $empleado->update($request->all());
+        // Actualización estándar de campos (excluir user_id para evitar romper el vínculo empleado-usuario)
+        $empleado->update($request->except(['user_id', '_token', '_method']));
 
         return back()->with('success', 'Información actualizada.');
     }
