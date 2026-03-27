@@ -450,6 +450,10 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             ->name('credenciales.secundarios.store');
         Route::delete('credenciales/{credencial}/secundarios/{secundario}', [CredencialEquipoController::class, 'destroySecundario'])
             ->name('credenciales.secundarios.destroy');
+
+        // Carta Responsiva
+        Route::get('credenciales/carta-responsiva/{user}', [CredencialEquipoController::class, 'cartaResponsiva'])
+            ->name('credenciales.carta-responsiva');
     });
 
 // API Notificaciones Admin

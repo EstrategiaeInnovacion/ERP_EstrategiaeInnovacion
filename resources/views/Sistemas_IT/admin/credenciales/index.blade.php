@@ -6,7 +6,7 @@
 <script>
     window._equipoUsuarios = {!! json_encode($usuarios, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
 </script>
-<div class="min-h-screen bg-slate-50 pb-12" x-data="equipoModal()">
+<div class="min-h-screen bg-slate-50 pb-12" x-data="{ ...equipoModal(), cartaModal: false, cartaUserId: '' }">
 
     {{-- Header --}}
     <div class="bg-white border-b border-slate-200 mb-8">
@@ -26,13 +26,84 @@
                     <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Contraseñas y Equipos</h1>
                     <p class="text-slate-500 mt-1">Gestión de credenciales y equipos asignados al personal.</p>
                 </div>
-                <button @click="abrirModal()"
-                        class="inline-flex items-center px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                <div class="flex items-center gap-3">
+                    <button @click="cartaModal = true; cartaUserId = ''"
+                            class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Carta Responsiva
+                    </button>
+                    <button @click="abrirModal()"
+                            class="inline-flex items-center px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Añadir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: seleccionar usuario para carta responsiva --}}
+    <div x-show="cartaModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="cartaModal = false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Generar Carta Responsiva</h2>
+                        <p class="text-xs text-slate-500">Selecciona el empleado</p>
+                    </div>
+                </div>
+                <button @click="cartaModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
-                    Añadir
                 </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Usuario <span class="text-red-500">*</span></label>
+                    <select x-model="cartaUserId"
+                            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                        <option value="">— Seleccionar usuario —</option>
+                        @foreach($usuarios as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3 pt-1">
+                    <button type="button" @click="cartaModal = false"
+                            class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                        Cancelar
+                    </button>
+                    <a :href="cartaUserId ? `{{ url('admin/credenciales/carta-responsiva') }}/${cartaUserId}` : '#'"
+                       :class="cartaUserId ? 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer' : 'bg-slate-300 cursor-not-allowed pointer-events-none'"
+                       target="_blank"
+                       class="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-xl transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                        Generar Carta
+                    </a>
+                </div>
             </div>
         </div>
     </div>

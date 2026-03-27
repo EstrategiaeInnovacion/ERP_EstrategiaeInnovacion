@@ -34,13 +34,21 @@ class ActivosApiController extends Controller
         $badge    = $empleado?->id_empleado ?: null;
         $nombre   = $empleado?->nombre ?? $user->name;
 
-        $devices   = $this->activos->getAssignedDevices($nombre, $badge);
-        $hasDevice = count($devices) > 0;
+        $allDevices = $this->activos->getAssignedDevices($nombre, $badge);
+
+        // Solo los de tipo 'computer' cuentan como equipo principal.
+        // Periféricos/cables/impresoras asignados NO deben mostrarse como computadora.
+        $computers = array_values(array_filter(
+            $allDevices,
+            fn ($d) => ($d['device']['type'] ?? '') === 'computer'
+        ));
+
+        $hasDevice = count($computers) > 0;
 
         return response()->json([
             'user'       => ['id' => $user->id, 'name' => $nombre],
             'has_device' => $hasDevice,
-            'devices'    => $devices,
+            'devices'    => $computers,
         ]);
     }
 

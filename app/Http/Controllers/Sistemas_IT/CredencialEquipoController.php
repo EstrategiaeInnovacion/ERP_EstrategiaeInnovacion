@@ -104,25 +104,24 @@ class CredencialEquipoController extends Controller
             DB::commit();
 
             // ── Sincronizar con AuditoriaActivos ──────────────────────────────
-            // Solo cuando assign_new = true (equipo seleccionado de los disponibles)
-            if ($request->boolean('assign_new')) {
-                $empleado   = $user->empleado;
-                $badge      = $empleado?->id_empleado ?: null;
-                $assignedTo = $empleado?->nombre ?? $user->name;
+            $empleado   = $user->empleado;
+            $badge      = $empleado?->id_empleado ?: null;
+            $assignedTo = $empleado?->nombre ?? $user->name;
 
-                // Equipo principal
+            // Equipo principal: solo cuando se seleccionó de los disponibles
+            if ($request->boolean('assign_new')) {
                 $this->activos->assignDeviceInActivos(
                     $request->uuid_activos,
                     $assignedTo,
                     $badge,
                     $request->notas
                 );
+            }
 
-                // Periféricos
-                foreach (($request->perifericos ?? []) as $per) {
-                    if (! empty($per['uuid'])) {
-                        $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
-                    }
+            // Periféricos: siempre se marcan asignados — siempre se eligen de disponibles
+            foreach (($request->perifericos ?? []) as $per) {
+                if (! empty($per['uuid'])) {
+                    $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
                 }
             }
             // ─────────────────────────────────────────────────────────────────
@@ -252,23 +251,25 @@ class CredencialEquipoController extends Controller
 
             DB::commit();
 
-            // Sincronizar con AuditoriaActivos (mismo flujo, nota ya incluye [Equipo Secundario / Cliente])
-            if ($request->boolean('assign_new')) {
-                $empleado   = $user->empleado;
-                $badge      = $empleado?->id_empleado ?: null;
-                $assignedTo = $empleado?->nombre ?? $user->name;
+            // Sincronizar con AuditoriaActivos
+            $empleado   = $user->empleado;
+            $badge      = $empleado?->id_empleado ?: null;
+            $assignedTo = $empleado?->nombre ?? $user->name;
 
+            // Equipo principal: solo cuando se seleccionó de los disponibles
+            if ($request->boolean('assign_new')) {
                 $this->activos->assignDeviceInActivos(
                     $request->uuid_activos,
                     $assignedTo,
                     $badge,
                     $notas
                 );
+            }
 
-                foreach (($request->perifericos ?? []) as $per) {
-                    if (!empty($per['uuid'])) {
-                        $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
-                    }
+            // Periféricos: siempre se marcan asignados
+            foreach (($request->perifericos ?? []) as $per) {
+                if (!empty($per['uuid'])) {
+                    $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
                 }
             }
 
@@ -308,5 +309,29 @@ class CredencialEquipoController extends Controller
         $secundario->delete();
 
         return back()->with('success', 'Equipo secundario eliminado correctamente.');
+    }
+
+    public function cartaResponsiva(User $user)
+    {
+        $user->load('empleado');
+
+        // Equipo principal
+        $equipoPrincipal = EquipoAsignado::where('user_id', $user->id)
+            ->where('es_principal', true)
+            ->with(['correos', 'perifericos'])
+            ->first();
+
+        // Equipos secundarios
+        $equiposSecundarios = EquipoAsignado::where('user_id', $user->id)
+            ->where('es_principal', false)
+            ->with(['correos', 'perifericos'])
+            ->orderBy('created_at')
+            ->get();
+
+        return view('admin.credenciales.carta-responsiva', compact(
+            'user',
+            'equipoPrincipal',
+            'equiposSecundarios'
+        ));
     }
 }
