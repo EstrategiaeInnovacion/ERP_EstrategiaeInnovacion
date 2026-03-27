@@ -6,19 +6,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Consulta directamente la BD de AuditoriaActivos (conexión 'activos').
+ * Consulta y escribe directamente en la BD de AuditoriaActivos (conexión 'activos').
  *
  * Esquema real de AuditoriaActivos:
- *   devices      → id, uuid, name, brand, model, serial_number,
- *                   type (enum: computer|peripheral|printer|other),
- *                   status (enum: available|assigned|maintenance|broken)
- *   assignments  → device_id (FK→devices), employee_id (FK→employees, nullable),
- *                   user_id (FK→users, nullable), assigned_to (texto libre, nullable),
- *                   assigned_at, returned_at (NULL = asignación vigente)
- *   employees    → id, name, employee_id (badge/ID del ERP, unique), department,
- *                   position, phone, is_active
+ *   devices       → id, uuid, name, brand, model, serial_number,
+ *                    type (enum: computer|peripheral|printer|other),
+ *                    status (enum: available|assigned|maintenance|broken)
+ *   assignments   → device_id, employee_id (nullable), user_id (nullable),
+ *                    assigned_to (texto libre, nullable),
+ *                    assigned_at, returned_at (NULL = asignación vigente)
+ *   employees     → id, name, employee_id (badge/ID del ERP, unique),
+ *                    department, position, phone, is_active
+ *   device_photos → id, device_id, file_path, caption
  *
  * Correlación con el ERP: empleados.id_empleado ↔ employees.employee_id
+ *
+ * Para servir fotos, el ERP necesita que ACTIVOS_STORAGE_PATH en .env
+ * apunte al directorio storage/app/private de AuditoriaActivos.
  */
 class ActivosDbService
 {
@@ -27,16 +31,26 @@ class ActivosDbService
         return DB::connection('activos');
     }
 
+    // ---------------------------------------------------------------
+    // Consultas de dispositivos
+    // ---------------------------------------------------------------
+
     /**
-     * Retorna todos los dispositivos disponibles (status = 'available').
+     * Retorna todos los dispositivos disponibles (status = 'available')
+     * incluyendo la primera foto de cada uno.
      */
     public function getAvailableDevices(): array
     {
         try {
             $rows = $this->conn()
-                ->table('devices')
-                ->where('status', 'available')
-                ->orderBy('name')
+                ->table('devices as d')
+                ->leftJoin('device_photos as dp', function ($join) {
+                    $join->on('dp.device_id', '=', 'd.id')
+                         ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
+                })
+                ->select('d.*', 'dp.id as photo_id', 'dp.file_path as photo_path')
+                ->where('d.status', 'available')
+                ->orderBy('d.name')
                 ->get();
 
             return $rows->map(fn ($r) => $this->mapRow($r))->values()->all();
@@ -48,20 +62,16 @@ class ActivosDbService
     }
 
     /**
-     * Retorna los dispositivos asignados actualmente a un empleado.
+     * Retorna los dispositivos asignados actualmente a un empleado
+     * incluyendo la primera foto de cada uno.
      *
-     * La búsqueda utiliza tres criterios (OR):
-     *   1. employees.employee_id = $badge  → correlación por ID/badge del ERP (más exacta)
-     *   2. employees.name = $nombre        → fallback por nombre completo del empleado
-     *   3. assignments.assigned_to = $nombre → asignación libre sin vínculo a employees
-     *
-     * Una asignación es vigente cuando assignments.returned_at IS NULL.
+     * Búsqueda (OR):
+     *   1. employees.employee_id = $badge   (correlación por badge del ERP — más exacta)
+     *   2. employees.name = $nombre         (fallback por nombre completo)
+     *   3. assignments.assigned_to = $nombre (asignación libre sin employee)
      *
      * Devuelve array de [ 'device' => [...] ] para compatibilidad con mapDevice()
-     * del frontend que hace `d.device ?? d`.
-     *
-     * @param string      $nombre  Nombre completo del empleado (Empleado::nombre en ERP)
-     * @param string|null $badge   ID/badge del empleado  (Empleado::id_empleado en ERP)
+     * del frontend (`d.device ?? d`).
      */
     public function getAssignedDevices(string $nombre, ?string $badge = null): array
     {
@@ -73,6 +83,10 @@ class ActivosDbService
                          ->whereNull('a.returned_at');
                 })
                 ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->leftJoin('device_photos as dp', function ($join) {
+                    $join->on('dp.device_id', '=', 'd.id')
+                         ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
+                })
                 ->select(
                     'd.*',
                     'a.assigned_at',
@@ -80,7 +94,9 @@ class ActivosDbService
                     'e.name as employee_name',
                     'e.employee_id as employee_badge',
                     'e.department',
-                    'e.position'
+                    'e.position',
+                    'dp.id as photo_id',
+                    'dp.file_path as photo_path'
                 )
                 ->where(function ($q) use ($nombre, $badge) {
                     if ($badge) {
@@ -99,6 +115,138 @@ class ActivosDbService
         }
     }
 
+    // ---------------------------------------------------------------
+    // Escritura — sincronización de asignaciones
+    // ---------------------------------------------------------------
+
+    /**
+     * Crea una asignación activa en AuditoriaActivos y marca el dispositivo
+     * como 'assigned'. Llamar al guardar un EquipoAsignado desde el ERP.
+     *
+     * @param string      $uuid       UUID del dispositivo en AuditoriaActivos
+     * @param string      $assignedTo Nombre del empleado (texto visible en AuditoriaActivos)
+     * @param string|null $badge      id_empleado del ERP (employees.employee_id en Activos)
+     * @param string|null $notes      Notas opcionales
+     */
+    public function assignDeviceInActivos(
+        string $uuid,
+        string $assignedTo,
+        ?string $badge = null,
+        ?string $notes = null
+    ): bool {
+        try {
+            $conn = $this->conn();
+
+            $device = $conn->table('devices')->where('uuid', $uuid)->first();
+            if (! $device) {
+                Log::warning("ActivosDb: assignDevice — dispositivo no encontrado: {$uuid}");
+                return false;
+            }
+
+            // Buscar employee por badge
+            $employeeId = null;
+            if ($badge) {
+                $employee   = $conn->table('employees')->where('employee_id', $badge)->first();
+                $employeeId = $employee?->id;
+            }
+
+            $conn->transaction(function () use ($conn, $device, $employeeId, $assignedTo, $notes) {
+                // Cerrar cualquier asignación previa que hubiera quedado abierta
+                $conn->table('assignments')
+                    ->where('device_id', $device->id)
+                    ->whereNull('returned_at')
+                    ->update(['returned_at' => now(), 'updated_at' => now()]);
+
+                $conn->table('assignments')->insert([
+                    'device_id'   => $device->id,
+                    'user_id'     => null,
+                    'employee_id' => $employeeId,
+                    'assigned_to' => $assignedTo,
+                    'assigned_at' => now(),
+                    'returned_at' => null,
+                    'notes'       => $notes,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+
+                $conn->table('devices')
+                    ->where('id', $device->id)
+                    ->update(['status' => 'assigned', 'updated_at' => now()]);
+            });
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: assignDevice [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cierra la asignación activa de un dispositivo y lo marca como 'available'.
+     * Llamar al eliminar un EquipoAsignado desde el ERP.
+     *
+     * @param string $uuid UUID del dispositivo en AuditoriaActivos
+     */
+    public function returnDeviceInActivos(string $uuid): bool
+    {
+        try {
+            $conn = $this->conn();
+
+            $device = $conn->table('devices')->where('uuid', $uuid)->first();
+            if (! $device) {
+                return false;
+            }
+
+            $conn->transaction(function () use ($conn, $device) {
+                $conn->table('assignments')
+                    ->where('device_id', $device->id)
+                    ->whereNull('returned_at')
+                    ->update(['returned_at' => now(), 'updated_at' => now()]);
+
+                $conn->table('devices')
+                    ->where('id', $device->id)
+                    ->update(['status' => 'available', 'updated_at' => now()]);
+            });
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: returnDevice [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Fotos
+    // ---------------------------------------------------------------
+
+    /**
+     * Retorna el file_path de una foto de dispositivo para servir como proxy.
+     * El ERP debe tener ACTIVOS_STORAGE_PATH en .env apuntando al
+     * directorio storage/app/private de AuditoriaActivos.
+     */
+    public function getPhotoPath(int $photoId): ?string
+    {
+        try {
+            $photo = $this->conn()
+                ->table('device_photos')
+                ->where('id', $photoId)
+                ->select('file_path')
+                ->first();
+
+            return $photo?->file_path;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getPhotoPath [{$photoId}] — " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
     /**
      * Indica si la conexión a la BD de activos está disponible.
      */
@@ -114,14 +262,19 @@ class ActivosDbService
     }
 
     /**
-     * Mapea una fila de `devices` (con columnas opcionales del JOIN) al formato
-     * que espera el frontend.
-     * La BD usa tipo enum: computer | peripheral | printer | other.
-     * El frontend espera: 'computer' o 'peripheral'.
+     * Mapea una fila de `devices` (con columnas opcionales de JOINs) al
+     * formato que espera el frontend.
+     * - `photos`: incluye la primera foto si existe, con URL al proxy del ERP.
      */
     private function mapRow(object $row): array
     {
-        $type = $row->type ?? null;
+        $photos = [];
+        if (! empty($row->photo_id)) {
+            $photos[] = [
+                'id'  => $row->photo_id,
+                'url' => url("admin/activos-api/fotos/{$row->photo_id}"),
+            ];
+        }
 
         return [
             'uuid'          => (string) ($row->uuid ?? $row->id ?? ''),
@@ -129,9 +282,9 @@ class ActivosDbService
             'brand'         => $row->brand ?? '',
             'model'         => $row->model ?? '',
             'serial_number' => $row->serial_number ?? '',
-            'type'          => $type === 'computer' ? 'computer' : 'peripheral',
+            'type'          => ($row->type ?? '') === 'computer' ? 'computer' : 'peripheral',
             'assignment'    => $row->employee_name ?? $row->assigned_to ?? null,
-            'photos'        => [],
+            'photos'        => $photos,
         ];
     }
 }
