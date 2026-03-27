@@ -577,26 +577,30 @@
         (function() {
             const KEY = 'reloj_scroll';
 
-            // Expose helper so modal openers can call it
+            // Prevent browser from interfering with manual scroll restoration.
+            if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+            }
+
+            // Expose helper so modal openers can call it.
             window.guardarScrollReloj = function() {
                 sessionStorage.setItem(KEY, window.scrollY.toString());
             };
 
-            // Restore scroll AFTER page is fully loaded and rendered.
-            // Double-RAF + timeout waits for Alpine.js and layout to fully stabilize.
-            window.addEventListener('load', function() {
+            // Listen for Alpine.js "alpine:initialized" — this fires AFTER Alpine has
+            // processed all x-show / x-data directives and the layout is fully stable.
+            // Using window.load is too early: Alpine runs after it and shifts the layout,
+            // which resets any scroll we applied.
+            document.addEventListener('alpine:initialized', function() {
                 const saved = sessionStorage.getItem(KEY);
                 if (saved) {
                     sessionStorage.removeItem(KEY);
                     const pos = parseInt(saved, 10);
                     if (pos > 0) {
-                        requestAnimationFrame(function() {
-                            requestAnimationFrame(function() {
-                                setTimeout(function() {
-                                    window.scrollTo({ top: pos, behavior: 'instant' });
-                                }, 80);
-                            });
-                        });
+                        // Extra tick to let any pending Alpine renders flush.
+                        setTimeout(function() {
+                            window.scrollTo({ top: pos, behavior: 'instant' });
+                        }, 30);
                     }
                 }
             });
