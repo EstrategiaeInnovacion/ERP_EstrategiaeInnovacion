@@ -67,13 +67,14 @@ class ActivosDbService
      *
      * Búsqueda (OR):
      *   1. employees.employee_id = $badge   (correlación por badge del ERP — más exacta)
-     *   2. employees.name = $nombre         (fallback por nombre completo)
-     *   3. assignments.assigned_to = $nombre (asignación libre sin employee)
+     *   2. users.email = $email             (asignación creada desde AuditoriaActivos con user_id)
+     *   3. employees.name = $nombre         (fallback por nombre completo)
+     *   4. assignments.assigned_to = $nombre (asignación libre sin employee)
      *
      * Devuelve array de [ 'device' => [...] ] para compatibilidad con mapDevice()
      * del frontend (`d.device ?? d`).
      */
-    public function getAssignedDevices(string $nombre, ?string $badge = null): array
+    public function getAssignedDevices(string $nombre, ?string $badge = null, ?string $email = null): array
     {
         try {
             $rows = $this->conn()
@@ -83,6 +84,7 @@ class ActivosDbService
                          ->whereNull('a.returned_at');
                 })
                 ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->leftJoin('users as u', 'u.id', '=', 'a.user_id')
                 ->leftJoin('device_photos as dp', function ($join) {
                     $join->on('dp.device_id', '=', 'd.id')
                          ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
@@ -98,9 +100,12 @@ class ActivosDbService
                     'dp.id as photo_id',
                     'dp.file_path as photo_path'
                 )
-                ->where(function ($q) use ($nombre, $badge) {
+                ->where(function ($q) use ($nombre, $badge, $email) {
                     if ($badge) {
                         $q->where('e.employee_id', $badge);
+                    }
+                    if ($email) {
+                        $q->orWhere('u.email', $email);
                     }
                     $q->orWhere('e.name', $nombre)
                       ->orWhere('a.assigned_to', $nombre);
