@@ -248,6 +248,27 @@ class ActivosDbService
     // ---------------------------------------------------------------
 
     /**
+     * Retorna el tipo de un dispositivo dado su UUID ('computer', 'peripheral', etc.)
+     * o null si no se encuentra o hay error de conexión.
+     */
+    public function getDeviceTypeByUuid(string $uuid): ?string
+    {
+        try {
+            $device = $this->conn()
+                ->table('devices')
+                ->where('uuid', $uuid)
+                ->select('type')
+                ->first();
+
+            return $device?->type;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getDeviceTypeByUuid [{$uuid}] — " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Indica si la conexión a la BD de activos está disponible.
      */
     public function isConfigured(): bool

@@ -149,7 +149,16 @@ class CredencialEquipoController extends Controller
             ->with(['correos', 'perifericos'])
             ->orderBy('created_at')
             ->get();
-        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios'));
+
+        // Determinar si el activo principal es una computadora.
+        // Si no se puede consultar activos, se asume computadora para no romper registros existentes.
+        $esComputadora = true;
+        if ($this->activos->isConfigured()) {
+            $deviceType   = $this->activos->getDeviceTypeByUuid($credencial->uuid_activos);
+            $esComputadora = ($deviceType === 'computer' || $deviceType === null);
+        }
+
+        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios', 'esComputadora'));
     }
 
     public function edit(EquipoAsignado $credencial)

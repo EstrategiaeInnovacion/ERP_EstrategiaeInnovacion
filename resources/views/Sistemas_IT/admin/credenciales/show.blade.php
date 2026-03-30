@@ -93,6 +93,7 @@
                 </h2>
             </div>
             <div class="px-6 py-5">
+                @if($esComputadora)
                 <div class="flex items-start gap-5">
                     {{-- Device photo --}}
                     @if($credencial->photo_id)
@@ -121,6 +122,16 @@
                         </p>
                     </div>
                 </div>
+                @else
+                <div class="flex flex-col items-center justify-center py-6 text-center gap-2">
+                    <svg class="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="text-sm font-medium text-slate-500">Sin equipo de cómputo asignado</p>
+                    <p class="text-xs text-slate-400">El activo registrado no es una computadora/laptop.</p>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -223,6 +234,7 @@
         </div>
 
         {{-- ---- Card: Periféricos ---- --}}
+        @php $totalPerifericos = $credencial->perifericos->count() + ($esComputadora ? 0 : 1); @endphp
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-slate-600 flex items-center gap-2">
@@ -233,14 +245,35 @@
                     PERIFÉRICOS
                 </h2>
                 <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2.5 py-1">
-                    {{ $credencial->perifericos->count() }}
+                    {{ $totalPerifericos }}
                 </span>
             </div>
             <div class="px-6 py-5">
-                @if($credencial->perifericos->isEmpty())
+                @if($totalPerifericos === 0)
                     <p class="text-sm text-slate-400 italic">Sin periféricos asignados.</p>
                 @else
                 <div class="space-y-2">
+                    {{-- Si el activo principal no es computadora, mostrarlo aquí como periférico --}}
+                    @if(!$esComputadora)
+                    <div class="flex items-center gap-4 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-800">{{ $credencial->nombre_equipo }}</p>
+                            <div class="flex items-center gap-3 mt-0.5">
+                                @if($credencial->modelo)
+                                <span class="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5 font-medium">
+                                    {{ $credencial->modelo }}
+                                </span>
+                                @endif
+                                @if($credencial->numero_serie)
+                                <span class="text-xs text-slate-400 font-mono">S/N: {{ $credencial->numero_serie }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono truncate shrink-0 max-w-[140px]" title="{{ $credencial->uuid_activos }}">
+                            {{ substr($credencial->uuid_activos, 0, 8) }}…
+                        </span>
+                    </div>
+                    @endif
                     @foreach($credencial->perifericos as $per)
                     <div class="flex items-center gap-4 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
                         <div class="flex-1 min-w-0">
