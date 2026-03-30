@@ -38,6 +38,11 @@ class ActivosDbService
     /**
      * Retorna todos los dispositivos disponibles (status = 'available')
      * incluyendo la primera foto de cada uno.
+     *
+     * También incluye dispositivos con status = 'assigned' que NO tienen una
+     * asignación activa (returnerd_at IS NULL) — estado huérfano que ocurre
+     * cuando el status se cambia manualmente desde el formulario de edición
+     * sin pasar por el flujo de asignación.
      */
     public function getAvailableDevices(): array
     {
@@ -49,7 +54,19 @@ class ActivosDbService
                          ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
                 })
                 ->select('d.*', 'dp.id as photo_id', 'dp.file_path as photo_path')
-                ->where('d.status', 'available')
+                ->where(function ($q) {
+                    $q->where('d.status', 'available')
+                      ->orWhere(function ($q2) {
+                          // Dispositivo marcado como 'assigned' pero sin registro de asignación activa
+                          $q2->where('d.status', 'assigned')
+                             ->whereNotExists(function ($q3) {
+                                 $q3->select('id')
+                                    ->from('assignments')
+                                    ->whereColumn('device_id', 'd.id')
+                                    ->whereNull('returned_at');
+                             });
+                      });
+                })
                 ->orderBy('d.name')
                 ->get();
 
