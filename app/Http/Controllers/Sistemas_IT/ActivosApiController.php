@@ -34,7 +34,23 @@ class ActivosApiController extends Controller
         $badge    = $empleado?->id_empleado ?: null;
         $nombre   = $empleado?->nombre ?? $user->name;
 
+        // Si el empleado tiene nombre diferente al del usuario ERP, buscar con ambos.
+        // getAssignedDevices acepta un nombre principal; pasamos el del empleado (más específico)
+        // y agregamos el nombre del usuario como segundo intento si difiere.
         $allDevices = $this->activos->getAssignedDevices($nombre, $badge, $user->email);
+
+        // Si el empleado tiene nombre y además el usuario tiene un nombre distinto,
+        // hacer una segunda búsqueda con el nombre del usuario y fusionar resultados.
+        if ($empleado && $empleado->nombre !== $user->name) {
+            $byUserName = $this->activos->getAssignedDevices($user->name, $badge, $user->email);
+            // Deduplicar por uuid del device
+            $existing = array_column(array_column($allDevices, 'device'), 'uuid');
+            foreach ($byUserName as $entry) {
+                if (!in_array($entry['device']['uuid'] ?? '', $existing, true)) {
+                    $allDevices[] = $entry;
+                }
+            }
+        }
 
         // Solo los de tipo 'computer' cuentan como equipo principal.
         // Periféricos/cables/impresoras asignados NO deben mostrarse como computadora.

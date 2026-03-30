@@ -82,11 +82,14 @@ class ActivosDbService
      * Retorna los dispositivos asignados actualmente a un empleado
      * incluyendo la primera foto de cada uno.
      *
-     * Búsqueda (OR):
-     *   1. employees.employee_id = $badge   (correlación por badge del ERP — más exacta)
-     *   2. users.email = $email             (asignación creada desde AuditoriaActivos con user_id)
-     *   3. employees.name = $nombre         (fallback por nombre completo)
-     *   4. assignments.assigned_to = $nombre (asignación libre sin employee)
+     * Búsqueda (OR, de mayor a menor confiabilidad):
+     *   1. employees.employee_id = $badge       (badge ERP — más exacta)
+     *   2. users.email = $email                 (usuario de AuditoriaActivos con mismo email)
+     *   3. employees.name LIKE '%nombre%'        (nombre en tabla employees)
+     *   4. users.name LIKE '%nombre%'            (nombre del usuario de Activos que hizo la asignación)
+     *   5. assignments.assigned_to LIKE '%nombre%' (texto libre)
+     *   + Por cada palabra significativa (>3 chars) del nombre, condiciones LIKE
+     *     adicionales sobre e.name y a.assigned_to.
      *
      * Devuelve array de [ 'device' => [...] ] para compatibilidad con mapDevice()
      * del frontend (`d.device ?? d`).
@@ -94,6 +97,12 @@ class ActivosDbService
     public function getAssignedDevices(string $nombre, ?string $badge = null, ?string $email = null): array
     {
         try {
+            // Palabras significativas del nombre (más de 3 caracteres) para búsqueda parcial
+            $palabras = array_values(array_filter(
+                explode(' ', $nombre),
+                fn (string $w) => mb_strlen(trim($w)) > 3
+            ));
+
             $rows = $this->conn()
                 ->table('devices as d')
                 ->join('assignments as a', function ($join) {
@@ -117,16 +126,26 @@ class ActivosDbService
                     'dp.id as photo_id',
                     'dp.file_path as photo_path'
                 )
-                ->where(function ($q) use ($nombre, $badge, $email) {
+                ->where(function ($q) use ($nombre, $badge, $email, $palabras) {
+                    // 1. Badge exacto
                     if ($badge) {
                         $q->where('e.employee_id', $badge);
                     }
+                    // 2. Email exacto del usuario en Activos
                     if ($email) {
                         $q->orWhere('u.email', $email);
                     }
-                    $q->orWhere('e.name', $nombre)
-                      ->orWhere('a.assigned_to', $nombre);
+                    // 3-5. Nombre completo con LIKE (detecta si el nombre ERP está dentro del campo o viceversa)
+                    $q->orWhere('e.name', 'like', "%{$nombre}%")
+                      ->orWhere('u.name', 'like', "%{$nombre}%")
+                      ->orWhere('a.assigned_to', 'like', "%{$nombre}%");
+                    // 6. Búsqueda palabra por palabra (nombres que no coinciden al 100%)
+                    foreach ($palabras as $palabra) {
+                        $q->orWhere('e.name', 'like', "%{$palabra}%")
+                          ->orWhere('a.assigned_to', 'like', "%{$palabra}%");
+                    }
                 })
+                ->distinct()
                 ->get();
 
             return $rows->map(fn ($r) => ['device' => $this->mapRow($r)])->values()->all();
@@ -325,7 +344,9 @@ class ActivosDbService
             'brand'         => $row->brand ?? '',
             'model'         => $row->model ?? '',
             'serial_number' => $row->serial_number ?? '',
-            'type'          => ($row->type ?? '') === 'computer' ? 'computer' : 'peripheral',
+            // Preservar el tipo real del dispositivo (computer|peripheral|printer|other)
+            // para que el filtro del controlador funcione correctamente.
+            'type'          => $row->type ?? 'other',
             'assignment'    => $row->employee_name ?? $row->assigned_to ?? null,
             'photos'        => $photos,
         ];

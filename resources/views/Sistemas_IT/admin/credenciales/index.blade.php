@@ -351,13 +351,13 @@
                                       d="M12 4v1m0 14v1m-7-8H4m16 0h-1M5.636 5.636l.707.707m11.314 11.314.707.707M5.636 18.364l.707-.707m11.314-11.314.707-.707"/>
                             </svg>
                             Periféricos
-                            <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type === 'peripheral').length + ')'"></span>
+                            <span class="text-xs font-normal" x-text="'(' + disponibles.filter(d => d.type !== 'computer').length + ')'" ></span>
                         </button>
                     </div>
 
                     {{-- Device list filtered by tab --}}
                     <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        <template x-for="d in disponibles.filter(d => d.type === tabEquipo)" :key="d.uuid">
+                        <template x-for="d in disponibles.filter(d => tabEquipo === 'computer' ? d.type === 'computer' : d.type !== 'computer')" :key="d.uuid">
                             <button type="button"
                                     @click="seleccionarDisponible(d)"
                                     class="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center gap-4 group">
@@ -383,7 +383,7 @@
                                 </svg>
                             </button>
                         </template>
-                        <div x-show="!disponibles.filter(d => d.type === tabEquipo).length && disponibles.length" class="text-sm text-slate-400 text-center py-6">
+                        <div x-show="!(tabEquipo === 'computer' ? disponibles.filter(d => d.type === 'computer') : disponibles.filter(d => d.type !== 'computer')).length && disponibles.length" class="text-sm text-slate-400 text-center py-6">
                             No hay <span x-text="tabEquipo === 'computer' ? 'computadoras' : 'periféricos'"></span> disponibles.
                         </div>
                         <div x-show="!disponibles.length" class="text-sm text-slate-400 text-center py-6">
