@@ -74,7 +74,7 @@
             width: 216mm;
             min-height: 279mm;
             background: #fff;
-            padding: 18mm 20mm 18mm 20mm;
+            padding: 12mm 15mm 12mm 15mm;
             box-shadow: 0 4px 24px rgba(0,0,0,.15);
             border-radius: 4px;
             position: relative;
@@ -84,68 +84,69 @@
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 14pt;
-            font-size: 9pt;
+            margin-bottom: 8pt;
+            font-size: 8pt;
         }
         .header-table td, .header-table th {
             border: 1px solid #000;
-            padding: 4pt 6pt;
+            padding: 2pt 4pt;
             vertical-align: middle;
         }
         .header-table .logo-cell {
-            width: 22%;
+            width: 18%;
             text-align: center;
-            padding: 6pt;
+            padding: 3pt;
         }
         .header-logo-img {
-            max-width: 54pt;
-            max-height: 54pt;
+            max-width: 40pt;
+            max-height: 40pt;
             object-fit: contain;
             display: block;
             margin: 0 auto;
         }
         .header-table .title-cell {
             text-align: center;
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
         }
         .header-table .meta-cell {
-            width: 26%;
-            font-size: 8.5pt;
+            width: 22%;
+            font-size: 7.5pt;
         }
         .meta-label { font-weight: bold; display: block; }
 
         /* ── Document body ── */
         .lugar-fecha {
             text-align: right;
-            margin-bottom: 12pt;
-            font-size: 10.5pt;
+            margin-bottom: 8pt;
+            font-size: 9.5pt;
         }
         .carta-titulo {
             text-align: center;
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: bold;
-            margin-bottom: 16pt;
+            margin-bottom: 10pt;
             text-decoration: underline;
         }
-        p { margin-bottom: 10pt; line-height: 1.55; text-align: justify; }
-        .blank { border-bottom: 1px solid #000; display: inline-block; min-width: 200pt; }
-        .blank-sm { border-bottom: 1px solid #000; display: inline-block; min-width: 120pt; }
+        p { margin-bottom: 6pt; line-height: 1.5; text-align: justify; font-size: 10pt; }
+        .blank { border-bottom: 1px solid #000; display: inline-block; min-width: 150pt; }
+        .blank-sm { border-bottom: 1px solid #000; display: inline-block; min-width: 80pt; }
 
         /* ── Commitments list ── */
         .section-title {
             font-weight: bold;
-            font-size: 10.5pt;
-            margin: 14pt 0 8pt;
+            font-size: 9.5pt;
+            margin: 8pt 0 5pt;
             text-transform: uppercase;
         }
         ol.commitments {
-            padding-left: 18pt;
-            margin-bottom: 10pt;
+            padding-left: 14pt;
+            margin-bottom: 6pt;
+            font-size: 9.5pt;
         }
         ol.commitments li {
-            margin-bottom: 6pt;
-            line-height: 1.5;
+            margin-bottom: 3pt;
+            line-height: 1.4;
             text-align: justify;
         }
 
@@ -154,36 +155,36 @@
             background: #1e3a5f;
             color: #fff;
             font-weight: bold;
-            font-size: 10pt;
-            padding: 5pt 10pt;
-            margin: 14pt 0 8pt;
+            font-size: 9pt;
+            padding: 3pt 8pt;
+            margin: 8pt 0 5pt;
             letter-spacing: .03em;
         }
         .spec-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9.5pt;
-            margin-bottom: 10pt;
+            font-size: 8pt;
+            margin-bottom: 6pt;
         }
         .spec-table th {
             background: #e8edf3;
             border: 1px solid #93a3b8;
-            padding: 4pt 7pt;
+            padding: 2pt 5pt;
             text-align: left;
             font-weight: bold;
         }
         .spec-table td {
             border: 1px solid #93a3b8;
-            padding: 4pt 7pt;
+            padding: 2pt 5pt;
             vertical-align: top;
         }
         .spec-table tr:nth-child(even) td { background: #f8fafc; }
         .badge {
             display: inline-block;
-            font-size: 7.5pt;
+            font-size: 6.5pt;
             font-weight: bold;
-            padding: 1pt 5pt;
-            border-radius: 3pt;
+            padding: 1pt 4pt;
+            border-radius: 2pt;
             background: #dbeafe;
             color: #1d4ed8;
         }
@@ -192,65 +193,65 @@
 
         /* ── Signature area ── */
         .sig-section {
-            margin-top: 28pt;
+            margin-top: 16pt;
             display: flex;
-            gap: 48pt;
+            gap: 32pt;
             justify-content: center;
         }
         .sig-box {
             text-align: center;
-            width: 160pt;
+            width: 140pt;
         }
         .sig-solo {
-            margin-top: 28pt;
-            width: 220pt;
+            margin-top: 16pt;
+            width: 180pt;
             text-align: center;
         }
         .sig-solo .sig-img-wrap {
-            width: 220pt;
+            width: 180pt;
         }
         .sig-solo .sig-label {
             text-align: center !important;
         }
         .sig-line {
             border-top: 1.5px solid #000;
-            margin-bottom: 4pt;
+            margin-bottom: 2pt;
         }
-        .sig-label { font-size: 8.5pt; }
+        .sig-label { font-size: 7.5pt; }
         .sig-canvas-wrap {
             border: 1px dashed #94a3b8;
             border-radius: 4pt;
-            margin-bottom: 4pt;
+            margin-bottom: 2pt;
             overflow: hidden;
             cursor: crosshair;
             background: #fafafa;
-            width: 160pt;
-            height: 60pt;
+            width: 140pt;
+            height: 45pt;
             position: relative;
         }
         .sig-canvas-wrap canvas { display: block; }
         .sig-clear {
-            font-size: 8pt;
+            font-size: 7pt;
             color: #64748b;
             cursor: pointer;
             border: none;
             background: none;
             text-decoration: underline;
             font-family: system-ui, sans-serif;
-            margin-bottom: 4pt;
+            margin-bottom: 2pt;
         }
 
         /* ── Signature image (after signing) ── */
         .sig-img-wrap {
-            height: 60pt;
+            height: 45pt;
             display: flex;
             align-items: flex-end;
             justify-content: center;
             padding-bottom: 2pt;
         }
         .sig-img {
-            max-height: 55pt;
-            max-width: 160pt;
+            max-height: 40pt;
+            max-width: 140pt;
             object-fit: contain;
         }
         .btn-save { background: #059669; color: #fff; }
@@ -259,10 +260,10 @@
         /* ── Watermark ── */
         .watermark {
             position: absolute;
-            bottom: 20mm;
-            right: 16mm;
+            bottom: 12mm;
+            right: 12mm;
             opacity: .06;
-            font-size: 64pt;
+            font-size: 48pt;
             font-weight: 900;
             color: #1e3a5f;
             transform: rotate(-30deg);
@@ -293,7 +294,7 @@
                 border-radius: 0 !important;
                 width: 210mm !important;
                 min-height: 297mm !important;
-                padding: 15mm 18mm !important;
+                padding: 10mm 12mm !important;
             }
             @page { size: letter; margin: 0; }
         }
@@ -408,19 +409,16 @@
             <li>Mantener el equipo recibido en condiciones de operación y limpieza.</li>
             <li>No permitir el acceso de terceros al uso del equipo.</li>
             <li>No compartir contraseñas.</li>
-            <li>No modificar la configuración del equipo a menos que esté autorizado para ello.</li>
+            <li>No modificar la configuración del equipo a menos que esté autorizado.</li>
             <li>Utilizar el equipo para los propósitos de negocio establecido por la empresa.</li>
-            <li>No instalar ningún tipo de software sin ser expresamente autorizado por la empresa.</li>
-            <li>Cumplir con las normas de seguridad relativas a la custodia del equipo aun fuera del horario laboral.</li>
-            <li>No ejecutar servicios de mantenimiento en el equipo, en caso de ser necesario solicitarlo al área de
-                sistemas para que dicho servicio sea canalizado por la empresa.</li>
-            <li>Entrega del equipo con todos sus accesorios en caso de terminación de relación laboral por cualquiera
-                que sea el motivo.</li>
-            <li>En caso de daño o pérdida del equipo por negligencia, el valor será descontado por medio de nómina.</li>
-            <li>El usuario es responsable de respaldar su información en el DRIVE correspondiente.</li>
-            <li>Se prohíbe la instalación de aplicaciones para uso personal o ajenas a las del negocio.</li>
-            <li>El equipo sigue siendo propiedad de la empresa y debe ser devuelto en las mismas condiciones en que fue
-                recibido, salvo el desgaste natural por su uso.</li>
+            <li>No instalar software sin autorización expresa.</li>
+            <li>Cumplir con las normas de seguridad fuera del horario laboral.</li>
+            <li>Solicitar mantenimiento al área de sistemas, no ejecutar servicios por cuenta propia.</li>
+            <li>Entrega del equipo con todos sus accesorios al terminar la relación laboral.</li>
+            <li>En caso de daño o pérdida por negligencia, el valor será descontado por nómina.</li>
+            <li>El usuario es responsable de respaldar su información en el DRIVE.</li>
+            <li>Se prohíbe la instalación de aplicaciones para uso personal.</li>
+            <li>El equipo es propiedad de la empresa y debe ser devuelto en las mismas condiciones.</li>
         </ol>
 
         <div class="watermark">E&amp;I</div>
@@ -458,7 +456,7 @@
             </tr>
         </table>
 
-        <p class="section-title" style="margin-top:10pt;">
+        <p class="section-title" style="margin-top:6pt;">
             B. Especificaciones Técnicas del Equipo
         </p>
 
@@ -466,20 +464,16 @@
         <div class="section-header">DATOS DEL EMPLEADO</div>
         <table class="spec-table">
             <tr>
-                <th style="width:30%">Nombre completo</th>
+                <th style="width:25%">Nombre completo</th>
                 <td>{{ $user->empleado?->nombre ?? $user->name }}</td>
-                <th style="width:20%">No. Empleado</th>
+                <th style="width:18%">No. Empleado</th>
                 <td>{{ $user->empleado?->id_empleado ?? '—' }}</td>
             </tr>
             <tr>
-                <th>Puesto / Posición</th>
+                <th>Puesto</th>
                 <td>{{ $user->empleado?->posicion ?? '—' }}</td>
                 <th>Área</th>
                 <td>{{ $user->empleado?->area ?? '—' }}</td>
-            </tr>
-            <tr>
-                <th>Correo corporativo</th>
-                <td colspan="3">{{ $user->email }}</td>
             </tr>
         </table>
 
