@@ -209,6 +209,9 @@
         .sig-solo .sig-img-wrap {
             width: 220pt;
         }
+        .sig-solo .sig-label {
+            text-align: center !important;
+        }
         .sig-line {
             border-top: 1.5px solid #000;
             margin-bottom: 4pt;
@@ -643,8 +646,8 @@
         @endif
 
         {{-- ── Firma (solo última hoja) ── --}}
-        <div style="margin-top:28pt; text-align:center;">
-            <div class="sig-solo" style="display:inline-block;">
+        <div style="margin-top:28pt; display:flex; justify-content:center;">
+            <div class="sig-solo">
                 <div class="sig-img-wrap">
                     <div x-show="!signed" style="width:220pt;height:55pt;"></div>
                     <img x-show="signed" :src="sigData" class="sig-img" alt="">
