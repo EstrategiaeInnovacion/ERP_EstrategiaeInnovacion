@@ -447,7 +447,7 @@ class CredencialEquipoController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $fechaCarta = $equipoPrincipal?->created_at ?? now();
+        $fechaCarta = now();
 
         return view('admin.credenciales.carta-responsiva', compact(
             'user',
