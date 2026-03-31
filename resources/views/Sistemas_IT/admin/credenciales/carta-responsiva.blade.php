@@ -756,15 +756,12 @@ function cartaFirma() {
             try {
                 // Clonar las páginas (excluye toolbar) para html2pdf
                 const cont = document.createElement('div');
-                document.querySelectorAll('.page').forEach((p, i) => {
+                document.querySelectorAll('.page').forEach((p) => {
                     const clone = p.cloneNode(true);
-                    // Quitar chrome visual para que no agreguen altura fantasma
                     clone.style.boxShadow    = 'none';
                     clone.style.borderRadius = '0';
                     clone.style.margin       = '0';
                     clone.style.background   = '#fff';
-                    // html2pdf inserta un salto de página ANTES de elementos con esta clase
-                    if (i > 0) clone.classList.add('html2pdf__page-break');
                     cont.appendChild(clone);
                 });
 
@@ -776,10 +773,9 @@ function cartaFirma() {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        // 216 mm ≈ 816 px a 96 dpi — fuerza el layout al ancho exacto del page
-                        windowWidth: 816,
                     },
                     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                    pagebreakMode: 'avoid-all',
                 };
 
                 const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
