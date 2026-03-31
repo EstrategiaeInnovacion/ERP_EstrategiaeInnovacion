@@ -400,25 +400,6 @@
                 recibido, salvo el desgaste natural por su uso.</li>
         </ol>
 
-        {{-- Firma página 1 --}}
-        <div class="sig-section">
-            <div class="sig-box">
-                <div class="sig-img-wrap">
-                    <div x-show="!signed" style="width:160pt;height:55pt;"></div>
-                    <img x-show="signed" :src="sigData" class="sig-img" alt="">
-                </div>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
-                <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
-            </div>
-            <div class="sig-box">
-                <div style="height:60pt;"></div>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>Área de Sistemas / IT</strong></p>
-                <p class="sig-label">Global Trade Compliance, S.C.</p>
-            </div>
-        </div>
-
         <div class="watermark">E&amp;I</div>
     </div>
 
@@ -641,7 +622,7 @@
         @endforeach
         @endif
 
-        {{-- ── Firma página 2 ── --}}
+        {{-- ── Firma (solo última hoja) ── --}}
         <div class="sig-section">
             <div class="sig-box">
                 <div class="sig-img-wrap">
@@ -651,12 +632,6 @@
                 <div class="sig-line"></div>
                 <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
                 <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
-            </div>
-            <div class="sig-box">
-                <div style="height:60pt;"></div>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>Área de Sistemas / IT</strong></p>
-                <p class="sig-label">Global Trade Compliance, S.C.</p>
             </div>
         </div>
 
