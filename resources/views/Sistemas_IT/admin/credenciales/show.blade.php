@@ -31,7 +31,7 @@
                         </svg>
                         Volver
                     </a>
-                    <button type="button" onclick="document.getElementById('edit-modal').classList.remove('hidden')"
+                    <button type="button" onclick="document.getElementById('edit-modal').classList.remove('hidden'); window.dispatchEvent(new CustomEvent('open-edit-modal'))"
                             class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium text-sm rounded-xl hover:bg-indigo-700 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -614,7 +614,7 @@
 <div id="edit-modal"
      class="hidden fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 sm:p-6 overflow-y-auto"
      x-data="editForm()"
-     x-init="cargarDisponibles()">
+     @open-edit-modal.window="cargarDisponibles()">
 
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-6"
          @click.stop>
@@ -903,13 +903,14 @@ function editForm() {
         errorMsg: '',
 
         async cargarDisponibles() {
-            if (this.disponiblesLoaded) return;
             try {
                 const resp = await fetch('{{ url("admin/activos-api/equipos-disponibles") }}', {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (resp.ok) this.disponibles = await resp.json();
+                else console.error('equipos-disponibles HTTP', resp.status);
             } catch (e) {
+                console.error('cargarDisponibles error:', e);
                 this.disponibles = [];
             }
             this.disponiblesLoaded = true;
