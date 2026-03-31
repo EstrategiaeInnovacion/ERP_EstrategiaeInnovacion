@@ -134,9 +134,13 @@
 
         /* ── Commitments list ── */
         .section-title {
+            background: #1e3a5f;
+            color: #fff;
             font-weight: bold;
-            font-size: 10.5pt;
+            font-size: 10pt;
+            padding: 5pt 10pt;
             margin: 14pt 0 8pt;
+            letter-spacing: .03em;
             text-transform: uppercase;
         }
         ol.commitments {
@@ -202,7 +206,7 @@
             width: 160pt;
         }
         .sig-solo {
-            margin: 28pt auto 0;
+            margin-top: 28pt;
             width: 220pt;
             text-align: center;
         }
@@ -266,6 +270,18 @@
             pointer-events: none;
             user-select: none;
             letter-spacing: -.02em;
+        }
+
+        /* ── Modal overlay ── */
+        .modal-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,.75);
+            padding: 16px;
         }
 
         /* ── Print styles ── */
@@ -631,14 +647,16 @@
         @endif
 
         {{-- ── Firma (solo última hoja) ── --}}
-        <div class="sig-solo">
-            <div class="sig-img-wrap">
-                <div x-show="!signed" style="width:220pt;height:55pt;"></div>
-                <img x-show="signed" :src="sigData" class="sig-img" alt="">
+        <div style="margin-top:28pt; text-align:center;">
+            <div class="sig-solo" style="display:inline-block;">
+                <div class="sig-img-wrap">
+                    <div x-show="!signed" style="width:220pt;height:55pt;"></div>
+                    <img x-show="signed" :src="sigData" class="sig-img" alt="">
+                </div>
+                <div class="sig-line"></div>
+                <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
+                <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
             </div>
-            <div class="sig-line"></div>
-            <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
-            <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
         </div>
 
         <div class="watermark">E&amp;I</div>
@@ -788,7 +806,8 @@ function cartaFirma() {
 
 {{-- ══ MODAL DE FIRMA HORIZONTAL ══ --}}
 <div x-show="mostrarModal" x-cloak
-     style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;"
+     class="modal-overlay"
+     @click.self=""
      @keydown.escape.window="cerrarModal()">
     <div style="background:#fff;border-radius:16px;padding:24px;width:min(840px,96vw);box-shadow:0 20px 60px rgba(0,0,0,.5);"
          @click.stop>
