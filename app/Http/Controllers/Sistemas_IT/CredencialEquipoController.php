@@ -7,7 +7,6 @@ use App\Models\EmpleadoDocumento;
 use App\Models\Sistemas_IT\EquipoAsignado;
 use App\Models\User;
 use App\Services\ActivosDbService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -468,33 +467,18 @@ class CredencialEquipoController extends Controller
 
     public function guardarCartaResponsiva(Request $request, User $user)
     {
+        $request->validate(['pdf_base64' => 'required|string|max:10485760']);
+
         $user->load('empleado');
         $empleado = $user->empleado;
         abort_if(! $empleado, 422, 'El usuario no tiene expediente registrado.');
 
-        $equipoPrincipal = EquipoAsignado::where('user_id', $user->id)
-            ->where('es_principal', true)
-            ->with(['correos', 'perifericos'])
-            ->first();
+        $raw = preg_replace('/^data:[^;]+;base64,/', '', $request->input('pdf_base64'));
+        $pdfContent = base64_decode($raw, true);
 
-        $equiposSecundarios = EquipoAsignado::where('user_id', $user->id)
-            ->where('es_principal', false)
-            ->with(['correos', 'perifericos'])
-            ->orderBy('created_at')
-            ->get();
-
-        $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        $fechaCarta = now();
-
-        $pdf = Pdf::loadView('admin.credenciales.carta-responsiva-pdf', [
-            'user' => $user,
-            'equipoPrincipal' => $equipoPrincipal,
-            'equiposSecundarios' => $equiposSecundarios,
-            'fechaCarta' => $fechaCarta,
-            'meses' => $meses,
-        ])->setPaper('letter', 'portrait');
-
-        $pdfContent = $pdf->output();
+        if ($pdfContent === false || ! str_starts_with($pdfContent, '%PDF')) {
+            return response()->json(['success' => false, 'message' => 'El archivo PDF no es válido.'], 422);
+        }
 
         $filename = 'carta-responsiva-'.now()->format('Y-m-d_His').'.pdf';
         $path = "expedientes/{$empleado->id}/{$filename}";
