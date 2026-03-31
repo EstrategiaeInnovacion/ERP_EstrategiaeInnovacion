@@ -303,4 +303,28 @@ class UsersController extends Controller
 
         return redirect()->route('admin.users')->with('success', 'El usuario ' . $user->name . ' ha sido dado de baja exitosamente.');
     }
+
+    public function reactivar(User $user)
+    {
+        if ($user->status !== User::STATUS_REJECTED) {
+            return back()->with('error', 'Solo puedes reactivar usuarios dados de baja.');
+        }
+
+        // Eliminar registro de baja
+        EmpleadoBaja::where('user_id', $user->id)->delete();
+
+        // Reactivar empleado si existe
+        $empleado = Empleado::where('user_id', $user->id)->first();
+        if ($empleado) {
+            $empleado->update(['es_activo' => true]);
+        }
+
+        // Restaurar estado del usuario
+        $user->update([
+            'status'      => User::STATUS_APPROVED,
+            'rejected_at' => null,
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'El usuario ' . $user->name . ' ha sido reactivado exitosamente.');
+    }
 }
