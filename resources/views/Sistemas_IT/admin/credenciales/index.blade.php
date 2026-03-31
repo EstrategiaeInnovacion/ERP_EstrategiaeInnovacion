@@ -549,7 +549,7 @@
                                     @focus="cargarPerifericos()"
                                     class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-0">
                                 <option value="">— Seleccionar periférico disponible —</option>
-                                <template x-for="d in perifericos_disponibles.filter(d => d.uuid !== device?.uuid && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
+                                <template x-for="d in perifericosDisponiblesParaAgregar" :key="d.uuid">
                                     <option :value="d.uuid"
                                             x-text="`${d.name ?? d.nombre ?? 'Sin nombre'} ${d.type_label ? '(' + d.type_label + ')' : ''} — S/N: ${d.serial_number ?? d.serie ?? 'N/A'}`">
                                     </option>
@@ -773,6 +773,10 @@ function equipoModal() {
             } catch (e) {
                 this.perifericos_disponibles = [];
             }
+        },
+
+        get perifericosDisponiblesParaAgregar() {
+            return this.perifericos_disponibles.filter(d => d.uuid !== this.device?.uuid && !this.perifericos.find(p => p.uuid === d.uuid));
         },
 
         addPeriferico() {

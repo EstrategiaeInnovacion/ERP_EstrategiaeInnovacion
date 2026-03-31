@@ -534,7 +534,7 @@
                                 <select x-model="selectedPerUuid"
                                         class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white min-w-0">
                                     <option value="">— Seleccionar periférico disponible —</option>
-                                    <template x-for="d in disponibles.filter(d => d.type === 'peripheral' && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
+                                    <template x-for="d in perifericosDisponiblesParaAgregar" :key="d.uuid">
                                         <option :value="d.uuid"
                                                 x-text="(d.name ?? d.nombre ?? 'Sin nombre') + (d.serial_number ? ' — S/N: ' + d.serial_number : '')"></option>
                                     </template>
@@ -794,7 +794,7 @@
                     <select x-model="selectedPerUuid"
                             class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white min-w-0">
                         <option value="">— Añadir periférico disponible —</option>
-                        <template x-for="d in disponibles.filter(d => d.type !== 'computer' && !perifericos.find(p => p.uuid === d.uuid))" :key="d.uuid">
+                        <template x-for="d in perifericosDisponiblesParaAgregar" :key="d.uuid">
                             <option :value="d.uuid"
                                     x-text="(d.name ?? d.nombre ?? 'Sin nombre') + (d.serial_number ? ' — S/N: ' + d.serial_number : '')"></option>
                         </template>
@@ -898,6 +898,10 @@ function editForm() {
                 this.disponibles = [];
             }
             this.disponiblesLoaded = true;
+        },
+
+        get perifericosDisponiblesParaAgregar() {
+            return this.disponibles.filter(d => d.type !== 'computer' && !this.perifericos.find(p => p.uuid === d.uuid));
         },
 
         addCorreo() {
@@ -1023,6 +1027,10 @@ function secEquipoForm() {
             this.selectedPerUuid = '';
             this.errorMsg = '';
             this.guardando = false;
+        },
+
+        get perifericosDisponiblesParaAgregar() {
+            return this.disponibles.filter(d => d.type === 'peripheral' && !this.perifericos.find(p => p.uuid === d.uuid));
         },
 
         addPeriferico() {
