@@ -476,10 +476,12 @@ class CredencialEquipoController extends Controller
         $path = "expedientes/{$empleado->id}/{$filename}";
         Storage::disk('local')->put($path, $pdfContent);
 
-        EmpleadoDocumento::updateOrCreate(
-            ['empleado_id' => $empleado->id, 'nombre' => 'Carta Responsiva IT'],
-            ['categoria' => 'Sistema IT', 'ruta_archivo' => $path]
-        );
+        EmpleadoDocumento::create([
+            'empleado_id'  => $empleado->id,
+            'nombre'       => 'Carta Responsiva IT — ' . now()->format('d/m/Y'),
+            'categoria'    => 'Sistema IT',
+            'ruta_archivo' => $path,
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Carta responsiva guardada en el expediente.']);
     }
