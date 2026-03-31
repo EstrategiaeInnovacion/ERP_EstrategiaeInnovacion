@@ -837,6 +837,21 @@
 </div>
 {{-- ══ end edit modal ══ --}}
 
+@php
+    $_editCorreos = $credencial->correos->map(function ($c) {
+        return ['id' => $c->id, 'correo' => $c->correo, 'contrasena_correo' => ''];
+    });
+    $_editPerifericos = $credencial->perifericos->map(function ($p) {
+        return [
+            'id'     => $p->id,
+            'uuid'   => $p->uuid_activos,
+            'nombre' => $p->nombre,
+            'tipo'   => $p->tipo ?? '',
+            'serie'  => $p->numero_serie ?? '',
+        ];
+    });
+@endphp
+
 @push('scripts')
 <script>
 const revealed = {};
@@ -874,10 +889,10 @@ function editForm() {
         notas:           @json($credencial->notas ?? ''),
 
         // Correos: id=null for new rows
-        correos: @json($credencial->correos->map(fn($c) => ['id' => $c->id, 'correo' => $c->correo, 'contrasena_correo' => ''])),
+        correos: @json($_editCorreos),
 
         // Periféricos: id=null for new rows
-        perifericos: @json($credencial->perifericos->map(fn($p) => ['id' => $p->id, 'uuid' => $p->uuid_activos, 'nombre' => $p->nombre, 'tipo' => $p->tipo ?? '', 'serie' => $p->numero_serie ?? ''])),
+        perifericos: @json($_editPerifericos),
 
         // Available peripherals loaded from Activos
         disponibles: [],
