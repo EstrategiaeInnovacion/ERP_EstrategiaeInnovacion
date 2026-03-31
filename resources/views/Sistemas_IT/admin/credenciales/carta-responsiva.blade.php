@@ -201,6 +201,12 @@
             text-align: center;
             width: 160pt;
         }
+        .sig-box-wide {
+            text-align: center;
+            width: 220pt;
+        }
+        .sig-box-wide .sig-canvas-wrap,
+        .sig-box-wide .sig-img-wrap { width: 220pt; }
         .sig-line {
             border-top: 1.5px solid #000;
             margin-bottom: 4pt;
@@ -624,9 +630,9 @@
 
         {{-- ── Firma (solo última hoja) ── --}}
         <div class="sig-section">
-            <div class="sig-box">
+            <div class="sig-box sig-box-wide">
                 <div class="sig-img-wrap">
-                    <div x-show="!signed" style="width:160pt;height:55pt;"></div>
+                    <div x-show="!signed" style="width:220pt;height:55pt;"></div>
                     <img x-show="signed" :src="sigData" class="sig-img" alt="">
                 </div>
                 <div class="sig-line"></div>
