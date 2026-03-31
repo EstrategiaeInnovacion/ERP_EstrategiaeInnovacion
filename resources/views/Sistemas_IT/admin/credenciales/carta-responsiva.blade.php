@@ -201,12 +201,14 @@
             text-align: center;
             width: 160pt;
         }
-        .sig-box-wide {
+        .sig-solo {
+            margin: 28pt auto 0;
+            width: 220pt;
             text-align: center;
+        }
+        .sig-solo .sig-img-wrap {
             width: 220pt;
         }
-        .sig-box-wide .sig-canvas-wrap,
-        .sig-box-wide .sig-img-wrap { width: 220pt; }
         .sig-line {
             border-top: 1.5px solid #000;
             margin-bottom: 4pt;
@@ -629,16 +631,14 @@
         @endif
 
         {{-- ── Firma (solo última hoja) ── --}}
-        <div class="sig-section">
-            <div class="sig-box sig-box-wide">
-                <div class="sig-img-wrap">
-                    <div x-show="!signed" style="width:220pt;height:55pt;"></div>
-                    <img x-show="signed" :src="sigData" class="sig-img" alt="">
-                </div>
-                <div class="sig-line"></div>
-                <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
-                <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
+        <div class="sig-solo">
+            <div class="sig-img-wrap">
+                <div x-show="!signed" style="width:220pt;height:55pt;"></div>
+                <img x-show="signed" :src="sigData" class="sig-img" alt="">
             </div>
+            <div class="sig-line"></div>
+            <p class="sig-label"><strong>{{ $user->empleado?->nombre ?? $user->name }}</strong></p>
+            <p class="sig-label">{{ $user->empleado?->posicion ?? 'Colaborador' }}</p>
         </div>
 
         <div class="watermark">E&amp;I</div>
