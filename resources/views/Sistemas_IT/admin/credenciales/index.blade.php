@@ -700,6 +700,7 @@ function equipoModal() {
                     const d = data.devices[0];
                     this.device = this.mapDevice(d, false);
                     this.step = 'credentials';
+                    this.cargarPerifericos();
                 } else {
                     await this.cargarDisponibles();
                     this.step = 'select_device';
@@ -727,6 +728,7 @@ function equipoModal() {
         seleccionarDisponible(d) {
             this.device = this.mapDevice(d, true);
             this.step = 'credentials';
+            this.cargarPerifericos();
         },
 
         cambiarEquipo() {
@@ -762,7 +764,6 @@ function equipoModal() {
 
         // ---- peripherals ----
         async cargarPerifericos() {
-            if (this.perifericos_disponibles.length) return;
             try {
                 const resp = await fetch(
                     '{{ url("admin/activos-api/equipos-disponibles") }}',
