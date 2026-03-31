@@ -755,28 +755,32 @@ function cartaFirma() {
             this.guardando = true;
             try {
                 const cont = document.createElement('div');
+                cont.style.width = '216mm';
+                cont.style.position = 'relative';
                 document.querySelectorAll('.page').forEach((p) => {
                     const clone = p.cloneNode(true);
                     clone.style.boxShadow    = 'none';
                     clone.style.borderRadius = '0';
                     clone.style.margin       = '0';
+                    clone.style.padding      = '18mm 20mm';
                     clone.style.background   = '#fff';
+                    clone.style.width        = '216mm';
+                    clone.style.minHeight    = '279mm';
+                    clone.style.position     = 'relative';
+                    clone.style.pageBreakAfter = 'always';
                     cont.appendChild(clone);
                 });
 
                 const opt = {
-                    margin: 0,
+                    margin: [0, 0, 0, 0],
                     filename: 'carta-responsiva.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        oncloneStylesToRemove: ['box-shadow', 'border-radius'],
-                        oncloneStylesInline: true,
                     },
                     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                    pagebreakMode: 'avoid-all',
                 };
 
                 const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
