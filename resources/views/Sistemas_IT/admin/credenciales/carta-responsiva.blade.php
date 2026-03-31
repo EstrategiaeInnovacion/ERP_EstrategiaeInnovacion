@@ -767,7 +767,6 @@ function cartaFirma() {
                     clone.style.width        = '216mm';
                     clone.style.minHeight    = '279mm';
                     clone.style.position     = 'relative';
-                    clone.style.pageBreakAfter = 'always';
                     cont.appendChild(clone);
                 });
 
@@ -781,6 +780,8 @@ function cartaFirma() {
                         logging: false,
                     },
                     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                    enableLinks: false,
+                    minFontSize: 8,
                 };
 
                 const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
