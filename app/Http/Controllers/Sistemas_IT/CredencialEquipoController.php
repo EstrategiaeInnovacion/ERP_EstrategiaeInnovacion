@@ -7,6 +7,7 @@ use App\Models\EmpleadoDocumento;
 use App\Models\Sistemas_IT\EquipoAsignado;
 use App\Models\User;
 use App\Services\ActivosDbService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
