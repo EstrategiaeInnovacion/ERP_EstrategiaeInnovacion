@@ -134,13 +134,9 @@
 
         /* ── Commitments list ── */
         .section-title {
-            background: #1e3a5f;
-            color: #fff;
             font-weight: bold;
-            font-size: 10pt;
-            padding: 5pt 10pt;
+            font-size: 10.5pt;
             margin: 14pt 0 8pt;
-            letter-spacing: .03em;
             text-transform: uppercase;
         }
         ol.commitments {
@@ -516,7 +512,7 @@
 
         {{-- Correos del equipo principal --}}
         @if($equipoPrincipal->correos->isNotEmpty())
-        <div class="section-header" style="background:#2d5a8e;">CORREOS ELECTRÓNICOS</div>
+        <div class="section-header">CORREOS ELECTRÓNICOS</div>
         <table class="spec-table">
             <thead>
                 <tr>
@@ -539,7 +535,7 @@
 
         {{-- Periféricos del equipo principal --}}
         @if($equipoPrincipal->perifericos->isNotEmpty())
-        <div class="section-header" style="background:#5b21b6;">OTROS (Periféricos / Accesorios)</div>
+        <div class="section-header">OTROS (Periféricos / Accesorios)</div>
         <table class="spec-table">
             <thead>
                 <tr>
