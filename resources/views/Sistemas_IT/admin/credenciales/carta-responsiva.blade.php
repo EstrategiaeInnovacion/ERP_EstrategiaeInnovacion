@@ -773,37 +773,48 @@ function cartaFirma() {
             if (!this.signed) { alert('Primero debes firmar la carta.'); return; }
             this.guardando = true;
             try {
-                const cont = document.createElement('div');
-                cont.style.width = '216mm';
-                cont.style.position = 'relative';
-                document.querySelectorAll('.page').forEach((p) => {
-                    const clone = p.cloneNode(true);
-                    clone.style.boxShadow    = 'none';
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'letter');
+                const pages = document.querySelectorAll('.page');
+                
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    const clone = page.cloneNode(true);
+                    
+                    clone.style.position = 'absolute';
+                    clone.style.left = '-9999px';
+                    clone.style.top = '0';
+                    clone.style.width = '216mm';
+                    clone.style.padding = '18mm 20mm';
+                    clone.style.background = '#fff';
+                    clone.style.boxShadow = 'none';
                     clone.style.borderRadius = '0';
-                    clone.style.margin       = '0';
-                    clone.style.padding      = '18mm 20mm';
-                    clone.style.background   = '#fff';
-                    clone.style.width        = '216mm';
-                    clone.style.minHeight    = '279mm';
-                    clone.style.position     = 'relative';
-                    cont.appendChild(clone);
-                });
-
-                const opt = {
-                    margin: [0, 0, 0, 0],
-                    filename: 'carta-responsiva.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
+                    clone.style.margin = '0';
+                    
+                    document.body.appendChild(clone);
+                    
+                    const canvas = await html2canvas(clone, {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                    },
-                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                    enableLinks: false,
-                    minFontSize: 8,
-                };
-
-                const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
+                        width: 216 * 3.779527559,
+                        windowWidth: 216 * 3.779527559
+                    });
+                    
+                    document.body.removeChild(clone);
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const imgWidth = 215.9;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                }
+                
+                const pdfBlob = pdf.output('blob');
 
                 const base64 = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
