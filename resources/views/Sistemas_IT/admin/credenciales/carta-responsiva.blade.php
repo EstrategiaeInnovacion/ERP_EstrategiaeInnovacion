@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Carta Responsiva — {{ $user->name }}</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         /* ── Base ── */
@@ -836,31 +837,48 @@ function cartaFirma() {
 
         async vistaPreviaPdf() {
             try {
-                const cont = document.createElement('div');
-                cont.style.width = '216mm';
-                cont.style.position = 'relative';
-                document.querySelectorAll('.page').forEach((p) => {
-                    const clone = p.cloneNode(true);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'letter');
+                const pages = document.querySelectorAll('.page');
+                
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    const clone = page.cloneNode(true);
+                    
+                    clone.style.position = 'absolute';
+                    clone.style.left = '-9999px';
+                    clone.style.top = '0';
+                    clone.style.width = '216mm';
+                    clone.style.padding = '18mm 20mm';
+                    clone.style.background = '#fff';
                     clone.style.boxShadow = 'none';
                     clone.style.borderRadius = '0';
                     clone.style.margin = '0';
-                    clone.style.padding = '18mm 20mm';
-                    clone.style.background = '#fff';
-                    clone.style.width = '216mm';
-                    clone.style.minHeight = '279mm';
-                    clone.style.position = 'relative';
-                    cont.appendChild(clone);
-                });
-                const opt = {
-                    margin: [0, 0, 0, 0],
-                    filename: 'carta-responsiva.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false },
-                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                    enableLinks: false,
-                    minFontSize: 8,
-                };
-                const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
+                    
+                    document.body.appendChild(clone);
+                    
+                    const canvas = await html2canvas(clone, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        width: 216 * 3.779527559,
+                        windowWidth: 216 * 3.779527559
+                    });
+                    
+                    document.body.removeChild(clone);
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const imgWidth = 215.9;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                }
+                
+                const pdfBlob = pdf.output('blob');
                 const pdfUrl = URL.createObjectURL(pdfBlob);
                 window.open(pdfUrl, '_blank');
             } catch (e) {
