@@ -78,6 +78,16 @@
             box-shadow: 0 4px 24px rgba(0,0,0,.15);
             border-radius: 4px;
             position: relative;
+            overflow: visible;
+        }
+
+        @media screen {
+            .page {
+                width: 100%;
+                max-width: 800px;
+                min-height: auto;
+                margin-bottom: 24px;
+            }
         }
 
         /* ── Logo header table ── */
@@ -291,9 +301,9 @@
             .page {
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                width: 216mm !important;
-                min-height: 279mm !important;
-                padding: 18mm 20mm !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                padding: 15mm 18mm !important;
             }
             @page { size: letter; margin: 0; }
         }
@@ -337,6 +347,13 @@
                           d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
                 Imprimir / PDF
+            </button>
+            <button class="btn-toolbar" style="background:#0ea5e9;color:#fff;" @click="vistaPreviaPdf()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Vista Previa
             </button>
         </div>
     </div>
@@ -754,61 +771,21 @@ function cartaFirma() {
             if (!this.signed) { alert('Primero debes firmar la carta.'); return; }
             this.guardando = true;
             try {
-                // ── Construir contenedor fuera de pantalla pero en el DOM ──────────
                 const cont = document.createElement('div');
-                cont.style.cssText = [
-                    'position:fixed',
-                    'top:0', 'left:-9999px',
-                    'width:216mm',
-                    'background:#fff',
-                    'z-index:-1',
-                ].join(';');
-
-                // Ancho en px de 216mm al DPI actual del navegador
-                const mmToPx = (mm) => mm * (96 / 25.4);
-                const pageWidthPx  = Math.round(mmToPx(216));
-                const pageHeightPx = Math.round(mmToPx(279));
-
+                cont.style.width = '216mm';
+                cont.style.position = 'relative';
                 document.querySelectorAll('.page').forEach((p) => {
                     const clone = p.cloneNode(true);
-
-                    // ── Resolver la imagen de firma (Alpine no la re-ejecuta en el clon) ──
-                    if (this.signed && this.sigData) {
-                        // Ocultar el div que funge como espacio en blanco cuando no hay firma
-                        const placeholders = clone.querySelectorAll('.sig-img-wrap div[x-show="!signed"]');
-                        placeholders.forEach(el => el.style.setProperty('display', 'none', 'important'));
-
-                        const sigImgs = clone.querySelectorAll('.sig-img');
-                        sigImgs.forEach((img) => {
-                            img.src = this.sigData;
-                            img.style.setProperty('display', 'block', 'important');
-                            img.removeAttribute('x-show');
-                        });
-
-                        // Quitar cualquier x-show/x-cloak que Alpine dejó congelado
-                        clone.querySelectorAll('[x-show],[x-cloak]').forEach((el) => {
-                            el.removeAttribute('x-show');
-                            el.removeAttribute('x-cloak');
-                        });
-                    }
-
-                    clone.style.cssText = [
-                        'box-shadow:none',
-                        'border-radius:0',
-                        'margin:0',
-                        'padding:18mm 20mm',
-                        'background:#fff',
-                        'width:216mm',
-                        'min-height:279mm',
-                        'position:relative',
-                        'page-break-after:always',
-                    ].join(';');
-
+                    clone.style.boxShadow    = 'none';
+                    clone.style.borderRadius = '0';
+                    clone.style.margin       = '0';
+                    clone.style.padding      = '18mm 20mm';
+                    clone.style.background   = '#fff';
+                    clone.style.width        = '216mm';
+                    clone.style.minHeight    = '279mm';
+                    clone.style.position     = 'relative';
                     cont.appendChild(clone);
                 });
-
-                // Adjuntar al DOM para que html2canvas pueda computar estilos
-                document.body.appendChild(cont);
 
                 const opt = {
                     margin: [0, 0, 0, 0],
@@ -818,18 +795,13 @@ function cartaFirma() {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        width:  pageWidthPx,
-                        windowWidth: pageWidthPx,
                     },
                     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
                     enableLinks: false,
+                    minFontSize: 8,
                 };
 
                 const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
-
-                // Limpiar el nodo temporal del DOM
-                document.body.removeChild(cont);
 
                 const base64 = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -859,6 +831,41 @@ function cartaFirma() {
                 alert('Error al generar el PDF: ' + e.message);
             } finally {
                 this.guardando = false;
+            }
+        },
+
+        async vistaPreviaPdf() {
+            try {
+                const cont = document.createElement('div');
+                cont.style.width = '216mm';
+                cont.style.position = 'relative';
+                document.querySelectorAll('.page').forEach((p) => {
+                    const clone = p.cloneNode(true);
+                    clone.style.boxShadow = 'none';
+                    clone.style.borderRadius = '0';
+                    clone.style.margin = '0';
+                    clone.style.padding = '18mm 20mm';
+                    clone.style.background = '#fff';
+                    clone.style.width = '216mm';
+                    clone.style.minHeight = '279mm';
+                    clone.style.position = 'relative';
+                    cont.appendChild(clone);
+                });
+                const opt = {
+                    margin: [0, 0, 0, 0],
+                    filename: 'carta-responsiva.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                    enableLinks: false,
+                    minFontSize: 8,
+                };
+                const pdfBlob = await html2pdf().from(cont).set(opt).outputPdf('blob');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                window.open(pdfUrl, '_blank');
+            } catch (e) {
+                console.error(e);
+                alert('Error al generar vista previa: ' + e.message);
             }
         },
     };
