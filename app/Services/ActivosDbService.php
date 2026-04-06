@@ -97,10 +97,12 @@ class ActivosDbService
     public function getAssignedDevices(string $nombre, ?string $badge = null, ?string $email = null): array
     {
         try {
-            // Palabras significativas del nombre (más de 3 caracteres) para búsqueda parcial
+            // Palabras significativas del nombre (más de 5 caracteres) para búsqueda parcial.
+            // Se usa un umbral de 6+ chars para evitar falsos positivos: p. ej. buscar "Ana Karen"
+            // no debe encontrar el equipo de "Karen Bonal" porque ambas contienen "Karen" (5 chars).
             $palabras = array_values(array_filter(
                 explode(' ', $nombre),
-                fn (string $w) => mb_strlen(trim($w)) > 3
+                fn (string $w) => mb_strlen(trim($w)) > 5
             ));
 
             $rows = $this->conn()
