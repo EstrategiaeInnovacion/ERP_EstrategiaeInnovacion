@@ -111,12 +111,16 @@ class EvaluacionController extends Controller
     {
         if (!$empleado)
             return false;
-        $pos = mb_strtolower($empleado->posicion, 'UTF-8');
+        $pos  = mb_strtolower($empleado->posicion ?? '', 'UTF-8');
+        $area = mb_strtolower($empleado->area ?? '', 'UTF-8');
 
         return str_contains($pos, 'administración rh') ||
             str_contains($pos, 'administracion rh') ||
             str_contains($pos, 'administracion de rh') ||
-            str_contains($pos, 'administración de rh');
+            str_contains($pos, 'administración de rh') ||
+            str_contains($area, 'recursos humanos') ||
+            str_contains($area, 'administracion rh') ||
+            str_contains($area, 'administración rh');
     }
 
     // --- NUEVO MÉTODO INTELIGENTE PARA DETECTAR ÁREA TÉCNICA ---
@@ -188,10 +192,11 @@ class EvaluacionController extends Controller
 
         $user = Auth::user();
         $me = Empleado::where('correo', $user->email)->first();
-        $hasFullVisibility = $this->hasFullVisibility($user);
-        $isWindowOpen = $this->isEvaluationWindowOpen();
-        $isAdminRH    = $this->isAdminRH($me);
-        $ventanaActiva = EvaluacionVentana::ventanaActual();
+        $hasFullVisibility       = $this->hasFullVisibility($user);
+        $isWindowOpen            = $this->isEvaluationWindowOpen();
+        $isAdminRH               = $this->isAdminRH($me);
+        $puedeGestionarVentanas  = $isAdminRH; // También incluye dirección vía hasFullVisibility si se desea
+        $ventanaActiva           = EvaluacionVentana::ventanaActual();
 
         $query = Empleado::query();
 
@@ -221,7 +226,7 @@ class EvaluacionController extends Controller
 
         $areas = Empleado::select('posicion')->distinct()->pluck('posicion');
 
-        return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility', 'isAdminRH', 'ventanaActiva'));
+        return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility', 'isAdminRH', 'puedeGestionarVentanas', 'ventanaActiva'));
     }
 
     public function show(Request $request, $id)
