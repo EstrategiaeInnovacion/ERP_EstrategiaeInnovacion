@@ -48,7 +48,7 @@ class CredencialEquipoController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'assign_new' => 'sometimes|boolean',
-            'uuid_activos' => 'required|string|max:255',
+            'uuid_activos' => 'required|string|max:255|unique:it_equipos_asignados,uuid_activos',
             'nombre_equipo' => 'required|string|max:255',
             'modelo' => 'nullable|string|max:255',
             'numero_serie' => 'nullable|string|max:255',
@@ -315,7 +315,7 @@ class CredencialEquipoController extends Controller
     {
         $request->validate([
             'assign_new' => 'sometimes|boolean',
-            'uuid_activos' => 'required|string|max:255',
+            'uuid_activos' => 'required|string|max:255|unique:it_equipos_asignados,uuid_activos',
             'nombre_equipo' => 'required|string|max:255',
             'modelo' => 'nullable|string|max:255',
             'numero_serie' => 'nullable|string|max:255',
