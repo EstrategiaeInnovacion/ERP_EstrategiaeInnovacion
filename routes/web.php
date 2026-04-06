@@ -14,6 +14,7 @@ use App\Http\Controllers\Sistemas_IT\TicketController;
 use App\Http\Controllers\Sistemas_IT\MaintenanceController;
 use App\Http\Controllers\Sistemas_IT\CredencialEquipoController;
 use App\Http\Controllers\Sistemas_IT\ActivosApiController;
+use App\Http\Controllers\Sistemas_IT\ActivosController;
 use App\Http\Controllers\Users\UsersController;
 
 // --- Controllers de Recursos Humanos ---
@@ -123,6 +124,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/evaluacion', 'store')->name('evaluacion.store');
             Route::put('/evaluacion/{id}', 'update')->name('evaluacion.update');
             Route::get('/evaluacion/{id}/resultados', 'resultados')->name('evaluacion.resultados');
+            // Gestión de ventanas de evaluación (Admin RH)
+            Route::get('/evaluacion-ventanas', 'getVentanas')->name('evaluacion.ventanas.index');
+            Route::post('/evaluacion-ventanas', 'saveVentana')->name('evaluacion.ventanas.store');
+            Route::patch('/evaluacion-ventanas/{id}/toggle', 'toggleVentana')->name('evaluacion.ventanas.toggle');
         }
         );
     });
@@ -435,6 +440,12 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
 
         // Alias: admin.users apunta a admin.users.index
         Route::get('/users-list', [UsersController::class , 'index'])->name('users');
+
+        // Activos IT
+        Route::controller(ActivosController::class)->prefix('activos')->name('activos.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{uuid}', 'show')->name('show');
+        });
 
         // Contraseñas y Equipos IT
         Route::prefix('activos-api')->name('activos.')->group(function () {

@@ -353,4 +353,230 @@ class ActivosDbService
             'photos'        => $photos,
         ];
     }
+
+    // ---------------------------------------------------------------
+    // Inventario completo (Módulo Activos IT del ERP)
+    // ---------------------------------------------------------------
+
+    /**
+     * Retorna una paginación manual de dispositivos con filtros opcionales
+     * de búsqueda, tipo y estado.
+     *
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function getAllDevicesPaginated(
+        ?string $search = null,
+        ?string $type   = null,
+        ?string $status = null,
+        int $perPage    = 15
+    ): \Illuminate\Pagination\LengthAwarePaginator {
+        try {
+            $query = $this->conn()
+                ->table('devices as d')
+                ->leftJoin('device_photos as dp', function ($join) {
+                    $join->on('dp.device_id', '=', 'd.id')
+                         ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
+                })
+                ->leftJoin('assignments as a', function ($join) {
+                    $join->on('a.device_id', '=', 'd.id')
+                         ->whereNull('a.returned_at');
+                })
+                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->select(
+                    'd.id', 'd.uuid', 'd.name', 'd.brand', 'd.model',
+                    'd.serial_number', 'd.type', 'd.status',
+                    'd.purchase_date', 'd.warranty_expiration', 'd.notes',
+                    'd.created_at', 'd.updated_at',
+                    'dp.id as photo_id',
+                    'a.assigned_at', 'a.assigned_to',
+                    'e.name as employee_name'
+                );
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('d.name', 'like', "%{$search}%")
+                      ->orWhere('d.brand', 'like', "%{$search}%")
+                      ->orWhere('d.model', 'like', "%{$search}%")
+                      ->orWhere('d.serial_number', 'like', "%{$search}%")
+                      ->orWhere('e.name', 'like', "%{$search}%")
+                      ->orWhere('a.assigned_to', 'like', "%{$search}%");
+                });
+            }
+
+            if ($type) {
+                $query->where('d.type', $type);
+            }
+
+            if ($status) {
+                $query->where('d.status', $status);
+            }
+
+            $query->orderBy('d.name');
+
+            $total = $query->count();
+            $page  = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+            $items = $query->forPage($page, $perPage)->get();
+
+            return new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+            );
+
+        } catch (\Exception $e) {
+            Log::error('ActivosDb: getAllDevicesPaginated — ' . $e->getMessage());
+            return new \Illuminate\Pagination\LengthAwarePaginator(collect(), 0, $perPage);
+        }
+    }
+
+    /**
+     * Retorna conteos de dispositivos agrupados por status y por tipo.
+     */
+    public function getDeviceStats(): array
+    {
+        try {
+            $conn = $this->conn();
+
+            $byStatus = $conn->table('devices')
+                ->selectRaw('status, COUNT(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+
+            $byType = $conn->table('devices')
+                ->selectRaw('type, COUNT(*) as total')
+                ->groupBy('type')
+                ->pluck('total', 'type')
+                ->toArray();
+
+            return [
+                'total'     => array_sum($byStatus),
+                'by_status' => [
+                    'available'   => (int) ($byStatus['available']   ?? 0),
+                    'assigned'    => (int) ($byStatus['assigned']    ?? 0),
+                    'maintenance' => (int) ($byStatus['maintenance'] ?? 0),
+                    'broken'      => (int) ($byStatus['broken']      ?? 0),
+                ],
+                'by_type'   => [
+                    'computer'   => (int) ($byType['computer']   ?? 0),
+                    'peripheral' => (int) ($byType['peripheral'] ?? 0),
+                    'printer'    => (int) ($byType['printer']    ?? 0),
+                    'other'      => (int) ($byType['other']      ?? 0),
+                ],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('ActivosDb: getDeviceStats — ' . $e->getMessage());
+            return [
+                'total'     => 0,
+                'by_status' => ['available' => 0, 'assigned' => 0, 'maintenance' => 0, 'broken' => 0],
+                'by_type'   => ['computer' => 0, 'peripheral' => 0, 'printer' => 0, 'other' => 0],
+            ];
+        }
+    }
+
+    /**
+     * Retorna todos los datos de un dispositivo por UUID, incluyendo
+     * la asignación activa actual y nombre del empleado asignado.
+     */
+    public function getDeviceByUuid(string $uuid): ?object
+    {
+        try {
+            return $this->conn()
+                ->table('devices as d')
+                ->leftJoin('assignments as a', function ($join) {
+                    $join->on('a.device_id', '=', 'd.id')
+                         ->whereNull('a.returned_at');
+                })
+                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->leftJoin('users as u', 'u.id', '=', 'a.user_id')
+                ->select(
+                    'd.*',
+                    'a.id as assignment_id', 'a.assigned_at', 'a.assigned_to',
+                    'a.notes as assignment_notes',
+                    'e.name as employee_name', 'e.employee_id as employee_badge',
+                    'e.department', 'e.position',
+                    'u.name as activos_user_name'
+                )
+                ->where('d.uuid', $uuid)
+                ->first();
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getDeviceByUuid [{$uuid}] — " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Retorna todas las fotos de un dispositivo (por device_id interno de activos).
+     */
+    public function getDevicePhotos(int $deviceId): array
+    {
+        try {
+            return $this->conn()
+                ->table('device_photos')
+                ->where('device_id', $deviceId)
+                ->orderBy('id')
+                ->get(['id', 'caption', 'created_at'])
+                ->map(fn ($p) => [
+                    'id'      => $p->id,
+                    'url'     => url("admin/activos-api/fotos/{$p->id}"),
+                    'caption' => $p->caption ?? '',
+                ])
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getDevicePhotos [{$deviceId}] — " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Retorna el historial completo de asignaciones de un dispositivo,
+     * de más reciente a más antigua.
+     */
+    public function getAssignmentHistory(int $deviceId): array
+    {
+        try {
+            return $this->conn()
+                ->table('assignments as a')
+                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->leftJoin('users as u', 'u.id', '=', 'a.user_id')
+                ->where('a.device_id', $deviceId)
+                ->orderByDesc('a.assigned_at')
+                ->select(
+                    'a.id', 'a.assigned_at', 'a.returned_at',
+                    'a.assigned_to', 'a.notes',
+                    'e.name as employee_name', 'e.employee_id as employee_badge',
+                    'u.name as activos_user_name'
+                )
+                ->get()
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getAssignmentHistory [{$deviceId}] — " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Retorna los documentos de un dispositivo.
+     */
+    public function getDeviceDocuments(int $deviceId): array
+    {
+        try {
+            return $this->conn()
+                ->table('device_documents')
+                ->where('device_id', $deviceId)
+                ->orderBy('id')
+                ->get(['id', 'original_name', 'type', 'created_at'])
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getDeviceDocuments [{$deviceId}] — " . $e->getMessage());
+            return [];
+        }
+    }
 }

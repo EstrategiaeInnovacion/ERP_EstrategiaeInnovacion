@@ -278,14 +278,7 @@
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow-sm border border-red-100 rounded-3xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                    <svg class="w-24 h-24 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
-                </div>
-                <div class="max-w-xl relative z-10">
-                    @include('Sistemas_IT.profile.partials.delete-user-form')
-                </div>
-            </div>
+
 
         </div>
     </div>

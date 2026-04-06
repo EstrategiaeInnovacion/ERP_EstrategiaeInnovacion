@@ -6,6 +6,7 @@ use App\Models\Empleado;
 use App\Models\CriterioEvaluacion;
 use App\Models\Evaluacion;
 use App\Models\EvaluacionDetalle;
+use App\Models\EvaluacionVentana;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,16 +14,96 @@ use Carbon\Carbon;
 
 class EvaluacionController extends Controller
 {
-    private function isEvaluationWindowOpen()
+    private function isEvaluationWindowOpen(): bool
     {
-        // --- MODO PRUEBAS: SIEMPRE ABIERTO ---
-        //return true;
+        // Primero consulta si hay una ventana configurada en BD
+        if (EvaluacionVentana::where('activo', true)->exists()) {
+            return EvaluacionVentana::estaAbierta();
+        }
 
-    
-     $now = Carbon::now();
-     return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) || 
-     ($now->month == 12 && $now->day >= 1 && $now->day <= 31);
-     
+        // Fallback: lógica semestral original
+        $now = Carbon::now();
+        return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) ||
+               ($now->month == 12 && $now->day >= 1  && $now->day <= 31);
+    }
+
+    // -------------------------------------------------------
+    // Gestión de Ventanas de Evaluación (solo Admin RH)
+    // -------------------------------------------------------
+
+    public function getVentanas()
+    {
+        $user = Auth::user();
+        $me   = Empleado::where('correo', $user->email)->first();
+
+        if (!$this->isAdminRH($me)) {
+            abort(403);
+        }
+
+        $ventanas = EvaluacionVentana::orderByDesc('fecha_apertura')->get();
+        $ventanaActiva = EvaluacionVentana::ventanaActual();
+
+        return response()->json([
+            'ventanas'       => $ventanas,
+            'ventana_activa' => $ventanaActiva,
+        ]);
+    }
+
+    public function saveVentana(Request $request)
+    {
+        $user = Auth::user();
+        $me   = Empleado::where('correo', $user->email)->first();
+
+        if (!$this->isAdminRH($me)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'nombre'         => 'required|string|max:100',
+            'fecha_apertura' => 'required|date',
+            'fecha_cierre'   => 'required|date|after_or_equal:fecha_apertura',
+        ]);
+
+        // Desactivar ventanas previas si se activa la nueva
+        if ($request->boolean('activo', true)) {
+            EvaluacionVentana::where('activo', true)->update(['activo' => false]);
+        }
+
+        $ventana = EvaluacionVentana::create([
+            'nombre'         => $request->nombre,
+            'fecha_apertura' => $request->fecha_apertura,
+            'fecha_cierre'   => $request->fecha_cierre,
+            'activo'         => $request->boolean('activo', true),
+            'creado_por'     => $user->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'ventana' => $ventana,
+            'message' => 'Ventana de evaluación guardada correctamente.',
+        ]);
+    }
+
+    public function toggleVentana(Request $request, $id)
+    {
+        $user = Auth::user();
+        $me   = Empleado::where('correo', $user->email)->first();
+
+        if (!$this->isAdminRH($me)) {
+            abort(403);
+        }
+
+        $ventana = EvaluacionVentana::findOrFail($id);
+
+        // Si se va a activar, desactivar las demás
+        if (!$ventana->activo) {
+            EvaluacionVentana::where('activo', true)->update(['activo' => false]);
+        }
+
+        $ventana->activo = !$ventana->activo;
+        $ventana->save();
+
+        return response()->json(['success' => true, 'activo' => $ventana->activo]);
     }
 
     // --- DETECCIÓN DE PUESTO (POSICIÓN) ---
@@ -109,6 +190,8 @@ class EvaluacionController extends Controller
         $me = Empleado::where('correo', $user->email)->first();
         $hasFullVisibility = $this->hasFullVisibility($user);
         $isWindowOpen = $this->isEvaluationWindowOpen();
+        $isAdminRH    = $this->isAdminRH($me);
+        $ventanaActiva = EvaluacionVentana::ventanaActual();
 
         $query = Empleado::query();
 
@@ -138,7 +221,7 @@ class EvaluacionController extends Controller
 
         $areas = Empleado::select('posicion')->distinct()->pluck('posicion');
 
-        return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility'));
+        return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility', 'isAdminRH', 'ventanaActiva'));
     }
 
     public function show(Request $request, $id)

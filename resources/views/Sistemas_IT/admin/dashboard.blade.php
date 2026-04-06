@@ -62,7 +62,17 @@
                     'hover_border' => 'hover:border-violet-200',
                     'btn_color' => 'bg-violet-600 hover:bg-violet-700 shadow-violet-200',
                 ],
-                // Puedes agregar más tarjetas aquí siguiendo el mismo formato
+                [
+                    'title' => 'Activos IT',
+                    'description' => 'Consulta y gestiona el inventario de equipos, asignaciones y estado de todos los activos de TI.',
+                    'route' => route('admin.activos.index'),
+                    'cta' => 'Ver activos',
+                    'icon' => 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
+                    'color_bg' => 'bg-amber-50',
+                    'color_text' => 'text-amber-600',
+                    'hover_border' => 'hover:border-amber-200',
+                    'btn_color' => 'bg-amber-600 hover:bg-amber-700 shadow-amber-200',
+                ],
             ];
         @endphp
 
