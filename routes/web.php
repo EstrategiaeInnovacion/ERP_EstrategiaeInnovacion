@@ -447,8 +447,14 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
 
         // Activos IT
         Route::controller(ActivosController::class)->prefix('activos')->name('activos.')->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/{uuid}', 'show')->name('show');
+            Route::get('/',                  'index')->name('index');
+            Route::get('/crear',             'create')->name('create');
+            Route::post('/',                 'store')->name('store');
+            Route::get('/{uuid}',            'show')->name('show');
+            Route::get('/{uuid}/editar',     'edit')->name('edit');
+            Route::put('/{uuid}',            'update')->name('update');
+            Route::post('/{uuid}/asignar',   'assign')->name('assign');
+            Route::post('/{uuid}/devolver',  'returnDevice')->name('return');
         });
 
         // Contraseñas y Equipos IT

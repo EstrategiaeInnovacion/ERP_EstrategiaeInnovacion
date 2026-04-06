@@ -23,6 +23,13 @@
                     <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Activos IT</h1>
                     <p class="text-slate-500 mt-1">Inventario completo de equipos y dispositivos de la organización.</p>
                 </div>
+                <a href="{{ route('admin.activos.create') }}"
+                   class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Nuevo dispositivo
+                </a>
             </div>
         </div>
     </div>

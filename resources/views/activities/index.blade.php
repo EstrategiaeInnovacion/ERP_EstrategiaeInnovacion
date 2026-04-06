@@ -815,6 +815,10 @@
         })
         .then(r => r.json())
         .then(data => {
+            if (data.error) {
+                lista.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Error: ${data.error}</p>`;
+                return;
+            }
             if (!data.ventanas || data.ventanas.length === 0) {
                 lista.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Sin configuración guardada. Se usa el horario por defecto (Lunes 9-11 AM).</p>';
                 return;
