@@ -196,7 +196,7 @@ class ActivityController extends Controller
         ];
 
         $startOfWeek = now()->startOfWeek();
-        $puedeGestionarPlaneacion = $user->isAdmin();
+        $puedeGestionarPlaneacion = $miEmpleado && $miEmpleado->es_coordinador;
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis', 
@@ -598,7 +598,9 @@ class ActivityController extends Controller
 
     public function getPlaneacionVentanas()
     {
-        if (!Auth::user()->isAdmin()) abort(403);
+        $user = Auth::user();
+        $me   = $user->empleado;
+        if (!$me || !$me->es_coordinador) abort(403);
 
         $ventanas = PlaneacionVentana::orderBy('dia_semana')->orderBy('hora_apertura')->get()
             ->map(function ($v) {
@@ -611,7 +613,9 @@ class ActivityController extends Controller
 
     public function savePlaneacionVentana(Request $request)
     {
-        if (!Auth::user()->isAdmin()) abort(403);
+        $user = Auth::user();
+        $me   = $user->empleado;
+        if (!$me || !$me->es_coordinador) abort(403);
 
         $request->validate([
             'dia_semana'    => 'required|integer|between:1,7',
@@ -641,7 +645,8 @@ class ActivityController extends Controller
 
     public function deletePlaneacionVentana($id)
     {
-        if (!Auth::user()->isAdmin()) abort(403);
+        $me = Auth::user()->empleado;
+        if (!$me || !$me->es_coordinador) abort(403);
 
         PlaneacionVentana::findOrFail($id)->delete();
 
