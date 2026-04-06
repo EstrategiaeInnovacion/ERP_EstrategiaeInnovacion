@@ -1,7 +1,8 @@
 @extends('layouts.erp')
 
 @section('content')
-    <x-slot name="header">
+    {{-- ENCABEZADO DE PÁGINA --}}
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mb-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h2 class="font-bold text-2xl text-slate-800 leading-tight tracking-tight">
@@ -9,7 +10,7 @@
                 </h2>
                 <p class="text-xs text-slate-500 mt-1">Gestión del talento y medición de competencias por área.</p>
             </div>
-            
+
             <div class="flex items-center gap-3 flex-wrap">
                 {{-- Selector de periodo --}}
                 <div class="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-slate-200">
@@ -28,7 +29,7 @@
                     </form>
                 </div>
 
-                {{-- Botón Admin RH: Gestionar Ventana de Evaluaciones --}}
+                {{-- Botón Admin: Gestionar Ventana de Evaluaciones --}}
                 @if(!empty($puedeGestionarVentanas))
                     <button onclick="document.getElementById('modalVentana').classList.remove('hidden')"
                         class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm transition-colors">
@@ -40,7 +41,7 @@
                 @endif
             </div>
         </div>
-    </x-slot>
+    </div>
 
     @php
         $categoriasPrincipales = ['Logistica', 'Legal', 'Anexo 24', 'Auditoria', 'TI'];
