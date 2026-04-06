@@ -546,7 +546,6 @@
 
                         <div class="flex gap-2 mb-3">
                             <select x-model="selectedPerUuid"
-                                    @focus="cargarPerifericos()"
                                     class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-0">
                                 <option value="">— Seleccionar periférico disponible —</option>
                                 <template x-for="d in perifericosDisponiblesParaAgregar" :key="d.uuid">
@@ -652,6 +651,7 @@ function equipoModal() {
         abrirModal() {
             this.resetModal();
             this.modalOpen = true;
+            this.cargarPerifericos();
         },
 
         cerrarModal() {
@@ -696,12 +696,31 @@ function equipoModal() {
                 console.log('[Activos] devicesByUser:', data);
                 this.userHasDevice = data.has_device;
 
+                // Helper para mapear periféricos asignados en activos
+                const mapPerifericos = (list) => (list ?? []).map(entry => {
+                    const dev = entry.device ?? entry;
+                    return {
+                        uuid:   dev.uuid ?? '',
+                        nombre: dev.name ?? dev.nombre ?? '',
+                        tipo:   dev.type ?? '',
+                        serie:  dev.serial_number ?? dev.serie ?? '',
+                    };
+                });
+
                 if (data.has_device && data.devices && data.devices.length) {
                     const d = data.devices[0];
                     this.device = this.mapDevice(d, false);
+                    // Pre-poblar con periféricos ya asignados a este usuario en activos
+                    if (data.peripherals && data.peripherals.length) {
+                        this.perifericos = mapPerifericos(data.peripherals);
+                    }
                     this.step = 'credentials';
                     this.cargarPerifericos();
                 } else {
+                    // Pre-poblar periféricos aunque no haya computadora asignada
+                    if (data.peripherals && data.peripherals.length) {
+                        this.perifericos = mapPerifericos(data.peripherals);
+                    }
                     await this.cargarDisponibles();
                     this.step = 'select_device';
                 }

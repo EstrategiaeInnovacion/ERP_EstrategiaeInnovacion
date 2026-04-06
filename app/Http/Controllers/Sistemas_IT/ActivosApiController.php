@@ -59,12 +59,19 @@ class ActivosApiController extends Controller
             fn ($d) => ($d['device']['type'] ?? '') === 'computer'
         ));
 
+        // Periféricos y otros dispositivos (impresoras, tablets, etc.) asignados al usuario.
+        $peripherals = array_values(array_filter(
+            $allDevices,
+            fn ($d) => ($d['device']['type'] ?? '') !== 'computer'
+        ));
+
         $hasDevice = count($computers) > 0;
 
         return response()->json([
-            'user'       => ['id' => $user->id, 'name' => $nombre],
-            'has_device' => $hasDevice,
-            'devices'    => $computers,
+            'user'        => ['id' => $user->id, 'name' => $nombre],
+            'has_device'  => $hasDevice,
+            'devices'     => $computers,
+            'peripherals' => $peripherals,
         ]);
     }
 
