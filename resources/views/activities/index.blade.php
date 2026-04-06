@@ -839,7 +839,7 @@
         .catch(() => { lista.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Error al cargar.</p>'; });
     }
 
-    function eliminarVentana(id, btn) {
+    window.eliminarVentana = function(id, btn) {
         if (!confirm('¿Eliminar esta ventana de planeación?')) return;
         btn.disabled = true;
         fetch(`{{ url('activities/planeacion-ventanas') }}/${id}`, {
@@ -849,7 +849,7 @@
         .then(r => r.json())
         .then(() => cargarVentanas())
         .catch(() => { btn.disabled = false; });
-    }
+    };
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
