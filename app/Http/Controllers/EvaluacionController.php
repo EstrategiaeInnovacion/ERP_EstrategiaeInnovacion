@@ -36,7 +36,7 @@ class EvaluacionController extends Controller
         $user = Auth::user();
         $me   = Empleado::where('correo', $user->email)->first();
 
-        if (!$this->isAdminRH($me)) {
+        if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
         }
 
@@ -54,7 +54,7 @@ class EvaluacionController extends Controller
         $user = Auth::user();
         $me   = Empleado::where('correo', $user->email)->first();
 
-        if (!$this->isAdminRH($me)) {
+        if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
         }
 
@@ -89,7 +89,7 @@ class EvaluacionController extends Controller
         $user = Auth::user();
         $me   = Empleado::where('correo', $user->email)->first();
 
-        if (!$this->isAdminRH($me)) {
+        if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
         }
 
