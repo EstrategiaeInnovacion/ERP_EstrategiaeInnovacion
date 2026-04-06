@@ -182,20 +182,25 @@ class UsersController extends Controller
         $user->update($data);
 
         // Actualizar registro empleado
+        $empleadoData = [
+            'nombre' => $user->name,
+            'correo' => $user->email,
+            'area' => $request->area,
+            'subdepartamento_id' => $request->area === 'Comercio Exterior' ? $request->subdepartamento_id : null,
+            'posicion' => $request->posicion,
+            'es_coordinador' => $request->boolean('es_coordinador'),
+            'supervisor_id' => $request->supervisor_id,
+        ];
+
+        // Solo actualizar id_empleado si viene explícitamente en el request
+        // para evitar borrarlo cuando el formulario no incluye ese campo.
+        if ($request->has('id_empleado')) {
+            $empleadoData['id_empleado'] = $request->id_empleado;
+        }
+
         Empleado::updateOrCreate(
             ['user_id' => $user->id],
-            [
-                'nombre' => $user->name,
-                'correo' => $user->email,
-                'area' => $request->area,
-                'subdepartamento_id' => $request->area === 'Comercio Exterior' ? $request->subdepartamento_id : null,
-                
-                // Actualizamos los campos nuevos
-                'id_empleado' => $request->id_empleado,
-                'posicion' => $request->posicion,
-                'es_coordinador' => $request->boolean('es_coordinador'),
-                'supervisor_id' => $request->supervisor_id,
-            ]
+            $empleadoData
         );
 
         return redirect()->route('admin.users.show', $user)->with('success', 'Usuario actualizado exitosamente.');
