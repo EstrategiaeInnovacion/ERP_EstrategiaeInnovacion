@@ -92,6 +92,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/activities/{id}/approve', [ActivityController::class , 'approve'])->name('activities.approve');
     Route::put('/activities/{id}/reject', [ActivityController::class , 'reject'])->name('activities.reject');
     Route::put('/activities/{id}/start', [ActivityController::class , 'start'])->name('activities.start');
+    // Ventanas de planeación (admin)
+    Route::get('/activities/planeacion-ventanas', [ActivityController::class, 'getPlaneacionVentanas'])->name('activities.planeacion.ventanas');
+    Route::post('/activities/planeacion-ventanas', [ActivityController::class, 'savePlaneacionVentana'])->name('activities.planeacion.save');
+    Route::delete('/activities/planeacion-ventanas/{id}', [ActivityController::class, 'deletePlaneacionVentana'])->name('activities.planeacion.delete');
 
     // Tickets (Usuario)
     Route::controller(TicketController::class)->prefix('ticket')->name('tickets.')->group(function () {
@@ -301,7 +305,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::post('/aviso-leido/{id}', function(\Illuminate\Http\Request $request, $id) {
                 $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
                 $aviso->update(['leido' => true, 'leido_at' => now()]);
-                return back()->with('success', 'Aviso marcado como leído.');
+                return redirect()->route('welcome')->with('success', 'Aviso marcado como leído.');
             })->name('aviso_leido');
         }
         );
