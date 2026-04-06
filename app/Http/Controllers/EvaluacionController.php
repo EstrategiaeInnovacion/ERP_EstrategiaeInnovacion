@@ -195,7 +195,7 @@ class EvaluacionController extends Controller
         $hasFullVisibility       = $this->hasFullVisibility($user);
         $isWindowOpen            = $this->isEvaluationWindowOpen();
         $isAdminRH               = $this->isAdminRH($me);
-        $puedeGestionarVentanas  = $isAdminRH; // También incluye dirección vía hasFullVisibility si se desea
+        $puedeGestionarVentanas  = $isAdminRH || $user->isAdmin();
         $ventanaActiva           = EvaluacionVentana::ventanaActual();
 
         $query = Empleado::query();
