@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\ActivityHistory;
 use App\Models\User;
 use App\Models\Empleado;
+use App\Models\PlaneacionVentana;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -46,8 +47,8 @@ class ActivityController extends Controller
             $posicionLower = mb_strtolower($miEmpleado->posicion, 'UTF-8');
             $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion', 'auditoria']);
             
-            // VALIDACIÓN HORARIA
-            $esHorarioPermitido = now()->isMonday() && now()->hour >= 9 && now()->hour < 11;
+            // VALIDACIÓN HORARIA (configurable desde BD, fallback lunes 9-11)
+            $esHorarioPermitido = PlaneacionVentana::estaAbierta();
 
             if ($esPuestoPlanificador && $esHorarioPermitido) $puedePlanificar = true;
             if (str_contains($posicionLower, 'direcc')) $esDireccion = true;
@@ -194,7 +195,8 @@ class ActivityController extends Controller
             'retardos' => $activitiesList->where('estatus', 'Retardo')->count(),
         ];
 
-        $startOfWeek = now()->startOfWeek(); 
+        $startOfWeek = now()->startOfWeek();
+        $puedeGestionarPlaneacion = $user->isAdmin();
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis', 
@@ -204,7 +206,8 @@ class ActivityController extends Controller
             'isHistoryView', 'verTodo',
             'areasSistema', 'empleadosAsignables', 
             'usersWithPending', 'filterOrigin',
-            'startDate', 'endDate', 'periodLabel', 'rangeType', 'prevDateRef', 'nextDateRef', 'startOfWeek'
+            'startDate', 'endDate', 'periodLabel', 'rangeType', 'prevDateRef', 'nextDateRef', 'startOfWeek',
+            'puedeGestionarPlaneacion'
         ));
     }
 
@@ -587,5 +590,61 @@ class ActivityController extends Controller
         }
 
         return view('activities.report_print', compact('actividades', 'cliente', 'fecha', 'stats'));
+    }
+
+    // -------------------------------------------------------
+    // Gestión de Ventana de Planeación (solo Admin)
+    // -------------------------------------------------------
+
+    public function getPlaneacionVentanas()
+    {
+        if (!Auth::user()->isAdmin()) abort(403);
+
+        $ventanas = PlaneacionVentana::orderBy('dia_semana')->orderBy('hora_apertura')->get()
+            ->map(function ($v) {
+                $v->dia_nombre = PlaneacionVentana::$diasNombres[$v->dia_semana] ?? "Día {$v->dia_semana}";
+                return $v;
+            });
+
+        return response()->json(['ventanas' => $ventanas]);
+    }
+
+    public function savePlaneacionVentana(Request $request)
+    {
+        if (!Auth::user()->isAdmin()) abort(403);
+
+        $request->validate([
+            'dia_semana'    => 'required|integer|between:1,7',
+            'hora_apertura' => 'required|date_format:H:i',
+            'hora_cierre'   => 'required|date_format:H:i|after:hora_apertura',
+        ]);
+
+        // Desactivar cualquier ventana del mismo día antes de crear la nueva
+        PlaneacionVentana::where('dia_semana', $request->dia_semana)
+            ->where('activo', true)
+            ->update(['activo' => false]);
+
+        $ventana = PlaneacionVentana::create([
+            'dia_semana'    => $request->dia_semana,
+            'hora_apertura' => $request->hora_apertura . ':00',
+            'hora_cierre'   => $request->hora_cierre . ':00',
+            'activo'        => true,
+            'creado_por'    => Auth::id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'ventana' => $ventana,
+            'message' => 'Ventana de planeación guardada.',
+        ]);
+    }
+
+    public function deletePlaneacionVentana($id)
+    {
+        if (!Auth::user()->isAdmin()) abort(403);
+
+        PlaneacionVentana::findOrFail($id)->delete();
+
+        return response()->json(['success' => true]);
     }
 }

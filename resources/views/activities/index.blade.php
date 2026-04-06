@@ -12,8 +12,8 @@
     // Validar si tiene puesto de Planificación
     $esPuestoPlanificador = isset($esPuestoPlanificador) ? $esPuestoPlanificador : \Illuminate\Support\Str::contains($posicionUser, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion', 'post operación']);
     
-    // Validar Horario (Lunes 9:00 - 11:00)
-    $esHorarioPermitido = isset($esHorarioPermitido) ? $esHorarioPermitido : (now()->isMonday() && now()->hour >= 9 && now()->hour < 11);
+    // Validar Horario (configurable desde BD, fallback lunes 9-11)
+    $esHorarioPermitido = isset($esHorarioPermitido) ? $esHorarioPermitido : \App\Models\PlaneacionVentana::estaAbierta();
     
     // Datos Dinámicos
     $areasDisponibles = isset($areasSistema) ? $areasSistema : collect(['General', 'Operativo', 'Administrativo']);
@@ -194,6 +194,16 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Cerrado
                         </button>
                     @endif
+                @endif
+
+                {{-- Botón Admin: Configurar ventana de planeación --}}
+                @if(!empty($puedeGestionarPlaneacion))
+                    <button onclick="document.getElementById('modalPlaneacionVentana').classList.remove('hidden')"
+                        class="bg-white text-violet-600 border border-violet-200 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-violet-50 transition flex items-center gap-2"
+                        title="Configurar ventana de planeación">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="hidden md:inline">Ventana</span>
+                    </button>
                 @endif
                 
                 {{-- Botón Generar Reporte --}}
@@ -711,4 +721,175 @@
     .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
     @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
+
+{{-- ============================================================ --}}
+{{-- MODAL: CONFIGURAR VENTANA DE PLANEACIÓN (Solo Admin)        --}}
+{{-- ============================================================ --}}
+@if(!empty($puedeGestionarPlaneacion))
+<div id="modalPlaneacionVentana" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-violet-100 text-violet-600 rounded-xl">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Ventana de Planeación</h3>
+                    <p class="text-xs text-slate-500">Configura qué día y horario se habilita la planeación semanal.</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('modalPlaneacionVentana').classList.add('hidden')"
+                class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="px-6 pt-5">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Nueva Configuración</h4>
+            <form id="formPlaneacionVentana" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Día de la semana</label>
+                    <select id="pv_dia" name="dia_semana" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-400" required>
+                        <option value="1">Lunes</option>
+                        <option value="2">Martes</option>
+                        <option value="3">Miércoles</option>
+                        <option value="4">Jueves</option>
+                        <option value="5">Viernes</option>
+                        <option value="6">Sábado</option>
+                        <option value="7">Domingo</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Hora de apertura</label>
+                        <input type="time" id="pv_apertura" name="hora_apertura" value="09:00"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-400" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Hora de cierre</label>
+                        <input type="time" id="pv_cierre" name="hora_cierre" value="11:00"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-400" required>
+                    </div>
+                </div>
+
+                <div id="pvMsg" class="hidden text-sm px-4 py-3 rounded-xl font-medium"></div>
+
+                <div class="flex gap-3 pt-1">
+                    <button type="submit" class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Guardar
+                    </button>
+                    <button type="button" onclick="document.getElementById('modalPlaneacionVentana').classList.add('hidden')"
+                        class="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="px-6 pt-4 pb-6">
+            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Ventanas Configuradas</h4>
+            <div id="listaPvVentanas" class="space-y-2">
+                <p class="text-xs text-slate-400 text-center py-4">Cargando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modal = document.getElementById('modalPlaneacionVentana');
+    const form  = document.getElementById('formPlaneacionVentana');
+    const msg   = document.getElementById('pvMsg');
+    const lista = document.getElementById('listaPvVentanas');
+
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.add('hidden'); });
+
+    document.querySelector('[onclick*="modalPlaneacionVentana"]')?.addEventListener('click', cargarVentanas);
+
+    function cargarVentanas() {
+        fetch('{{ route("activities.planeacion.ventanas") }}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ventanas || data.ventanas.length === 0) {
+                lista.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Sin configuración guardada. Se usa el horario por defecto (Lunes 9-11 AM).</p>';
+                return;
+            }
+            lista.innerHTML = data.ventanas.map(v => `
+                <div class="flex items-center justify-between p-3 rounded-xl border ${v.activo ? 'border-violet-200 bg-violet-50' : 'border-slate-100 bg-white'}">
+                    <div>
+                        <p class="text-sm font-bold ${v.activo ? 'text-violet-800' : 'text-slate-600'}">${v.dia_nombre}</p>
+                        <p class="text-xs ${v.activo ? 'text-violet-600' : 'text-slate-400'} mt-0.5">${v.hora_apertura.substring(0,5)} → ${v.hora_cierre.substring(0,5)}</p>
+                    </div>
+                    <button onclick="eliminarVentana(${v.id}, this)"
+                        class="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                        Eliminar
+                    </button>
+                </div>
+            `).join('');
+        })
+        .catch(() => { lista.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Error al cargar.</p>'; });
+    }
+
+    function eliminarVentana(id, btn) {
+        if (!confirm('¿Eliminar esta ventana de planeación?')) return;
+        btn.disabled = true;
+        fetch(`{{ url('activities/planeacion-ventanas') }}/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(() => cargarVentanas())
+        .catch(() => { btn.disabled = false; });
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        msg.classList.add('hidden');
+
+        const data = {
+            dia_semana:    document.getElementById('pv_dia').value,
+            hora_apertura: document.getElementById('pv_apertura').value,
+            hora_cierre:   document.getElementById('pv_cierre').value,
+        };
+
+        fetch('{{ route("activities.planeacion.save") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                msg.textContent = res.message;
+                msg.className = 'text-sm px-4 py-3 rounded-xl font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
+                msg.classList.remove('hidden');
+                form.reset();
+                document.getElementById('pv_apertura').value = '09:00';
+                document.getElementById('pv_cierre').value = '11:00';
+                cargarVentanas();
+                setTimeout(() => location.reload(), 1800);
+            } else {
+                msg.textContent = res.message ?? 'Error al guardar.';
+                msg.className = 'text-sm px-4 py-3 rounded-xl font-medium bg-red-50 text-red-800 border border-red-200';
+                msg.classList.remove('hidden');
+            }
+        })
+        .catch(() => {
+            msg.textContent = 'Error de conexión.';
+            msg.className = 'text-sm px-4 py-3 rounded-xl font-medium bg-red-50 text-red-800 border border-red-200';
+            msg.classList.remove('hidden');
+        });
+    });
+})();
+</script>
+@endif
 @endsection
