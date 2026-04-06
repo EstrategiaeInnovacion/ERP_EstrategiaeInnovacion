@@ -54,13 +54,48 @@
                     </div>
                     <p class="text-slate-500 mt-1">{{ $dispositivo->brand }} {{ $dispositivo->model }} — {{ $typeLabel }}</p>
                 </div>
-                <a href="{{ route('admin.activos.index') }}"
-                   class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm group">
-                    <svg class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                    Volver al listado
-                </a>
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if($dispositivo->status !== 'assigned')
+                    <button onclick="document.getElementById('modal-asignar').classList.remove('hidden')"
+                            class="inline-flex items-center px-4 py-2 bg-sky-600 text-white font-semibold text-sm rounded-xl hover:bg-sky-700 transition shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        Asignar
+                    </button>
+                    @else
+                    <form method="POST" action="{{ route('admin.activos.return', $dispositivo->uuid) }}"
+                          onsubmit="return confirm('¿Confirmar devolución del dispositivo?')">
+                        @csrf
+                        <button type="submit"
+                                class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Registrar devolución
+                        </button>
+                    </form>
+                    @endif
+
+                    <a href="{{ route('admin.activos.edit', $dispositivo->uuid) }}"
+                       class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar
+                    </a>
+
+                    <a href="{{ route('admin.activos.index') }}"
+                       class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm group">
+                        <svg class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Volver al listado
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -288,4 +323,69 @@
         </div>
     </div>
 </div>
+
+{{-- Modal: Asignar dispositivo --}}
+<div id="modal-asignar" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-8 pt-8 pb-6 border-b border-slate-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-slate-900">Asignar dispositivo</h3>
+                <button onclick="document.getElementById('modal-asignar').classList.add('hidden')"
+                        class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-sm text-slate-500 mt-1">Selecciona el empleado que recibirá: <strong>{{ $dispositivo->name }}</strong></p>
+        </div>
+
+        <form method="POST" action="{{ route('admin.activos.assign', $dispositivo->uuid) }}" class="px-8 py-6 space-y-5">
+            @csrf
+
+            @if(session('error'))
+            <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 text-sm">
+                {{ session('error') }}
+            </div>
+            @endif
+
+            <div>
+                <label for="empleado_id" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Empleado <span class="text-red-500">*</span>
+                </label>
+                <select id="empleado_id" name="empleado_id" required
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                    <option value="">— Seleccionar empleado —</option>
+                    @foreach($empleados as $emp)
+                    <option value="{{ $emp->id }}">
+                        {{ $emp->nombre }}
+                        @if($emp->area) — {{ $emp->area }}@endif
+                        @if($emp->posicion) ({{ $emp->posicion }})@endif
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="notes" class="block text-sm font-semibold text-slate-700 mb-1.5">Notas de asignación</label>
+                <textarea id="notes" name="notes" rows="2"
+                          placeholder="Observaciones opcionales…"
+                          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-none"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button"
+                        onclick="document.getElementById('modal-asignar').classList.add('hidden')"
+                        class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-sky-600 text-white font-bold text-sm rounded-xl hover:bg-sky-700 transition shadow-lg shadow-sky-200">
+                    Confirmar asignación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection

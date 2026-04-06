@@ -602,13 +602,16 @@ class ActivityController extends Controller
         $me   = $user->empleado;
         if (!$me || !$me->es_coordinador) abort(403);
 
-        $ventanas = PlaneacionVentana::orderBy('dia_semana')->orderBy('hora_apertura')->get()
-            ->map(function ($v) {
-                $v->dia_nombre = PlaneacionVentana::$diasNombres[$v->dia_semana] ?? "Día {$v->dia_semana}";
-                return $v;
-            });
-
-        return response()->json(['ventanas' => $ventanas]);
+        try {
+            $ventanas = PlaneacionVentana::orderBy('dia_semana')->orderBy('hora_apertura')->get()
+                ->map(function ($v) {
+                    $v->dia_nombre = PlaneacionVentana::$diasNombres[$v->dia_semana] ?? "Día {$v->dia_semana}";
+                    return $v;
+                });
+            return response()->json(['ventanas' => $ventanas]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage(), 'ventanas' => []], 500);
+        }
     }
 
     public function savePlaneacionVentana(Request $request)
@@ -648,8 +651,11 @@ class ActivityController extends Controller
         $me = Auth::user()->empleado;
         if (!$me || !$me->es_coordinador) abort(403);
 
-        PlaneacionVentana::findOrFail($id)->delete();
-
-        return response()->json(['success' => true]);
+        try {
+            PlaneacionVentana::findOrFail($id)->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
