@@ -84,6 +84,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class , 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class , 'destroy'])->name('profile.destroy');
 
+    // Marcar aviso de asistencia como leído (cualquier empleado)
+    Route::post('/aviso-leido/{id}', function(\Illuminate\Http\Request $request, $id) {
+        $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
+        // Solo el destinatario puede marcarlo
+        if ($aviso->empleado_id !== \Auth::user()->empleado?->id) abort(403);
+        $aviso->update(['leido' => true, 'leido_at' => now()]);
+        return redirect()->route('welcome');
+    })->name('rh.reloj.aviso_leido');
+
     // Actividades
     Route::put('/activities/{activity}/validate', [App\Http\Controllers\ActivityController::class , 'validateCompletion'])->name('activities.validate');
     Route::get('/activities/client-report', [App\Http\Controllers\ActivityController::class , 'generateClientReport'])->name('activities.client_report');
@@ -300,13 +309,6 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
             Route::delete('/clear', 'clear')->name('clear');
             Route::delete('/clear-rango', 'clearRango')->name('clearRango');
             Route::post('/aviso', 'enviarAviso')->name('aviso');
-            
-            // Ruta para marcar aviso como leído en el dashboard
-            Route::post('/aviso-leido/{id}', function(\Illuminate\Http\Request $request, $id) {
-                $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
-                $aviso->update(['leido' => true, 'leido_at' => now()]);
-                return redirect()->route('welcome')->with('success', 'Aviso marcado como leído.');
-            })->name('aviso_leido');
         }
         );
 
