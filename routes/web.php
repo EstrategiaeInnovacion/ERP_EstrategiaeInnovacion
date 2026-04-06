@@ -87,15 +87,15 @@ Route::middleware('auth')->group(function () {
     // Actividades
     Route::put('/activities/{activity}/validate', [App\Http\Controllers\ActivityController::class , 'validateCompletion'])->name('activities.validate');
     Route::get('/activities/client-report', [App\Http\Controllers\ActivityController::class , 'generateClientReport'])->name('activities.client_report');
+    // Ventanas de planeación (antes del resource para evitar que {activity} lo intercepte)
+    Route::get('/activities/planeacion-ventanas', [ActivityController::class, 'getPlaneacionVentanas'])->name('activities.planeacion.ventanas');
+    Route::post('/activities/planeacion-ventanas', [ActivityController::class, 'savePlaneacionVentana'])->name('activities.planeacion.save');
+    Route::delete('/activities/planeacion-ventanas/{id}', [ActivityController::class, 'deletePlaneacionVentana'])->name('activities.planeacion.delete');
     Route::resource('activities', ActivityController::class);
     Route::post('/activities/batch', [ActivityController::class , 'storeBatch'])->name('activities.storeBatch');
     Route::put('/activities/{id}/approve', [ActivityController::class , 'approve'])->name('activities.approve');
     Route::put('/activities/{id}/reject', [ActivityController::class , 'reject'])->name('activities.reject');
     Route::put('/activities/{id}/start', [ActivityController::class , 'start'])->name('activities.start');
-    // Ventanas de planeación (admin)
-    Route::get('/activities/planeacion-ventanas', [ActivityController::class, 'getPlaneacionVentanas'])->name('activities.planeacion.ventanas');
-    Route::post('/activities/planeacion-ventanas', [ActivityController::class, 'savePlaneacionVentana'])->name('activities.planeacion.save');
-    Route::delete('/activities/planeacion-ventanas/{id}', [ActivityController::class, 'deletePlaneacionVentana'])->name('activities.planeacion.delete');
 
     // Tickets (Usuario)
     Route::controller(TicketController::class)->prefix('ticket')->name('tickets.')->group(function () {
