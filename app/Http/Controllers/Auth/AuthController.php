@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -22,12 +23,22 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required','string','email','max:255',
-                'unique:users,email','unique:blocked_emails,email',
+                Rule::unique('users', 'email')->where(fn ($q) => $q->whereNot('status', User::STATUS_REJECTED)),
+                'unique:blocked_emails,email',
             ],
             'password' => [
                 'required','confirmed','string','min:8','max:16','regex:/^(?=.*[0-9])(?=.*[\W_]).+$/',
             ],
         ]);
+
+        // Si existe un usuario dado de baja (rejected sin bloqueo) con el mismo correo, eliminarlo
+        // para permitir que una nueva persona use ese correo
+        User::where('email', $request->email)
+            ->where('status', User::STATUS_REJECTED)
+            ->each(function ($u) {
+                \App\Models\EmpleadoBaja::where('user_id', $u->id)->delete();
+                $u->delete();
+            });
 
         User::create([
             'name' => $request->name,

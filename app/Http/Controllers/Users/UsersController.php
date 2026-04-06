@@ -9,6 +9,7 @@ use App\Models\Empleado;
 use App\Models\EmpleadoBaja;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UsersController extends Controller
 {
@@ -60,7 +61,10 @@ class UsersController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required','string','email','max:255','unique:users'],
+            'email' => [
+                'required','string','email','max:255',
+                Rule::unique('users', 'email')->where(fn ($q) => $q->whereNot('status', User::STATUS_REJECTED)),
+            ],
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:user,admin',
             'area' => 'required|string|max:255',
@@ -73,6 +77,15 @@ class UsersController extends Controller
 
         if ($request->area === 'Comercio Exterior' && !$request->filled('subdepartamento_id')) {
             return back()->withErrors(['subdepartamento_id' => 'Debes seleccionar un subdepartamento para Comercio Exterior'])->withInput();
+        }
+
+        // Si existe un usuario dado de baja con el mismo correo, eliminarlo para poder reutilizar el correo
+        $usuarioBajaAnterior = User::where('email', $request->email)
+            ->where('status', User::STATUS_REJECTED)
+            ->first();
+        if ($usuarioBajaAnterior) {
+            EmpleadoBaja::where('user_id', $usuarioBajaAnterior->id)->delete();
+            $usuarioBajaAnterior->delete();
         }
 
         // 1. Crear Usuario (Login)
