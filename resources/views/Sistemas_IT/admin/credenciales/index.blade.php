@@ -808,13 +808,13 @@ function equipoModal() {
             this.cargarPerifericos();
         },
 
-        cambiarEquipo() {
+        async cambiarEquipo() {
             this.device = null;
-            if (this.userHasDevice) {
-                this.onUserChange();
-            } else {
-                this.step = 'select_device';
+            if (!this.disponibles.length) {
+                this.step = 'loading';
+                await this.cargarDisponibles();
             }
+            this.step = 'select_device';
         },
 
         mapDevice(d, assign_new) {
