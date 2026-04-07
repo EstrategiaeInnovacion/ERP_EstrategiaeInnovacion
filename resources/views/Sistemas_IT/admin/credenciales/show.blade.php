@@ -9,7 +9,7 @@
     <div class="bg-white border-b border-slate-200 mb-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('admin.credenciales.index') }}"
+                <a href="{{ ($soloLectura ?? false) ? route('rh.activos.index') : route('admin.credenciales.index') }}"
                    class="text-slate-400 hover:text-indigo-600 transition-colors text-sm font-medium">
                     Contraseñas y Equipos
                 </a>
@@ -24,13 +24,14 @@
                     <p class="text-slate-500 mt-1">Equipo asignado, credenciales, correos y periféricos.</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('admin.credenciales.index') }}"
+                    <a href="{{ ($soloLectura ?? false) ? route('rh.activos.index') : route('admin.credenciales.index') }}"
                        class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-200 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                         Volver
                     </a>
+                    @unless($soloLectura ?? false)
                     <button type="button" onclick="document.getElementById('edit-modal').classList.remove('hidden'); window.dispatchEvent(new CustomEvent('open-edit-modal'))"
                             class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium text-sm rounded-xl hover:bg-indigo-700 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +53,7 @@
                             Eliminar
                         </button>
                     </form>
+                    @endunless
                 </div>
             </div>
         </div>
@@ -98,7 +100,7 @@
                     {{-- Device photo --}}
                     @if($credencial->photo_id)
                     <div class="w-24 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
-                        <img src="{{ route('admin.activos.photo', $credencial->photo_id) }}"
+                        <img src="{{ ($soloLectura ?? false) ? route('rh.activos.photo', $credencial->photo_id) : route('admin.activos.photo', $credencial->photo_id) }}"
                              alt="Foto del equipo"
                              class="w-full h-full object-cover">
                     </div>
@@ -344,7 +346,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
-                                <a href="{{ route('admin.credenciales.show', $sec) }}"
+                                <a href="{{ ($soloLectura ?? false) ? route('rh.activos.show', $sec) : route('admin.credenciales.show', $sec) }}"
                                    title="Ver detalle"
                                    class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,6 +354,7 @@
                                               d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                     </svg>
                                 </a>
+                                @unless($soloLectura ?? false)
                                 <form method="POST"
                                       action="{{ route('admin.credenciales.secundarios.destroy', [$credencial, $sec]) }}"
                                       onsubmit="return confirm('¿Eliminar este equipo secundario?')">
@@ -365,6 +368,7 @@
                                         </svg>
                                     </button>
                                 </form>
+                                @endunless
                             </div>
                         </div>
                     </div>
@@ -373,6 +377,7 @@
                 @endif
 
                 {{-- Botón para abrir formulario --}}
+                @unless($soloLectura ?? false)
                 <button type="button" @click="abrirForm()"
                         x-show="!showFormSecundario"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition shadow-sm">
@@ -596,6 +601,7 @@
 
                 </div>
                 {{-- end form --}}
+                @endunless
 
             </div>
         </div>
@@ -611,6 +617,7 @@
 </div>
 
 {{-- ══════════════ EDIT MODAL ══════════════ --}}
+@unless($soloLectura ?? false)
 <div id="edit-modal"
      class="hidden fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 sm:p-6 overflow-y-auto"
      x-data="editForm()"
@@ -836,6 +843,7 @@
     </div>
 </div>
 {{-- ══ end edit modal ══ --}}
+@endunless
 
 @php
     $_editCorreos = $credencial->correos->map(function ($c) {

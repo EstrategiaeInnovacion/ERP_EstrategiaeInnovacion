@@ -56,8 +56,9 @@ class CredencialEquipoController extends Controller
             ->groupBy('user_id');
 
         $usuarios = User::where('status', 'approved')->orderBy('name')->get(['id', 'name', 'email']);
+        $soloLectura = request()->routeIs('rh.activos.*');
 
-        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios'));
+        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios', 'soloLectura'));
     }
 
     public function create()
@@ -181,7 +182,9 @@ class CredencialEquipoController extends Controller
             $esComputadora = ($deviceType === 'computer' || $deviceType === null);
         }
 
-        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios', 'esComputadora'));
+        $soloLectura = request()->routeIs('rh.activos.*');
+
+        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios', 'esComputadora', 'soloLectura'));
     }
 
     public function edit(EquipoAsignado $credencial)

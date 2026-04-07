@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             
             <a href="{{ route('rh.expedientes.index') }}" class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-blue-600">
@@ -76,6 +76,25 @@
 
                 <div class="relative z-10 mt-6 flex items-center text-indigo-600 font-bold text-sm">
                     Ir a Evaluaciones <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="{{ route('rh.activos.index') }}" class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-slate-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-slate-700 transition-colors">Equipos del Personal</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Consulta de equipos, credenciales y periféricos asignados a cada colaborador.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-slate-600 font-bold text-sm">
+                    Ver Equipos <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
             </a>
         </div>

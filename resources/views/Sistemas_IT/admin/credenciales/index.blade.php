@@ -27,6 +27,7 @@
                     <p class="text-slate-500 mt-1">Gestión de credenciales y equipos asignados al personal.</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    @unless($soloLectura ?? false)
                     <button @click="cartaModal = true; cartaUserId = ''"
                             class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,6 +43,7 @@
                         </svg>
                         Añadir
                     </button>
+                    @endunless
                 </div>
             </div>
         </div>
@@ -210,7 +212,7 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-center gap-2">
                                     {{-- Visualizar --}}
-                                    <a href="{{ route('admin.credenciales.show', $equipo) }}"
+                                    <a href="{{ ($soloLectura ?? false) ? route('rh.activos.show', $equipo) : route('admin.credenciales.show', $equipo) }}"
                                        title="Visualizar"
                                        class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,6 +223,7 @@
                                         </svg>
                                     </a>
                                     {{-- Eliminar --}}
+                                    @unless($soloLectura ?? false)
                                     <form action="{{ route('admin.credenciales.destroy', $equipo) }}" method="POST"
                                           onsubmit="return confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')">
                                         @csrf
@@ -233,6 +236,7 @@
                                             </svg>
                                         </button>
                                     </form>
+                                    @endunless
                                 </div>
                             </td>
                         </tr>
@@ -270,7 +274,7 @@
                                 </td>
                                 <td class="px-4 py-2.5">
                                     <div class="flex items-center justify-center gap-2">
-                                        <a href="{{ route('admin.credenciales.show', $sec) }}"
+                                        <a href="{{ ($soloLectura ?? false) ? route('rh.activos.show', $sec) : route('admin.credenciales.show', $sec) }}"
                                            title="Visualizar"
                                            class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,6 +284,7 @@
                                                       d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                             </svg>
                                         </a>
+                                        @unless($soloLectura ?? false)
                                         <form action="{{ route('admin.credenciales.destroy', $sec) }}" method="POST"
                                               onsubmit="return confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')">
                                             @csrf
@@ -292,6 +297,7 @@
                                                 </svg>
                                             </button>
                                         </form>
+                                        @endunless
                                     </div>
                                 </td>
                             </tr>
