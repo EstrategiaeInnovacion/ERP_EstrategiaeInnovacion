@@ -19,6 +19,9 @@ class CredencialEquipoController extends Controller
     public function index(Request $request)
     {
         $query = EquipoAsignado::with(['user', 'correos', 'perifericos'])
+            ->where(function ($q) {
+                $q->where('es_principal', true)->orWhereNull('es_principal');
+            })
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('search')) {
@@ -28,14 +31,33 @@ class CredencialEquipoController extends Controller
                     ->orWhere('modelo', 'like', "%{$search}%")
                     ->orWhere('numero_serie', 'like', "%{$search}%")
                     ->orWhere('nombre_usuario_pc', 'like', "%{$search}%")
-                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
+                    ->orWhereIn('user_id',
+                        EquipoAsignado::where('es_principal', false)
+                            ->where(function ($sq) use ($search) {
+                                $sq->where('nombre_equipo', 'like', "%{$search}%")
+                                   ->orWhere('modelo', 'like', "%{$search}%")
+                                   ->orWhere('numero_serie', 'like', "%{$search}%");
+                            })
+                            ->pluck('user_id')
+                    );
             });
         }
 
         $equipos = $query->paginate(15)->withQueryString();
+
+        // Cargar equipos secundarios para los usuarios en la página actual
+        $userIds = $equipos->pluck('user_id')->filter()->unique();
+        $secundarios = EquipoAsignado::with(['correos', 'perifericos'])
+            ->whereIn('user_id', $userIds)
+            ->where('es_principal', false)
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy('user_id');
+
         $usuarios = User::where('status', 'approved')->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('admin.credenciales.index', compact('equipos', 'usuarios'));
+        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios'));
     }
 
     public function create()

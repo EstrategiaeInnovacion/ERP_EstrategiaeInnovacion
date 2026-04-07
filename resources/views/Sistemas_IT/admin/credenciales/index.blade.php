@@ -187,9 +187,6 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <p class="font-medium text-slate-800">{{ $equipo->nombre_equipo }}</p>
-                                    @if(!($equipo->es_principal ?? true))
-                                        <span class="text-xs bg-amber-100 text-amber-700 font-semibold rounded-full px-1.5 py-0.5">Secundario</span>
-                                    @endif
                                 </div>
                                 <p class="text-xs text-slate-400">{{ $equipo->modelo ?? '—' }}</p>
                             </td>
@@ -239,6 +236,67 @@
                                 </div>
                             </td>
                         </tr>
+                        {{-- Equipos secundarios del mismo usuario --}}
+                        @if(isset($secundarios[$equipo->user_id]))
+                            @foreach($secundarios[$equipo->user_id] as $sec)
+                            <tr class="bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+                                <td class="px-4 py-2.5 text-slate-300 font-mono text-xs text-center">↳</td>
+                                <td class="px-4 py-2.5 pl-8">
+                                    <p class="text-xs text-slate-400 italic">Equipo secundario</p>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <p class="font-medium text-slate-700">{{ $sec->nombre_equipo }}</p>
+                                        <span class="text-xs bg-amber-100 text-amber-700 font-semibold rounded-full px-1.5 py-0.5">Secundario</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400">{{ $sec->modelo ?? '—' }}</p>
+                                </td>
+                                <td class="px-4 py-2.5 text-slate-600 font-mono text-xs">
+                                    {{ $sec->numero_serie ?? '—' }}
+                                </td>
+                                <td class="px-4 py-2.5 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full
+                                        {{ $sec->perifericos->count() > 0 ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-400' }}
+                                        text-xs font-bold">
+                                        {{ $sec->perifericos->count() }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2.5 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full
+                                        {{ $sec->correos->count() > 0 ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-400' }}
+                                        text-xs font-bold">
+                                        {{ $sec->correos->count() }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <a href="{{ route('admin.credenciales.show', $sec) }}"
+                                           title="Visualizar"
+                                           class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </a>
+                                        <form action="{{ route('admin.credenciales.destroy', $sec) }}" method="POST"
+                                              onsubmit="return confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" title="Eliminar"
+                                                    class="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        @endif
                         @endforeach
                     </tbody>
                 </table>
