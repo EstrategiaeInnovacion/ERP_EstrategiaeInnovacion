@@ -25,6 +25,7 @@ class ActivosController extends Controller
                 'type'         => null,
                 'status'       => null,
                 'noConexion'   => true,
+                'soloLectura'  => request()->routeIs('rh.inventario.*'),
             ]);
         }
 
@@ -34,9 +35,10 @@ class ActivosController extends Controller
 
         $dispositivos = $this->activos->getAllDevicesPaginated($search, $type, $status, 15);
         $stats        = $this->activos->getDeviceStats();
+        $soloLectura  = request()->routeIs('rh.inventario.*');
 
         return view('Sistemas_IT.admin.activos.index', compact(
-            'dispositivos', 'stats', 'search', 'type', 'status'
+            'dispositivos', 'stats', 'search', 'type', 'status', 'soloLectura'
         ));
     }
 
@@ -110,8 +112,10 @@ class ActivosController extends Controller
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'id_empleado', 'area', 'posicion']);
 
+        $soloLectura = request()->routeIs('rh.inventario.*');
+
         return view('Sistemas_IT.admin.activos.show', compact(
-            'dispositivo', 'fotos', 'historial', 'documentos', 'credencial', 'empleados'
+            'dispositivo', 'fotos', 'historial', 'documentos', 'credencial', 'empleados', 'soloLectura'
         ));
     }
 

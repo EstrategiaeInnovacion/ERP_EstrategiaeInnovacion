@@ -296,11 +296,10 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
         }
         )->name('recursos-humanos.index');
 
-    // Equipos del personal (solo lectura para RH)
-    Route::prefix('recursos-humanos/activos')->name('rh.activos.')->group(function () {
-        Route::get('/fotos/{id}',      [ActivosApiController::class, 'photo'])->name('photo');
-        Route::get('/',                [CredencialEquipoController::class, 'index'])->name('index');
-        Route::get('/{credencial}',    [CredencialEquipoController::class, 'show'])->name('show');
+    // Inventario IT (activos, solo lectura para RH)
+    Route::prefix('recursos-humanos/inventario')->name('rh.inventario.')->group(function () {
+        Route::get('/',          [ActivosController::class, 'index'])->name('index');
+        Route::get('/{uuid}',    [ActivosController::class, 'show'])->name('show');
     });
 
         // Reloj Checador

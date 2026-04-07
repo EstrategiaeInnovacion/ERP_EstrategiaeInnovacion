@@ -11,9 +11,9 @@
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <div class="flex items-center gap-3 mb-1">
-                        <a href="{{ route('admin.dashboard') }}"
+                        <a href="{{ ($soloLectura ?? false) ? route('recursos-humanos.index') : route('admin.dashboard') }}"
                            class="text-slate-400 hover:text-indigo-600 transition-colors text-sm font-medium">
-                            Panel Admin
+                            {{ ($soloLectura ?? false) ? 'Panel RH' : 'Panel Admin' }}
                         </a>
                         <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -23,6 +23,7 @@
                     <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Activos IT</h1>
                     <p class="text-slate-500 mt-1">Inventario completo de equipos y dispositivos de la organización.</p>
                 </div>
+                @unless($soloLectura ?? false)
                 <a href="{{ route('admin.activos.create') }}"
                    class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +31,7 @@
                     </svg>
                     Nuevo dispositivo
                 </a>
+                @endunless
             </div>
         </div>
     </div>
@@ -80,7 +82,7 @@
 
         {{-- Filtros --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
-            <form method="GET" action="{{ route('admin.activos.index') }}" class="flex flex-col sm:flex-row gap-3">
+            <form method="GET" action="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}" class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1 relative">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -110,7 +112,7 @@
                     Filtrar
                 </button>
                 @if($search || $type || $status)
-                    <a href="{{ route('admin.activos.index') }}"
+                    <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}"
                        class="px-5 py-2.5 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 transition whitespace-nowrap">
                         Limpiar
                     </a>
@@ -138,7 +140,7 @@
                         @foreach($dispositivos as $d)
                         @php
                             $photoUrl = $d->photo_id
-                                ? route('admin.activos.photo', $d->photo_id)
+                                ? (($soloLectura ?? false) ? route('rh.activos.photo', $d->photo_id) : route('admin.activos.photo', $d->photo_id))
                                 : null;
 
                             $statusConfig = match($d->status) {
@@ -199,7 +201,7 @@
                             </td>
                             {{-- Acciones --}}
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('admin.activos.show', $d->uuid) }}"
+                                <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.show', $d->uuid) : route('admin.activos.show', $d->uuid) }}"
                                    class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition">
                                     Ver detalle
                                 </a>
@@ -229,7 +231,7 @@
                       d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/>
             </svg>
             <p class="text-slate-500 font-medium">No se encontraron dispositivos con esos filtros.</p>
-            <a href="{{ route('admin.activos.index') }}" class="mt-3 inline-block text-indigo-600 text-sm hover:underline">
+            <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}" class="mt-3 inline-block text-indigo-600 text-sm hover:underline">
                 Limpiar filtros
             </a>
         </div>

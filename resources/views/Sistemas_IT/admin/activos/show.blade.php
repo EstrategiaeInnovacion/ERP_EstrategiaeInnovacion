@@ -30,14 +30,14 @@
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <div class="flex items-center gap-3 mb-1">
-                        <a href="{{ route('admin.dashboard') }}"
+                        <a href="{{ ($soloLectura ?? false) ? route('recursos-humanos.index') : route('admin.dashboard') }}"
                            class="text-slate-400 hover:text-indigo-600 transition-colors text-sm font-medium">
-                            Panel Admin
+                            {{ ($soloLectura ?? false) ? 'Panel RH' : 'Panel Admin' }}
                         </a>
                         <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
-                        <a href="{{ route('admin.activos.index') }}"
+                        <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}"
                            class="text-slate-400 hover:text-indigo-600 transition-colors text-sm font-medium">
                             Activos IT
                         </a>
@@ -55,6 +55,7 @@
                     <p class="text-slate-500 mt-1">{{ $dispositivo->brand }} {{ $dispositivo->model }} — {{ $typeLabel }}</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
+                    @unless($soloLectura ?? false)
                     @if($dispositivo->status !== 'assigned')
                     <button onclick="document.getElementById('modal-asignar').classList.remove('hidden')"
                             class="inline-flex items-center px-4 py-2 bg-sky-600 text-white font-semibold text-sm rounded-xl hover:bg-sky-700 transition shadow-sm">
@@ -87,8 +88,9 @@
                         </svg>
                         Editar
                     </a>
+                    @endunless
 
-                    <a href="{{ route('admin.activos.index') }}"
+                    <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}"
                        class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm group">
                         <svg class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
