@@ -298,6 +298,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
 
     // Inventario IT (activos, solo lectura para RH)
     Route::prefix('recursos-humanos/inventario')->name('rh.inventario.')->group(function () {
+        Route::get('/fotos/{id}', [ActivosApiController::class, 'photo'])->name('photo');
         Route::get('/',          [ActivosController::class, 'index'])->name('index');
         Route::get('/{uuid}',    [ActivosController::class, 'show'])->name('show');
     });

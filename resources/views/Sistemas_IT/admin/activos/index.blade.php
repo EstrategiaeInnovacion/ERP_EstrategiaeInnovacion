@@ -140,7 +140,7 @@
                         @foreach($dispositivos as $d)
                         @php
                             $photoUrl = $d->photo_id
-                                ? (($soloLectura ?? false) ? route('rh.activos.photo', $d->photo_id) : route('admin.activos.photo', $d->photo_id))
+                                ? (($soloLectura ?? false) ? route('rh.inventario.photo', $d->photo_id) : route('admin.activos.photo', $d->photo_id))
                                 : null;
 
                             $statusConfig = match($d->status) {
