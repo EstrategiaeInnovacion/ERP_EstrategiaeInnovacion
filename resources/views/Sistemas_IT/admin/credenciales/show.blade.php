@@ -100,7 +100,7 @@
                     {{-- Device photo --}}
                     @if($credencial->photo_id)
                     <div class="w-24 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
-                        <img src="{{ ($soloLectura ?? false) ? route('rh.activos.photo', $credencial->photo_id) : route('admin.activos.photo', $credencial->photo_id) }}"
+                        <img src="{{ route('admin.activos.photo', $credencial->photo_id) }}"
                              alt="Foto del equipo"
                              class="w-full h-full object-cover">
                     </div>
