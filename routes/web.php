@@ -458,6 +458,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         // Activos IT
         Route::controller(ActivosController::class)->prefix('activos')->name('activos.')->group(function () {
             Route::get('/',                  'index')->name('index');
+            Route::get('/escaner-qr',        'qrScanner')->name('qr-scanner');
             Route::get('/crear',             'create')->name('create');
             Route::post('/',                 'store')->name('store');
             Route::get('/{uuid}',            'show')->name('show');
@@ -472,6 +473,9 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             Route::get('/usuario/{userId}/equipo',   [ActivosApiController::class, 'devicesByUser'])->name('devices-by-user');
             Route::get('/equipos-disponibles',        [ActivosApiController::class, 'availableDevices'])->name('available-devices');
             Route::get('/fotos/{id}',                 [ActivosApiController::class, 'photo'])->name('photo');
+            Route::get('/dispositivo/{uuid}',         [ActivosApiController::class, 'lookupByUuid'])->name('lookup');
+            Route::post('/qr-asignar/{uuid}',         [ActivosApiController::class, 'assignViaQr'])->name('qr-assign');
+            Route::post('/qr-devolver/{uuid}',        [ActivosApiController::class, 'returnViaQr'])->name('qr-return');
         });
         Route::resource('credenciales', CredencialEquipoController::class)
             ->parameters(['credenciales' => 'credencial']);

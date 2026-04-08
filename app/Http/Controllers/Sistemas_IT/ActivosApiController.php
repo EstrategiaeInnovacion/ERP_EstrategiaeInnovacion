@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Sistemas_IT;
 
 use App\Http\Controllers\Controller;
+use App\Models\Empleado;
 use App\Models\User;
 use App\Services\ActivosDbService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class ActivosApiController extends Controller
@@ -91,6 +93,105 @@ class ActivosApiController extends Controller
     }
 
     /**
+     * GET /admin/activos-api/dispositivo/{uuid}
+     * Busca un dispositivo por UUID (scaneado desde un QR) y retorna sus datos+estado en JSON.
+     */
+    public function lookupByUuid(string $uuid)
+    {
+        if (! $this->activos->isConfigured()) {
+            return response()->json(['error' => 'BD de activos no disponible.'], 503);
+        }
+
+        $d = $this->activos->getDeviceByUuid($uuid);
+
+        if (! $d) {
+            return response()->json(['error' => 'Dispositivo no encontrado en el sistema.'], 404);
+        }
+
+        $statusLabels = [
+            'available'   => 'Disponible',
+            'assigned'    => 'Asignado',
+            'maintenance' => 'En mantenimiento',
+            'broken'      => 'Dañado',
+        ];
+        $typeLabels = [
+            'computer'   => 'Computadora',
+            'peripheral' => 'Periférico',
+            'printer'    => 'Impresora',
+            'other'      => 'Otro',
+        ];
+
+        return response()->json([
+            'uuid'         => $d->uuid,
+            'name'         => $d->name,
+            'brand'        => $d->brand ?? '',
+            'model'        => $d->model ?? '',
+            'serial'       => $d->serial_number ?? '',
+            'type'         => $d->type,
+            'type_label'   => $typeLabels[$d->type] ?? $d->type,
+            'status'       => $d->status,
+            'status_label' => $statusLabels[$d->status] ?? $d->status,
+            'assigned_to'  => $d->employee_name ?? $d->assigned_to ?? null,
+        ]);
+    }
+
+    /**
+     * POST /admin/activos-api/qr-asignar/{uuid}
+     * Asigna un dispositivo vía QR (responde JSON para el escáner).
+     */
+    public function assignViaQr(Request $request, string $uuid)
+    {
+        $data = $request->validate([
+            'empleado_id'     => 'required|exists:empleados,id',
+            'tipo_movimiento' => 'required|in:asignacion_fija,prestamo_temporal',
+            'fecha_devolucion' => 'nullable|date|after:now',
+            'notas'           => 'nullable|string|max:1000',
+        ]);
+
+        $empleado = Empleado::findOrFail($data['empleado_id']);
+
+        $notes = $data['notas'] ?? null;
+        if ($data['tipo_movimiento'] === 'prestamo_temporal' && ! empty($data['fecha_devolucion'])) {
+            $labelFecha = \Carbon\Carbon::parse($data['fecha_devolucion'])->format('d/m/Y H:i');
+            $notes = trim("[Préstamo temporal — Devolución: {$labelFecha}] " . ($notes ?? ''));
+        }
+
+        $ok = $this->activos->assignDeviceInActivos(
+            uuid:       $uuid,
+            assignedTo: $empleado->nombre,
+            badge:      $empleado->id_empleado ?: null,
+            notes:      $notes,
+        );
+
+        if (! $ok) {
+            return response()->json(['error' => 'No se pudo registrar la asignación.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Dispositivo asignado a {$empleado->nombre}.",
+        ]);
+    }
+
+    /**
+     * POST /admin/activos-api/qr-devolver/{uuid}
+     * Registra la devolución de un dispositivo vía QR (responde JSON para el escáner).
+     */
+    public function returnViaQr(string $uuid)
+    {
+        $ok = $this->activos->returnDeviceInActivos($uuid);
+
+        if (! $ok) {
+            return response()->json(['error' => 'No se pudo registrar la devolución.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dispositivo devuelto y marcado como disponible.',
+        ]);
+    }
+
+    /**
      * GET /admin/activos-api/fotos/{id}
      * Proxy de fotos: lee el archivo desde el storage privado de AuditoriaActivos
      * y lo devuelve como imagen.
@@ -109,26 +210,33 @@ class ActivosApiController extends Controller
             abort(404);
         }
 
+        // 1. Intentar servir desde ACTIVOS_STORAGE_PATH (fotos de AuditoriaActivos)
         $storagePath = rtrim(env('ACTIVOS_STORAGE_PATH', ''), '\/ ');
-        if (empty($storagePath)) {
-            Log::warning('ActivosApi: ACTIVOS_STORAGE_PATH no configurado en .env');
-            abort(503, 'Ruta de almacenamiento de activos no configurada.');
+        if (! empty($storagePath)) {
+            $fullPath = $storagePath . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
+
+            if (file_exists($fullPath) && is_file($fullPath)) {
+                $realStorage = realpath($storagePath);
+                $realFile    = realpath($fullPath);
+                if ($realStorage && $realFile && str_starts_with($realFile, $realStorage)) {
+                    return response()->file($realFile);
+                }
+            }
         }
 
-        $fullPath = $storagePath . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
+        // 2. Fallback: fotos subidas directamente desde el ERP (storage/app/private)
+        $localBase = storage_path('app/private');
+        $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
 
-        if (! file_exists($fullPath) || ! is_file($fullPath)) {
-            abort(404);
+        if (file_exists($localPath) && is_file($localPath)) {
+            $realBase  = realpath($localBase);
+            $realFile  = realpath($localPath);
+            if ($realBase && $realFile && str_starts_with($realFile, $realBase)) {
+                return response()->file($realFile);
+            }
         }
 
-        // Seguridad: verificar que el archivo está dentro del directorio permitido
-        $realStorage = realpath($storagePath);
-        $realFile    = realpath($fullPath);
-        if (! $realStorage || ! $realFile || ! str_starts_with($realFile, $realStorage)) {
-            abort(403);
-        }
-
-        return response()->file($realFile);
+        abort(404);
     }
 }
 

@@ -265,6 +265,34 @@ class ActivosDbService
     // ---------------------------------------------------------------
 
     /**
+     * Inserta un registro en device_photos para un dispositivo identificado por UUID.
+     * $filePath es relativo a storage/app/private del ERP (e.g. "activos-fotos/archivo.jpg").
+     */
+    public function addDevicePhoto(string $uuid, string $filePath, ?string $caption = null): bool
+    {
+        try {
+            $device = $this->conn()->table('devices')->where('uuid', $uuid)->first();
+            if (! $device) {
+                Log::warning("ActivosDb: addDevicePhoto — dispositivo no encontrado: {$uuid}");
+                return false;
+            }
+
+            $this->conn()->table('device_photos')->insert([
+                'device_id'  => $device->id,
+                'file_path'  => $filePath,
+                'caption'    => $caption,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: addDevicePhoto [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Retorna el file_path de una foto de dispositivo para servir como proxy.
      * El ERP debe tener ACTIVOS_STORAGE_PATH en .env apuntando al
      * directorio storage/app/private de AuditoriaActivos.
@@ -578,7 +606,8 @@ class ActivosDbService
             Log::error("ActivosDb: getDeviceDocuments [{$deviceId}] — " . $e->getMessage());
             return [];
         }
-    }
+    }
+
     // ---------------------------------------------------------------
     // Escritura — crear y editar dispositivos
     // ---------------------------------------------------------------

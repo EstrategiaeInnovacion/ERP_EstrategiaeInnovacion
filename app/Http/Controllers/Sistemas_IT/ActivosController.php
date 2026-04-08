@@ -31,7 +31,11 @@ class ActivosController extends Controller
 
         $search = $request->input('search');
         $type   = $request->input('type');
-        $status = $request->input('status');
+        // Por defecto mostrar solo los disponibles; pasar ?status= (vacío) para ver todos
+        $status = $request->input('status', 'available');
+        if ($status === '') {
+            $status = null;
+        }
 
         $dispositivos = $this->activos->getAllDevicesPaginated($search, $type, $status, 15);
         $stats        = $this->activos->getDeviceStats();
@@ -40,6 +44,24 @@ class ActivosController extends Controller
         return view('Sistemas_IT.admin.activos.index', compact(
             'dispositivos', 'stats', 'search', 'type', 'status', 'soloLectura'
         ));
+    }
+
+    /**
+     * GET /admin/activos/escaner-qr
+     * Página del escáner QR para asignar / devolver / prestar dispositivos.
+     */
+    public function qrScanner()
+    {
+        if (! $this->activos->isConfigured()) {
+            return redirect()->route('admin.activos.index')
+                ->with('error', 'No se pudo conectar a la base de datos de activos.');
+        }
+
+        $empleados = Empleado::where('es_activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'id_empleado', 'area', 'posicion']);
+
+        return view('Sistemas_IT.admin.activos.qr-scanner', compact('empleados'));
     }
 
     /**
@@ -74,6 +96,8 @@ class ActivosController extends Controller
             'cred_password'       => 'nullable|string|max:255',
             'cred_email'          => 'nullable|email|max:255',
             'cred_email_password' => 'nullable|string|max:255',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp,gif|max:8192',
         ]);
 
         $uuid = $this->activos->createDevice($data);
@@ -81,6 +105,17 @@ class ActivosController extends Controller
         if (! $uuid) {
             return back()->withInput()
                 ->with('error', 'No se pudo registrar el dispositivo. Intenta de nuevo.');
+        }
+
+        // Guardar fotos subidas desde el formulario de creación
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $foto) {
+                if ($foto->isValid()) {
+                    $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
+                    $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
+                    $this->activos->addDevicePhoto($uuid, $filePath);
+                }
+            }
         }
 
         return redirect()->route('admin.activos.show', $uuid)
