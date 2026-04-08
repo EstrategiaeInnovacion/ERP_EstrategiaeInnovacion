@@ -28,6 +28,7 @@ use App\Http\Controllers\Legal\LegalController;
 use App\Http\Controllers\Legal\PaginaLegalController;
 use App\Http\Controllers\Legal\MatrizConsultaController;
 use App\Http\Controllers\Legal\CategoriaLegalController;
+use App\Http\Controllers\Legal\DigitalizacionController;
 
 // --- Controllers de Logística ---
 use App\Http\Controllers\Logistica\OperacionLogisticaController;
@@ -393,6 +394,14 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
     Route::post('/programas', [PaginaLegalController::class, 'store'])->name('programas.store');
     Route::put('/programas/{id}', [PaginaLegalController::class, 'update'])->name('programas.update');
     Route::delete('/programas/{id}', [PaginaLegalController::class, 'destroy'])->name('programas.destroy');
+
+    // Digitalización de documentos (herramientas PDF)
+    Route::get('/digitalizacion', [DigitalizacionController::class, 'index'])->name('digitalizacion.index');
+    Route::post('/digitalizacion/convertir', [DigitalizacionController::class, 'convert'])->name('digitalizacion.convert');
+    Route::post('/digitalizacion/validar', [DigitalizacionController::class, 'validatePdf'])->name('digitalizacion.validate');
+    Route::post('/digitalizacion/comprimir', [DigitalizacionController::class, 'compress'])->name('digitalizacion.compress');
+    Route::post('/digitalizacion/combinar', [DigitalizacionController::class, 'merge'])->name('digitalizacion.merge');
+    Route::post('/digitalizacion/extraer', [DigitalizacionController::class, 'extractImages'])->name('digitalizacion.extract');
 });
 
 
@@ -488,6 +497,8 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             ->name('credenciales.secundarios.destroy');
 
         // Carta Responsiva
+        Route::get('credenciales/exportar-excel', [CredencialEquipoController::class, 'exportExcel'])
+            ->name('credenciales.export-excel');
         Route::get('credenciales/carta-responsiva/{user}', [CredencialEquipoController::class, 'cartaResponsiva'])
             ->name('credenciales.carta-responsiva');
         Route::post('credenciales/carta-responsiva/{user}/guardar', [CredencialEquipoController::class, 'guardarCartaResponsiva'])
