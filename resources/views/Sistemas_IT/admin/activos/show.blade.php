@@ -91,6 +91,14 @@
                     @endunless
 
                     @unless($soloLectura ?? false)
+                    {{-- Botón Ver QR de este dispositivo --}}
+                    <button onclick="document.getElementById('modal-qr').classList.remove('hidden')"
+                            class="inline-flex items-center px-4 py-2 bg-violet-50 border border-violet-200 text-violet-700 font-semibold text-sm rounded-xl hover:bg-violet-100 transition shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                        </svg>
+                        Ver QR
+                    </button>
                     <a href="{{ route('admin.activos.qr-scanner') }}"
                        class="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold text-sm rounded-xl hover:bg-indigo-100 transition shadow-sm">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,5 +406,90 @@
         </form>
     </div>
 </div>
+
+{{-- ============================================================
+     MODAL QR — código único del dispositivo
+     ============================================================ --}}
+@unless($soloLectura ?? false)
+<div id="modal-qr" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+        <h3 class="text-lg font-bold text-slate-800 mb-1">{{ $dispositivo->name }}</h3>
+        <p class="text-xs text-slate-400 mb-5">Escanea para asignar, prestar o liberar este equipo</p>
+
+        <div id="qr-canvas-show" class="flex justify-center mb-5"></div>
+
+        <p class="text-[10px] text-slate-400 font-mono break-all mb-6">{{ $dispositivo->uuid }}</p>
+
+        <div class="flex gap-3">
+            <button onclick="descargarQR()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white font-bold text-sm rounded-xl hover:bg-violet-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Descargar
+            </button>
+            <button onclick="imprimirQR()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimir
+            </button>
+            <button onclick="document.getElementById('modal-qr').classList.add('hidden')" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-500 font-bold text-sm rounded-xl hover:bg-slate-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+@endunless
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+    const QR_URL  = '{{ url('/admin/activos/' . $dispositivo->uuid) }}';
+    const QR_NAME = '{{ addslashes($dispositivo->name) }}';
+    let qrInstance = null;
+
+    function generarQR() {
+        const container = document.getElementById('qr-canvas-show');
+        if (container && !qrInstance) {
+            qrInstance = new QRCode(container, {
+                text: QR_URL,
+                width: 220,
+                height: 220,
+                colorDark: '#1e1b4b',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H,
+            });
+        }
+    }
+
+    // Generar al cargar (para que el download funcione sin abrir el modal)
+    document.addEventListener('DOMContentLoaded', generarQR);
+
+    window.descargarQR = function () {
+        const img = document.querySelector('#qr-canvas-show img');
+        if (!img) return;
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'QR-' + QR_NAME.replace(/[^a-z0-9]/gi, '_') + '.png';
+        a.click();
+    };
+
+    window.imprimirQR = function () {
+        const img = document.querySelector('#qr-canvas-show img');
+        if (!img) return;
+        const w = window.open('', '', 'width=400,height=500');
+        w.document.write(`
+            <html><head><title>QR — ${QR_NAME}</title></head>
+            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;">
+                <h2 style="margin-bottom:4px;">${QR_NAME}</h2>
+                <img src="${img.src}" style="width:220px;height:220px;">
+                <p style="font-size:10px;color:#888;margin-top:8px;">{{ $dispositivo->uuid }}</p>
+            </body></html>
+        `);
+        w.document.close();
+        w.focus();
+        w.print();
+        w.close();
+    };
+}());
+</script>
+@endpush
 
 @endsection
