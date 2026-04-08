@@ -414,11 +414,9 @@
 <div id="modal-qr" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onclick="if(event.target===this)this.classList.add('hidden')">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
         <h3 class="text-lg font-bold text-slate-800 mb-1">{{ $dispositivo->name }}</h3>
-        <p class="text-xs text-slate-400 mb-5">Escanea para asignar, prestar o liberar este equipo</p>
+        <p class="text-xs text-slate-500 font-medium mb-5">S/N: {{ $dispositivo->serial_number ?? '—' }}</p>
 
         <div id="qr-canvas-show" class="flex justify-center mb-5"></div>
-
-        <p class="text-[10px] text-slate-400 font-mono break-all mb-6">{{ $dispositivo->uuid }}</p>
 
         <div class="flex gap-3">
             <button onclick="descargarQR()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white font-bold text-sm rounded-xl hover:bg-violet-700 transition">
@@ -441,8 +439,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (function () {
-    const QR_URL  = '{{ url('/admin/activos/' . $dispositivo->uuid) }}';
-    const QR_NAME = '{{ addslashes($dispositivo->name) }}';
+    const QR_URL    = '{{ url('/admin/activos/' . $dispositivo->uuid) }}';
+    const QR_NAME   = '{{ addslashes($dispositivo->name) }}';
+    const QR_SERIAL = '{{ addslashes($dispositivo->serial_number ?? '') }}';
     let qrInstance = null;
 
     function generarQR() {
@@ -474,13 +473,14 @@
     window.imprimirQR = function () {
         const img = document.querySelector('#qr-canvas-show img');
         if (!img) return;
-        const w = window.open('', '', 'width=400,height=500');
+        const serial = QR_SERIAL ? `S/N: ${QR_SERIAL}` : '';
+        const w = window.open('', '', 'width=400,height=460');
         w.document.write(`
             <html><head><title>QR — ${QR_NAME}</title></head>
-            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;">
-                <h2 style="margin-bottom:4px;">${QR_NAME}</h2>
+            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;gap:6px;">
                 <img src="${img.src}" style="width:220px;height:220px;">
-                <p style="font-size:10px;color:#888;margin-top:8px;">{{ $dispositivo->uuid }}</p>
+                <p style="font-size:14px;font-weight:700;margin:0;">${QR_NAME}</p>
+                ${serial ? `<p style="font-size:11px;color:#555;margin:0;">${serial}</p>` : ''}
             </body></html>
         `);
         w.document.close();

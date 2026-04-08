@@ -123,10 +123,20 @@
                     Registrar devolución
                 </button>
 
+                {{-- Botón MARCAR DAÑADO --}}
+                <button id="btn-show-broken"
+                        class="hidden w-full flex items-center justify-center gap-2 px-5 py-3 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 transition shadow-md shadow-red-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    Marcar como dañado
+                </button>
+
                 {{-- Aviso Dañado --}}
                 <div id="banner-broken"
                      class="hidden text-center bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
-                    Este equipo está marcado como <strong>Dañado</strong> y no puede asignarse.
+                    Este equipo está marcado como <strong>Dañado</strong>.
                 </div>
 
                 {{-- Aviso Mantenimiento --}}
@@ -135,6 +145,32 @@
                     Este equipo está en <strong>Mantenimiento</strong> y no puede asignarse.
                 </div>
 
+            </div>
+
+            {{-- Formulario MARCAR DAÑADO --}}
+            <div id="section-broken-form" class="hidden px-8 pb-8 border-t border-slate-100 pt-6 space-y-4">
+                <h4 class="font-bold text-slate-700 text-sm">Motivo del daño</h4>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                        ¿Por qué está dañado? <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="qr-motivo-dano" rows="3" placeholder="Describe el problema o daño del equipo…"
+                              class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-red-500 outline-none transition resize-none"></textarea>
+                </div>
+
+                <p id="broken-error" class="hidden text-xs text-red-600 font-medium"></p>
+
+                <div class="flex gap-3 pt-1">
+                    <button id="btn-cancel-broken"
+                            class="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition">
+                        Cancelar
+                    </button>
+                    <button id="btn-confirm-broken"
+                            class="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-200">
+                        Confirmar daño
+                    </button>
+                </div>
             </div>
 
             {{-- Formulario ASIGNAR / PRESTAR --}}
@@ -252,6 +288,7 @@ const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 const API_LOOKUP  = (uuid) => `/admin/activos-api/dispositivo/${uuid}`;
 const API_ASSIGN  = (uuid) => `/admin/activos-api/qr-asignar/${uuid}`;
 const API_RETURN  = (uuid) => `/admin/activos-api/qr-devolver/${uuid}`;
+const API_BROKEN  = (uuid) => `/admin/activos-api/qr-danado/${uuid}`;
 const SHOW_URL    = (uuid) => `/admin/activos/${uuid}`;
 
 // --- Referencias DOM ---
@@ -370,28 +407,33 @@ function renderDevice(data) {
     // Mostrar/ocultar botones según estado
     const btnAssign      = document.getElementById('btn-show-assign');
     const btnReturn      = document.getElementById('btn-return');
+    const btnBroken      = document.getElementById('btn-show-broken');
     const bannerBroken   = document.getElementById('banner-broken');
     const bannerMaint    = document.getElementById('banner-maintenance');
 
     btnAssign.classList.add('hidden');
     btnReturn.classList.add('hidden');
+    btnBroken.classList.add('hidden');
     bannerBroken.classList.add('hidden');
     bannerMaint.classList.add('hidden');
 
     if (data.status === 'available') {
         btnAssign.classList.remove('hidden');
+        btnBroken.classList.remove('hidden');
     } else if (data.status === 'assigned') {
-        btnAssign.classList.remove('hidden');   // Reasignar
-        btnReturn.classList.remove('hidden');
+        btnReturn.classList.remove('hidden');   // Liberar
+        btnBroken.classList.remove('hidden');
     } else if (data.status === 'maintenance') {
         bannerMaint.classList.remove('hidden');
         btnReturn.classList.remove('hidden');   // Puede devolverse de mantenimiento
+        btnBroken.classList.remove('hidden');
     } else if (data.status === 'broken') {
         bannerBroken.classList.remove('hidden');
     }
 
-    // Ocultar formulario de asignación si estaba visible
+    // Ocultar formularios si estaban visibles
     document.getElementById('section-assign-form').classList.add('hidden');
+    document.getElementById('section-broken-form').classList.add('hidden');
     document.getElementById('section-actions').classList.remove('hidden');
 
     showState($device);
@@ -420,6 +462,50 @@ document.getElementById('qr-tipo-movimiento').addEventListener('change', functio
         fieldFecha.classList.remove('hidden');
     } else {
         fieldFecha.classList.add('hidden');
+    }
+});
+
+// --- Mostrar formulario de dañado ---
+document.getElementById('btn-show-broken').addEventListener('click', () => {
+    document.getElementById('section-actions').classList.add('hidden');
+    document.getElementById('section-broken-form').classList.remove('hidden');
+    document.getElementById('qr-motivo-dano').value = '';
+    document.getElementById('broken-error').classList.add('hidden');
+});
+
+// --- Cancelar dañado ---
+document.getElementById('btn-cancel-broken').addEventListener('click', () => {
+    document.getElementById('section-broken-form').classList.add('hidden');
+    document.getElementById('section-actions').classList.remove('hidden');
+});
+
+// --- Confirmar dañado ---
+document.getElementById('btn-confirm-broken').addEventListener('click', async () => {
+    const motivo = document.getElementById('qr-motivo-dano').value.trim();
+    const errEl  = document.getElementById('broken-error');
+
+    if (!motivo) {
+        errEl.textContent = 'Describe el motivo del daño.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    errEl.classList.add('hidden');
+
+    const body = new URLSearchParams({ _token: CSRF, motivo });
+    try {
+        const res  = await fetch(API_BROKEN(currentUuid), { method: 'POST', body, headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+            errEl.textContent = data.error ?? 'No se pudo registrar el estado del dispositivo.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        showSuccessMsg(data.message);
+    } catch (e) {
+        errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+        errEl.classList.remove('hidden');
     }
 });
 
@@ -516,7 +602,9 @@ function resetToIdle() {
     document.getElementById('qr-tipo-movimiento').value  = 'asignacion_fija';
     document.getElementById('qr-fecha-devolucion').value = '';
     document.getElementById('qr-notas').value            = '';
+    document.getElementById('qr-motivo-dano').value      = '';
     document.getElementById('field-fecha-devolucion').classList.add('hidden');
+    document.getElementById('section-broken-form').classList.add('hidden');
     document.getElementById('manual-uuid').value         = '';
     showState($idle);
 }

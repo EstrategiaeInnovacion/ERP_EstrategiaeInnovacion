@@ -260,6 +260,43 @@ class ActivosDbService
         }
     }
 
+    /**
+     * Marca un dispositivo como dañado y registra el motivo.
+     * Cierra la asignación activa si existe.
+     */
+    public function markDeviceBroken(string $uuid, string $reason): bool
+    {
+        try {
+            $conn   = $this->conn();
+            $device = $conn->table('devices')->where('uuid', $uuid)->first();
+            if (! $device) {
+                return false;
+            }
+
+            $conn->transaction(function () use ($conn, $device, $reason) {
+                // Cerrar asignación activa si existe
+                $conn->table('assignments')
+                    ->where('device_id', $device->id)
+                    ->whereNull('returned_at')
+                    ->update([
+                        'returned_at' => now(),
+                        'notes'       => '[Marcado dañado] ' . $reason,
+                        'updated_at'  => now(),
+                    ]);
+
+                $conn->table('devices')
+                    ->where('id', $device->id)
+                    ->update(['status' => 'broken', 'updated_at' => now()]);
+            });
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: markDeviceBroken [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
     // ---------------------------------------------------------------
     // Fotos
     // ---------------------------------------------------------------
