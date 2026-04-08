@@ -245,11 +245,11 @@ class DigitalizacionController extends Controller
                 'value' => $sizeMb . ' MB',
             ];
 
-            // 2) Versión del PDF
+            // 2) Versión del PDF (VUCEM acepta 1.4 en adelante)
             $version = $this->getPdfVersion($tempPath);
             $checks['version'] = [
-                'label' => 'Versión PDF 1.4',
-                'ok'    => $version === '1.4',
+                'label' => 'Versión PDF 1.4 o superior',
+                'ok'    => $version !== null && version_compare($version, '1.4', '>='),
                 'value' => $version ?: 'No detectada',
             ];
 
