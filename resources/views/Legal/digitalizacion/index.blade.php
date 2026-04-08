@@ -399,38 +399,48 @@ function setModo(modo) {
 
     const btnVucem   = document.getElementById('modo-vucem');
     const btnGeneral = document.getElementById('modo-general');
-    const dotVucem   = btnVucem?.querySelector('span > svg')?.closest('span');
-    const dotGeneral = btnGeneral?.querySelector('span')?.querySelector(':scope > svg')?.closest('span') ?? btnGeneral?.querySelectorAll('span')[0];
+    const isVucem    = modo === 'vucem';
 
-    if (modo === 'vucem') {
-        btnVucem?.classList.add('border-sky-500','bg-sky-50','ring-2','ring-sky-300');
-        btnVucem?.classList.remove('border-slate-200','bg-white','hover:border-sky-300','border-violet-400','bg-violet-50','ring-violet-300');
-        btnGeneral?.classList.remove('border-violet-400','bg-violet-50','ring-2','ring-violet-300');
-        btnGeneral?.classList.add('border-slate-200','bg-white','hover:border-violet-300');
-        // swap radio dots
-        btnVucem?.querySelectorAll('span')[0].innerHTML = '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>';
-        btnVucem?.querySelectorAll('span')[0].classList.add('border-sky-500','bg-sky-500');
-        btnVucem?.querySelectorAll('span')[0].classList.remove('border-slate-300');
-        btnGeneral?.querySelectorAll('span')[0].innerHTML = '';
-        btnGeneral?.querySelectorAll('span')[0].classList.remove('border-violet-500','bg-violet-500');
-        btnGeneral?.querySelectorAll('span')[0].classList.add('border-slate-300');
-    } else {
-        btnGeneral?.classList.add('border-violet-400','bg-violet-50','ring-2','ring-violet-300');
-        btnGeneral?.classList.remove('border-slate-200','bg-white','hover:border-violet-300');
-        btnVucem?.classList.remove('border-sky-500','bg-sky-50','ring-2','ring-sky-300');
-        btnVucem?.classList.add('border-slate-200','bg-white','hover:border-sky-300');
-        // swap radio dots
-        btnGeneral?.querySelectorAll('span')[0].innerHTML = '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>';
-        btnGeneral?.querySelectorAll('span')[0].classList.add('border-violet-500','bg-violet-500');
-        btnGeneral?.querySelectorAll('span')[0].classList.remove('border-slate-300');
-        btnVucem?.querySelectorAll('span')[0].innerHTML = '';
-        btnVucem?.querySelectorAll('span')[0].classList.remove('border-sky-500','bg-sky-500');
-        btnVucem?.querySelectorAll('span')[0].classList.add('border-slate-300');
+    // Button borders / backgrounds
+    btnVucem?.classList.toggle('border-sky-500',    isVucem);
+    btnVucem?.classList.toggle('bg-sky-50',         isVucem);
+    btnVucem?.classList.toggle('ring-2',            isVucem);
+    btnVucem?.classList.toggle('ring-sky-300',      isVucem);
+    btnVucem?.classList.toggle('border-slate-200',  !isVucem);
+    btnVucem?.classList.toggle('bg-white',          !isVucem);
+
+    btnGeneral?.classList.toggle('border-violet-400', !isVucem);
+    btnGeneral?.classList.toggle('bg-violet-50',      !isVucem);
+    btnGeneral?.classList.toggle('ring-2',            !isVucem);
+    btnGeneral?.classList.toggle('ring-violet-300',   !isVucem);
+    btnGeneral?.classList.toggle('border-slate-200',  isVucem);
+    btnGeneral?.classList.toggle('bg-white',          isVucem);
+
+    // Radio dot — VUCEM
+    const spanVucem = btnVucem ? btnVucem.querySelectorAll('span')[0] : null;
+    if (spanVucem) {
+        spanVucem.innerHTML = isVucem
+            ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>'
+            : '';
+        spanVucem.classList.toggle('border-sky-500',  isVucem);
+        spanVucem.classList.toggle('bg-sky-500',      isVucem);
+        spanVucem.classList.toggle('border-slate-300', !isVucem);
     }
 
-    // Update size hint labels visible on the convert tab
+    // Radio dot — General
+    const spanGeneral = btnGeneral ? btnGeneral.querySelectorAll('span')[0] : null;
+    if (spanGeneral) {
+        spanGeneral.innerHTML = !isVucem
+            ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>'
+            : '';
+        spanGeneral.classList.toggle('border-violet-500', !isVucem);
+        spanGeneral.classList.toggle('bg-violet-500',     !isVucem);
+        spanGeneral.classList.toggle('border-slate-300',  isVucem);
+    }
+
+    // Size hint visible on convert tab
     const sizeHint = document.getElementById('modo-size-hint');
-    if (sizeHint) sizeHint.textContent = modo === 'general' ? '10 MB' : '3 MB';
+    if (sizeHint) sizeHint.textContent = isVucem ? '3 MB' : '10 MB';
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
