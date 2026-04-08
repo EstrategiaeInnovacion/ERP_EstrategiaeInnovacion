@@ -15,15 +15,21 @@ class Evaluacion extends Model
         'empleado_id',
         'evaluador_id',
         'periodo',
+        'ventana_id',
         'promedio_final',
         'comentarios_generales',
         'edit_count',
-        'fecha_firma_empleado', // <--- NUEVO CAMPO AGREGADO
+        'fecha_firma_empleado',
     ];
 
     protected $casts = [
         'fecha_firma_empleado' => 'datetime',
     ];
+
+    public function ventana()
+    {
+        return $this->belongsTo(EvaluacionVentana::class);
+    }
 
     public function detalles()
     {
