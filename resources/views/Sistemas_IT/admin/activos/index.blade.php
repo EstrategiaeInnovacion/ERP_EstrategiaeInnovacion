@@ -24,6 +24,13 @@
                     <p class="text-slate-500 mt-1">Inventario completo de equipos y dispositivos de la organización.</p>
                 </div>
                 @unless($soloLectura ?? false)
+                <a href="{{ route('admin.activos.qr-scanner') }}"
+                   class="inline-flex items-center px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                    </svg>
+                    Escanear QR
+                </a>
                 <a href="{{ route('admin.activos.create') }}"
                    class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,33 +57,55 @@
             </div>
         @else
 
-        {{-- Tarjetas de estadísticas --}}
+        {{-- Tarjetas de estadísticas (clickeables para filtrar) --}}
         @if($stats)
+        @php
+            $baseUrl    = ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index');
+            $activeStatus = $status ?? '';
+        @endphp
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-sm">
+            {{-- Total (sin filtro de estado) --}}
+            <a href="{{ $baseUrl . '?status=' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ $activeStatus === '' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-white border-slate-200' }}">
                 <p class="text-2xl font-bold text-slate-900">{{ $stats['total'] }}</p>
                 <p class="text-xs text-slate-500 mt-1 font-medium">Total</p>
-            </div>
-            <div class="bg-emerald-50 rounded-2xl border border-emerald-200 p-4 text-center shadow-sm">
+            </a>
+            {{-- Disponibles --}}
+            <a href="{{ $baseUrl . '?status=available' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ $activeStatus === 'available' ? 'bg-emerald-200 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-50 border-emerald-200' }}">
                 <p class="text-2xl font-bold text-emerald-700">{{ $stats['by_status']['available'] }}</p>
                 <p class="text-xs text-emerald-600 mt-1 font-medium">Disponibles</p>
-            </div>
-            <div class="bg-sky-50 rounded-2xl border border-sky-200 p-4 text-center shadow-sm">
+            </a>
+            {{-- Asignados --}}
+            <a href="{{ $baseUrl . '?status=assigned' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ $activeStatus === 'assigned' ? 'bg-sky-200 border-sky-500 ring-2 ring-sky-400' : 'bg-sky-50 border-sky-200' }}">
                 <p class="text-2xl font-bold text-sky-700">{{ $stats['by_status']['assigned'] }}</p>
                 <p class="text-xs text-sky-600 mt-1 font-medium">Asignados</p>
-            </div>
-            <div class="bg-amber-50 rounded-2xl border border-amber-200 p-4 text-center shadow-sm">
+            </a>
+            {{-- Mantenimiento --}}
+            <a href="{{ $baseUrl . '?status=maintenance' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ $activeStatus === 'maintenance' ? 'bg-amber-200 border-amber-500 ring-2 ring-amber-400' : 'bg-amber-50 border-amber-200' }}">
                 <p class="text-2xl font-bold text-amber-700">{{ $stats['by_status']['maintenance'] }}</p>
                 <p class="text-xs text-amber-600 mt-1 font-medium">Mantenimiento</p>
-            </div>
-            <div class="bg-red-50 rounded-2xl border border-red-200 p-4 text-center shadow-sm">
+            </a>
+            {{-- Dañados --}}
+            <a href="{{ $baseUrl . '?status=broken' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ $activeStatus === 'broken' ? 'bg-red-200 border-red-500 ring-2 ring-red-400' : 'bg-red-50 border-red-200' }}">
                 <p class="text-2xl font-bold text-red-700">{{ $stats['by_status']['broken'] }}</p>
                 <p class="text-xs text-red-600 mt-1 font-medium">Dañados</p>
-            </div>
-            <div class="bg-violet-50 rounded-2xl border border-violet-200 p-4 text-center shadow-sm">
+            </a>
+            {{-- Computadoras --}}
+            <a href="{{ $baseUrl . '?type=computer' }}"
+               class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
+                      {{ ($type ?? '') === 'computer' ? 'bg-violet-200 border-violet-500 ring-2 ring-violet-400' : 'bg-violet-50 border-violet-200' }}">
                 <p class="text-2xl font-bold text-violet-700">{{ $stats['by_type']['computer'] }}</p>
                 <p class="text-xs text-violet-600 mt-1 font-medium">Computadoras</p>
-            </div>
+            </a>
         </div>
         @endif
 
@@ -102,16 +131,16 @@
                 <select name="status"
                         class="px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-white">
                     <option value="">Todos los estados</option>
-                    <option value="available"   @selected($status === 'available')>Disponible</option>
-                    <option value="assigned"    @selected($status === 'assigned')>Asignado</option>
-                    <option value="maintenance" @selected($status === 'maintenance')>Mantenimiento</option>
-                    <option value="broken"      @selected($status === 'broken')>Dañado</option>
+                    <option value="available"   @selected(($status ?? '') === 'available')>Disponible</option>
+                    <option value="assigned"    @selected(($status ?? '') === 'assigned')>Asignado</option>
+                    <option value="maintenance" @selected(($status ?? '') === 'maintenance')>Mantenimiento</option>
+                    <option value="broken"      @selected(($status ?? '') === 'broken')>Dañado</option>
                 </select>
                 <button type="submit"
                         class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition shadow-md shadow-indigo-200 whitespace-nowrap">
                     Filtrar
                 </button>
-                @if($search || $type || $status)
+                @if($search || $type || ($status !== null && $status !== 'available'))
                     <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.index') : route('admin.activos.index') }}"
                        class="px-5 py-2.5 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 transition whitespace-nowrap">
                         Limpiar
