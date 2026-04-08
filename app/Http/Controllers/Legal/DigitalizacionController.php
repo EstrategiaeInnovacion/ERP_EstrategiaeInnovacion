@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\VucemPdfConverter;
 use App\Services\VucemImageExtractor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
@@ -34,6 +35,15 @@ class DigitalizacionController extends Controller
     // 1. CONVERTIR PDF A FORMATO VUCEM
     // =========================================================================
 
+    // Límites de tamaño por modo
+    protected const MAX_VUCEM_BYTES    = 3  * 1024 * 1024;  // 3 MB  — VUCEM / MVE
+    protected const MAX_GENERAL_BYTES  = 10 * 1024 * 1024;  // 10 MB — Otros trámites
+
+    protected function maxBytesForMode(string $modo): int
+    {
+        return $modo === 'general' ? self::MAX_GENERAL_BYTES : self::MAX_VUCEM_BYTES;
+    }
+
     public function convert(Request $request)
     {
         $request->validate([
@@ -41,7 +51,14 @@ class DigitalizacionController extends Controller
             'splitEnabled'  => 'nullable|boolean',
             'numberOfParts' => 'nullable|integer|min:2|max:8',
             'orientation'   => 'nullable|string|in:auto,portrait,landscape',
+            'modo'          => 'nullable|in:vucem,general',
         ]);
+
+        $modo            = $request->input('modo', 'vucem');
+        $maxBytes        = $this->maxBytesForMode($modo);
+
+        // Ajustar el umbral de auto-división según el modo
+        Config::set('vucem.auto_split_threshold', $maxBytes);
 
         $file            = $request->file('file');
         $originalName    = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -75,15 +92,15 @@ class DigitalizacionController extends Controller
             );
 
             if ($result['auto_divided'] && !empty($result['parts'])) {
-                return $this->buildDividedResponse($result, $originalName, $inputPath, $outputPath);
+                return $this->buildDividedResponse($result, $originalName, $inputPath, $outputPath, $modo, $maxBytes);
             }
             if ($splitEnabled && isset($result['parts']) && count($result['parts']) > 0) {
-                return $this->buildDividedResponse($result, $originalName, $inputPath, $outputPath);
+                return $this->buildDividedResponse($result, $originalName, $inputPath, $outputPath, $modo, $maxBytes);
             }
             if (!file_exists($outputPath)) {
                 throw new \Exception('Error al convertir el archivo.');
             }
-            return $this->buildSingleResponse($result, $originalName, $outputPath, $inputPath);
+            return $this->buildSingleResponse($result, $originalName, $outputPath, $inputPath, $modo, $maxBytes);
 
         } catch (\Exception $e) {
             Log::error('DigitalizacionController::convert error', ['error' => $e->getMessage()]);
@@ -92,19 +109,22 @@ class DigitalizacionController extends Controller
         }
     }
 
-    protected function buildDividedResponse(array $result, string $originalName, string $inputPath, string $outputPath): \Illuminate\Http\JsonResponse
+    protected function buildDividedResponse(array $result, string $originalName, string $inputPath, string $outputPath, string $modo = 'vucem', int $maxBytes = self::MAX_VUCEM_BYTES): \Illuminate\Http\JsonResponse
     {
-        $files = [];
+        $suffix = $modo === 'general' ? '_10MB' : '_VUCEM';
+        $files  = [];
         foreach ($result['parts'] as $partInfo) {
             $validation = $this->converter->validateVucemCompliance($partInfo['path']);
+            $sizeMb     = $partInfo['size_mb'] ?? round(filesize($partInfo['path']) / (1024 * 1024), 2);
             $files[] = [
-                'name'    => $originalName . '_parte' . $partInfo['part'] . '_VUCEM.pdf',
-                'content' => base64_encode(file_get_contents($partInfo['path'])),
-                'size'    => $partInfo['size'],
-                'size_mb' => $partInfo['size_mb'],
-                'part'    => $partInfo['part'],
-                'pages'   => $partInfo['pages'],
-                'valid'   => $validation['valid'] ?? false,
+                'name'       => $originalName . '_parte' . $partInfo['part'] . $suffix . '.pdf',
+                'content'    => base64_encode(file_get_contents($partInfo['path'])),
+                'size'       => $partInfo['size'],
+                'size_mb'    => $sizeMb,
+                'part'       => $partInfo['part'],
+                'pages'      => $partInfo['pages'],
+                'valid'      => $validation['valid'] ?? false,
+                'exceeds_limit' => $sizeMb > ($maxBytes / (1024 * 1024)),
             ];
             @unlink($partInfo['path']);
         }
@@ -113,6 +133,8 @@ class DigitalizacionController extends Controller
         return response()->json([
             'success'              => true,
             'split'                => true,
+            'modo'                 => $modo,
+            'max_size_mb'          => $maxBytes / (1024 * 1024),
             'auto_divided'         => $result['auto_divided'],
             'files'                => $files,
             'total_parts'          => count($files),
@@ -127,12 +149,14 @@ class DigitalizacionController extends Controller
         ]);
     }
 
-    protected function buildSingleResponse(array $result, string $originalName, string $outputPath, string $inputPath): \Illuminate\Http\JsonResponse
+    protected function buildSingleResponse(array $result, string $originalName, string $outputPath, string $inputPath, string $modo = 'vucem', int $maxBytes = self::MAX_VUCEM_BYTES): \Illuminate\Http\JsonResponse
     {
         $validation   = $this->converter->validateVucemCompliance($outputPath);
         $dpiValidation = $this->converter->validateDpi($outputPath);
         $fileSize     = filesize($outputPath);
         $sizeMB       = round($fileSize / (1024 * 1024), 2);
+        $maxSizeMB    = $maxBytes / (1024 * 1024);
+        $exceedsLimit = $sizeMB > $maxSizeMB;
 
         $validationMessages = array_merge($result['messages'], $result['warnings']);
 
@@ -144,14 +168,22 @@ class DigitalizacionController extends Controller
             }
         }
 
+        if ($exceedsLimit) {
+            $validationMessages[] = "⚠️ El archivo ({$sizeMB} MB) supera el límite de {$maxSizeMB} MB para " . ($modo === 'vucem' ? 'VUCEM/MVE' : 'otros trámites') . ". Considera dividirlo en partes.";
+        }
+
+        $suffix           = $modo === 'general' ? '_10MB' : '_VUCEM_300DPI';
         $convertedContent = file_get_contents($outputPath);
         $this->cleanupFiles([$inputPath, $outputPath]);
 
         return response()->json([
             'success'              => true,
             'split'                => false,
+            'modo'                 => $modo,
+            'max_size_mb'          => $maxSizeMB,
+            'exceeds_limit'        => $exceedsLimit,
             'file'                 => [
-                'name'    => $originalName . '_VUCEM_300DPI.pdf',
+                'name'    => $originalName . $suffix . '.pdf',
                 'content' => base64_encode($convertedContent),
                 'size'    => $fileSize,
                 'size_mb' => $sizeMB,
@@ -177,8 +209,13 @@ class DigitalizacionController extends Controller
     public function validatePdf(Request $request)
     {
         $request->validate([
-            'pdf' => 'required|file|mimes:pdf|max:51200',
+            'pdf'  => 'required|file|mimes:pdf|max:51200',
+            'modo' => 'nullable|in:vucem,general',
         ]);
+
+        $modo      = $request->input('modo', 'vucem');
+        $maxBytes  = $this->maxBytesForMode($modo);
+        $maxMbLabel = ($maxBytes / (1024 * 1024)) . ' MB';
 
         $file = $request->file('pdf');
 
@@ -199,12 +236,12 @@ class DigitalizacionController extends Controller
         $checks = [];
 
         try {
-            // 1) Tamaño (máximo 3 MB según VUCEM)
+            // 1) Tamaño (límite depende del modo)
             $sizeBytes = filesize($tempPath);
             $sizeMb    = round($sizeBytes / (1024 * 1024), 2);
             $checks['size'] = [
-                'label' => 'Tamaño < 3 MB',
-                'ok'    => $sizeBytes <= (3 * 1024 * 1024),
+                'label' => 'Tamaño < ' . $maxMbLabel,
+                'ok'    => $sizeBytes <= $maxBytes,
                 'value' => $sizeMb . ' MB',
             ];
 
@@ -246,10 +283,12 @@ class DigitalizacionController extends Controller
             $allOk = collect($checks)->every(fn($c) => $c['ok']);
 
             return response()->json([
-                'success'  => true,
-                'allOk'    => $allOk,
-                'fileName' => $file->getClientOriginalName(),
-                'checks'   => $checks,
+                'success'      => true,
+                'allOk'        => $allOk,
+                'fileName'     => $file->getClientOriginalName(),
+                'modo'         => $modo,
+                'max_size_mb'  => $maxBytes / (1024 * 1024),
+                'checks'       => $checks,
             ]);
 
         } catch (\Exception $e) {

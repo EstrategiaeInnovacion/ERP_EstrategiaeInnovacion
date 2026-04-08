@@ -28,6 +28,53 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
+        {{-- ── SELECTOR DE MODO ──────────────────────────────────────────────── --}}
+        <div class="mb-8">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">¿Para qué tipo de trámite?</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="modo-selector">
+
+                <button type="button" id="modo-vucem" onclick="setModo('vucem')"
+                        class="modo-btn text-left p-5 rounded-2xl border-2 transition-all
+                               border-sky-500 bg-sky-50 ring-2 ring-sky-300">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center border-sky-500 bg-sky-500">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+                        </span>
+                        <div>
+                            <p class="font-bold text-sky-800 text-sm">VUCEM / MVE</p>
+                            <p class="text-xs text-sky-600 mt-0.5">Para subir documentos al portal VUCEM o trámites de MVE</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-xs bg-sky-100 text-sky-700 font-semibold px-2 py-0.5 rounded-full">Máx. 3 MB</span>
+                                <span class="text-xs bg-sky-100 text-sky-700 font-semibold px-2 py-0.5 rounded-full">300 DPI</span>
+                                <span class="text-xs bg-sky-100 text-sky-700 font-semibold px-2 py-0.5 rounded-full">Escala de grises</span>
+                                <span class="text-xs bg-sky-100 text-sky-700 font-semibold px-2 py-0.5 rounded-full">PDF 1.4</span>
+                            </div>
+                        </div>
+                    </div>
+                </button>
+
+                <button type="button" id="modo-general" onclick="setModo('general')"
+                        class="modo-btn text-left p-5 rounded-2xl border-2 transition-all
+                               border-slate-200 bg-white hover:border-violet-300">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-300">
+                        </span>
+                        <div>
+                            <p class="font-bold text-slate-700 text-sm">Otros trámites</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Documentación de activos, expedientes internos u otros portales</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">Máx. 10 MB</span>
+                                <span class="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">300 DPI</span>
+                                <span class="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">Escala de grises</span>
+                                <span class="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">PDF 1.4</span>
+                            </div>
+                        </div>
+                    </div>
+                </button>
+
+            </div>
+        </div>
+
         {{-- Tabs --}}
         <div class="flex flex-wrap gap-2 mb-8">
             @php
@@ -68,7 +115,8 @@
         <div id="panel-convertir" class="tab-panel">
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <h2 class="text-xl font-bold text-slate-900 mb-1">Convertir PDF a formato VUCEM</h2>
-                <p class="text-slate-500 text-sm mb-6">Rasteriza el documento a exactamente 300 DPI, escala de grises y PDF versión 1.4.</p>
+                <p class="text-slate-500 text-sm mb-1">Rasteriza el documento a exactamente 300 DPI, escala de grises y PDF versión 1.4.</p>
+                <p class="text-xs text-slate-400 mb-6">Límite de tamaño para el modo actual: <span id="modo-size-hint" class="font-semibold text-sky-600">3 MB</span></p>
 
                 <form id="form-convertir" enctype="multipart/form-data" class="space-y-6">
                     @csrf
@@ -340,6 +388,51 @@
 
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
+// ── Modo (vucem = 3 MB | general = 10 MB) ────────────────────────────────────
+
+let currentModo = 'vucem';
+
+function getModo() { return currentModo; }
+
+function setModo(modo) {
+    currentModo = modo;
+
+    const btnVucem   = document.getElementById('modo-vucem');
+    const btnGeneral = document.getElementById('modo-general');
+    const dotVucem   = btnVucem?.querySelector('span > svg')?.closest('span');
+    const dotGeneral = btnGeneral?.querySelector('span')?.querySelector(':scope > svg')?.closest('span') ?? btnGeneral?.querySelectorAll('span')[0];
+
+    if (modo === 'vucem') {
+        btnVucem?.classList.add('border-sky-500','bg-sky-50','ring-2','ring-sky-300');
+        btnVucem?.classList.remove('border-slate-200','bg-white','hover:border-sky-300','border-violet-400','bg-violet-50','ring-violet-300');
+        btnGeneral?.classList.remove('border-violet-400','bg-violet-50','ring-2','ring-violet-300');
+        btnGeneral?.classList.add('border-slate-200','bg-white','hover:border-violet-300');
+        // swap radio dots
+        btnVucem?.querySelectorAll('span')[0].innerHTML = '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>';
+        btnVucem?.querySelectorAll('span')[0].classList.add('border-sky-500','bg-sky-500');
+        btnVucem?.querySelectorAll('span')[0].classList.remove('border-slate-300');
+        btnGeneral?.querySelectorAll('span')[0].innerHTML = '';
+        btnGeneral?.querySelectorAll('span')[0].classList.remove('border-violet-500','bg-violet-500');
+        btnGeneral?.querySelectorAll('span')[0].classList.add('border-slate-300');
+    } else {
+        btnGeneral?.classList.add('border-violet-400','bg-violet-50','ring-2','ring-violet-300');
+        btnGeneral?.classList.remove('border-slate-200','bg-white','hover:border-violet-300');
+        btnVucem?.classList.remove('border-sky-500','bg-sky-50','ring-2','ring-sky-300');
+        btnVucem?.classList.add('border-slate-200','bg-white','hover:border-sky-300');
+        // swap radio dots
+        btnGeneral?.querySelectorAll('span')[0].innerHTML = '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>';
+        btnGeneral?.querySelectorAll('span')[0].classList.add('border-violet-500','bg-violet-500');
+        btnGeneral?.querySelectorAll('span')[0].classList.remove('border-slate-300');
+        btnVucem?.querySelectorAll('span')[0].innerHTML = '';
+        btnVucem?.querySelectorAll('span')[0].classList.remove('border-sky-500','bg-sky-500');
+        btnVucem?.querySelectorAll('span')[0].classList.add('border-slate-300');
+    }
+
+    // Update size hint labels visible on the convert tab
+    const sizeHint = document.getElementById('modo-size-hint');
+    if (sizeHint) sizeHint.textContent = modo === 'general' ? '10 MB' : '3 MB';
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtSize(bytes) {
@@ -556,6 +649,7 @@ document.getElementById('form-convertir')?.addEventListener('submit', async func
     const fd = new FormData();
     fd.append('_token', CSRF);
     fd.append('file', fi.files[0]);
+    fd.append('modo', getModo());
     fd.append('splitEnabled', document.getElementById('splitEnabled')?.checked ? '1' : '0');
     fd.append('numberOfParts', document.getElementById('numberOfParts')?.value ?? '2');
     fd.append('orientation', document.querySelector('input[name="orientation"]:checked')?.value ?? 'auto');
@@ -567,25 +661,32 @@ document.getElementById('form-convertir')?.addEventListener('submit', async func
         if (!data.success) { showResult('convertir', resultError(data.error ?? 'Error al convertir.')); return; }
 
         if (data.split && data.files) {
-            const filesBtns = data.files.map(f =>
-                downloadBtn(f.content, f.name, 'application/pdf', `Descargar parte ${f.part} (${f.size_mb} MB)`, 'sky')
-            ).join('');
+            const modoLabel = data.modo === 'general' ? 'Otros trámites (máx. '+data.max_size_mb+' MB)' : 'VUCEM / MVE (máx. '+data.max_size_mb+' MB)';
+            const filesBtns = data.files.map(f => {
+                const overLimit = f.exceeds_limit ? `<span class="text-xs text-red-600 block mt-0.5">⚠️ Supera el límite de ${data.max_size_mb} MB</span>` : '';
+                return downloadBtn(f.content, f.name, 'application/pdf', `Descargar parte ${f.part} (${f.size_mb} MB)`, 'sky') + overLimit;
+            }).join('');
             showResult('convertir', resultSuccess(`
                 <div class="flex items-center gap-3 mb-4">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div><p class="font-bold text-emerald-800">Conversión completada — ${data.total_parts} archivos</p>
-                    <p class="text-xs text-emerald-600">Tamaño total convertido: ${data.converted_size_mb} MB ${data.was_reduced ? '(−'+Math.abs(data.size_change_percent)+'%)' : ''}</p></div>
+                    <p class="text-xs text-emerald-600">Modo: ${modoLabel} • Tamaño convertido: ${data.converted_size_mb} MB ${data.was_reduced ? '(−'+Math.abs(data.size_change_percent)+'%)' : ''}</p></div>
                 </div>
                 ${filesBtns}
             `));
         } else {
+            const modoLabel = data.modo === 'general' ? 'Otros trámites (máx. '+data.max_size_mb+' MB)' : 'VUCEM / MVE (máx. '+data.max_size_mb+' MB)';
+            const exceedHtml = data.exceeds_limit
+                ? `<div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700"><b>⚠️ Aviso:</b> El archivo (${data.file.size_mb} MB) supera el límite de ${data.max_size_mb} MB. Considera utilizar la opción de dividir en partes.</div>`
+                : '';
             showResult('convertir', resultSuccess(`
                 <div class="flex items-center gap-3 mb-4">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div><p class="font-bold text-emerald-800">Conversión completada</p>
-                    <p class="text-xs text-emerald-600">${data.file.size_mb} MB ${data.was_reduced ? '(antes: '+data.original_size_mb+' MB, −'+Math.abs(data.size_change_percent)+'%)' : ''}</p></div>
+                    <p class="text-xs text-emerald-600">Modo: ${modoLabel} • ${data.file.size_mb} MB ${data.was_reduced ? '(antes: '+data.original_size_mb+' MB, −'+Math.abs(data.size_change_percent)+'%)' : ''}</p></div>
                 </div>
                 ${data.messages?.length ? `<ul class="text-xs text-emerald-700 mb-2 space-y-0.5">${data.messages.map(m=>`<li>${m}</li>`).join('')}</ul>` : ''}
+                ${exceedHtml}
                 ${downloadBtn(data.file.content, data.file.name, 'application/pdf', 'Descargar PDF convertido', 'sky')}
             `));
         }
@@ -610,6 +711,7 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
     const fd = new FormData();
     fd.append('_token', CSRF);
     fd.append('pdf', fi.files[0]);
+    fd.append('modo', getModo());
 
     try {
         const res  = await fetch('{{ route("legal.digitalizacion.validate") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
@@ -617,8 +719,11 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
 
         if (!data.success) { showResult('validar', resultError(data.error ?? 'Error al validar.')); return; }
 
+        const maxMb = data.max_size_mb ?? 3;
+        const modoLabel = data.modo === 'general' ? `Otros trámites (máx. ${maxMb} MB)` : `VUCEM / MVE (máx. ${maxMb} MB)`;
+
         const checkLabels = {
-            size:       { ok: '✓ Tamaño permitido (<3 MB)', fail: '✗ Tamaño excede 3 MB', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
+            size:       { ok: `✓ Tamaño permitido (<${maxMb} MB)`, fail: `✗ Tamaño excede ${maxMb} MB`, icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
             version:    { ok: '✓ Versión PDF 1.4',          fail: '✗ Versión PDF incorrecta', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
             grayscale:  { ok: '✓ Escala de grises',         fail: '✗ Contiene color', icon: 'M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4' },
             dpi:        { ok: '✓ 300 DPI',                  fail: '✗ DPI incorrecto', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
@@ -663,8 +768,8 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
                             : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
                     </svg>
                     <div>
-                        <p class="font-bold ${allText}">${data.allOk ? '¡Documento válido para VUCEM!' : 'Documento no cumple con los requisitos'}</p>
-                        <p class="text-xs ${allSubtxt}">${data.fileName}</p>
+                        <p class="font-bold ${allText}">${data.allOk ? '¡Documento válido!' : 'Documento no cumple con los requisitos'}</p>
+                        <p class="text-xs ${allSubtxt}">${modoLabel} &bull; ${data.fileName}</p>
                     </div>
                 </div>
                 <div class="divide-y divide-slate-100">${checksHtml}</div>
