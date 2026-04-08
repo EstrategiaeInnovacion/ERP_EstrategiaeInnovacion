@@ -41,10 +41,11 @@ return [
     ],
 
     'microsoft_graph' => [
-        'client_id' => env('MS_GRAPH_CLIENT_ID'),
-        'tenant_id' => env('MS_GRAPH_TENANT_ID'),
-        'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
-        'sender_email' => env('MS_GRAPH_SENDER_EMAIL', 'sistemas@estrategiaeinnovacion.com.mx'),
+        // Prefiere MICROSOFT_GRAPH_* (usadas por RH, funcionales) y cae a MS_GRAPH_* como respaldo
+        'client_id'     => env('MICROSOFT_GRAPH_CLIENT_ID',     env('MS_GRAPH_CLIENT_ID')),
+        'tenant_id'     => env('MICROSOFT_GRAPH_TENANT_ID',     env('MS_GRAPH_TENANT_ID')),
+        'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET', env('MS_GRAPH_CLIENT_SECRET')),
+        'sender_email'  => env('MS_GRAPH_SENDER_EMAIL', env('MAIL_FROM_ADDRESS', 'sistemas@estrategiaeinnovacion.com.mx')),
     ],
 
 ];
