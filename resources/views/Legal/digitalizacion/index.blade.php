@@ -609,17 +609,41 @@ document.getElementById('dz-combinar')?.addEventListener('drop', function(e) {
     renderCombinarList();
 });
 
+// ── Drag-and-drop reorder state ───────────────────────────────────────────────
+let dragSrcIndex = null;
+
 function renderCombinarList() {
     const listEl = document.getElementById('file-list-combinar');
     const btn    = document.getElementById('btn-combinar');
     if (!listEl) return;
 
     listEl.innerHTML = combinarFiles.map((f, i) => `
-        <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
-            <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <div class="combinar-item flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 cursor-grab active:cursor-grabbing select-none transition"
+             draggable="true"
+             data-index="${i}"
+             ondragstart="combinarDragStart(event,${i})"
+             ondragover="combinarDragOver(event)"
+             ondrop="combinarDrop(event,${i})"
+             ondragend="combinarDragEnd(event)">
+            <!-- handle -->
+            <svg class="w-4 h-4 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            <!-- order badge -->
+            <span class="text-xs font-bold text-amber-600 bg-amber-100 rounded-full w-5 h-5 flex items-center justify-center shrink-0">${i + 1}</span>
+            <!-- pdf icon -->
+            <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span class="flex-1 text-sm text-slate-700 truncate">${f.name}</span>
-            <span class="text-xs text-slate-500 shrink-0">${fmtSize(f.size)}</span>
-            <button type="button" onclick="removeCombinarFile(${i})" class="text-slate-400 hover:text-red-500 transition ml-1">
+            <span class="text-xs text-slate-400 shrink-0">${fmtSize(f.size)}</span>
+            <!-- up / down -->
+            <button type="button" onclick="moveCombinarFile(${i},-1)" ${i === 0 ? 'disabled' : ''} class="p-0.5 text-slate-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+            </button>
+            <button type="button" onclick="moveCombinarFile(${i},1)" ${i === combinarFiles.length - 1 ? 'disabled' : ''} class="p-0.5 text-slate-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <!-- remove -->
+            <button type="button" onclick="removeCombinarFile(${i})" class="p-0.5 text-slate-300 hover:text-red-500 transition ml-0.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -628,10 +652,46 @@ function renderCombinarList() {
     if (btn) btn.disabled = combinarFiles.length < 2;
 }
 
+window.moveCombinarFile = function(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= combinarFiles.length) return;
+    [combinarFiles[i], combinarFiles[j]] = [combinarFiles[j], combinarFiles[i]];
+    renderCombinarList();
+    clearResult('combinar');
+};
+
 window.removeCombinarFile = function(i) {
     combinarFiles.splice(i, 1);
     renderCombinarList();
     clearResult('combinar');
+};
+
+// Drag-and-drop handlers
+window.combinarDragStart = function(e, i) {
+    dragSrcIndex = i;
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.classList.add('opacity-40', 'ring-2', 'ring-amber-400');
+};
+window.combinarDragOver = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('border-amber-400', 'bg-amber-50');
+};
+window.combinarDrop = function(e, targetIndex) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-amber-400', 'bg-amber-50');
+    if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+    const moved = combinarFiles.splice(dragSrcIndex, 1)[0];
+    combinarFiles.splice(targetIndex, 0, moved);
+    dragSrcIndex = null;
+    renderCombinarList();
+    clearResult('combinar');
+};
+window.combinarDragEnd = function(e) {
+    dragSrcIndex = null;
+    document.querySelectorAll('.combinar-item').forEach(el => {
+        el.classList.remove('opacity-40', 'ring-2', 'ring-amber-400', 'border-amber-400', 'bg-amber-50');
+    });
 };
 
 // ── Opciones dividir ──────────────────────────────────────────────────────────
