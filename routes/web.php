@@ -487,22 +487,22 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             Route::post('/qr-devolver/{uuid}',        [ActivosApiController::class, 'returnViaQr'])->name('qr-return');
             Route::post('/qr-danado/{uuid}',          [ActivosApiController::class, 'markBrokenViaQr'])->name('qr-broken');
         });
-        Route::resource('credenciales', CredencialEquipoController::class)
-            ->parameters(['credenciales' => 'credencial']);
-
-        // Equipos secundarios (rutas explícitas antes del resource para evitar conflictos)
-        Route::post('credenciales/{credencial}/secundarios', [CredencialEquipoController::class, 'storeSecundario'])
-            ->name('credenciales.secundarios.store');
-        Route::delete('credenciales/{credencial}/secundarios/{secundario}', [CredencialEquipoController::class, 'destroySecundario'])
-            ->name('credenciales.secundarios.destroy');
-
-        // Carta Responsiva
+        // Rutas estáticas ANTES del resource para evitar que {credencial} las capture
         Route::get('credenciales/exportar-excel', [CredencialEquipoController::class, 'exportExcel'])
             ->name('credenciales.export-excel');
         Route::get('credenciales/carta-responsiva/{user}', [CredencialEquipoController::class, 'cartaResponsiva'])
             ->name('credenciales.carta-responsiva');
         Route::post('credenciales/carta-responsiva/{user}/guardar', [CredencialEquipoController::class, 'guardarCartaResponsiva'])
             ->name('credenciales.carta-responsiva.guardar');
+
+        Route::resource('credenciales', CredencialEquipoController::class)
+            ->parameters(['credenciales' => 'credencial']);
+
+        // Equipos secundarios
+        Route::post('credenciales/{credencial}/secundarios', [CredencialEquipoController::class, 'storeSecundario'])
+            ->name('credenciales.secundarios.store');
+        Route::delete('credenciales/{credencial}/secundarios/{secundario}', [CredencialEquipoController::class, 'destroySecundario'])
+            ->name('credenciales.secundarios.destroy');
     });
 
 // API Notificaciones Admin
