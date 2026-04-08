@@ -67,7 +67,7 @@
         {{-- ====================== ESTADO 2: CÁMARA ====================== --}}
         <div id="state-camera" class="hidden">
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                <div id="qr-reader" wire:ignore></div>
+                <div id="qr-reader" style="width:100%;"></div>
             </div>
             <p class="text-center text-xs text-slate-400 mt-3">Apunta la cámara al código QR del dispositivo.</p>
             <div class="mt-3 text-center">
@@ -265,6 +265,7 @@ const $errState   = document.getElementById('state-error');
 let scanner       = null;
 let currentUuid   = null;
 let currentStatus = null;
+let scannerStarted = false;
 
 // --- Utilidad: mostrar un solo estado ---
 function showState(stateEl) {
@@ -274,22 +275,42 @@ function showState(stateEl) {
     if (stateEl) stateEl.classList.remove('hidden');
 }
 
-// --- Iniciar cámara (misma configuración que AuditoriaActivos) ---
+// --- Iniciar cámara con Html5Qrcode (API directa, sin widget propio) ---
 function startCamera() {
     showState($camera);
+
     if (!scanner) {
-        scanner = new Html5QrcodeScanner(
-            'qr-reader',
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            false
-        );
+        scanner = new Html5Qrcode('qr-reader');
     }
-    scanner.render(onScanSuccess, () => {});
+
+    Html5Qrcode.getCameras().then(cameras => {
+        if (!cameras || cameras.length === 0) {
+            showError('No se encontró ninguna cámara en este dispositivo.');
+            return;
+        }
+        // Preferir cámara trasera
+        const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) ?? cameras[cameras.length - 1];
+
+        scanner.start(
+            cam.id,
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => { onScanSuccess(decodedText); },
+            () => {}
+        ).then(() => {
+            scannerStarted = true;
+        }).catch(err => {
+            showError('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+            console.error(err);
+        });
+    }).catch(() => {
+        showError('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+    });
 }
 
 function stopCamera() {
-    if (scanner) {
-        scanner.clear().catch(() => {});
+    if (scanner && scannerStarted) {
+        scanner.stop().catch(() => {});
+        scannerStarted = false;
     }
 }
 
