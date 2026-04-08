@@ -31,6 +31,13 @@
                     </svg>
                     Escanear QR
                 </a>
+                <button onclick="imprimirEtiquetas()"
+                   class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Imprimir etiquetas
+                </button>
                 <a href="{{ route('admin.activos.create') }}"
                    class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,6 +382,234 @@
         w.close();
     };
 }());
+</script>
+
+{{-- ── Datos para impresión de etiquetas ──────────────────────────── --}}
+<script>
+const ETIQUETAS_DATA = @json(
+    ($dispositivos && !isset($noConexion))
+        ? $dispositivos->map(fn($d) => [
+            'uuid'   => $d->uuid,
+            'nombre' => $d->name,
+            'marca'  => trim(($d->brand ?? '') . ' ' . ($d->model ?? '')),
+            'serie'  => $d->serial_number ?? '',
+            'estado' => match($d->status ?? '') {
+                'available'   => 'Disponible',
+                'assigned'    => 'Asignado',
+                'maintenance' => 'Mantenimiento',
+                'broken'      => 'Dañado',
+                default       => $d->status ?? '',
+            },
+            'asignado' => $d->employee_name ?? $d->assigned_to ?? '',
+          ])->values()
+        : []
+);
+
+const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
+{{-- Título de sección para el encabezado de la hoja --}}
+@php
+    $labelSeccion = '';
+    if (!empty($type)) {
+        $labelSeccion = match($type) {
+            'computer'   => 'Computadoras',
+            'peripheral' => 'Periféricos',
+            'printer'    => 'Impresoras',
+            default      => 'Otro',
+        };
+    } elseif (!empty($status)) {
+        $labelSeccion = match($status) {
+            'available'   => 'Disponibles',
+            'assigned'    => 'Asignados',
+            'maintenance' => 'En Mantenimiento',
+            'broken'      => 'Dañados',
+            default       => 'Activos IT',
+        };
+    } elseif (!empty($search)) {
+        $labelSeccion = 'Búsqueda: ' . $search;
+    } else {
+        $labelSeccion = 'Todos los Activos IT';
+    }
+@endphp
+const ETIQUETAS_SECCION = '{{ addslashes($labelSeccion) }}';
+
+window.imprimirEtiquetas = function () {
+    if (!ETIQUETAS_DATA || ETIQUETAS_DATA.length === 0) {
+        alert('No hay dispositivos en la vista actual para imprimir.');
+        return;
+    }
+
+    // Crear QR como data-URL para cada dispositivo usando QRCode.js en canvas oculto
+    const total = ETIQUETAS_DATA.length;
+    const qrDataUrls = [];
+    let generados = 0;
+
+    function onQRGenerado(idx, dataUrl) {
+        qrDataUrls[idx] = dataUrl;
+        generados++;
+        if (generados === total) abrirVentanaImpresion();
+    }
+
+    ETIQUETAS_DATA.forEach((d, idx) => {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.left     = '-9999px';
+        document.body.appendChild(div);
+
+        const qr = new QRCode(div, {
+            text: ETIQUETAS_BASE_URL + '/' + d.uuid,
+            width: 120, height: 120,
+            colorDark: '#111827', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H,
+        });
+
+        // QRCode.js genera la imagen de forma síncrona; la imagen ya existe
+        setTimeout(() => {
+            const img = div.querySelector('img');
+            onQRGenerado(idx, img ? img.src : '');
+            document.body.removeChild(div);
+        }, 60);
+    });
+
+    function abrirVentanaImpresion() {
+        // 3 columnas × N filas, tamaño etiqueta ≈ 6 cm × 7 cm
+        const cols = 3;
+        const labelW = '180px';
+        const labelH = '190px';
+
+        const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => `
+            <div class="etiqueta">
+                <div class="etq-header">E&amp;I — Activos IT</div>
+                <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR">
+                <div class="etq-nombre">${d.nombre}</div>
+                <div class="etq-meta">${d.marca}</div>
+                ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
+                <div class="etq-estado etq-estado-${(ETIQUETAS_DATA[i]?.estado||'').toLowerCase().replace(/ /g,'-')}">${d.estado}</div>
+                ${d.asignado ? `<div class="etq-asignado">${d.asignado}</div>` : ''}
+            </div>
+        `).join('');
+
+        const w = window.open('', '_blank', 'width=900,height=700');
+        w.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Etiquetas — ${ETIQUETAS_SECCION}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', sans-serif; background: #fff; }
+
+  .hoja-header {
+    padding: 12px 20px 8px;
+    border-bottom: 2px solid #1e1b4b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .hoja-header h1 { font-size: 15px; color: #1e1b4b; font-weight: 700; }
+  .hoja-header span { font-size: 11px; color: #6b7280; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(${cols}, 1fr);
+    gap: 8px;
+    padding: 0 16px 20px;
+  }
+
+  .etiqueta {
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: ${labelW};
+    min-height: ${labelH};
+    page-break-inside: avoid;
+    overflow: hidden;
+  }
+  .etq-header {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #1e1b4b;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 4px;
+  }
+  .etq-qr {
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+  }
+  .etq-nombre {
+    font-size: 9px;
+    font-weight: 700;
+    color: #111827;
+    text-align: center;
+    margin-top: 5px;
+    line-height: 1.2;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .etq-meta {
+    font-size: 8px;
+    color: #6b7280;
+    text-align: center;
+    margin-top: 2px;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .etq-serie {
+    font-size: 7.5px;
+    color: #9ca3af;
+    font-family: monospace;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .etq-estado {
+    margin-top: 4px;
+    font-size: 7.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .etq-estado-disponible    { background: #d1fae5; color: #065f46; }
+  .etq-estado-asignado      { background: #dbeafe; color: #1e40af; }
+  .etq-estado-en-mantenimiento { background: #fef3c7; color: #92400e; }
+  .etq-estado-dañado        { background: #fee2e2; color: #991b1b; }
+  .etq-asignado {
+    font-size: 7.5px;
+    color: #374151;
+    text-align: center;
+    margin-top: 2px;
+    word-break: break-word;
+    max-width: 100%;
+  }
+
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .hoja-header { position: fixed; top: 0; width: 100%; }
+    .grid { margin-top: 50px; }
+    @page { margin: 10mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+  <div class="hoja-header">
+    <h1>${ETIQUETAS_SECCION}</h1>
+    <span>${total} etiqueta${total !== 1 ? 's' : ''} · ${new Date().toLocaleDateString('es-MX')}</span>
+  </div>
+  <div class="grid">
+    ${etiquetasHtml}
+  </div>
+  <script>window.onload = function(){ window.print(); };<\/script>
+</body>
+</html>`);
+        w.document.close();
+    }
+};
 </script>
 @endpush
 
