@@ -385,29 +385,28 @@
 </script>
 
 {{-- ── Datos para impresión de etiquetas ──────────────────────────── --}}
-<script>
-const ETIQUETAS_DATA = @json(
-    ($dispositivos && !isset($noConexion))
-        ? $dispositivos->map(fn($d) => [
-            'uuid'   => $d->uuid,
-            'nombre' => $d->name,
-            'marca'  => trim(($d->brand ?? '') . ' ' . ($d->model ?? '')),
-            'serie'  => $d->serial_number ?? '',
-            'estado' => match($d->status ?? '') {
+@php
+    $etiquetasArray = [];
+    if ($dispositivos && !isset($noConexion)) {
+        foreach ($dispositivos as $d) {
+            $estadoLabel = match($d->status ?? '') {
                 'available'   => 'Disponible',
                 'assigned'    => 'Asignado',
                 'maintenance' => 'Mantenimiento',
                 'broken'      => 'Dañado',
                 default       => $d->status ?? '',
-            },
-            'asignado' => $d->employee_name ?? $d->assigned_to ?? '',
-          ])->values()
-        : []
-);
+            };
+            $etiquetasArray[] = [
+                'uuid'     => $d->uuid,
+                'nombre'   => $d->name,
+                'marca'    => trim(($d->brand ?? '') . ' ' . ($d->model ?? '')),
+                'serie'    => $d->serial_number ?? '',
+                'estado'   => $estadoLabel,
+                'asignado' => $d->employee_name ?? $d->assigned_to ?? '',
+            ];
+        }
+    }
 
-const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
-{{-- Título de sección para el encabezado de la hoja --}}
-@php
     $labelSeccion = '';
     if (!empty($type)) {
         $labelSeccion = match($type) {
@@ -430,7 +429,10 @@ const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
         $labelSeccion = 'Todos los Activos IT';
     }
 @endphp
-const ETIQUETAS_SECCION = '{{ addslashes($labelSeccion) }}';
+<script>
+const ETIQUETAS_DATA     = @json($etiquetasArray);
+const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
+const ETIQUETAS_SECCION  = '{{ addslashes($labelSeccion) }}';
 
 window.imprimirEtiquetas = function () {
     if (!ETIQUETAS_DATA || ETIQUETAS_DATA.length === 0) {
