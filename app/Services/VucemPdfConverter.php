@@ -160,41 +160,10 @@ class VucemPdfConverter
                     Log::info("VucemConverter: Procesando parte {$groupNumber}/{$numberOfParts}");
                     
                     $groupOutput = str_replace('.pdf', "_parte{$groupNumber}.pdf", $outputPath);
-                    
-                    $pdf = new \TCPDF('P', 'pt', 'A4', true, 'UTF-8', false);
-                    $pdf->SetCreator('VUCEM Converter');
-                    $pdf->SetTitle("Documento VUCEM - Parte {$groupNumber} de {$numberOfParts}");
-                    $pdf->setPrintHeader(false);
-                    $pdf->setPrintFooter(false);
-                    $pdf->SetMargins(0, 0, 0);
-                    $pdf->SetAutoPageBreak(false, 0);
-                    $pdf->setImageScale(1.0);
-                    $pdf->setJPEGQuality(100);
-                    $pdf->SetCompression(false);
-                    
-                    foreach ($groupJpegs as $jpegFile) {
-                        list($widthPx, $heightPx) = getimagesize($jpegFile);
-                        $widthPt = ($widthPx / 300) * 72;
-                        $heightPt = ($heightPx / 300) * 72;
-                        
-                        // Detectar u obtener orientación
-                        $orientation = 'P';
-                        if ($forceOrientation === 'auto') {
-                            $orientation = $this->detectPageOrientation($jpegFile);
-                        } elseif ($forceOrientation === 'landscape') {
-                            $orientation = 'L';
-                        } elseif ($forceOrientation === 'portrait') {
-                            $orientation = 'P';
-                        }
-                        
-                        $pdf->AddPage($orientation, [$widthPt, $heightPt]);
-                        $pdf->Image($jpegFile, 0, 0, $widthPt, $heightPt, 'JPEG', '', '', false, 300, '', false, false, 0, false, false, false);
-                    }
-                    
-                    $pdfContent = $pdf->Output('', 'S');
-                    file_put_contents($groupOutput, $pdfContent);
-                    
-                    $sizeMB = round(filesize($groupOutput) / (1024 * 1024), 2);
+
+                    $this->rebuildPdfFromJpegs($groupJpegs, $groupOutput, 100, $forceOrientation, $tempDir);
+
+                    $sizeMB = file_exists($groupOutput) ? round(filesize($groupOutput) / (1024 * 1024), 2) : 0;
                     Log::info("VucemConverter: Parte {$groupNumber} creada - {$sizeMB} MB, " . count($groupJpegs) . " páginas");
                     
                     $outputFiles[] = [
@@ -232,42 +201,10 @@ class VucemPdfConverter
                     Log::info("VucemConverter: Procesando grupo {$groupNumber}/{$totalGroups}");
                     
                     $groupOutput = str_replace('.pdf', "_parte{$groupNumber}.pdf", $outputPath);
-                    
-                    $pdf = new \TCPDF('P', 'pt', 'A4', true, 'UTF-8', false);
-                    $pdf->SetCreator('VUCEM Converter');
-                    $pdf->SetTitle("Documento VUCEM - Parte {$groupNumber} de {$totalGroups}");
-                    $pdf->setPrintHeader(false);
-                    $pdf->setPrintFooter(false);
-                    $pdf->SetMargins(0, 0, 0);
-                    $pdf->SetAutoPageBreak(false, 0);
-                    $pdf->setImageScale(1.0);
-                    $pdf->setJPEGQuality(100);
-                    $pdf->SetCompression(false);
-                    
-                    foreach ($groupJpegs as $jpegFile) {
-                        list($widthPx, $heightPx) = getimagesize($jpegFile);
-                        // Calcular tamaño en puntos para 300 DPI
-                        $widthPt = ($widthPx / 300) * 72;
-                        $heightPt = ($heightPx / 300) * 72;
-                        
-                        // Detectar u obtener orientación
-                        $orientation = 'P';
-                        if ($forceOrientation === 'auto') {
-                            $orientation = $this->detectPageOrientation($jpegFile);
-                        } elseif ($forceOrientation === 'landscape') {
-                            $orientation = 'L';
-                        } elseif ($forceOrientation === 'portrait') {
-                            $orientation = 'P';
-                        }
-                        
-                        $pdf->AddPage($orientation, [$widthPt, $heightPt]);
-                        $pdf->Image($jpegFile, 0, 0, $widthPt, $heightPt, 'JPEG', '', '', false, 300, '', false, false, 0, false, false, false);
-                    }
-                    
-                    $pdfContent = $pdf->Output('', 'S');
-                    file_put_contents($groupOutput, $pdfContent);
-                    
-                    $sizeMB = round(filesize($groupOutput) / (1024 * 1024), 2);
+
+                    $this->rebuildPdfFromJpegs($groupJpegs, $groupOutput, 100, $forceOrientation, $tempDir);
+
+                    $sizeMB = file_exists($groupOutput) ? round(filesize($groupOutput) / (1024 * 1024), 2) : 0;
                     Log::info("VucemConverter: Grupo {$groupNumber} creado - {$sizeMB} MB, " . count($groupJpegs) . " páginas");
                     
                     $outputFiles[] = [
@@ -342,44 +279,12 @@ class VucemPdfConverter
                         sort($jpegFiles, SORT_NATURAL);
                     }
                     
-                    $pdf = new \TCPDF('P', 'pt', 'A4', true, 'UTF-8', false);
-                    $pdf->SetCreator('VUCEM Converter');
-                    $pdf->SetTitle('Documento VUCEM');
-                    $pdf->setPrintHeader(false);
-                    $pdf->setPrintFooter(false);
-                    $pdf->SetMargins(0, 0, 0);
-                    $pdf->SetAutoPageBreak(false, 0);
-                    $pdf->setImageScale(1.0);
-                    $pdf->setJPEGQuality(100);
-                    $pdf->SetCompression(false);
-                    
-                    foreach ($jpegFiles as $idx => $jpegFile) {
-                        list($widthPx, $heightPx) = getimagesize($jpegFile);
-                        // Calcular tamaño en puntos para 300 DPI
-                        $widthPt = ($widthPx / 300) * 72;
-                        $heightPt = ($heightPx / 300) * 72;
-                        
-                        // Detectar u obtener orientación
-                        $orientation = 'P';
-                        if ($forceOrientation === 'auto') {
-                            $orientation = $this->detectPageOrientation($jpegFile);
-                        } elseif ($forceOrientation === 'landscape') {
-                            $orientation = 'L';
-                        } elseif ($forceOrientation === 'portrait') {
-                            $orientation = 'P';
-                        }
-                        
-                        $pdf->AddPage($orientation, [$widthPt, $heightPt]);
-                        $pdf->Image($jpegFile, 0, 0, $widthPt, $heightPt, 'JPEG', '', '', false, 300, '', false, false, 0, false, false, false);
-                    }
-                    
-                    $pdfContent = $pdf->Output('', 'S');
-                    file_put_contents($outputPath, $pdfContent);
-                    
+                    $this->rebuildPdfFromJpegs($jpegFiles, $outputPath, $quality, $forceOrientation, $tempDir);
+
                     if (!file_exists($outputPath) || filesize($outputPath) < 1000) {
-                        throw new RuntimeException('No se pudo crear el PDF con TCPDF');
+                        throw new RuntimeException('No se pudo crear el PDF');
                     }
-                    
+
                     $sizeMB = round(filesize($outputPath) / (1024 * 1024), 2);
                     Log::info("VucemConverter: PDF creado - {$sizeMB} MB");
                     
@@ -1700,39 +1605,65 @@ class VucemPdfConverter
     }
 
     /**
-     * Reconstruye PDF desde JPEGs con calidad específica
+     * Reconstruye PDF desde JPEGs usando Ghostscript + PostScript (sin TCPDF).
+     * Genera un documento PS que embebe cada JPEG con el tamaño de página exacto
+     * calculado a 300 DPI, luego lo convierte a PDF 1.4 con Ghostscript.
      */
     protected function rebuildPdfFromJpegs(array $jpegFiles, string $outputPath, int $quality, string $forceOrientation, string $tempDir): bool
     {
-        $pdf = new \TCPDF('P', 'pt', 'A4', true, 'UTF-8', false);
-        $pdf->SetCreator('VUCEM Converter');
-        $pdf->SetTitle('Documento VUCEM');
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(0, 0, 0);
-        $pdf->SetAutoPageBreak(false, 0);
-        $pdf->setImageScale(1.0);
-        $pdf->setJPEGQuality($quality);
-        $pdf->SetCompression(false);
+        $psLines = [
+            '%!PS-Adobe-3.0',
+            '%%Pages: ' . count($jpegFiles),
+            '%%EndComments',
+        ];
 
+        $pageNum = 1;
         foreach ($jpegFiles as $jpegFile) {
-            list($widthPx, $heightPx) = getimagesize($jpegFile);
-            $widthPt = ($widthPx / 300) * 72;
-            $heightPt = ($heightPx / 300) * 72;
+            [$widthPx, $heightPx] = getimagesize($jpegFile);
+            $widthPt  = round(($widthPx / 300) * 72, 4);
+            $heightPt = round(($heightPx / 300) * 72, 4);
 
-            $orientation = 'P';
-            if ($forceOrientation === 'auto') {
-                $orientation = $this->detectPageOrientation($jpegFile);
-            } elseif ($forceOrientation === 'landscape') {
-                $orientation = 'L';
+            // Forward slashes work on both Linux and Ghostscript on Windows
+            $safePath = str_replace('\\', '/', $jpegFile);
+
+            $psLines[] = "%%Page: {$pageNum} {$pageNum}";
+            $psLines[] = "<< /PageSize [{$widthPt} {$heightPt}] >> setpagedevice";
+            $psLines[] = "{$widthPt} {$heightPt} scale";
+            $psLines[] = '/DeviceGray setcolorspace';
+            $psLines[] = '<<';
+            $psLines[] = '  /ImageType 1';
+            $psLines[] = "  /Width {$widthPx}";
+            $psLines[] = "  /Height {$heightPx}";
+            $psLines[] = '  /BitsPerComponent 8';
+            $psLines[] = '  /Decode [0 1]';
+            $psLines[] = "  /ImageMatrix [{$widthPx} 0 0 -{$heightPx} 0 {$heightPx}]";
+            $psLines[] = "  /DataSource ({$safePath}) (r) file /DCTDecode filter";
+            $psLines[] = '>> image';
+            $psLines[] = 'showpage';
+            $pageNum++;
+        }
+        $psLines[] = '%%EOF';
+
+        $psPath = $tempDir . '/assembled_' . uniqid() . '.ps';
+        file_put_contents($psPath, implode("\n", $psLines) . "\n");
+
+        try {
+            $this->executeGhostscript([
+                '-sDEVICE=pdfwrite',
+                '-dCompatibilityLevel=1.4',
+                '-dNOPAUSE',
+                '-dBATCH',
+                '-dSAFER',
+                '-sOutputFile=' . $outputPath,
+                $psPath,
+            ]);
+        } finally {
+            if (file_exists($psPath)) {
+                @unlink($psPath);
             }
-
-            $pdf->AddPage($orientation, [$widthPt, $heightPt]);
-            $pdf->Image($jpegFile, 0, 0, $widthPt, $heightPt, 'JPEG', '', '', false, 300, '', false, false, 0, false, false, false);
         }
 
-        $pdfContent = $pdf->Output('', 'S');
-        return file_put_contents($outputPath, $pdfContent) !== false;
+        return file_exists($outputPath) && filesize($outputPath) > 1000;
     }
 
     /**
