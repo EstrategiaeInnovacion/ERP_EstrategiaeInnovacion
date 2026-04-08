@@ -230,10 +230,22 @@
                             </td>
                             {{-- Acciones --}}
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.show', $d->uuid) : route('admin.activos.show', $d->uuid) }}"
-                                   class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition">
-                                    Ver detalle
-                                </a>
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.show', $d->uuid) : route('admin.activos.show', $d->uuid) }}"
+                                       class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition">
+                                        Ver detalle
+                                    </a>
+                                    @unless($soloLectura ?? false)
+                                    <button
+                                        onclick="abrirQR('{{ $d->uuid }}', '{{ addslashes($d->name) }}')"
+                                        class="inline-flex items-center px-2.5 py-1.5 bg-violet-50 text-violet-700 text-xs font-semibold rounded-lg hover:bg-violet-100 transition"
+                                        title="Ver código QR">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                        </svg>
+                                    </button>
+                                    @endunless
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -269,4 +281,101 @@
         @endif {{-- fin bloque conexión --}}
     </div>
 </div>
+
+{{-- ============================================================
+     MODAL QR GLOBAL (índice)
+     ============================================================ --}}
+@unless($soloLectura ?? false)
+<div id="modal-qr-idx" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onclick="if(event.target===this)cerrarQR()">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+        <h3 id="qr-idx-nombre" class="text-lg font-bold text-slate-800 mb-1"></h3>
+        <p class="text-xs text-slate-400 mb-5">Escanea para asignar, prestar o liberar este equipo</p>
+
+        <div id="qr-idx-canvas" class="flex justify-center mb-4"></div>
+        <p id="qr-idx-uuid" class="text-[10px] text-slate-400 font-mono break-all mb-6"></p>
+
+        <div class="flex gap-3">
+            <button onclick="descargarQRIdx()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white font-bold text-sm rounded-xl hover:bg-violet-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Descargar
+            </button>
+            <button onclick="imprimirQRIdx()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimir
+            </button>
+            <button onclick="cerrarQR()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-500 font-bold text-sm rounded-xl hover:bg-slate-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+@endunless
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+    const BASE_URL   = '{{ url('/admin/activos') }}';
+    const modal      = document.getElementById('modal-qr-idx');
+    const container  = document.getElementById('qr-idx-canvas');
+    let currentUuid  = null;
+    let currentNombre = null;
+    let qrInstance   = null;
+
+    window.abrirQR = function(uuid, nombre) {
+        currentUuid   = uuid;
+        currentNombre = nombre;
+        document.getElementById('qr-idx-nombre').textContent = nombre;
+        document.getElementById('qr-idx-uuid').textContent   = uuid;
+
+        // Limpiar QR anterior
+        container.innerHTML = '';
+        qrInstance = null;
+
+        qrInstance = new QRCode(container, {
+            text: BASE_URL + '/' + uuid,
+            width: 220,
+            height: 220,
+            colorDark: '#1e1b4b',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H,
+        });
+
+        modal.classList.remove('hidden');
+    };
+
+    window.cerrarQR = function() {
+        modal.classList.add('hidden');
+    };
+
+    window.descargarQRIdx = function () {
+        const img = container.querySelector('img');
+        if (!img) return;
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'QR-' + (currentNombre || currentUuid).replace(/[^a-z0-9]/gi, '_') + '.png';
+        a.click();
+    };
+
+    window.imprimirQRIdx = function () {
+        const img = container.querySelector('img');
+        if (!img) return;
+        const w = window.open('', '', 'width=400,height=500');
+        w.document.write(`
+            <html><head><title>QR — ${currentNombre}</title></head>
+            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;">
+                <h2 style="margin-bottom:4px;">${currentNombre}</h2>
+                <img src="${img.src}" style="width:220px;height:220px;">
+                <p style="font-size:10px;color:#888;margin-top:8px;">${currentUuid}</p>
+            </body></html>
+        `);
+        w.document.close();
+        w.focus();
+        w.print();
+        w.close();
+    };
+}());
+</script>
+@endpush
+
 @endsection
