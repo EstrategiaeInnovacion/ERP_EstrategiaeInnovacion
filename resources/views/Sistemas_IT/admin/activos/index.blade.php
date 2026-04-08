@@ -244,7 +244,7 @@
                                     </a>
                                     @unless($soloLectura ?? false)
                                     <button
-                                        onclick="abrirQR('{{ $d->uuid }}', '{{ addslashes($d->name) }}')"
+                                        onclick="abrirQR('{{ $d->uuid }}', '{{ addslashes($d->name) }}', '{{ addslashes($d->serial_number ?? '') }}')"
                                         class="inline-flex items-center px-2.5 py-1.5 bg-violet-50 text-violet-700 text-xs font-semibold rounded-lg hover:bg-violet-100 transition"
                                         title="Ver código QR">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,10 +296,9 @@
 <div id="modal-qr-idx" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onclick="if(event.target===this)cerrarQR()">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
         <h3 id="qr-idx-nombre" class="text-lg font-bold text-slate-800 mb-1"></h3>
-        <p class="text-xs text-slate-400 mb-5">Escanea para asignar, prestar o liberar este equipo</p>
+        <p id="qr-idx-serie" class="text-xs text-slate-500 font-medium mb-5"></p>
 
         <div id="qr-idx-canvas" class="flex justify-center mb-4"></div>
-        <p id="qr-idx-uuid" class="text-[10px] text-slate-400 font-mono break-all mb-6"></p>
 
         <div class="flex gap-3">
             <button onclick="descargarQRIdx()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white font-bold text-sm rounded-xl hover:bg-violet-700 transition">
@@ -325,15 +324,17 @@
     const BASE_URL   = '{{ url('/admin/activos') }}';
     const modal      = document.getElementById('modal-qr-idx');
     const container  = document.getElementById('qr-idx-canvas');
-    let currentUuid  = null;
+    let currentUuid   = null;
     let currentNombre = null;
-    let qrInstance   = null;
+    let currentSerie  = null;
+    let qrInstance    = null;
 
-    window.abrirQR = function(uuid, nombre) {
+    window.abrirQR = function(uuid, nombre, serie) {
         currentUuid   = uuid;
         currentNombre = nombre;
+        currentSerie  = serie || '';
         document.getElementById('qr-idx-nombre').textContent = nombre;
-        document.getElementById('qr-idx-uuid').textContent   = uuid;
+        document.getElementById('qr-idx-serie').textContent  = currentSerie ? 'S/N: ' + currentSerie : '';
 
         // Limpiar QR anterior
         container.innerHTML = '';
@@ -367,13 +368,14 @@
     window.imprimirQRIdx = function () {
         const img = container.querySelector('img');
         if (!img) return;
-        const w = window.open('', '', 'width=400,height=500');
+        const serial = currentSerie ? `S/N: ${currentSerie}` : '';
+        const w = window.open('', '', 'width=400,height=460');
         w.document.write(`
             <html><head><title>QR — ${currentNombre}</title></head>
-            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;">
-                <h2 style="margin-bottom:4px;">${currentNombre}</h2>
+            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;gap:6px;">
                 <img src="${img.src}" style="width:220px;height:220px;">
-                <p style="font-size:10px;color:#888;margin-top:8px;">${currentUuid}</p>
+                <p style="font-size:14px;font-weight:700;margin:0;">${currentNombre}</p>
+                ${serial ? `<p style="font-size:11px;color:#555;margin:0;">${serial}</p>` : ''}
             </body></html>
         `);
         w.document.close();
@@ -483,10 +485,7 @@ window.imprimirEtiquetas = function () {
                 <div class="etq-header">E&amp;I — Activos IT</div>
                 <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR">
                 <div class="etq-nombre">${d.nombre}</div>
-                <div class="etq-meta">${d.marca}</div>
                 ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
-                <div class="etq-estado etq-estado-${(ETIQUETAS_DATA[i]?.estado||'').toLowerCase().replace(/ /g,'-')}">${d.estado}</div>
-                ${d.asignado ? `<div class="etq-asignado">${d.asignado}</div>` : ''}
             </div>
         `).join('');
 
@@ -539,8 +538,8 @@ window.imprimirEtiquetas = function () {
     margin-bottom: 4px;
   }
   .etq-qr {
-    width: 90px;
-    height: 90px;
+    width: 110px;
+    height: 110px;
     flex-shrink: 0;
   }
   .etq-nombre {
@@ -553,41 +552,12 @@ window.imprimirEtiquetas = function () {
     word-break: break-word;
     max-width: 100%;
   }
-  .etq-meta {
-    font-size: 8px;
-    color: #6b7280;
-    text-align: center;
-    margin-top: 2px;
-    word-break: break-word;
-    max-width: 100%;
-  }
   .etq-serie {
     font-size: 7.5px;
-    color: #9ca3af;
+    color: #6b7280;
     font-family: monospace;
     text-align: center;
-    margin-top: 2px;
-  }
-  .etq-estado {
-    margin-top: 4px;
-    font-size: 7.5px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 99px;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-  .etq-estado-disponible    { background: #d1fae5; color: #065f46; }
-  .etq-estado-asignado      { background: #dbeafe; color: #1e40af; }
-  .etq-estado-en-mantenimiento { background: #fef3c7; color: #92400e; }
-  .etq-estado-dañado        { background: #fee2e2; color: #991b1b; }
-  .etq-asignado {
-    font-size: 7.5px;
-    color: #374151;
-    text-align: center;
-    margin-top: 2px;
-    word-break: break-word;
-    max-width: 100%;
+    margin-top: 3px;
   }
 
   @media print {

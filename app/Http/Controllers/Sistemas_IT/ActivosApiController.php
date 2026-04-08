@@ -192,6 +192,28 @@ class ActivosApiController extends Controller
     }
 
     /**
+     * POST /admin/activos-api/qr-danado/{uuid}
+     * Marca un dispositivo como dañado con motivo (responde JSON para el escáner).
+     */
+    public function markBrokenViaQr(Request $request, string $uuid)
+    {
+        $data = $request->validate([
+            'motivo' => 'required|string|max:500',
+        ]);
+
+        $ok = $this->activos->markDeviceBroken($uuid, $data['motivo']);
+
+        if (! $ok) {
+            return response()->json(['error' => 'No se pudo registrar el estado del dispositivo.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dispositivo marcado como dañado.',
+        ]);
+    }
+
+    /**
      * GET /admin/activos-api/fotos/{id}
      * Proxy de fotos: lee el archivo desde el storage privado de AuditoriaActivos
      * y lo devuelve como imagen.

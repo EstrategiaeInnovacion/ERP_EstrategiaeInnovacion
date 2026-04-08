@@ -476,6 +476,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             Route::get('/dispositivo/{uuid}',         [ActivosApiController::class, 'lookupByUuid'])->name('lookup');
             Route::post('/qr-asignar/{uuid}',         [ActivosApiController::class, 'assignViaQr'])->name('qr-assign');
             Route::post('/qr-devolver/{uuid}',        [ActivosApiController::class, 'returnViaQr'])->name('qr-return');
+            Route::post('/qr-danado/{uuid}',          [ActivosApiController::class, 'markBrokenViaQr'])->name('qr-broken');
         });
         Route::resource('credenciales', CredencialEquipoController::class)
             ->parameters(['credenciales' => 'credencial']);
