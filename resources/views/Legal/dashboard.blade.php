@@ -48,6 +48,17 @@
                     'hover_border' => 'hover:border-slate-300',
                     'btn_color'    => 'bg-slate-600 hover:bg-slate-700 shadow-slate-200',
                 ],
+                [
+                    'title'        => 'Digitalización de documentos',
+                    'description'  => 'Convierte, valida, comprime, combina y extrae imágenes de PDFs cumpliendo los requisitos VUCEM (300 DPI, PDF 1.4, escala de grises, máx. 3 MB).',
+                    'route'        => route('legal.digitalizacion.index'),
+                    'cta'          => 'Ir a herramientas PDF',
+                    'icon'         => 'M7 21h10M7 21a2 2 0 01-2-2V5a2 2 0 012-2h6l5 5v11a2 2 0 01-2 2M7 21H5m14 0h2M9 7h1m-1 4h6m-6 4h6',
+                    'color_bg'     => 'bg-sky-50',
+                    'color_text'   => 'text-sky-600',
+                    'hover_border' => 'hover:border-sky-200',
+                    'btn_color'    => 'bg-sky-600 hover:bg-sky-700 shadow-sky-200',
+                ],
             ];
         @endphp
 

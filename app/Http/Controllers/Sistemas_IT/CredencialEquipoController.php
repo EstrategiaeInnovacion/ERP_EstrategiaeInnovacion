@@ -11,6 +11,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class CredencialEquipoController extends Controller
 {
@@ -517,5 +522,156 @@ class CredencialEquipoController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Carta responsiva guardada en el expediente.']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EXPORTAR EXCEL
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function exportExcel()
+    {
+        // Cargar todos los equipos (principal + secundario) con sus relaciones
+        $equipos = EquipoAsignado::with(['user.empleado', 'correos', 'perifericos'])
+            ->orderBy('user_id')
+            ->orderByRaw('ISNULL(es_principal) ASC, es_principal DESC')
+            ->orderBy('created_at')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getProperties()
+            ->setTitle('Contraseñas y Equipos IT')
+            ->setCreator('ERP E&I');
+
+        // ── Hoja 1: Equipos ──────────────────────────────────────────────────
+        $ws1 = $spreadsheet->getActiveSheet()->setTitle('Equipos');
+
+        $headers1 = ['Usuario', 'Email ERP', 'Tipo', 'Nombre Equipo', 'Modelo', 'No. Serie', 'Usuario PC', 'Contraseña Equipo', 'Notas'];
+        $this->writeSheetHeader($ws1, $headers1, 'FF1E3A5F');
+
+        $row = 2;
+        foreach ($equipos as $equipo) {
+            $tipo = ($equipo->es_principal === null || $equipo->es_principal) ? 'Principal' : 'Secundario';
+            $ws1->setCellValue("A{$row}", $equipo->user?->name ?? '—');
+            $ws1->setCellValue("B{$row}", $equipo->user?->email ?? '—');
+            $ws1->setCellValue("C{$row}", $tipo);
+            $ws1->setCellValue("D{$row}", $equipo->nombre_equipo);
+            $ws1->setCellValue("E{$row}", $equipo->modelo ?? '');
+            $ws1->setCellValue("F{$row}", $equipo->numero_serie ?? '');
+            $ws1->setCellValue("G{$row}", $equipo->nombre_usuario_pc ?? '');
+            $ws1->setCellValue("H{$row}", $equipo->contrasena_descifrada);
+            $ws1->setCellValue("I{$row}", $equipo->notas ?? '');
+            $this->styleDataRow($ws1, $row, count($headers1));
+            // Proteger visualmente la contraseña con fondo amarillo suave
+            $ws1->getStyle("H{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FFFFF8DC');
+            $row++;
+        }
+
+        foreach (range('A', 'I') as $col) {
+            $ws1->getColumnDimension($col)->setAutoSize(true);
+        }
+        $ws1->getColumnDimension('H')->setWidth(22);
+        $ws1->getColumnDimension('I')->setWidth(30);
+
+        // ── Hoja 2: Correos ──────────────────────────────────────────────────
+        $ws2 = $spreadsheet->createSheet()->setTitle('Correos de Email');
+
+        $headers2 = ['Usuario', 'Email ERP', 'Equipo', 'Tipo Equipo', 'Correo', 'Contraseña Correo'];
+        $this->writeSheetHeader($ws2, $headers2, 'FF1A4731');
+
+        $row = 2;
+        foreach ($equipos as $equipo) {
+            $tipo = ($equipo->es_principal === null || $equipo->es_principal) ? 'Principal' : 'Secundario';
+            foreach ($equipo->correos as $correo) {
+                $ws2->setCellValue("A{$row}", $equipo->user?->name ?? '—');
+                $ws2->setCellValue("B{$row}", $equipo->user?->email ?? '—');
+                $ws2->setCellValue("C{$row}", $equipo->nombre_equipo);
+                $ws2->setCellValue("D{$row}", $tipo);
+                $ws2->setCellValue("E{$row}", $correo->correo);
+                $ws2->setCellValue("F{$row}", $correo->contrasena_descifrada);
+                $this->styleDataRow($ws2, $row, count($headers2));
+                $ws2->getStyle("F{$row}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('FFFFF8DC');
+                $row++;
+            }
+        }
+
+        foreach (range('A', 'F') as $col) {
+            $ws2->getColumnDimension($col)->setAutoSize(true);
+        }
+        $ws2->getColumnDimension('F')->setWidth(25);
+
+        // ── Hoja 3: Periféricos ──────────────────────────────────────────────
+        $ws3 = $spreadsheet->createSheet()->setTitle('Periféricos');
+
+        $headers3 = ['Usuario', 'Email ERP', 'Equipo Principal', 'Periférico', 'Tipo', 'No. Serie'];
+        $this->writeSheetHeader($ws3, $headers3, 'FF4C1D95');
+
+        $row = 2;
+        foreach ($equipos as $equipo) {
+            foreach ($equipo->perifericos as $per) {
+                $ws3->setCellValue("A{$row}", $equipo->user?->name ?? '—');
+                $ws3->setCellValue("B{$row}", $equipo->user?->email ?? '—');
+                $ws3->setCellValue("C{$row}", $equipo->nombre_equipo);
+                $ws3->setCellValue("D{$row}", $per->nombre);
+                $ws3->setCellValue("E{$row}", $per->tipo ?? '');
+                $ws3->setCellValue("F{$row}", $per->numero_serie ?? '');
+                $this->styleDataRow($ws3, $row, count($headers3));
+                $row++;
+            }
+        }
+
+        foreach (range('A', 'F') as $col) {
+            $ws3->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Activar hoja 1
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'credenciales-equipos-IT_' . now()->format('Y-m-d') . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(
+            function () use ($writer) { $writer->save('php://output'); },
+            $filename,
+            [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control'       => 'max-age=0',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]
+        );
+    }
+
+    private function writeSheetHeader($sheet, array $headers, string $bgArgb): void
+    {
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue("{$col}1", $header);
+            $sheet->getStyle("{$col}1")->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 11],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgArgb]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFCCCCCC']]],
+            ]);
+            $sheet->getRowDimension(1)->setRowHeight(20);
+            $col++;
+        }
+    }
+
+    private function styleDataRow($sheet, int $row, int $cols): void
+    {
+        $lastCol = chr(ord('A') + $cols - 1);
+        $sheet->getStyle("A{$row}:{$lastCol}{$row}")->applyFromArray([
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFE2E8F0']]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        if ($row % 2 === 0) {
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FFF8FAFC');
+        }
     }
 }
