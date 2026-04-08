@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/evaluacion/{id}', 'show')->name('evaluacion.show');
             Route::post('/evaluacion', 'store')->name('evaluacion.store');
             Route::put('/evaluacion/{id}', 'update')->name('evaluacion.update');
+            Route::delete('/evaluacion/{id}', 'destroy')->name('evaluacion.destroy');
             Route::get('/evaluacion/{id}/resultados', 'resultados')->name('evaluacion.resultados');
             // Gestión de ventanas de evaluación (Admin RH)
             Route::get('/evaluacion-ventanas', 'getVentanas')->name('evaluacion.ventanas.index');

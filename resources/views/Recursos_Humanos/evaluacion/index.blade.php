@@ -145,9 +145,19 @@
                                                 <div class="mt-5 pt-4 border-t border-slate-100">
                                                     @if(!$isWindowOpen)
                                                         @if(isset($empleado->evaluacion_actual))
-                                                            <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex items-center justify-center w-full px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                Ver Evaluación (Cerrado)
-                                                            </a>
+                                                            <div class="flex gap-2">
+                                                                <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                    Ver Evaluación (Cerrado)
+                                                                </a>
+                                                                @if(!empty($puedeGestionarVentanas))
+                                                                    <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                        @csrf @method('DELETE')
+                                                                        <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                        </button>
+                                                                    </form>
+                                                                @endif
+                                                            </div>
                                                         @else
                                                             <button disabled class="flex items-center justify-center w-full px-4 py-2 bg-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
                                                                 Fuera de Fecha
@@ -156,13 +166,33 @@
                                                     @else
                                                         @if(isset($empleado->evaluacion_actual))
                                                             @if($empleado->evaluacion_actual->edit_count >= 1)
-                                                                <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex items-center justify-center w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                    Ver Resultados
-                                                                </a>
+                                                                <div class="flex gap-2">
+                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                        Ver Resultados
+                                                                    </a>
+                                                                    @if(!empty($puedeGestionarVentanas))
+                                                                        <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                            @csrf @method('DELETE')
+                                                                            <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                            </button>
+                                                                        </form>
+                                                                    @endif
+                                                                </div>
                                                             @else
-                                                                <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex items-center justify-center w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                    Editar Evaluación
-                                                                </a>
+                                                                <div class="flex gap-2">
+                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                        Editar Evaluación
+                                                                    </a>
+                                                                    @if(!empty($puedeGestionarVentanas))
+                                                                        <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                            @csrf @method('DELETE')
+                                                                            <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                            </button>
+                                                                        </form>
+                                                                    @endif
+                                                                </div>
                                                             @endif
                                                         @else
                                                             <div class="mt-4 flex gap-2">

@@ -215,12 +215,15 @@ class EvaluacionController extends Controller
             $query->where('id', 0);
         }
 
-        // Nota: Idealmente usar eager loading (with) aquí en el futuro
-        $empleados = $query->get()->map(function ($target) use ($selectedPeriod, $user) {
-            $target->mi_evaluacion = Evaluacion::where('empleado_id', $target->id)
-                ->where('evaluador_id', $user->id)
-                ->where('periodo', $selectedPeriod)
-                ->first();
+        $empleados = $query->get()->map(function ($target) use ($selectedPeriod, $user, $ventanaActiva) {
+            $q = Evaluacion::where('empleado_id', $target->id)
+                ->where('evaluador_id', $user->id);
+            if ($ventanaActiva) {
+                $q->where('ventana_id', $ventanaActiva->id);
+            } else {
+                $q->where('periodo', $selectedPeriod);
+            }
+            $target->evaluacion_actual = $q->first();
             return $target;
         });
 
@@ -270,12 +273,17 @@ class EvaluacionController extends Controller
             return redirect()->route('rh.evaluacion.index')->with('error', 'No autorizado.');
         }
 
-        // Cargar evaluación existente
-        $evaluacion = Evaluacion::with('detalles')
+        // Cargar evaluación existente (por ventana activa o por periodo para histórico)
+        $ventanaActualShow = EvaluacionVentana::ventanaActual();
+        $qEval = Evaluacion::with('detalles')
             ->where('empleado_id', $id)
-            ->where('evaluador_id', $user->id)
-            ->where('periodo', $periodo)
-            ->first();
+            ->where('evaluador_id', $user->id);
+        if ($ventanaActualShow) {
+            $qEval->where('ventana_id', $ventanaActualShow->id);
+        } else {
+            $qEval->where('periodo', $periodo);
+        }
+        $evaluacion = $qEval->first();
 
         $respuestas = [];
         $observaciones = [];
@@ -348,12 +356,16 @@ class EvaluacionController extends Controller
         if (!$this->isEvaluationWindowOpen())
             return back()->with('error', 'Periodo cerrado.');
 
+        $ventanaActiva = EvaluacionVentana::ventanaActual();
+        if (!$ventanaActiva)
+            return back()->with('error', 'No hay una ventana de evaluación activa.');
+
         $existe = Evaluacion::where('empleado_id', $request->empleado_id)
             ->where('evaluador_id', Auth::id())
-            ->where('periodo', $request->periodo)
+            ->where('ventana_id', $ventanaActiva->id)
             ->exists();
         if ($existe)
-            return back()->with('error', 'Ya evaluaste a esta persona.');
+            return back()->with('error', 'Ya evaluaste a esta persona en este periodo.');
 
         $target = Empleado::find($request->empleado_id);
         $me = Empleado::where('correo', Auth::user()->email)->first();
@@ -376,6 +388,7 @@ class EvaluacionController extends Controller
                 'empleado_id' => $request->empleado_id,
                 'evaluador_id' => Auth::id(),
                 'periodo' => $request->periodo,
+                'ventana_id' => $ventanaActiva->id,
                 'promedio_final' => $promedio,
                 'comentarios_generales' => $request->comentarios_generales,
                 'edit_count' => 1
@@ -439,6 +452,21 @@ class EvaluacionController extends Controller
             DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        $me   = Empleado::where('correo', $user->email)->first();
+
+        if (!$this->isAdminRH($me) && !$user->isAdmin()) {
+            abort(403);
+        }
+
+        $evaluacion = Evaluacion::findOrFail($id);
+        $evaluacion->delete(); // cascade borra los detalles
+
+        return back()->with('success', 'Evaluación eliminada correctamente.');
     }
 
     public function resultados(Request $request, $id)
