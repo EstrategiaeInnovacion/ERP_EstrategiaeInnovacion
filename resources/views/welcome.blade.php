@@ -50,9 +50,6 @@
                                 <a href="{{ route('login') }}" class="block w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-center transition shadow-lg shadow-indigo-100 text-sm">
                                     Ingresar con Credenciales
                                 </a>
-                                <a href="{{ route('register') }}" class="block w-full py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-lg text-center transition text-sm">
-                                    Solicitar Acceso
-                                </a>
                             </div>
                         </div>
                         <div class="bg-slate-50 px-8 py-3 border-t border-slate-100 text-center">
