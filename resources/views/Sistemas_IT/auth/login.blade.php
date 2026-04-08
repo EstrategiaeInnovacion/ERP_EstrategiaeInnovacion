@@ -71,21 +71,7 @@
             </button>
         </div>
 
-        {{-- Separador si quieres agregar registro o login social --}}
-        <div class="relative mt-6">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-slate-200"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-slate-400">¿No tienes cuenta?</span>
-            </div>
-        </div>
 
-        <div class="mt-6 text-center">
-            <a href="{{ route('register') }}" class="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
-                Crear una cuenta nueva
-            </a>
-        </div>
     </form>
 
     <script>
