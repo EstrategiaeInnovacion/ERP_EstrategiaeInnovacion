@@ -113,7 +113,9 @@ class ActivosController extends Controller
                 if ($foto->isValid()) {
                     $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
                     $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
-                    $this->activos->addDevicePhoto($uuid, $filePath);
+                    if ($filePath) {
+                        $this->activos->addDevicePhoto($uuid, $filePath);
+                    }
                 }
             }
         }
@@ -212,7 +214,9 @@ class ActivosController extends Controller
                 if ($foto->isValid()) {
                     $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
                     $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
-                    $this->activos->addDevicePhoto($uuid, $filePath);
+                    if ($filePath) {
+                        $this->activos->addDevicePhoto($uuid, $filePath);
+                    }
                 }
             }
         }

@@ -246,8 +246,8 @@ class ActivosApiController extends Controller
             }
         }
 
-        // 2. Fallback: fotos subidas directamente desde el ERP (storage/app — disco 'local')
-        $localBase = storage_path('app');
+        // 2. Fallback: fotos subidas directamente desde el ERP (disco 'local' → storage/app/private)
+        $localBase = storage_path('app/private');
         $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
 
         if (file_exists($localPath) && is_file($localPath)) {
@@ -278,8 +278,8 @@ class ActivosApiController extends Controller
 
         $this->activos->deleteDevicePhoto($id);
 
-        // Eliminar archivo local si fue subido desde el ERP
-        $localBase = realpath(storage_path('app'));
+        // Eliminar archivo local si fue subido desde el ERP (disco 'local' → app/private)
+        $localBase = realpath(storage_path('app/private'));
         if ($localBase) {
             $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
             $realFile  = realpath($localPath);
