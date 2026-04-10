@@ -246,8 +246,8 @@ class ActivosApiController extends Controller
             }
         }
 
-        // 2. Fallback: fotos subidas directamente desde el ERP (storage/app/private)
-        $localBase = storage_path('app/private');
+        // 2. Fallback: fotos subidas directamente desde el ERP (storage/app — disco 'local')
+        $localBase = storage_path('app');
         $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
 
         if (file_exists($localPath) && is_file($localPath)) {
