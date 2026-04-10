@@ -39,6 +39,7 @@
         @endif
 
         <form method="POST" action="{{ route('admin.activos.update', $dispositivo->uuid) }}"
+              enctype="multipart/form-data"
               class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
             @csrf
             @method('PUT')
@@ -136,6 +137,82 @@
                 </div>
             </div>
 
+            {{-- Fotos del dispositivo --}}
+            <div class="p-8">
+                <h2 class="text-base font-bold text-slate-700 mb-1 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Fotos del dispositivo
+                    <span class="text-xs font-normal text-slate-400">(opcional, máx. 5 imágenes nuevas)</span>
+                </h2>
+                <p class="text-xs text-slate-400 mb-5">JPG, PNG, WEBP o GIF · máx. 8 MB por imagen.</p>
+
+                {{-- Fotos existentes --}}
+                @if(count($fotos) > 0)
+                <div id="fotos-existentes" class="mb-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    @foreach($fotos as $foto)
+                    <div class="relative group" id="foto-existente-{{ $foto['id'] }}">
+                        <img src="{{ $foto['url'] }}" alt="{{ $foto['caption'] ?: $dispositivo->name }}"
+                             class="w-full h-24 object-cover rounded-xl border border-slate-200">
+                        <button type="button"
+                                onclick="eliminarFotoExistente({{ $foto['id'] }})"
+                                class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow">
+                            ✕
+                        </button>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <p class="text-xs text-slate-400 mb-5">Este dispositivo no tiene fotos aún.</p>
+                @endif
+
+                {{-- Área de carga --}}
+                <div id="foto-dropzone"
+                     class="relative border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                     onclick="document.getElementById('photos-input').click()">
+                    <svg class="mx-auto h-10 w-10 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="text-sm text-slate-500 font-medium">Arrastra imágenes aquí o haz clic para seleccionar</p>
+                    <p class="text-xs text-slate-400 mt-1">También puedes tomar una foto desde tu dispositivo móvil</p>
+                </div>
+
+                {{-- Botones de acción rápida --}}
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <label class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl cursor-pointer transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Seleccionar archivos
+                        <input id="photos-input" type="file" name="photos[]"
+                               accept="image/*" multiple class="hidden"
+                               onchange="previewFotos(this)">
+                    </label>
+
+                    <label class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl cursor-pointer transition shadow-sm shadow-emerald-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Tomar foto
+                        <input id="camera-input" type="file" name="photos[]"
+                               accept="image/*" capture="environment" class="hidden"
+                               onchange="previewFotos(this)">
+                    </label>
+                </div>
+
+                @error('photos') <p class="mt-2 text-xs text-red-600">{{ $message }}</p> @enderror
+                @error('photos.*') <p class="mt-2 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                {{-- Previsualización de fotos nuevas --}}
+                <div id="foto-preview" class="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 hidden"></div>
+            </div>
+
             {{-- Credenciales --}}
             <div class="p-8">
                 <h2 class="text-base font-bold text-slate-700 mb-1 flex items-center gap-2">
@@ -225,6 +302,74 @@
 function togglePass(id) {
     const el = document.getElementById(id);
     el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ── Fotos nuevas ────────────────────────────────────────────────
+let selectedFiles = [];
+
+function previewFotos(input) {
+    const newFiles = Array.from(input.files);
+    if (newFiles.length === 0) return;
+
+    selectedFiles = [...selectedFiles, ...newFiles].slice(0, 5);
+
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    document.getElementById('photos-input').files = dt.files;
+
+    const preview = document.getElementById('foto-preview');
+    preview.innerHTML = '';
+    preview.classList.remove('hidden');
+
+    selectedFiles.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const div = document.createElement('div');
+            div.className = 'relative group';
+            div.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-24 object-cover rounded-xl border border-slate-200">
+                <button type="button" onclick="quitarFotoNueva(${idx})"
+                        class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow">
+                    ✕
+                </button>`;
+            preview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function quitarFotoNueva(idx) {
+    selectedFiles.splice(idx, 1);
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    document.getElementById('photos-input').files = dt.files;
+    previewFotos({ files: dt.files });
+    if (selectedFiles.length === 0) {
+        document.getElementById('foto-preview').classList.add('hidden');
+    }
+}
+
+// ── Eliminar foto existente ──────────────────────────────────────
+function eliminarFotoExistente(id) {
+    if (! confirm('¿Eliminar esta foto?')) return;
+
+    fetch(`/admin/activos-api/fotos/${id}`, {
+        method:  'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept':       'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const el = document.getElementById(`foto-existente-${id}`);
+            if (el) el.remove();
+            const grid = document.getElementById('fotos-existentes');
+            if (grid && grid.children.length === 0) grid.remove();
+        }
+    })
+    .catch(() => alert('No se pudo eliminar la foto.'));
 }
 </script>
 @endpush
