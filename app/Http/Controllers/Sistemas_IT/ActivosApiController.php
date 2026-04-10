@@ -260,5 +260,35 @@ class ActivosApiController extends Controller
 
         abort(404);
     }
+
+    /**
+     * DELETE /admin/activos-api/fotos/{id}
+     * Elimina una foto del dispositivo (registro en BD + archivo local si aplica).
+     */
+    public function deletePhoto(int $id): \Illuminate\Http\JsonResponse
+    {
+        if (! $this->activos->isConfigured()) {
+            abort(503, 'BD de activos no disponible.');
+        }
+
+        $filePath = $this->activos->getPhotoPath($id);
+        if (! $filePath) {
+            abort(404);
+        }
+
+        $this->activos->deleteDevicePhoto($id);
+
+        // Eliminar archivo local si fue subido desde el ERP
+        $localBase = realpath(storage_path('app'));
+        if ($localBase) {
+            $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
+            $realFile  = realpath($localPath);
+            if ($realFile && str_starts_with($realFile, $localBase) && is_file($realFile)) {
+                @unlink($realFile);
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
 }
 

@@ -351,6 +351,21 @@ class ActivosDbService
         }
     }
 
+    /**
+     * Elimina el registro de una foto de la base de datos de activos.
+     * La limpieza del archivo en disco queda a cargo del llamador.
+     */
+    public function deleteDevicePhoto(int $photoId): bool
+    {
+        try {
+            $this->conn()->table('device_photos')->where('id', $photoId)->delete();
+            return true;
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: deleteDevicePhoto [{$photoId}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------

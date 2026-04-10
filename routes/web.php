@@ -482,6 +482,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
             Route::get('/usuario/{userId}/equipo',   [ActivosApiController::class, 'devicesByUser'])->name('devices-by-user');
             Route::get('/equipos-disponibles',        [ActivosApiController::class, 'availableDevices'])->name('available-devices');
             Route::get('/fotos/{id}',                 [ActivosApiController::class, 'photo'])->name('photo');
+            Route::delete('/fotos/{id}',              [ActivosApiController::class, 'deletePhoto'])->name('photo.delete');
             Route::get('/dispositivo/{uuid}',         [ActivosApiController::class, 'lookupByUuid'])->name('lookup');
             Route::post('/qr-asignar/{uuid}',         [ActivosApiController::class, 'assignViaQr'])->name('qr-assign');
             Route::post('/qr-devolver/{uuid}',        [ActivosApiController::class, 'returnViaQr'])->name('qr-return');

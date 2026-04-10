@@ -171,8 +171,9 @@ class ActivosController extends Controller
         }
 
         $credencial = $this->activos->getDeviceCredential($dispositivo->id);
+        $fotos      = $this->activos->getDevicePhotos($dispositivo->id);
 
-        return view('Sistemas_IT.admin.activos.edit', compact('dispositivo', 'credencial'));
+        return view('Sistemas_IT.admin.activos.edit', compact('dispositivo', 'credencial', 'fotos'));
     }
 
     /**
@@ -194,6 +195,8 @@ class ActivosController extends Controller
             'cred_password'       => 'nullable|string|max:255',
             'cred_email'          => 'nullable|email|max:255',
             'cred_email_password' => 'nullable|string|max:255',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp,gif|max:8192',
         ]);
 
         $ok = $this->activos->updateDevice($uuid, $data);
@@ -201,6 +204,17 @@ class ActivosController extends Controller
         if (! $ok) {
             return back()->withInput()
                 ->with('error', 'No se pudo actualizar el dispositivo. Intenta de nuevo.');
+        }
+
+        // Guardar fotos nuevas
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $foto) {
+                if ($foto->isValid()) {
+                    $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
+                    $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
+                    $this->activos->addDevicePhoto($uuid, $filePath);
+                }
+            }
         }
 
         return redirect()->route('admin.activos.show', $uuid)
