@@ -205,9 +205,9 @@ class UsersController extends Controller
             'supervisor_id' => $request->supervisor_id,
         ];
 
-        // Solo actualizar id_empleado si viene explícitamente en el request
-        // para evitar borrarlo cuando el formulario no incluye ese campo.
-        if ($request->has('id_empleado')) {
+        // Solo actualizar id_empleado si viene con un valor real (no vacío).
+        // Usar filled() en lugar de has() para que un string vacío NO sobreescriba el valor existente.
+        if ($request->filled('id_empleado')) {
             $empleadoData['id_empleado'] = $request->id_empleado;
         }
 
