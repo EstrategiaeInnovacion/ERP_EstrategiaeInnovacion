@@ -473,26 +473,19 @@
     window.imprimirQR = function () {
         const img = document.querySelector('#qr-canvas-show img');
         if (!img) return;
-        const serial = QR_SERIAL ? `S/N: ${QR_SERIAL}` : '';
-        const w = window.open('', '', 'width=320,height=320');
+        const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
-            <html><head><title>QR — ${QR_NAME}</title><style>
+            <html><head><title>QR</title><style>
                 @page { margin: 0; size: auto; }
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { display: flex; flex-direction: column; align-items: center; justify-content: center;
-                       font-family: Arial, sans-serif; padding: 6mm; gap: 2mm; min-height: 100vh; }
+                body { display: flex; flex-direction: column; align-items: center;
+                       font-family: Arial, sans-serif; padding: 2mm; gap: 1mm; }
                 img { width: 4.5cm; height: 4.5cm; display: block; }
-                .nombre { font-size: 7pt; font-weight: 700; text-align: center; max-width: 5cm;
-                          overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                .serie { font-size: 6pt; color: #555; text-align: center; }
-                @media print {
-                    body { padding: 4mm; }
-                }
+                .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>
                 <img src="${img.src}">
-                <p class="nombre">${QR_NAME}</p>
-                ${serial ? `<p class="serie">${serial}</p>` : ''}
+                ${QR_SERIAL ? `<p class="serie">S/N: ${QR_SERIAL}</p>` : ''}
             </body></html>
         `);
         w.document.close();
