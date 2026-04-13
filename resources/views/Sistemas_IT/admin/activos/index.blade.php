@@ -368,26 +368,19 @@
     window.imprimirQRIdx = function () {
         const img = container.querySelector('img');
         if (!img) return;
-        const serial = currentSerie ? `S/N: ${currentSerie}` : '';
-        const w = window.open('', '', 'width=320,height=320');
+        const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
-            <html><head><title>QR — ${currentNombre}</title><style>
+            <html><head><title>QR</title><style>
                 @page { margin: 0; size: auto; }
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { display: flex; flex-direction: column; align-items: center; justify-content: center;
-                       font-family: Arial, sans-serif; padding: 6mm; gap: 2mm; min-height: 100vh; }
+                body { display: flex; flex-direction: column; align-items: center;
+                       font-family: Arial, sans-serif; padding: 2mm; gap: 1mm; }
                 img { width: 4.5cm; height: 4.5cm; display: block; }
-                .nombre { font-size: 7pt; font-weight: 700; text-align: center; max-width: 5cm;
-                          overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                .serie { font-size: 6pt; color: #555; text-align: center; }
-                @media print {
-                    body { padding: 4mm; }
-                }
+                .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>
                 <img src="${img.src}">
-                <p class="nombre">${currentNombre}</p>
-                ${serial ? `<p class="serie">${serial}</p>` : ''}
+                ${currentSerie ? `<p class="serie">S/N: ${currentSerie}</p>` : ''}
             </body></html>
         `);
         w.document.close();
@@ -489,14 +482,12 @@ window.imprimirEtiquetas = function () {
     function abrirVentanaImpresion() {
         // 3 columnas × N filas, tamaño etiqueta ≈ 6 cm × 7 cm
         const cols = 3;
-        const labelW = '180px';
-        const labelH = '190px';
+        const labelW = '130px';
+        const labelH = '140px';
 
         const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => `
             <div class="etiqueta">
-                <div class="etq-header">E&amp;I — Activos IT</div>
                 <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR">
-                <div class="etq-nombre">${d.nombre}</div>
                 ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
             </div>
         `).join('');
@@ -511,22 +502,11 @@ window.imprimirEtiquetas = function () {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Arial', sans-serif; background: #fff; }
 
-  .hoja-header {
-    padding: 12px 20px 8px;
-    border-bottom: 2px solid #1e1b4b;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  .hoja-header h1 { font-size: 15px; color: #1e1b4b; font-weight: 700; }
-  .hoja-header span { font-size: 11px; color: #6b7280; }
-
   .grid {
     display: grid;
     grid-template-columns: repeat(${cols}, 1fr);
     gap: 8px;
-    padding: 0 16px 20px;
+    padding: 8px;
   }
 
   .etiqueta {
@@ -574,17 +554,11 @@ window.imprimirEtiquetas = function () {
 
   @media print {
     body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    .hoja-header { position: fixed; top: 0; width: 100%; }
-    .grid { margin-top: 50px; }
-    @page { margin: 10mm; size: A4; }
+    @page { margin: 6mm; size: A4; }
   }
 </style>
 </head>
 <body>
-  <div class="hoja-header">
-    <h1>${ETIQUETAS_SECCION}</h1>
-    <span>${total} etiqueta${total !== 1 ? 's' : ''} · ${new Date().toLocaleDateString('es-MX')}</span>
-  </div>
   <div class="grid">
     ${etiquetasHtml}
   </div>
