@@ -37,12 +37,13 @@ class ActivosController extends Controller
             $status = null;
         }
 
-        $dispositivos = $this->activos->getAllDevicesPaginated($search, $type, $status, 15);
-        $stats        = $this->activos->getDeviceStats();
-        $soloLectura  = request()->routeIs('rh.inventario.*');
+        $dispositivos    = $this->activos->getAllDevicesPaginated($search, $type, $status, 15);
+        $stats           = $this->activos->getDeviceStats();
+        $todasEtiquetas  = $this->activos->getAllDevicesForPrint();
+        $soloLectura     = request()->routeIs('rh.inventario.*');
 
         return view('Sistemas_IT.admin.activos.index', compact(
-            'dispositivos', 'stats', 'search', 'type', 'status', 'soloLectura'
+            'dispositivos', 'stats', 'search', 'type', 'status', 'soloLectura', 'todasEtiquetas'
         ));
     }
 

@@ -439,6 +439,35 @@ class ActivosDbService
     // ---------------------------------------------------------------
 
     /**
+     * Retorna TODOS los dispositivos sin paginar, agrupados por tipo.
+     * Usado para generar etiquetas QR por categoría.
+     */
+    public function getAllDevicesForPrint(): array
+    {
+        try {
+            $rows = $this->conn()
+                ->table('devices as d')
+                ->select('d.uuid', 'd.name', 'd.serial_number', 'd.type')
+                ->orderBy('d.type')
+                ->orderBy('d.name')
+                ->get();
+
+            $grouped = [];
+            foreach ($rows as $d) {
+                $grouped[$d->type][] = [
+                    'uuid'  => $d->uuid,
+                    'nombre' => $d->name,
+                    'serie'  => $d->serial_number ?? '',
+                ];
+            }
+            return $grouped;
+        } catch (\Exception $e) {
+            Log::error('ActivosDb: getAllDevicesForPrint — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Retorna una paginación manual de dispositivos con filtros opcionales
      * de búsqueda, tipo y estado.
      *
