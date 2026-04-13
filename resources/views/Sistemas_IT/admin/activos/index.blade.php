@@ -31,7 +31,7 @@
                     </svg>
                     Escanear QR
                 </a>
-                <button onclick="imprimirEtiquetas()"
+                <button onclick="document.getElementById('modal-categorias-qr').classList.remove('hidden')"
                    class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
@@ -317,6 +317,56 @@
 </div>
 @endunless
 
+{{-- ── Modal: selección de categoría para imprimir etiquetas QR ─── --}}
+<div id="modal-categorias-qr" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+     onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-base font-bold text-slate-800">Imprimir etiquetas QR</h2>
+            <button onclick="document.getElementById('modal-categorias-qr').classList.add('hidden')"
+                    class="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <p class="text-xs text-slate-500 mb-4">Selecciona una categoría para generar e imprimir sus etiquetas.</p>
+        <div class="space-y-2" id="categorias-qr-lista">
+            @php
+                $catLabels = [
+                    'computer'   => ['label' => 'Computadoras',  'icon' => '🖥️',  'color' => 'indigo'],
+                    'peripheral' => ['label' => 'Periféricos',   'icon' => '🖱️',  'color' => 'violet'],
+                    'printer'    => ['label' => 'Impresoras',    'icon' => '🖨️',  'color' => 'sky'],
+                    'other'      => ['label' => 'Otro',          'icon' => '📦',  'color' => 'slate'],
+                ];
+            @endphp
+            @foreach($catLabels as $clave => $meta)
+                @php $count = isset($todasEtiquetas[$clave]) ? count($todasEtiquetas[$clave]) : 0; @endphp
+                <button onclick="imprimirCategoria('{{ $clave }}')"
+                        {{ $count === 0 ? 'disabled' : '' }}
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-semibold transition
+                               {{ $count > 0 ? 'border-slate-200 hover:bg-slate-50 text-slate-700 cursor-pointer' : 'border-slate-100 text-slate-300 cursor-not-allowed bg-slate-50' }}">
+                    <span>{{ $meta['icon'] }} {{ $meta['label'] }}</span>
+                    <span class="text-xs font-bold {{ $count > 0 ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-300' }} px-2 py-0.5 rounded-full">
+                        {{ $count }}
+                    </span>
+                </button>
+            @endforeach
+            <button onclick="imprimirCategoria('all')"
+                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition cursor-pointer mt-1">
+                <span>📋 Todos los activos</span>
+                <span class="text-xs font-bold bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full">
+                    {{ collect($todasEtiquetas ?? [])->flatten(1)->count() }}
+                </span>
+            </button>
+        </div>
+        <div id="categorias-qr-progreso" class="hidden mt-4 text-center">
+            <div class="inline-block w-5 h-5 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mr-2"></div>
+            <span class="text-xs text-slate-500">Generando QRs…</span>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
@@ -546,6 +596,97 @@ window.imprimirEtiquetas = function () {
         w.document.close();
     }
 };
+</script>
+
+<script>
+// ── Datos completos de todas las categorías para impresión ──────────
+const TODAS_ETIQUETAS     = @json($todasEtiquetas ?? []);
+const TODAS_BASE_URL      = '{{ url('/admin/activos') }}';
+const CAT_LABELS = {
+    computer:   'Computadoras',
+    peripheral: 'Periféricos',
+    printer:    'Impresoras',
+    other:      'Otro',
+    all:        'Todos los activos',
+};
+
+window.imprimirCategoria = function(tipo) {
+    // Construir lista de dispositivos según categoría
+    let lista = [];
+    if (tipo === 'all') {
+        Object.values(TODAS_ETIQUETAS).forEach(arr => lista = lista.concat(arr));
+    } else {
+        lista = TODAS_ETIQUETAS[tipo] || [];
+    }
+    if (lista.length === 0) return;
+
+    // Mostrar progreso
+    document.getElementById('categorias-qr-progreso').classList.remove('hidden');
+
+    const total     = lista.length;
+    const qrUrls    = [];
+    let   generados = 0;
+
+    function onGenerado(idx, src) {
+        qrUrls[idx] = src;
+        generados++;
+        if (generados === total) {
+            document.getElementById('categorias-qr-progreso').classList.add('hidden');
+            document.getElementById('modal-categorias-qr').classList.add('hidden');
+            abrirImpresionCategoria(lista, qrUrls, CAT_LABELS[tipo] || tipo);
+        }
+    }
+
+    lista.forEach((d, idx) => {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.left = '-9999px';
+        document.body.appendChild(div);
+        new QRCode(div, {
+            text: TODAS_BASE_URL + '/' + d.uuid,
+            width: 120, height: 120,
+            colorDark: '#111827', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H,
+        });
+        setTimeout(() => {
+            const img = div.querySelector('img');
+            onGenerado(idx, img ? img.src : '');
+            document.body.removeChild(div);
+        }, 60);
+    });
+};
+
+function abrirImpresionCategoria(lista, qrUrls, titulo) {
+    const etiquetasHtml = lista.map((d, i) => `
+        <div class="etiqueta">
+            <img src="${qrUrls[i]}" class="etq-qr" alt="QR">
+            ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
+        </div>
+    `).join('');
+
+    const w = window.open('', '_blank', 'width=900,height=700');
+    w.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Etiquetas — ${titulo}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; }
+  .etiqueta { border: 1px solid #d1d5db; padding: 3px; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
+  .etq-qr { width: 100%; height: auto; display: block; }
+  .etq-serie { font-size: 6.5pt; color: #333; font-family: monospace; text-align: center; margin-top: 1px; }
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    @page { margin: 4mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+  <div class="grid">${etiquetasHtml}</div>
+  <script>window.onload = function(){ window.print(); };<\/script>
+</body></html>`);
+    w.document.close();
+}
 </script>
 @endpush
 
