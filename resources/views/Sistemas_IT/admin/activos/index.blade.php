@@ -481,9 +481,9 @@ window.imprimirEtiquetas = function () {
 
     function abrirVentanaImpresion() {
         // 3 columnas × N filas, tamaño etiqueta ≈ 6 cm × 7 cm
-        const cols = 3;
-        const labelW = '130px';
-        const labelH = '140px';
+        const cols = 4;
+        const labelW = 'auto';
+        const labelH = 'auto';
 
         const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => `
             <div class="etiqueta">
@@ -505,56 +505,34 @@ window.imprimirEtiquetas = function () {
   .grid {
     display: grid;
     grid-template-columns: repeat(${cols}, 1fr);
-    gap: 8px;
-    padding: 8px;
+    gap: 3px;
+    padding: 3px;
   }
 
   .etiqueta {
-    border: 1.5px solid #d1d5db;
-    border-radius: 8px;
-    padding: 8px 8px 6px;
+    border: 1px solid #d1d5db;
+    padding: 3px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: ${labelW};
-    min-height: ${labelH};
     page-break-inside: avoid;
-    overflow: hidden;
-  }
-  .etq-header {
-    font-size: 7.5px;
-    font-weight: 700;
-    color: #1e1b4b;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    margin-bottom: 4px;
   }
   .etq-qr {
-    width: 110px;
-    height: 110px;
-    flex-shrink: 0;
-  }
-  .etq-nombre {
-    font-size: 9px;
-    font-weight: 700;
-    color: #111827;
-    text-align: center;
-    margin-top: 5px;
-    line-height: 1.2;
-    word-break: break-word;
-    max-width: 100%;
+    width: 100%;
+    height: auto;
+    display: block;
   }
   .etq-serie {
-    font-size: 7.5px;
-    color: #6b7280;
+    font-size: 6.5pt;
+    color: #333;
     font-family: monospace;
     text-align: center;
-    margin-top: 3px;
+    margin-top: 1px;
   }
 
   @media print {
     body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    @page { margin: 6mm; size: A4; }
+    @page { margin: 4mm; size: A4; }
   }
 </style>
 </head>
