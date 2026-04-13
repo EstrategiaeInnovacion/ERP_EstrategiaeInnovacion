@@ -16,9 +16,8 @@ class ColumnaVisibleController extends Controller
     public function getEjecutivos()
     {
         $ejecutivos = Empleado::where(function($query) {
-            $query->where('posicion', 'like', '%LOGISTICA%')
-                  ->orWhere('posicion', 'like', '%Logistica%')
-                  ->orWhere('area', 'Logistica');
+            $query->where('posicion', 'like', '%logistic%')
+                  ->orWhere('area', 'like', '%logistic%');
         })->orderBy('nombre')->get(['id', 'nombre', 'posicion']);
 
         return response()->json([

@@ -430,9 +430,8 @@ class OperacionLogisticaController extends Controller
         \Log::info('DEBUG COLUMNAS: columnasOrdenadas opcionales=' . json_encode($opcionalesEnMatriz));
 
         $empleados = Empleado::where(function($query) {
-            $query->where('posicion', 'like', '%LOGISTICA%')
-                  ->orWhere('posicion', 'like', '%Logistica%')
-                  ->orWhere('area', 'Logistica'); 
+            $query->where('posicion', 'like', '%logistic%')
+                  ->orWhere('area', 'like', '%logistic%');
         })->orderBy('nombre')->get();
 
         return [

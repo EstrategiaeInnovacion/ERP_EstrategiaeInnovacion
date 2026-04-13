@@ -115,7 +115,7 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-left">
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Empresa</th>
+                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Consulta</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
@@ -127,7 +127,7 @@
                     @foreach($proyectos as $proyecto)
                     <tr class="hover:bg-amber-50/40 transition-colors group">
                         <td class="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
-                            {{ $proyecto->empresa }}
+                            {{ $proyecto->empresa ?? '—' }}
                         </td>
                         <td class="px-5 py-4">
                             @if($proyecto->categoria?->parent)
@@ -203,20 +203,17 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Empresa <span class="text-slate-400 font-normal">(opcional)</span></label>
-                        <input type="text" name="empresa" placeholder="Nombre de la empresa"
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" name="empresa" placeholder="Nombre del proyecto"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
-                        <select name="categoria_id" required
+                        <select name="categoria_id" id="nuevaCategoria" required
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                             <option value="">Selecciona una categoría</option>
                             @foreach($categorias as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                                @foreach($cat->subcategorias as $sub)
-                                    <option value="{{ $sub->id }}">&nbsp;&nbsp;↳ {{ $sub->nombre }}</option>
-                                @endforeach
                             @endforeach
                         </select>
                     </div>
@@ -299,8 +296,8 @@
                 @method('PUT')
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Empresa <span class="text-slate-400 font-normal">(opcional)</span></label>
-                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre de la empresa"
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre del proyecto"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
@@ -310,9 +307,6 @@
                             <option value="">Selecciona una categoría</option>
                             @foreach($categorias as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                                @foreach($cat->subcategorias as $sub)
-                                    <option value="{{ $sub->id }}">&nbsp;&nbsp;↳ {{ $sub->nombre }}</option>
-                                @endforeach
                             @endforeach
                         </select>
                     </div>
@@ -601,5 +595,23 @@
             });
         }
     });
+
+    // Auto-abrir modal de nuevo proyecto cuando se viene de crear una categoría
+    (function autoAbrirNuevaCategoria() {
+        const params = new URLSearchParams(window.location.search);
+        const catId  = params.get('nueva_categoria');
+        if (!catId) return;
+
+        const sel = document.getElementById('nuevaCategoria');
+        if (sel) {
+            sel.value = catId;
+        }
+        abrirModal('modalAgregarProyecto');
+
+        // Limpiar el param de la URL sin recargar
+        params.delete('nueva_categoria');
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.replaceState(null, '', newUrl);
+    })();
 </script>
 @endpush

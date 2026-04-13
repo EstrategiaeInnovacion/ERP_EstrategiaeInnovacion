@@ -78,9 +78,8 @@ class CatalogosController extends Controller
 
         // Filtro para encontrar ejecutivos de logística
         $filtroLogistica = function ($query) {
-            $query->where('posicion', 'like', '%LOGISTICA%')
-                ->orWhere('posicion', 'like', '%Logistica%')
-                ->orWhere('posicion', 'like', '%logistica%');
+            $query->where('posicion', 'like', '%logistic%')
+                ->orWhere('area', 'like', '%logistic%');
         };
 
         $ejecutivos = Empleado::where($filtroLogistica)

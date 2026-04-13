@@ -94,7 +94,8 @@
                             class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option value="">— Seleccionar usuario —</option>
                         @foreach($usuarios as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
+                            @php $tieneCarta = isset($usersConCarta[$u->id]); @endphp
+                            <option value="{{ $u->id }}">{{ $tieneCarta ? '✔' : '●' }} {{ $u->name }} ({{ $u->email }}){{ $tieneCarta ? ' — tiene carta' : ' — sin carta' }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -185,8 +186,15 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center shrink-0">
-                                        {{ strtoupper(substr($equipo->user->name ?? '?', 0, 1)) }}
+                                    <div class="relative shrink-0">
+                                        <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">
+                                            {{ strtoupper(substr($equipo->user->name ?? '?', 0, 1)) }}
+                                        </div>
+                                        @if($equipo->user)
+                                            @php $tieneCarta = isset($usersConCarta[$equipo->user->id]); @endphp
+                                            <span title="{{ $tieneCarta ? 'Carta responsiva guardada' : 'Sin carta responsiva' }}"
+                                                  class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white {{ $tieneCarta ? 'bg-emerald-400' : 'bg-red-500' }}"></span>
+                                        @endif
                                     </div>
                                     <div>
                                         <p class="font-medium text-slate-800">{{ $equipo->user->name ?? '—' }}</p>
@@ -315,6 +323,19 @@
                     </tbody>
                 </table>
             </div>
+
+            {{-- Leyenda carta responsiva --}}
+            @unless($soloLectura ?? false)
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center gap-5 text-xs text-slate-500">
+                <span class="font-semibold text-slate-600">Carta responsiva:</span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Sin carta
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Carta guardada
+                </span>
+            </div>
+            @endunless
 
             {{-- Pagination --}}
             @if($equipos->hasPages())
