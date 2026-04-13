@@ -23,17 +23,16 @@ class CategoriaLegalController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nombre'    => 'required|string|max:255',
-            'parent_id' => 'nullable|exists:legal_categorias,id',
+            'nombre' => 'required|string|max:255',
         ]);
 
-        LegalCategoria::create([
+        $categoria = LegalCategoria::create([
             'nombre'    => $request->nombre,
-            'parent_id' => $request->parent_id ?: null,
+            'parent_id' => null,
         ]);
 
-        return redirect()->route('legal.categorias.index')
-            ->with('success', 'Categoría "' . $request->nombre . '" creada correctamente.');
+        return redirect()->route('legal.matriz.index', ['nueva_categoria' => $categoria->id])
+            ->with('success', 'Categoría "' . $categoria->nombre . '" creada. Ahora puedes crear un proyecto con ella.');
     }
 
     public function destroy($id)

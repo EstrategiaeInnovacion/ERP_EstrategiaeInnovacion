@@ -362,8 +362,10 @@ class ReporteController extends Controller
             $columnasOrdenadas = \App\Models\Logistica\ColumnaVisibleEjecutivo::getColumnasOrdenadasParaMatriz($empleadoId, $idioma);
 
             if ($esAdmin) {
-                $ejecutivos = Empleado::where('area', 'Logistica')
-                    ->orWhere('posicion', 'like', '%Logistica%')->get();
+                $ejecutivos = Empleado::where(function($query) {
+                    $query->where('posicion', 'like', '%logistic%')
+                          ->orWhere('area', 'like', '%logistic%');
+                })->get();
 
                 foreach ($ejecutivos as $index => $ejecutivo) {
                     $query = $this->obtenerQueryBase($request);

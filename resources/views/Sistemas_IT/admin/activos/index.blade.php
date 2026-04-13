@@ -369,13 +369,25 @@
         const img = container.querySelector('img');
         if (!img) return;
         const serial = currentSerie ? `S/N: ${currentSerie}` : '';
-        const w = window.open('', '', 'width=400,height=460');
+        const w = window.open('', '', 'width=320,height=320');
         w.document.write(`
-            <html><head><title>QR — ${currentNombre}</title></head>
-            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:32px;gap:6px;">
-                <img src="${img.src}" style="width:220px;height:220px;">
-                <p style="font-size:14px;font-weight:700;margin:0;">${currentNombre}</p>
-                ${serial ? `<p style="font-size:11px;color:#555;margin:0;">${serial}</p>` : ''}
+            <html><head><title>QR — ${currentNombre}</title><style>
+                @page { margin: 0; size: auto; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                       font-family: Arial, sans-serif; padding: 6mm; gap: 2mm; min-height: 100vh; }
+                img { width: 4.5cm; height: 4.5cm; display: block; }
+                .nombre { font-size: 7pt; font-weight: 700; text-align: center; max-width: 5cm;
+                          overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+                .serie { font-size: 6pt; color: #555; text-align: center; }
+                @media print {
+                    body { padding: 4mm; }
+                }
+            </style></head>
+            <body>
+                <img src="${img.src}">
+                <p class="nombre">${currentNombre}</p>
+                ${serial ? `<p class="serie">${serial}</p>` : ''}
             </body></html>
         `);
         w.document.close();

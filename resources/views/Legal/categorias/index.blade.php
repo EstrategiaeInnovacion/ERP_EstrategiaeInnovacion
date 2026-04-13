@@ -16,7 +16,7 @@
                 <span class="text-slate-700 font-medium">Categorías</span>
             </div>
             <h1 class="text-2xl font-bold text-slate-900">Gestionar Categorías</h1>
-            <p class="text-slate-500 mt-1 text-sm">Administra las categorías y subcategorías de la Matriz de Consulta.</p>
+            <p class="text-slate-500 mt-1 text-sm">Administra las categorías de la Matriz de Consulta.</p>
         </div>
         <a href="{{ route('legal.matriz.index') }}"
            class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-50 hover:border-amber-200 hover:text-amber-600 transition shadow-sm group">
@@ -58,20 +58,6 @@
                 @enderror
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Categoría padre
-                    <span class="ml-1 text-slate-400 font-normal normal-case">(opcional — convierte esta en subcategoría)</span>
-                </label>
-                <select name="parent_id"
-                    class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    <option value="">— Categoría raíz —</option>
-                    @foreach($categorias as $cat)
-                        <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
             <button type="submit"
                 class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-200 transition hover:-translate-y-0.5">
                 Crear Categoría
@@ -105,11 +91,11 @@
                                 {{ $cat->nombre }}
                             </span>
                             <span class="text-xs text-slate-400">
-                                {{ $cat->proyectos->count() + $cat->subcategorias->sum(fn($s) => $s->proyectos->count()) }} proyecto(s)
+                                {{ $cat->proyectos->count() }} proyecto(s)
                             </span>
                         </div>
                         <form action="{{ route('legal.categorias.destroy', $cat->id) }}" method="POST"
-                              onsubmit="return confirm('¿Eliminar la categoría \'{{ addslashes($cat->nombre) }}\'? Sus subcategorías pasarán a ser categorías raíz.')">
+                              onsubmit="return confirm('¿Eliminar la categoría \'{{ addslashes($cat->nombre) }}\'?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,32 +104,6 @@
                             </button>
                         </form>
                     </div>
-
-                    {{-- Subcategorías --}}
-                    @if($cat->subcategorias->isNotEmpty())
-                    <ul class="mt-2 ml-4 space-y-1">
-                        @foreach($cat->subcategorias as $sub)
-                        <li class="flex items-center justify-between py-1">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5"/>
-                                </svg>
-                                <span class="text-sm text-slate-700">{{ $sub->nombre }}</span>
-                                <span class="text-xs text-slate-400">{{ $sub->proyectos->count() }} proyecto(s)</span>
-                            </div>
-                            <form action="{{ route('legal.categorias.destroy', $sub->id) }}" method="POST"
-                                  onsubmit="return confirm('¿Eliminar la subcategoría \'{{ addslashes($sub->nombre) }}\'?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                </button>
-                            </form>
-                        </li>
-                        @endforeach
-                    </ul>
-                    @endif
                 </li>
                 @endforeach
             </ul>

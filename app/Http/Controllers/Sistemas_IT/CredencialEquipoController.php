@@ -63,7 +63,17 @@ class CredencialEquipoController extends Controller
         $usuarios = User::where('status', 'approved')->orderBy('name')->get(['id', 'name', 'email']);
         $soloLectura = request()->routeIs('rh.activos.*');
 
-        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios', 'soloLectura'));
+        // IDs de usuarios que YA tienen carta responsiva guardada en su expediente
+        $usersConCarta = \App\Models\Empleado::whereHas('documentos', function ($q) {
+                $q->where('categoria', 'Sistema IT')
+                  ->where('nombre', 'like', 'Carta Responsiva IT%');
+            })
+            ->join('users', 'users.id', '=', 'empleados.user_id')
+            ->pluck('users.id')
+            ->flip()
+            ->all();
+
+        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios', 'soloLectura', 'usersConCarta'));
     }
 
     public function create()
