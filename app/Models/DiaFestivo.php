@@ -188,7 +188,7 @@ class DiaFestivo extends Model
 
     public function enviarNotificaciones(): int
     {
-        $empleados = Empleado::where('status', 'activo')
+        $empleados = Empleado::where('es_activo', true)
             ->whereNotNull('user_id')
             ->with('user')
             ->get();
