@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\RH;
 
 use App\Http\Controllers\Controller;
-use App\Models\Asistencia;
-use App\Models\Empleado;
-use App\Models\AvisoAsistencia;
 use App\Mail\AvisoAsistenciaMailable;
+use App\Models\Asistencia;
+use App\Models\AvisoAsistencia;
+use App\Models\Empleado;
 use App\Services\ProcesarAsistenciaService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage; // Importante para las transacciones
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB; // Importante para las transacciones
-use Carbon\Carbon;
 
 class RelojChecadorImportController extends Controller
 {
@@ -36,7 +36,7 @@ class RelojChecadorImportController extends Controller
         $loopDate = $start->copy();
 
         while ($loopDate->lte($end)) {
-            if (!$loopDate->isWeekend()) {
+            if (! $loopDate->isWeekend()) {
                 $fechas[] = $loopDate->copy();
             }
             $loopDate->addDay();
@@ -50,7 +50,7 @@ class RelojChecadorImportController extends Controller
 
         $empleados = Empleado::query()
             ->when($search, function ($query, $search) {
-            $query->where(function ($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('id_empleado', 'like', "%{$search}%");
                 }
@@ -60,11 +60,11 @@ class RelojChecadorImportController extends Controller
             ->with([
                 'asistencias' => function ($q) use ($inicio, $dbFechaFin) {
                     $q->where('fecha', '>=', $inicio)
-                      ->where('fecha', '<', $dbFechaFin);
+                        ->where('fecha', '<', $dbFechaFin);
                 },
                 'avisosAsistencia' => function ($q) {
                     $q->orderBy('created_at', 'desc')->with('enviadoPor');
-                }
+                },
             ])
             ->paginate(15)
             ->withQueryString();
@@ -134,7 +134,9 @@ class RelojChecadorImportController extends Controller
             'asistenciasOk' => $kpis['ok'],
             'retardos' => $kpis['retardos'],
             'faltas' => $kpis['faltas'],
-            'busqueda' => $search
+            'busqueda' => $search,
+            'fechaInicioDb' => $inicio,
+            'fechaFinDb' => $fin,
         ]);
     }
 
@@ -176,19 +178,18 @@ class RelojChecadorImportController extends Controller
             'empleado_id' => 'required',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-            'tipo_registro' => 'required'
+            'tipo_registro' => 'required',
         ]);
 
         return DB::transaction(function () use ($request) {
             $inicio = Carbon::parse($request->fecha_inicio);
-            $fin = $request->fecha_fin ?Carbon::parse($request->fecha_fin) : $inicio->copy();
+            $fin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : $inicio->copy();
 
             $targetEmpleados = collect();
 
             if ($request->empleado_id === 'all') {
                 $targetEmpleados = Empleado::all();
-            }
-            else {
+            } else {
                 $emp = Empleado::find($request->empleado_id);
                 if ($emp) {
                     $targetEmpleados->push($emp);
@@ -216,7 +217,7 @@ class RelojChecadorImportController extends Controller
                         'empleado_id' => $empleado->id,
                         'fecha' => $registroExistente ? $registroExistente->fecha : $loopDate->toDateString(),
                         'empleado_no' => $empleado->id_empleado ?? 'S/N',
-                        'nombre' => $empleado->nombre . ' ' . $empleado->apellido_paterno,
+                        'nombre' => $empleado->nombre.' '.$empleado->apellido_paterno,
                         'tipo_registro' => $request->tipo_registro,
                         'comentarios' => $request->comentarios,
                         'es_justificado' => $request->input('es_justificado', true) ? true : false,
@@ -226,8 +227,7 @@ class RelojChecadorImportController extends Controller
 
                     if ($registroExistente) {
                         $registroExistente->update($datosGuardar);
-                    }
-                    else {
+                    } else {
                         $datosGuardar['created_at'] = now();
                         $datosGuardar['checadas'] = '[]';
                         $datosGuardar['entrada'] = null;
@@ -273,29 +273,29 @@ class RelojChecadorImportController extends Controller
         }
 
         $inicio = Carbon::parse($request->fecha_inicio);
-        $fin = $request->fecha_fin ?Carbon::parse($request->fecha_fin) : $inicio->copy();
+        $fin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : $inicio->copy();
         $contador = 0;
 
         $loopDate = $inicio->copy();
         while ($loopDate->lte($fin)) {
             // Saltar fines de semana
-            if (!$loopDate->isWeekend()) {
+            if (! $loopDate->isWeekend()) {
                 Asistencia::updateOrCreate(
-                [
-                    'empleado_id' => $empleado->id,
-                    'fecha' => $loopDate->toDateString(),
-                ],
-                [
-                    'empleado_no' => $empleado->id_empleado ?? 'S/N',
-                    'nombre' => $empleado->nombre . ' ' . ($empleado->apellido_paterno ?? ''),
-                    'entrada' => $entrada,
-                    'salida' => $salida,
-                    'tipo_registro' => 'asistencia',
-                    'es_retardo' => $esRetardo,
-                    'es_justificado' => false,
-                    'checadas' => json_encode(array_filter([$entrada, $salida])),
-                    'comentarios' => 'Registro manual',
-                ]
+                    [
+                        'empleado_id' => $empleado->id,
+                        'fecha' => $loopDate->toDateString(),
+                    ],
+                    [
+                        'empleado_no' => $empleado->id_empleado ?? 'S/N',
+                        'nombre' => $empleado->nombre.' '.($empleado->apellido_paterno ?? ''),
+                        'entrada' => $entrada,
+                        'salida' => $salida,
+                        'tipo_registro' => 'asistencia',
+                        'es_retardo' => $esRetardo,
+                        'es_justificado' => false,
+                        'checadas' => json_encode(array_filter([$entrada, $salida])),
+                        'comentarios' => 'Registro manual',
+                    ]
                 );
                 $contador++;
             }
@@ -318,18 +318,18 @@ class RelojChecadorImportController extends Controller
         ]);
 
         $file = $request->file('archivo');
-        $path = $file->storeAs('imports/reloj', Str::uuid() . '_' . $file->getClientOriginalName());
+        $path = $file->storeAs('imports/reloj', Str::uuid().'_'.$file->getClientOriginalName());
         $fullPath = Storage::path($path);
 
         $key = $request->progress_key;
         $this->updateProgress($key, 'procesando', 5, 'Iniciando lectura...');
 
         try {
-            if (!class_exists(ProcesarAsistenciaService::class)) {
-                throw new \Exception("Servicio de procesamiento no encontrado.");
+            if (! class_exists(ProcesarAsistenciaService::class)) {
+                throw new \Exception('Servicio de procesamiento no encontrado.');
             }
 
-            $service = new ProcesarAsistenciaService();
+            $service = new ProcesarAsistenciaService;
 
             // Filtro de empleados (opcional) - solo procesar estos IDs
             $filtroEmpleados = $request->input('empleados_filtro', []);
@@ -337,21 +337,21 @@ class RelojChecadorImportController extends Controller
                 $filtroEmpleados = array_filter(explode(',', $filtroEmpleados));
             }
 
-            // La transacción está implementada DENTRO del servicio para no bloquear 
+            // La transacción está implementada DENTRO del servicio para no bloquear
             // la base de datos mientras se lee el archivo Excel (que es lento).
             $resultado = $service->process($fullPath, true, function ($estado) use ($key) {
                 $percent = ($estado['total'] > 0) ? round(($estado['indice'] / $estado['total']) * 100) : 0;
-                $this->updateProgress($key, 'procesando', max(5, $percent), "Procesando registros...");
+                $this->updateProgress($key, 'procesando', max(5, $percent), 'Procesando registros...');
             }, $filtroEmpleados);
 
-            $this->updateProgress($key, 'completado', 100, "Completado. " . ($resultado['total_registros'] ?? 0) . " registros.", true);
+            $this->updateProgress($key, 'completado', 100, 'Completado. '.($resultado['total_registros'] ?? 0).' registros.', true);
 
             return response()->json(['success' => true]);
 
-        }
-        catch (\Throwable $e) {
-            Log::error("Error Importación Reloj: " . $e->getMessage());
-            $this->updateProgress($key, 'error', 0, "Error: " . $e->getMessage(), true);
+        } catch (\Throwable $e) {
+            Log::error('Error Importación Reloj: '.$e->getMessage());
+            $this->updateProgress($key, 'error', 0, 'Error: '.$e->getMessage(), true);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -363,7 +363,7 @@ class RelojChecadorImportController extends Controller
             'status' => $status,
             'percent' => $percent,
             'mensaje' => $msg,
-            'finalizado' => $finalizado
+            'finalizado' => $finalizado,
         ], now()->addMinutes(10));
     }
 
@@ -375,6 +375,7 @@ class RelojChecadorImportController extends Controller
     public function clear()
     {
         Asistencia::truncate();
+
         return redirect()->route('rh.reloj.index')->with('success', 'Base de datos de asistencia vaciada correctamente.');
     }
 
@@ -385,7 +386,7 @@ class RelojChecadorImportController extends Controller
     {
         $request->validate([
             'fecha_inicio' => 'required|date',
-            'fecha_fin'    => 'required|date|after_or_equal:fecha_inicio',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
         $eliminados = Asistencia::whereBetween('fecha', [
@@ -405,9 +406,9 @@ class RelojChecadorImportController extends Controller
     public function revertirRango(Request $request)
     {
         $request->validate([
-            'empleado_id'  => 'required|exists:empleados,id',
+            'empleado_id' => 'required|exists:empleados,id',
             'fecha_inicio' => 'required|date',
-            'fecha_fin'    => 'required|date|after_or_equal:fecha_inicio',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
         $asistencias = Asistencia::where('empleado_id', $request->empleado_id)
@@ -430,15 +431,16 @@ class RelojChecadorImportController extends Controller
                             $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
                             $limite = Carbon::createFromFormat('H:i', '09:00');
                             $esRetardo = $horaEntrada->gt($limite);
-                        } catch (\Exception $e2) {}
+                        } catch (\Exception $e2) {
+                        }
                     }
                 }
-                $tipo = ($asistencia->entrada && !$asistencia->salida) ? 'incompleto' : 'asistencia';
+                $tipo = ($asistencia->entrada && ! $asistencia->salida) ? 'incompleto' : 'asistencia';
                 $asistencia->update([
-                    'tipo_registro'  => $tipo,
+                    'tipo_registro' => $tipo,
                     'es_justificado' => false,
-                    'es_retardo'     => $esRetardo,
-                    'comentarios'    => null,
+                    'es_retardo' => $esRetardo,
+                    'comentarios' => null,
                 ]);
                 $revertidos++;
             } else {
@@ -449,8 +451,12 @@ class RelojChecadorImportController extends Controller
 
         $empleado = Empleado::findOrFail($request->empleado_id);
         $partes = [];
-        if ($revertidos > 0) $partes[] = "{$revertidos} revertido(s) al estado original";
-        if ($eliminados > 0)  $partes[] = "{$eliminados} manual(es) eliminado(s)";
+        if ($revertidos > 0) {
+            $partes[] = "{$revertidos} revertido(s) al estado original";
+        }
+        if ($eliminados > 0) {
+            $partes[] = "{$eliminados} manual(es) eliminado(s)";
+        }
         $resumen = empty($partes) ? 'Sin registros en ese rango' : implode(', ', $partes);
 
         return redirect()->route('rh.reloj.index')->with(
@@ -482,13 +488,14 @@ class RelojChecadorImportController extends Controller
                         $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
                         $limite = Carbon::createFromFormat('H:i', '09:00');
                         $esRetardo = $horaEntrada->gt($limite);
-                    } catch (\Exception $e2) {}
+                    } catch (\Exception $e2) {
+                    }
                 }
             }
 
             // Determinar tipo: si falta salida es 'incompleto', si no es 'asistencia'
             $tipo = 'asistencia';
-            if ($asistencia->entrada && !$asistencia->salida) {
+            if ($asistencia->entrada && ! $asistencia->salida) {
                 $tipo = 'incompleto';
             }
 
@@ -543,7 +550,7 @@ class RelojChecadorImportController extends Controller
         try {
             // Obtener el usuario del empleado para saber su correo
             $usuarioEmpleado = $aviso->empleado->user;
-            
+
             if ($usuarioEmpleado && $usuarioEmpleado->email) {
                 // Enviar correo principal al empleado, y poner con copia al jefe de RH (o a quien envíe)
                 $ccList = [
@@ -556,7 +563,7 @@ class RelojChecadorImportController extends Controller
                     ->send(new AvisoAsistenciaMailable($aviso));
             }
         } catch (\Exception $e) {
-            Log::error('Error al enviar correo de aviso de asistencia: ' . $e->getMessage());
+            Log::error('Error al enviar correo de aviso de asistencia: '.$e->getMessage());
             // No interrumpimos el flujo si falla el correo, el aviso igual queda en el dashboard
         }
 

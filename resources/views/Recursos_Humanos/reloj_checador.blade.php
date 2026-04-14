@@ -266,7 +266,7 @@
                                             {{-- Resumen Rápido (Opcional, se puede calcular si se desea mayor detalle) --}}
                                             @php
                                                 // Pequeño cálculo al vuelo para el resumen de este empleado en el rango
-                                                $asistenciasEmp = $empleado->asistencias->whereBetween('fecha', [$fechaInicioFormato, $fechaFinFormato]);
+                                                $asistenciasEmp = $empleado->asistencias->whereBetween('fecha', [$fechaInicioDb, $fechaFinDb]);
                                                 $retardosEmp = $asistenciasEmp->where('es_retardo', true)->where('es_justificado', false)->count();
                                                 $faltasEmp = $asistenciasEmp->where('tipo_registro', 'falta')->where('es_justificado', false)->count();
                                                 
