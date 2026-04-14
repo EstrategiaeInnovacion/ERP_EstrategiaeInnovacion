@@ -193,10 +193,14 @@ class DiaFestivo extends Model
             ->with('user')
             ->get();
 
+        \Log::info('Empleados encontrados para notificación de día festivo: '.$empleados->count());
+
         $enviados = 0;
 
         foreach ($empleados as $empleado) {
             if (! $empleado->user) {
+                \Log::info("Empleado {$empleado->nombre} no tiene usuario relacionado");
+
                 continue;
             }
 
