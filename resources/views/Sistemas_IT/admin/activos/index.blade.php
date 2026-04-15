@@ -522,6 +522,12 @@ window.imprimirEtiquetas = function () {
         return;
     }
 
+    // Abrir ventana de forma síncrona (dentro del evento click) para evitar popup blocker
+    const w = window.open('', '_blank', 'width=900,height=700');
+    if (!w) { alert('El navegador bloqueó la ventana emergente. Permite popups para este sitio.'); return; }
+    w.document.write('<html><head><title>Generando etiquetas…</title></head><body><p style="font-family:Arial;padding:20px">Generando códigos QR, por favor espera…</p></body></html>');
+    w.document.close();
+
     const total = ETIQUETAS_DATA.length;
     const qrDataUrls = [];
     let generados = 0;
@@ -565,7 +571,7 @@ window.imprimirEtiquetas = function () {
             </div>`;
         }).join('');
 
-        const w = window.open('', '_blank', 'width=900,height=700');
+        w.document.open();
         w.document.write(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -646,6 +652,12 @@ window.imprimirCategoria = function(tipo) {
     }
     if (lista.length === 0) return;
 
+    // Abrir ventana de forma síncrona (dentro del evento click) para evitar popup blocker
+    const w = window.open('', '_blank', 'width=900,height=700');
+    if (!w) { alert('El navegador bloqueó la ventana emergente. Permite popups para este sitio.'); return; }
+    w.document.write('<html><head><title>Generando etiquetas…</title></head><body><p style="font-family:Arial;padding:20px">Generando códigos QR, por favor espera…</p></body></html>');
+    w.document.close();
+
     // Mostrar progreso
     document.getElementById('categorias-qr-progreso').classList.remove('hidden');
 
@@ -659,7 +671,7 @@ window.imprimirCategoria = function(tipo) {
         if (generados === total) {
             document.getElementById('categorias-qr-progreso').classList.add('hidden');
             document.getElementById('modal-categorias-qr').classList.add('hidden');
-            abrirImpresionCategoria(lista, qrUrls, CAT_LABELS[tipo] || tipo, tipo);
+            abrirImpresionCategoria(w, lista, qrUrls, CAT_LABELS[tipo] || tipo, tipo);
         }
     }
 
@@ -682,7 +694,7 @@ window.imprimirCategoria = function(tipo) {
         }, 80);
     });
 };
-function abrirImpresionCategoria(lista, qrUrls, titulo, tipo) {
+function abrirImpresionCategoria(w, lista, qrUrls, titulo, tipo) {
     const cm = (window.QR_SIZES[tipo] || window.QR_SIZES.other).cm;
     const etiquetasHtml = lista.map((d, i) => `
         <div class="etiqueta">
@@ -691,7 +703,7 @@ function abrirImpresionCategoria(lista, qrUrls, titulo, tipo) {
         </div>
     `).join('');
 
-    const w = window.open('', '_blank', 'width=900,height=700');
+    w.document.open();
     w.document.write(`<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
 <title>Etiquetas — ${titulo}</title>
