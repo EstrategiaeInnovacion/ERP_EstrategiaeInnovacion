@@ -114,6 +114,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/proyectos/{id}/usuarios', [App\Http\Controllers\ProyectoController::class, 'asignarUsuarios'])->name('proyectos.asignarUsuarios');
     Route::delete('/proyectos/{id}/usuarios/{userId}', [App\Http\Controllers\ProyectoController::class, 'quitarUsuario'])->name('proyectos.quitarUsuario');
     Route::get('/proyectos/usuarios/lista', [App\Http\Controllers\ProyectoController::class, 'listaUsuarios'])->name('proyectos.listaUsuarios');
+    Route::post('/proyectos/{id}/finalizar', [App\Http\Controllers\ProyectoController::class, 'finalizar'])->name('proyectos.finalizar');
+    Route::get('/proyectos/{id}/reporte', [App\Http\Controllers\ProyectoController::class, 'reporte'])->name('proyectos.reporte');
 
     // Actividades del Proyecto (vista dedicada)
     Route::get('/proyectos/{proyecto}/actividades', [App\Http\Controllers\ProyectoController::class, 'actividades'])->name('proyectos.actividades');

@@ -16,15 +16,19 @@ class Proyecto extends Model
         'usuario_id',
         'fecha_inicio',
         'fecha_fin',
+        'fecha_fin_real',
         'recurrencia',
         'notas',
         'archivado',
+        'finalizado',
     ];
 
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
+        'fecha_fin_real' => 'date',
         'archivado' => 'boolean',
+        'finalizado' => 'boolean',
     ];
 
     public function creador()
@@ -79,5 +83,39 @@ class Proyecto extends Model
         $hoy = Carbon::now()->toDateString();
 
         return ! $this->archivado && $this->fecha_fin >= $hoy;
+    }
+
+    public function metricas()
+    {
+        $actividades = $this->actividades()->get();
+
+        $total = $actividades->count();
+        $completadas = $actividades->whereIn('estatus', ['Completado', 'Completado con retardo'])->count();
+        $enProceso = $actividades->whereIn('estatus', ['En proceso', 'Planeado', 'Por Aprobar', 'Por Validar'])->count();
+        $rechazadas = $actividades->where('estatus', 'Rechazado')->count();
+
+        // Eficiencia: actividades completadas a tiempo
+        $aTiempo = $actividades->where('porcentaje', 100)->count();
+        $conRetraso = $actividades->where('estatus', 'Completado con retardo')->count();
+
+        // Promedio de eficiencia
+        $promedioEficiencia = $actividades->whereNotNull('porcentaje')->avg('porcentaje') ?? 0;
+
+        // Días promedio
+        $diasPlaneados = $actividades->whereNotNull('metrico')->avg('metrico') ?? 0;
+        $diasReales = $actividades->whereNotNull('resultado_dias')->avg('resultado_dias') ?? 0;
+
+        return [
+            'total' => $total,
+            'completadas' => $completadas,
+            'en_proceso' => $enProceso,
+            'rechazadas' => $rechazadas,
+            'a_tiempo' => $aTiempo,
+            'con_retraso' => $conRetraso,
+            'promedio_eficiencia' => round($promedioEficiencia, 1),
+            'dias_planeados' => round($diasPlaneados, 1),
+            'dias_reales' => round($diasReales, 1),
+            'porcentaje_completado' => $total > 0 ? round(($completadas / $total) * 100, 1) : 0,
+        ];
     }
 }
