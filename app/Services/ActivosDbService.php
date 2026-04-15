@@ -448,6 +448,7 @@ class ActivosDbService
             $rows = $this->conn()
                 ->table('devices as d')
                 ->select('d.uuid', 'd.name', 'd.serial_number', 'd.type')
+                ->where('d.status', '!=', 'broken')
                 ->orderBy('d.type')
                 ->orderBy('d.name')
                 ->get();
