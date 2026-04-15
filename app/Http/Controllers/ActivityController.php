@@ -156,9 +156,9 @@ class ActivityController extends Controller
         // Inicializar query base
         $query = Activity::query();
 
-        // Filtrar por usuario si no es dirección ni supervisor
-        if (! $esDireccion && ! $esSupervisor) {
-            $query->where('user_id', $user->id);
+        // Filtrar por usuario (excepto dirección que ve todo)
+        if (! $esDireccion) {
+            $query->where('user_id', $targetUserId);
         }
 
         // Aplicar filtro de proyecto
@@ -173,6 +173,11 @@ class ActivityController extends Controller
         if (! $verTodo && ! $isHistoryView) {
             $query->whereNotIn('estatus', ['Completado', 'Rechazado']);
             $query->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()]);
+        } elseif ($verTodo) {
+            $query->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhereBetween('fecha_final', [$startDate->toDateString(), $endDate->toDateString()]);
+            });
         }
 
         if ($request->search) {
@@ -184,9 +189,10 @@ class ActivityController extends Controller
         }
 
         $activitiesList = $query
+            ->orderByRaw("CASE WHEN user_id = {$user->id} THEN 0 ELSE 1 END")
             ->orderByRaw("CASE estatus WHEN 'Completado' THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
-            ->orderBy('fecha_compromiso')
+            ->orderBy('created_at', 'desc')
             ->orderBy('hora_inicio_programada')
             ->get();
 
