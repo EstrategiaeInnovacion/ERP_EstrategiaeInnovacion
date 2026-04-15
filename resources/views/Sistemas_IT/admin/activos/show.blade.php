@@ -470,18 +470,24 @@
     // Generar al cargar (para que el download funcione sin abrir el modal)
     document.addEventListener('DOMContentLoaded', generarQR);
 
+    function qrSrc() {
+        const canvas = document.querySelector('#qr-canvas-show canvas');
+        const img    = document.querySelector('#qr-canvas-show img');
+        return canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+    }
+
     window.descargarQR = function () {
-        const img = document.querySelector('#qr-canvas-show img');
-        if (!img) return;
+        const src = qrSrc();
+        if (!src) return;
         const a = document.createElement('a');
-        a.href = img.src;
+        a.href = src;
         a.download = 'QR-' + QR_NAME.replace(/[^a-z0-9]/gi, '_') + '.png';
         a.click();
     };
 
     window.imprimirQR = function () {
-        const img = document.querySelector('#qr-canvas-show img');
-        if (!img) return;
+        const src = qrSrc();
+        if (!src) return;
         const printSize = (QR_SIZES[QR_TYPE] || QR_SIZES.other).cm;
         const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
@@ -494,7 +500,7 @@
                 .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>
-                <img src="${img.src}">
+                <img src="${src}">
                 ${QR_SERIAL ? `<p class="serie">S/N: ${QR_SERIAL}</p>` : ''}
             </body></html>
         `);
