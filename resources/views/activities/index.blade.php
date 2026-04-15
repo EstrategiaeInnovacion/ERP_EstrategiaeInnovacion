@@ -127,7 +127,19 @@
                         <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span class="text-xs font-bold text-red-700">Rechazada: "{{ $rej->nombre_actividad }}" ({{ $rej->motivo_rechazo }})</span>
                     </div>
-                    <button onclick='openNotes(@json($rej), true)' class="bg-white border border-red-200 text-red-600 px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-red-50 transition">Corregir</button>
+                    <div class="flex items-center gap-2">
+                        <form action="{{ route('activities.destroy', $rej->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? Una vez eliminada no se podrá recuperar.')" class="inline">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="bg-white border border-slate-300 text-slate-600 px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-slate-100 hover:text-slate-800 transition flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Eliminar
+                            </button>
+                        </form>
+                        <button onclick='openNotes(@json($rej), true)' class="bg-white border border-red-200 text-red-600 px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-red-100 transition flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Corregir
+                        </button>
+                    </div>
                 </div>
             @endforeach
             </div>
