@@ -380,7 +380,7 @@
     let qrInstance    = null;
     let currentTipo   = 'computer';
 
-    const QR_SIZES = {
+    window.QR_SIZES = window.QR_SIZES || {
         computer:  { px: 360, cm: '4.5cm', modal: 220 },
         peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
         printer:   { px: 300, cm: '3.8cm', modal: 200 },
@@ -399,7 +399,7 @@
         container.innerHTML = '';
         qrInstance = null;
 
-        const modalSize = (QR_SIZES[currentTipo] || QR_SIZES.other).modal;
+        const modalSize = (window.QR_SIZES[currentTipo] || window.QR_SIZES.other).modal;
 
         qrInstance = new QRCode(container, {
             text: BASE_URL + '/' + uuid,
@@ -429,7 +429,7 @@
     window.imprimirQRIdx = function () {
         const img = container.querySelector('img');
         if (!img) return;
-        const printSize = (QR_SIZES[currentTipo] || QR_SIZES.other).cm;
+        const printSize = (window.QR_SIZES[currentTipo] || window.QR_SIZES.other).cm;
         const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
             <html><head><title>QR</title><style>
@@ -505,7 +505,7 @@
     }
 @endphp
 <script>
-const QR_SIZES = {
+window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220 },
     peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
     printer:   { px: 300, cm: '3.8cm', modal: 200 },
@@ -538,7 +538,7 @@ window.imprimirEtiquetas = function () {
         div.style.left     = '-9999px';
         document.body.appendChild(div);
 
-        const sizeInfo = QR_SIZES[d.type] || QR_SIZES.other;
+        const sizeInfo = (window.QR_SIZES[d.type] || window.QR_SIZES.other);
         new QRCode(div, {
             text: ETIQUETAS_BASE_URL + '/' + d.uuid,
             width: sizeInfo.px, height: sizeInfo.px,
@@ -557,7 +557,7 @@ window.imprimirEtiquetas = function () {
         const cols = 4;
 
         const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => {
-            const cm = (QR_SIZES[d.type] || QR_SIZES.other).cm;
+            const cm = (window.QR_SIZES[d.type] || window.QR_SIZES.other).cm;
             return `
             <div class="etiqueta">
                 <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
@@ -619,7 +619,7 @@ window.imprimirEtiquetas = function () {
 
 <script>
 // ── Datos completos de todas las categorías para impresión ──────────
-const QR_SIZES = {
+window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220 },
     peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
     printer:   { px: 300, cm: '3.8cm', modal: 200 },
@@ -668,7 +668,7 @@ window.imprimirCategoria = function(tipo) {
         div.style.position = 'absolute';
         div.style.left = '-9999px';
         document.body.appendChild(div);
-        const sizeInfo = QR_SIZES[tipo] || QR_SIZES.other;
+        const sizeInfo = (window.QR_SIZES[tipo] || window.QR_SIZES.other);
         new QRCode(div, {
             text: TODAS_BASE_URL + '/' + d.uuid,
             width: sizeInfo.px, height: sizeInfo.px,
@@ -683,7 +683,7 @@ window.imprimirCategoria = function(tipo) {
     });
 };
 function abrirImpresionCategoria(lista, qrUrls, titulo, tipo) {
-    const cm = (QR_SIZES[tipo] || QR_SIZES.other).cm;
+    const cm = (window.QR_SIZES[tipo] || window.QR_SIZES.other).cm;
     const etiquetasHtml = lista.map((d, i) => `
         <div class="etiqueta">
             <img src="${qrUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
