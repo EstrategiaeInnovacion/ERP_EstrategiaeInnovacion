@@ -418,17 +418,21 @@
     };
 
     window.descargarQRIdx = function () {
-        const img = container.querySelector('img');
-        if (!img) return;
+        const canvas = container.querySelector('canvas');
+        const img    = container.querySelector('img');
+        const src    = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+        if (!src) return;
         const a = document.createElement('a');
-        a.href = img.src;
+        a.href = src;
         a.download = 'QR-' + (currentNombre || currentUuid).replace(/[^a-z0-9]/gi, '_') + '.png';
         a.click();
     };
 
     window.imprimirQRIdx = function () {
-        const img = container.querySelector('img');
-        if (!img) return;
+        const canvas = container.querySelector('canvas');
+        const img    = container.querySelector('img');
+        const src    = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+        if (!src) return;
         const printSize = (window.QR_SIZES[currentTipo] || window.QR_SIZES.other).cm;
         const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
@@ -441,7 +445,7 @@
                 .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>
-                <img src="${img.src}">
+                <img src="${src}">
                 ${currentSerie ? `<p class="serie">S/N: ${currentSerie}</p>` : ''}
             </body></html>
         `);
@@ -553,8 +557,10 @@ window.imprimirEtiquetas = function () {
         });
 
         setTimeout(() => {
-            const img = div.querySelector('img');
-            onQRGenerado(idx, img ? img.src : '');
+            const canvas = div.querySelector('canvas');
+            const img    = div.querySelector('img');
+            const src    = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+            onQRGenerado(idx, src);
             document.body.removeChild(div);
         }, 80);
     });
@@ -688,8 +694,10 @@ window.imprimirCategoria = function(tipo) {
             correctLevel: QRCode.CorrectLevel.H,
         });
         setTimeout(() => {
-            const img = div.querySelector('img');
-            onGenerado(idx, img ? img.src : '');
+            const canvas = div.querySelector('canvas');
+            const img    = div.querySelector('img');
+            const src    = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+            onGenerado(idx, src);
             document.body.removeChild(div);
         }, 80);
     });
