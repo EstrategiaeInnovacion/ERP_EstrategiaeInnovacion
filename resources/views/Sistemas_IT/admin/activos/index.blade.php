@@ -382,7 +382,7 @@
 
     window.QR_SIZES = window.QR_SIZES || {
         computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
-        peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+        peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
         printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
         other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
     };
@@ -511,7 +511,7 @@
 <script>
 window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
-    peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+    peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
     printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
     other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
@@ -634,7 +634,7 @@ window.imprimirEtiquetas = function () {
 // ── Datos completos de todas las categorías para impresión ──────────
 window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
-    peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+    peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
     printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
     other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
