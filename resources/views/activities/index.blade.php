@@ -136,6 +136,59 @@
         {{-- ======================================================= --}}
         {{-- 4. BARRA DE HERRAMIENTAS Y FILTROS VISUALES             --}}
         {{-- ======================================================= --}}
+        {{-- 3.1. SIDEBAR DE PROYECTOS --}}
+        {{-- ======================================================= --}}
+        @php
+            $mostrarSidebarProyectos = (isset($esRh) && $esRh) || (isset($proyectos) && $proyectos->count() > 0);
+        @endphp
+        @if($mostrarSidebarProyectos)
+        @php
+            $proyectoSeleccionadoId = request('proyecto_id');
+        @endphp
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    Proyectos
+                </h3>
+                @if(isset($esRh) && $esRh)
+                    <a href="{{ route('proyectos.index') }}" class="text-[10px] text-indigo-600 hover:underline font-bold">Administrar</a>
+                @else
+                    <a href="{{ route('proyectos.index') }}" class="text-[10px] text-indigo-600 hover:underline font-bold">Ver todos</a>
+                @endif
+            </div>
+            @if(isset($proyectos) && $proyectos->count() > 0)
+            <div class="flex flex-wrap gap-2">
+                {{-- Opción: Todos los proyectos --}}
+                <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => null]) }}" 
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {{ !$proyectoSeleccionadoId ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100' }}">
+                    <span class="whitespace-nowrap">Todos</span>
+                </a>
+                
+                {{-- Lista de proyectos --}}
+                @foreach($proyectos as $proy)
+                    <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => $proy->id]) }}" 
+                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {{ $proyectoSeleccionadoId == $proy->id ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100' }}"
+                       title="{{ $proy->nombre }}">
+                        <span class="whitespace-nowrap truncate max-w-[120px]">{{ $proy->nombre }}</span>
+                        <span class="text-[10px] text-slate-400">({{ $proy->actividades()->count() }})</span>
+                    </a>
+                @endforeach
+
+                {{-- Opción: Sin proyecto --}}
+                <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => 'sin_proyecto']) }}" 
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {{ $proyectoSeleccionadoId == 'sin_proyecto' ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100' }}">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <span class="whitespace-nowrap">Sin proyecto</span>
+                </a>
+            </div>
+            @else
+            <p class="text-xs text-slate-400">No hay proyectos disponibles</p>
+            @endif
+        </div>
+        @endif
+
+        {{-- ======================================================= --}}
         <div class="flex flex-col xl:flex-row justify-between items-center gap-4 py-2">
             
             {{-- IZQUIERDA: FILTROS DE ORIGEN --}}
@@ -462,6 +515,17 @@
                                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Área</label><select name="area" class="w-full rounded-lg border-slate-300 text-sm py-2.5 bg-white focus:ring-indigo-500">@foreach($areasDisponibles as $areaOp) <option value="{{ $areaOp }}" {{ $areaOp == 'General' ? 'selected' : '' }}>{{ $areaOp }}</option> @endforeach</select></div>
                                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Cliente</label><input type="text" name="cliente" class="w-full rounded-lg border-slate-300 text-sm py-2.5" placeholder="Opcional"></div>
                             </div>
+                            @if(isset($proyectos) && $proyectos->count() > 0)
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Proyecto (Opcional)</label>
+                                <select name="proyecto_id" class="w-full rounded-lg border-slate-300 text-sm py-2.5 bg-white focus:ring-indigo-500">
+                                    <option value="">Sin proyecto</option>
+                                    @foreach($proyectos as $proy)
+                                        <option value="{{ $proy->id }}" {{ request('proyecto_id') == $proy->id ? 'selected' : '' }}>{{ $proy->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
                         </div>
                     </div>
                     <div class="bg-slate-50 px-8 py-5 flex flex-row-reverse gap-3 border-t border-slate-200">

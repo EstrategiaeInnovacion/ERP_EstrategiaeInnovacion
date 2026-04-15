@@ -192,6 +192,27 @@
                             </div>
                         </a>
 
+                        {{-- CARD 4: PROYECTOS (solo para RH) --}}
+                        @if(Auth::user()->isRh())
+                        <a href="{{ route('proyectos.index') }}" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-amber-200 transition-all duration-300 flex items-start gap-5 overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg aria-hidden="true" class="w-40 h-40 text-amber-600" fill="currentColor" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                            </div>
+                            <div class="w-14 h-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <svg aria-hidden="true" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                            </div>
+                            <div class="relative z-10 flex-1">
+                                <h3 class="text-xl font-bold text-slate-800 group-hover:text-amber-700 transition-colors">Gestión de Proyectos</h3>
+                                <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+                                    Crear y administrar proyectos con asignación de usuarios y seguimiento de actividades.
+                                </p>
+                                <div class="mt-4 flex items-center text-xs font-bold text-amber-600 uppercase tracking-wide">
+                                    Administrar <span class="sr-only">Proyectos</span><span aria-hidden="true" class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                                </div>
+                            </div>
+                        </a>
+                        @endif
+
                     </div>
                 </div>
 

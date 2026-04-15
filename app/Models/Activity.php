@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
 
 class Activity extends Model
 {
@@ -30,6 +30,7 @@ class Activity extends Model
         'motivo_rechazo',
         'hora_inicio_programada',
         'hora_fin_programada',
+        'proyecto_id',
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class Activity extends Model
         'metrico' => 'integer',
         'hora_inicio_programada' => 'datetime:H:i',
         'hora_fin_programada' => 'datetime:H:i',
+        'proyecto_id' => 'integer',
     ];
 
     // --- RELACIONES ---
@@ -46,7 +48,7 @@ class Activity extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     // Relación opcional para saber quién la asignó
     public function asignador()
     {
@@ -58,13 +60,18 @@ class Activity extends Model
         return $this->hasMany(ActivityHistory::class)->orderBy('created_at', 'desc');
     }
 
+    public function proyecto()
+    {
+        return $this->belongsTo(Proyecto::class);
+    }
+
     // --- LÓGICA AUTOMÁTICA (Calculadora de Fechas) ---
     protected static function boot()
     {
         parent::boot();
 
         static::saving(function ($activity) {
-            
+
             $inicio = $activity->fecha_inicio ? Carbon::parse($activity->fecha_inicio)->startOfDay() : null;
             $compromiso = $activity->fecha_compromiso ? Carbon::parse($activity->fecha_compromiso)->startOfDay() : null;
             $final = $activity->fecha_final ? Carbon::parse($activity->fecha_final)->startOfDay() : null;
@@ -84,7 +91,7 @@ class Activity extends Model
             }
 
             // 3. Porcentaje (Eficiencia)
-            $activity->porcentaje = 0; 
+            $activity->porcentaje = 0;
             if ($final && $activity->resultado_dias !== null && $activity->metrico > 0) {
                 if ($final->lessThanOrEqualTo($compromiso)) {
                     $activity->porcentaje = 100;
@@ -101,8 +108,8 @@ class Activity extends Model
             // 4. Estatus Automático
             // IMPORTANTE: Solo cambiar estatus si la actividad no está ya completada/aprobada/bloqueada
             $estatusBloqueados = ['Completado', 'Completado con retardo', 'Por Aprobar', 'Por Validar', 'Planeado', 'Rechazado'];
-            
-            if (!in_array($activity->estatus, $estatusBloqueados)) {
+
+            if (! in_array($activity->estatus, $estatusBloqueados)) {
                 if ($activity->fecha_final) {
                     if ($compromiso && $final->gt($compromiso)) {
                         $activity->estatus = 'Completado con retardo';
