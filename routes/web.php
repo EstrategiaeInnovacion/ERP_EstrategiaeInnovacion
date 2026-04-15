@@ -103,6 +103,25 @@ Route::middleware('auth')->group(function () {
     Route::put('/activities/{id}/reject', [ActivityController::class, 'reject'])->name('activities.reject');
     Route::put('/activities/{id}/start', [ActivityController::class, 'start'])->name('activities.start');
 
+    // Proyectos
+    Route::get('/proyectos', [App\Http\Controllers\ProyectoController::class, 'index'])->name('proyectos.index');
+    Route::post('/proyectos', [App\Http\Controllers\ProyectoController::class, 'store'])->name('proyectos.store');
+    Route::get('/proyectos/{id}', [App\Http\Controllers\ProyectoController::class, 'show'])->name('proyectos.show');
+    Route::get('/proyectos/{id}/edit', [App\Http\Controllers\ProyectoController::class, 'edit'])->name('proyectos.edit');
+    Route::put('/proyectos/{id}', [App\Http\Controllers\ProyectoController::class, 'update'])->name('proyectos.update');
+    Route::delete('/proyectos/{id}', [App\Http\Controllers\ProyectoController::class, 'destroy'])->name('proyectos.destroy');
+    Route::post('/proyectos/{id}/restore', [App\Http\Controllers\ProyectoController::class, 'restore'])->name('proyectos.restore');
+    Route::post('/proyectos/{id}/usuarios', [App\Http\Controllers\ProyectoController::class, 'asignarUsuarios'])->name('proyectos.asignarUsuarios');
+    Route::delete('/proyectos/{id}/usuarios/{userId}', [App\Http\Controllers\ProyectoController::class, 'quitarUsuario'])->name('proyectos.quitarUsuario');
+    Route::get('/proyectos/usuarios/lista', [App\Http\Controllers\ProyectoController::class, 'listaUsuarios'])->name('proyectos.listaUsuarios');
+
+    // Actividades del Proyecto (vista dedicada)
+    Route::get('/proyectos/{proyecto}/actividades', [App\Http\Controllers\ProyectoController::class, 'actividades'])->name('proyectos.actividades');
+    Route::post('/proyectos/{proyecto}/actividades', [App\Http\Controllers\ProyectoController::class, 'guardarActividad'])->name('proyectos.actividades.store');
+    Route::get('/proyectos/{proyecto}/actividades/{actividad}/edit', [App\Http\Controllers\ProyectoController::class, 'editarActividad'])->name('proyectos.actividades.edit');
+    Route::put('/proyectos/{proyecto}/actividades/{actividad}', [App\Http\Controllers\ProyectoController::class, 'actualizarActividad'])->name('proyectos.actividades.update');
+    Route::delete('/proyectos/{proyecto}/actividades/{actividad}', [App\Http\Controllers\ProyectoController::class, 'eliminarActividad'])->name('proyectos.actividades.destroy');
+
     // Tickets (Usuario)
     Route::controller(TicketController::class)->prefix('ticket')->name('tickets.')->group(function () {
         Route::get('/create/{tipo}', 'create')->name('create');

@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('logistica:actualizar-status')->hourly();
 Schedule::command('rh:generar-recordatorios')->daily();
+Schedule::command('proyectos:recordatorios')->dailyAt('08:00');
