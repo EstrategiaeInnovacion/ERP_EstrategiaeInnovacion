@@ -381,10 +381,10 @@
     let currentTipo   = 'computer';
 
     window.QR_SIZES = window.QR_SIZES || {
-        computer:  { px: 360, cm: '4.5cm', modal: 220 },
-        peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
-        printer:   { px: 300, cm: '3.8cm', modal: 200 },
-        other:     { px: 260, cm: '3.2cm', modal: 180 },
+        computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
+        peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+        printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+        other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
     };
 
     window.abrirQR = function(uuid, nombre, serie, tipo = 'computer') {
@@ -510,10 +510,10 @@
 @endphp
 <script>
 window.QR_SIZES = window.QR_SIZES || {
-    computer:  { px: 360, cm: '4.5cm', modal: 220 },
-    peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
-    printer:   { px: 300, cm: '3.8cm', modal: 200 },
-    other:     { px: 260, cm: '3.2cm', modal: 180 },
+    computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
+    peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+    printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+    other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
 
 const ETIQUETAS_DATA     = @json($etiquetasArray);
@@ -566,12 +566,12 @@ window.imprimirEtiquetas = function () {
     });
 
     function abrirVentanaImpresion() {
-        const cols = 4;
-
         const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => {
-            const cm = (window.QR_SIZES[d.type] || window.QR_SIZES.other).cm;
+            const sizeInfo   = window.QR_SIZES[d.type] || window.QR_SIZES.other;
+            const cm         = sizeInfo.cm;
+            const labelWidth = sizeInfo.labelWidth;
             return `
-            <div class="etiqueta">
+            <div class="etiqueta" style="width:${labelWidth};">
                 <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
                 ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
             </div>`;
@@ -588,15 +588,16 @@ window.imprimirEtiquetas = function () {
   body { font-family: 'Arial', sans-serif; background: #fff; }
 
   .grid {
-    display: grid;
-    grid-template-columns: repeat(${cols}, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 3px;
-    padding: 3px;
+    padding: 3mm;
+    align-content: flex-start;
   }
 
   .etiqueta {
     border: 1px solid #d1d5db;
-    padding: 3px;
+    padding: 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -632,10 +633,10 @@ window.imprimirEtiquetas = function () {
 <script>
 // ── Datos completos de todas las categorías para impresión ──────────
 window.QR_SIZES = window.QR_SIZES || {
-    computer:  { px: 360, cm: '4.5cm', modal: 220 },
-    peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
-    printer:   { px: 300, cm: '3.8cm', modal: 200 },
-    other:     { px: 260, cm: '3.2cm', modal: 180 },
+    computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
+    peripheral:{ px: 220, cm: '2.8cm', modal: 160, labelWidth: '3.2cm' },
+    printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+    other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
 
 const TODAS_ETIQUETAS     = @json($todasEtiquetas ?? []);
@@ -703,9 +704,11 @@ window.imprimirCategoria = function(tipo) {
     });
 };
 function abrirImpresionCategoria(w, lista, qrUrls, titulo, tipo) {
-    const cm = (window.QR_SIZES[tipo] || window.QR_SIZES.other).cm;
+    const sizeInfo   = window.QR_SIZES[tipo] || window.QR_SIZES.other;
+    const cm         = sizeInfo.cm;
+    const labelWidth = sizeInfo.labelWidth;
     const etiquetasHtml = lista.map((d, i) => `
-        <div class="etiqueta">
+        <div class="etiqueta" style="width:${labelWidth};">
             <img src="${qrUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
             ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
         </div>
@@ -718,8 +721,8 @@ function abrirImpresionCategoria(w, lista, qrUrls, titulo, tipo) {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; background: #fff; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; }
-  .etiqueta { border: 1px solid #d1d5db; padding: 3px; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
+  .grid { display: flex; flex-wrap: wrap; gap: 3px; padding: 3mm; align-content: flex-start; }
+  .etiqueta { border: 1px solid #d1d5db; padding: 2px; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
   .etq-qr { display: block; }
   .etq-serie { font-size: 6.5pt; color: #333; font-family: monospace; text-align: center; margin-top: 1px; }
   @media print {
