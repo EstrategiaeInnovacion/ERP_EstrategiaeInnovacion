@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ActivityController extends Controller
 {
@@ -746,5 +750,158 @@ class ActivityController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $user = Auth::user();
+        $miEmpleado = $user->empleado;
+
+        $dateStart = $request->filled('date_start') ? Carbon::parse($request->date_start) : now()->startOfWeek();
+        $dateEnd = $request->filled('date_end') ? Carbon::parse($request->date_end)->endOfDay() : now()->endOfWeek();
+
+        $userIds = $request->input('user_ids', []);
+
+        if (empty($userIds)) {
+            $userIds = [$user->id];
+        }
+
+        $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $subordinadosIds = $miEmpleado
+            ? Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray()
+            : [];
+        $esSupervisor = count($subordinadosIds) > 0;
+
+        if ($esDireccion) {
+            // Dirección puede exportar cualquier usuario
+        } elseif ($esSupervisor) {
+            $userIds = array_filter($userIds, function ($id) use ($user, $subordinadosIds) {
+                return $id == $user->id || in_array($id, $subordinadosIds);
+            });
+        } else {
+            $userIds = [$user->id];
+        }
+
+        if (empty($userIds)) {
+            $userIds = [$user->id];
+        }
+
+        $activities = Activity::with(['user', 'asignador'])
+            ->whereIn('user_id', $userIds)
+            ->where(function ($q) use ($dateStart, $dateEnd) {
+                $q->whereBetween('fecha_compromiso', [$dateStart->toDateString(), $dateEnd->toDateString()])
+                    ->orWhereBetween('fecha_final', [$dateStart->toDateString(), $dateEnd->toDateString()]);
+            })
+            ->orderBy('user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $spreadsheet = new Spreadsheet;
+
+        foreach ($userIds as $index => $userId) {
+            $targetUser = User::find($userId);
+            if (! $targetUser) {
+                continue;
+            }
+
+            $userActivities = $activities->where('user_id', $userId)->values();
+
+            if ($index === 0) {
+                $sheet = $spreadsheet->getActiveSheet();
+            } else {
+                $sheet = $spreadsheet->createSheet();
+            }
+
+            $sheetName = substr($targetUser->name, 0, 30);
+            $sheet->setTitle($sheetName);
+
+            $headers = ['#', 'Descripción', 'Prioridad', 'Cliente', 'Área', 'Responsable', 'Asignado Por', 'F. Asignación', 'F. Compromiso', 'H. Inicio', 'F. Final', 'Días', '%', 'Estatus', 'Comentarios'];
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col.'1', $header);
+                $sheet->getStyle($col.'1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']],
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+                ]);
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+                $col++;
+            }
+            $sheet->getRowDimension('1')->setRowHeight(25);
+
+            $row = 2;
+            foreach ($userActivities as $i => $act) {
+                $sheet->setCellValue('A'.$row, $i + 1);
+                $sheet->setCellValue('B'.$row, $act->nombre_actividad);
+                $sheet->setCellValue('C'.$row, $act->prioridad);
+                $sheet->setCellValue('D'.$row, $act->cliente ?? '-');
+                $sheet->setCellValue('E'.$row, $act->area ?? '-');
+                $sheet->setCellValue('F'.$row, $act->user->name ?? 'N/A');
+                $sheet->setCellValue('G'.$row, $act->asignador->name ?? '-');
+                $sheet->setCellValue('H'.$row, $act->created_at ? $act->created_at->format('d/m/Y H:i') : '-');
+                $sheet->setCellValue('I'.$row, $act->fecha_compromiso ? $act->fecha_compromiso->format('d/m/Y') : '-');
+                $sheet->setCellValue('J'.$row, $act->hora_inicio_programada ? substr($act->hora_inicio_programada, 0, 5) : '-');
+                $sheet->setCellValue('K'.$row, $act->fecha_final ? $act->fecha_final->format('d/m/Y') : '-');
+                $sheet->setCellValue('L'.$row, $act->resultado_dias ?? '-');
+                $sheet->setCellValue('M'.$row, $act->porcentaje ? number_format($act->porcentaje, 0).'%' : '-');
+                $sheet->setCellValue('N'.$row, $act->estatus);
+                $sheet->setCellValue('O'.$row, $act->comentarios ?? '');
+
+                $statusColor = match ($act->estatus) {
+                    'Completado' => '10B981',
+                    'Completado con retardo' => 'F59E0B',
+                    'En proceso' => '3B82F6',
+                    'Planeado' => '6366F1',
+                    'Por Aprobar' => 'F97316',
+                    'Por Validar' => 'A855F7',
+                    'Retardo' => 'EF4444',
+                    'Rechazado' => 'DC2626',
+                    default => '6B7280',
+                };
+
+                $priorityColor = match ($act->prioridad) {
+                    'Alta' => 'FEE2E2',
+                    'Media' => 'FEF3C7',
+                    'Baja' => 'DBEAFE',
+                    default => 'FFFFFF',
+                };
+
+                $sheet->getStyle('C'.$row)->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $priorityColor]],
+                    'font' => ['bold' => true],
+                    'alignment' => ['horizontal' => 'center'],
+                ]);
+
+                $sheet->getStyle('N'.$row)->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $statusColor]],
+                    'font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true],
+                    'alignment' => ['horizontal' => 'center'],
+                ]);
+
+                $sheet->getRowDimension($row)->setRowHeight(20);
+                $row++;
+            }
+
+            $lastRow = $row - 1;
+            if ($lastRow >= 1) {
+                $sheet->getStyle('A1:O'.$lastRow)->applyFromArray([
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+                ]);
+                $sheet->setAutoFilter('A1:O1');
+            }
+        }
+
+        $fileName = 'Actividades_'.$dateStart->format('dmY').'_'.$dateEnd->format('dmY').'.xlsx';
+
+        $response = response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        });
+
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="'.$fileName.'"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
 }

@@ -277,6 +277,12 @@
                     <span class="hidden md:inline">Reporte</span>
                 </button>
 
+                {{-- Botón Exportar Excel --}}
+                <button onclick="document.getElementById('excelModal').classList.remove('hidden')" class="bg-emerald-600 text-white border border-emerald-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition flex items-center gap-2" title="Exportar a Excel">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="hidden md:inline">Excel</span>
+                </button>
+
                 <button onclick="document.getElementById('quickCreateModal').classList.remove('hidden')" class="flex-1 sm:flex-none bg-indigo-600 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 
                     {{ $targetUser->id === Auth::id() ? 'Nueva' : 'Asignar' }}
@@ -666,6 +672,84 @@
         </div>
     </div>
 </div>
+
+{{-- MODAL EXPORTAR EXCEL --}}
+<div id="excelModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="document.getElementById('excelModal').classList.add('hidden')"></div>
+    <div class="fixed inset-0 z-10 flex items-center justify-center p-4">
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transform transition-all">
+            <form action="{{ route('activities.export_excel') }}" method="GET">
+                <div class="bg-emerald-600 px-6 py-4 flex justify-between items-center">
+                    <h3 class="font-bold text-white">Exportar a Excel</h3>
+                    <button type="button" onclick="document.getElementById('excelModal').classList.add('hidden')" class="text-emerald-200 hover:text-white"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    @php
+                        $miEmpleado = Auth::user()->empleado;
+                        $posicionLower = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
+                        $esDireccion = Str::contains($posicionLower, 'direcc');
+                        $subordinados = $miEmpleado ? \App\Models\Empleado::where('supervisor_id', $miEmpleado->id)->whereNotNull('user_id')->get() : collect();
+                        $esSupervisor = $subordinados->count() > 0;
+                    @endphp
+
+                    @if($esDireccion || $esSupervisor)
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Seleccionar Usuarios</label>
+                            <div class="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="excel_all_users" onchange="toggleAllUsersExcel(this)" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                    <span class="text-sm font-medium text-slate-700">Todos (incluye分析师)</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="user_ids[]" value="{{ Auth::id() }}" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 user-checkbox-excel" checked>
+                                    <span class="text-sm font-medium text-slate-700">{{ Auth::user()->name }} (Yo)</span>
+                                </label>
+                                @foreach($subordinados as $sub)
+                                    @if($sub->user_id && $sub->user_id != Auth::id())
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" name="user_ids[]" value="{{ $sub->user_id }}" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 user-checkbox-excel">
+                                            <span class="text-sm font-medium text-slate-700">{{ $sub->user->name ?? 'Usuario' }}</span>
+                                        </label>
+                                    @endif
+                                @endforeach
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Selecciona uno o varios usuarios. Se creará una hoja por cada uno.</p>
+                        </div>
+                    @endif
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Inicio</label>
+                            <input type="date" name="date_start" value="{{ $startDate->format('Y-m-d') }}" class="w-full rounded-lg border-slate-300 text-sm focus:ring-emerald-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Fin</label>
+                            <input type="date" name="date_end" value="{{ $endDate->format('Y-m-d') }}" class="w-full rounded-lg border-slate-300 text-sm focus:ring-emerald-500" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+                    <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-emerald-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Descargar Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAllUsersExcel(checkbox) {
+    const checkboxes = document.querySelectorAll('.user-checkbox-excel');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    if (checkbox.checked) {
+        document.querySelector('input[name="user_ids[]"][value="{{ Auth::id() }}"]').checked = true;
+    }
+}
+</script>
 
 {{-- Modal Planificador --}}
 @if($esPuestoPlanificador)

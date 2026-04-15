@@ -93,6 +93,7 @@ Route::middleware('auth')->group(function () {
     // Actividades
     Route::put('/activities/{activity}/validate', [App\Http\Controllers\ActivityController::class, 'validateCompletion'])->name('activities.validate');
     Route::get('/activities/client-report', [App\Http\Controllers\ActivityController::class, 'generateClientReport'])->name('activities.client_report');
+    Route::get('/activities/export-excel', [App\Http\Controllers\ActivityController::class, 'exportExcel'])->name('activities.export_excel');
     // Ventanas de planeación (antes del resource para evitar que {activity} lo intercepte)
     Route::get('/activities/planeacion-ventanas', [ActivityController::class, 'getPlaneacionVentanas'])->name('activities.planeacion.ventanas');
     Route::post('/activities/planeacion-ventanas', [ActivityController::class, 'savePlaneacionVentana'])->name('activities.planeacion.save');
