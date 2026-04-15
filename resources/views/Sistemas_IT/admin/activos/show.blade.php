@@ -442,15 +442,24 @@
     const QR_URL    = '{{ url('/admin/activos/' . $dispositivo->uuid) }}';
     const QR_NAME   = '{{ addslashes($dispositivo->name) }}';
     const QR_SERIAL = '{{ addslashes($dispositivo->serial_number ?? '') }}';
+    const QR_TYPE   = '{{ $dispositivo->type ?? 'computer' }}';
     let qrInstance = null;
+
+    const QR_SIZES = {
+        computer:  { px: 360, cm: '4.5cm', modal: 220 },
+        peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
+        printer:   { px: 300, cm: '3.8cm', modal: 200 },
+        other:     { px: 260, cm: '3.2cm', modal: 180 },
+    };
 
     function generarQR() {
         const container = document.getElementById('qr-canvas-show');
         if (container && !qrInstance) {
+            const sizeInfo = QR_SIZES[QR_TYPE] || QR_SIZES.other;
             qrInstance = new QRCode(container, {
                 text: QR_URL,
-                width: 220,
-                height: 220,
+                width: sizeInfo.modal,
+                height: sizeInfo.modal,
                 colorDark: '#1e1b4b',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H,
@@ -473,6 +482,7 @@
     window.imprimirQR = function () {
         const img = document.querySelector('#qr-canvas-show img');
         if (!img) return;
+        const printSize = (QR_SIZES[QR_TYPE] || QR_SIZES.other).cm;
         const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
             <html><head><title>QR</title><style>
@@ -480,7 +490,7 @@
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 body { display: flex; flex-direction: column; align-items: center;
                        font-family: Arial, sans-serif; padding: 2mm; gap: 1mm; }
-                img { width: 4.5cm; height: 4.5cm; display: block; }
+                img { width: ${printSize}; height: auto; display: block; }
                 .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>

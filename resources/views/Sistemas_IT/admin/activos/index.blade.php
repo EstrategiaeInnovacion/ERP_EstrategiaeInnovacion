@@ -244,7 +244,7 @@
                                     </a>
                                     @unless($soloLectura ?? false)
                                     <button
-                                        onclick="abrirQR('{{ $d->uuid }}', '{{ addslashes($d->name) }}', '{{ addslashes($d->serial_number ?? '') }}')"
+                                        onclick="abrirQR('{{ $d->uuid }}', '{{ addslashes($d->name) }}', '{{ addslashes($d->serial_number ?? '') }}', '{{ $d->type ?? '' }}')"
                                         class="inline-flex items-center px-2.5 py-1.5 bg-violet-50 text-violet-700 text-xs font-semibold rounded-lg hover:bg-violet-100 transition"
                                         title="Ver código QR">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,11 +378,20 @@
     let currentNombre = null;
     let currentSerie  = null;
     let qrInstance    = null;
+    let currentTipo   = 'computer';
 
-    window.abrirQR = function(uuid, nombre, serie) {
+    const QR_SIZES = {
+        computer:  { px: 360, cm: '4.5cm', modal: 220 },
+        peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
+        printer:   { px: 300, cm: '3.8cm', modal: 200 },
+        other:     { px: 260, cm: '3.2cm', modal: 180 },
+    };
+
+    window.abrirQR = function(uuid, nombre, serie, tipo = 'computer') {
         currentUuid   = uuid;
         currentNombre = nombre;
         currentSerie  = serie || '';
+        currentTipo   = tipo || 'computer';
         document.getElementById('qr-idx-nombre').textContent = nombre;
         document.getElementById('qr-idx-serie').textContent  = currentSerie ? 'S/N: ' + currentSerie : '';
 
@@ -390,10 +399,12 @@
         container.innerHTML = '';
         qrInstance = null;
 
+        const modalSize = (QR_SIZES[currentTipo] || QR_SIZES.other).modal;
+
         qrInstance = new QRCode(container, {
             text: BASE_URL + '/' + uuid,
-            width: 220,
-            height: 220,
+            width: modalSize,
+            height: modalSize,
             colorDark: '#1e1b4b',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H,
@@ -418,6 +429,7 @@
     window.imprimirQRIdx = function () {
         const img = container.querySelector('img');
         if (!img) return;
+        const printSize = (QR_SIZES[currentTipo] || QR_SIZES.other).cm;
         const w = window.open('', '', 'width=220,height=240');
         w.document.write(`
             <html><head><title>QR</title><style>
@@ -425,7 +437,7 @@
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 body { display: flex; flex-direction: column; align-items: center;
                        font-family: Arial, sans-serif; padding: 2mm; gap: 1mm; }
-                img { width: 4.5cm; height: 4.5cm; display: block; }
+                img { width: ${printSize}; height: auto; display: block; }
                 .serie { font-size: 6pt; color: #333; text-align: center; }
             </style></head>
             <body>
@@ -460,6 +472,7 @@
                 'serie'    => $d->serial_number ?? '',
                 'estado'   => $estadoLabel,
                 'asignado' => $d->employee_name ?? $d->assigned_to ?? '',
+                'type'     => $d->type ?? 'other',
             ];
         }
     }
@@ -487,6 +500,13 @@
     }
 @endphp
 <script>
+const QR_SIZES = {
+    computer:  { px: 360, cm: '4.5cm', modal: 220 },
+    peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
+    printer:   { px: 300, cm: '3.8cm', modal: 200 },
+    other:     { px: 260, cm: '3.2cm', modal: 180 },
+};
+
 const ETIQUETAS_DATA     = @json($etiquetasArray);
 const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
 const ETIQUETAS_SECCION  = '{{ addslashes($labelSeccion) }}';
@@ -497,7 +517,6 @@ window.imprimirEtiquetas = function () {
         return;
     }
 
-    // Crear QR como data-URL para cada dispositivo usando QRCode.js en canvas oculto
     const total = ETIQUETAS_DATA.length;
     const qrDataUrls = [];
     let generados = 0;
@@ -514,33 +533,32 @@ window.imprimirEtiquetas = function () {
         div.style.left     = '-9999px';
         document.body.appendChild(div);
 
-        const qr = new QRCode(div, {
+        const sizeInfo = QR_SIZES[d.type] || QR_SIZES.other;
+        new QRCode(div, {
             text: ETIQUETAS_BASE_URL + '/' + d.uuid,
-            width: 120, height: 120,
+            width: sizeInfo.px, height: sizeInfo.px,
             colorDark: '#111827', colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H,
         });
 
-        // QRCode.js genera la imagen de forma síncrona; la imagen ya existe
         setTimeout(() => {
             const img = div.querySelector('img');
             onQRGenerado(idx, img ? img.src : '');
             document.body.removeChild(div);
-        }, 60);
+        }, 80);
     });
 
     function abrirVentanaImpresion() {
-        // 3 columnas × N filas, tamaño etiqueta ≈ 6 cm × 7 cm
         const cols = 4;
-        const labelW = 'auto';
-        const labelH = 'auto';
 
-        const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => `
+        const etiquetasHtml = ETIQUETAS_DATA.map((d, i) => {
+            const cm = (QR_SIZES[d.type] || QR_SIZES.other).cm;
+            return `
             <div class="etiqueta">
-                <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR">
+                <img src="${qrDataUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
                 ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
         const w = window.open('', '_blank', 'width=900,height=700');
         w.document.write(`<!DOCTYPE html>
@@ -567,11 +585,7 @@ window.imprimirEtiquetas = function () {
     align-items: center;
     page-break-inside: avoid;
   }
-  .etq-qr {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+  .etq-qr { display: block; }
   .etq-serie {
     font-size: 6.5pt;
     color: #333;
@@ -600,6 +614,13 @@ window.imprimirEtiquetas = function () {
 
 <script>
 // ── Datos completos de todas las categorías para impresión ──────────
+const QR_SIZES = {
+    computer:  { px: 360, cm: '4.5cm', modal: 220 },
+    peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
+    printer:   { px: 300, cm: '3.8cm', modal: 200 },
+    other:     { px: 260, cm: '3.2cm', modal: 180 },
+};
+
 const TODAS_ETIQUETAS     = @json($todasEtiquetas ?? []);
 const TODAS_BASE_URL      = '{{ url('/admin/activos') }}';
 const CAT_LABELS = {
@@ -633,7 +654,7 @@ window.imprimirCategoria = function(tipo) {
         if (generados === total) {
             document.getElementById('categorias-qr-progreso').classList.add('hidden');
             document.getElementById('modal-categorias-qr').classList.add('hidden');
-            abrirImpresionCategoria(lista, qrUrls, CAT_LABELS[tipo] || tipo);
+            abrirImpresionCategoria(lista, qrUrls, CAT_LABELS[tipo] || tipo, tipo);
         }
     }
 
@@ -642,9 +663,10 @@ window.imprimirCategoria = function(tipo) {
         div.style.position = 'absolute';
         div.style.left = '-9999px';
         document.body.appendChild(div);
+        const sizeInfo = QR_SIZES[tipo] || QR_SIZES.other;
         new QRCode(div, {
             text: TODAS_BASE_URL + '/' + d.uuid,
-            width: 120, height: 120,
+            width: sizeInfo.px, height: sizeInfo.px,
             colorDark: '#111827', colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H,
         });
@@ -652,14 +674,14 @@ window.imprimirCategoria = function(tipo) {
             const img = div.querySelector('img');
             onGenerado(idx, img ? img.src : '');
             document.body.removeChild(div);
-        }, 60);
+        }, 80);
     });
 };
-
-function abrirImpresionCategoria(lista, qrUrls, titulo) {
+function abrirImpresionCategoria(lista, qrUrls, titulo, tipo) {
+    const cm = (QR_SIZES[tipo] || QR_SIZES.other).cm;
     const etiquetasHtml = lista.map((d, i) => `
         <div class="etiqueta">
-            <img src="${qrUrls[i]}" class="etq-qr" alt="QR">
+            <img src="${qrUrls[i]}" class="etq-qr" alt="QR" style="width:${cm};height:auto;display:block;">
             ${d.serie ? `<div class="etq-serie">S/N: ${d.serie}</div>` : ''}
         </div>
     `).join('');
@@ -673,7 +695,7 @@ function abrirImpresionCategoria(lista, qrUrls, titulo) {
   body { font-family: Arial, sans-serif; background: #fff; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; }
   .etiqueta { border: 1px solid #d1d5db; padding: 3px; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
-  .etq-qr { width: 100%; height: auto; display: block; }
+  .etq-qr { display: block; }
   .etq-serie { font-size: 6.5pt; color: #333; font-family: monospace; text-align: center; margin-top: 1px; }
   @media print {
     body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
