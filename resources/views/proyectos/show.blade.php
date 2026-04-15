@@ -25,6 +25,17 @@
             </div>
             @if($esRh)
             <div class="flex gap-3">
+                @if(!$proyecto->finalizado)
+                <button onclick="document.getElementById('finalizarModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Finalizar Proyecto
+                </button>
+                @else
+                <a href="{{ route('proyectos.reporte', $proyecto) }}" class="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Ver Reporte
+                </a>
+                @endif
                 <button onclick="document.getElementById('editModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     Editar
@@ -274,6 +285,44 @@
                     <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-slate-200">
                         <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition">Agregar</button>
                         <button type="button" onclick="document.getElementById('usersModal').classList.add('hidden')" class="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Finalizar Proyecto --}}
+<div id="finalizarModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="document.getElementById('finalizarModal').classList.add('hidden')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-md">
+                <form action="{{ route('proyectos.finalizar', $proyecto) }}" method="POST">
+                    @csrf
+                    <div class="bg-white px-6 py-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-slate-800">Finalizar Proyecto</h3>
+                            <button type="button" onclick="document.getElementById('finalizarModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                            <p class="text-sm text-amber-800">
+                                <strong>Nota:</strong> Al finalizar el proyecto se generará un reporte con las métricas de todas las actividades.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Fecha Fin Real *</label>
+                            <input type="date" name="fecha_fin_real" value="{{ now()->format('Y-m-d') }}" class="w-full rounded-lg border-slate-300 text-sm py-2.5" required>
+                            <p class="text-xs text-slate-400 mt-1">Selecciona la fecha en que realmente terminó el proyecto</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-slate-200">
+                        <button type="submit" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition">Finalizar y Generar Reporte</button>
+                        <button type="button" onclick="document.getElementById('finalizarModal').classList.add('hidden')" class="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition">Cancelar</button>
                     </div>
                 </form>
             </div>

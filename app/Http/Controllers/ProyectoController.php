@@ -394,4 +394,46 @@ class ProyectoController extends Controller
 
         return redirect()->back()->with('success', 'Actividad eliminada.');
     }
+
+    public function finalizar(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (! $user->isRh()) {
+            abort(403, 'No tienes permiso para finalizar proyectos.');
+        }
+
+        $proyecto = Proyecto::findOrFail($id);
+
+        $request->validate([
+            'fecha_fin_real' => 'required|date',
+        ]);
+
+        $proyecto->update([
+            'fecha_fin_real' => $request->fecha_fin_real,
+            'finalizado' => true,
+        ]);
+
+        return redirect()->route('proyectos.reporte', $proyecto->id)->with('success', 'Proyecto finalizado. Generando reporte...');
+    }
+
+    public function reporte($id)
+    {
+        $user = Auth::user();
+        $esRh = $user->isRh();
+
+        $proyecto = Proyecto::with(['creador', 'usuarios', 'actividades.user'])->findOrFail($id);
+
+        $puedeVer = $esRh ||
+                    $proyecto->usuario_id === $user->id ||
+                    $proyecto->usuarios()->where('users.id', $user->id)->exists();
+
+        if (! $puedeVer) {
+            abort(403, 'No tienes acceso a este proyecto.');
+        }
+
+        $metricas = $proyecto->metricas();
+        $actividades = $proyecto->actividades()->with('user')->orderBy('fecha_compromiso')->get();
+
+        return view('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
+    }
 }
