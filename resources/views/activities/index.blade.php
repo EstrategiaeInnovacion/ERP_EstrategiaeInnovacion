@@ -307,7 +307,9 @@
                             <th class="px-4 py-3 text-center">Prio</th>
                             <th class="px-4 py-3 min-w-[250px]">Descripción</th>
                             <th class="px-4 py-3">Cliente/Área</th>
-                            <th class="px-4 py-3 text-center">Fecha</th>
+                            <th class="px-4 py-3 text-center">Responsable</th>
+                            <th class="px-4 py-3 text-center">Fecha Asignación</th>
+                            <th class="px-4 py-3 text-center">Fecha Compromiso</th>
                             <th class="px-2 py-3 text-center bg-slate-100/50 border-l border-slate-100">Fin Real</th>
                             <th class="px-2 py-3 text-center bg-slate-100/50">Días</th>
                             <th class="px-2 py-3 text-center bg-slate-100/50 border-r border-slate-100">%</th>
@@ -386,6 +388,18 @@
                                         <span class="font-bold text-slate-600 text-[10px]">{{ Str::limit($act->cliente ?? '-', 15) }}</span>
                                         <span class="text-[9px] text-slate-400">{{ $act->area ?? 'General' }}</span>
                                     </div>
+                                </td>
+
+                                <td class="px-4 py-3 text-center">
+                                    <span class="text-[10px] font-semibold {{ $act->user_id === Auth::id() ? 'text-indigo-600' : 'text-slate-600' }}">
+                                        {{ strtok($act->user->name ?? 'N/A', ' ') }}
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-3 text-center">
+                                    <span class="text-[10px] text-slate-500">
+                                        {{ $act->created_at->format('d M') }}
+                                    </span>
                                 </td>
 
                                 <td class="px-4 py-3 text-center">

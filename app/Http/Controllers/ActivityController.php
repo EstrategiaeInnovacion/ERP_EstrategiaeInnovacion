@@ -156,6 +156,11 @@ class ActivityController extends Controller
         // Inicializar query base
         $query = Activity::query();
 
+        // Filtrar por usuario si no es dirección ni supervisor
+        if (! $esDireccion && ! $esSupervisor) {
+            $query->where('user_id', $user->id);
+        }
+
         // Aplicar filtro de proyecto
         if ($filtroProyectoId) {
             if ($filtroProyectoId === 'sin_proyecto') {
@@ -167,6 +172,7 @@ class ActivityController extends Controller
 
         if (! $verTodo && ! $isHistoryView) {
             $query->whereNotIn('estatus', ['Completado', 'Rechazado']);
+            $query->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()]);
         }
 
         if ($request->search) {
