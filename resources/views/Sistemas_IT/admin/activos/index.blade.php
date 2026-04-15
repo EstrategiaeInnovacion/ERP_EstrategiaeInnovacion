@@ -458,6 +458,11 @@
     $etiquetasArray = [];
     if ($dispositivos && !isset($noConexion)) {
         foreach ($dispositivos as $d) {
+            // No incluir dispositivos marcados como 'dañado' en las etiquetas
+            if (($d->status ?? '') === 'broken') {
+                continue;
+            }
+
             $estadoLabel = match($d->status ?? '') {
                 'available'   => 'Disponible',
                 'assigned'    => 'Asignado',
