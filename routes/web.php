@@ -495,6 +495,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::get('/{uuid}', 'show')->name('show');
         Route::get('/{uuid}/editar', 'edit')->name('edit');
         Route::put('/{uuid}', 'update')->name('update');
+        Route::delete('/{uuid}', 'destroy')->name('destroy');
         Route::post('/{uuid}/asignar', 'assign')->name('assign');
         Route::post('/{uuid}/devolver', 'returnDevice')->name('return');
     });

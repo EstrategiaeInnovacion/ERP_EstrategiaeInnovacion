@@ -352,6 +352,37 @@ class ActivosDbService
     }
 
     /**
+     * Elimina un dispositivo y todos sus registros relacionados
+     * (fotos, asignaciones, documentos, credenciales) de la BD de activos.
+     * Solo se permite borrar dispositivos con status = 'broken'.
+     */
+    public function deleteDevice(string $uuid): bool
+    {
+        try {
+            $conn = $this->conn();
+
+            $device = $conn->table('devices')->where('uuid', $uuid)->first();
+
+            if (! $device) {
+                return false;
+            }
+
+            // Eliminar registros relacionados antes del dispositivo
+            $conn->table('device_photos')->where('device_id', $device->id)->delete();
+            $conn->table('assignments')->where('device_id', $device->id)->delete();
+            $conn->table('device_documents')->where('device_id', $device->id)->delete();
+            $conn->table('credentials')->where('device_id', $device->id)->delete();
+            $conn->table('devices')->where('id', $device->id)->delete();
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: deleteDevice [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Elimina el registro de una foto de la base de datos de activos.
      * La limpieza del archivo en disco queda a cargo del llamador.
      */

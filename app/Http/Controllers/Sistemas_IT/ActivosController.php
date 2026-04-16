@@ -269,4 +269,31 @@ class ActivosController extends Controller
         return redirect()->route('admin.activos.show', $uuid)
             ->with('success', 'Dispositivo devuelto y marcado como disponible.');
     }
+
+    /**
+     * DELETE /admin/activos/{uuid}
+     * Elimina permanentemente un activo dañado.
+     */
+    public function destroy(string $uuid)
+    {
+        $dispositivo = $this->activos->getDeviceByUuid($uuid);
+
+        if (! $dispositivo) {
+            return redirect()->route('admin.activos.index')
+                ->with('error', 'Dispositivo no encontrado.');
+        }
+
+        if ($dispositivo->status !== 'broken') {
+            return back()->with('error', 'Solo se pueden eliminar dispositivos marcados como Dañado.');
+        }
+
+        $ok = $this->activos->deleteDevice($uuid);
+
+        if (! $ok) {
+            return back()->with('error', 'No se pudo eliminar el dispositivo. Intenta de nuevo.');
+        }
+
+        return redirect()->route('admin.activos.index', ['status' => 'broken'])
+            ->with('success', 'Dispositivo eliminado correctamente.');
+    }
 }
