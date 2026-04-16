@@ -54,88 +54,51 @@
     </div>
 @endif
 
-{{-- FILTROS Y PESTAÑAS --}}
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
-    {{-- Pestañas --}}
-    <div class="border-b border-slate-200 px-6 pt-4">
-        <nav class="flex gap-1" aria-label="Tabs">
-            @php
-                $tipoActual = request('tipo', 'todos');
-                $counts = [
-                    'todos' => $proyectos->count(),
-                    'escritos' => $proyectos->where('tipo', 'escritos')->count(),
-                    'consulta' => $proyectos->where('tipo', 'consulta')->count(),
-                    'ambos' => $proyectos->where('tipo', 'ambos')->count(),
-                ];
-            @endphp
-            <a href="{{ route('legal.matriz.index', array_merge(request()->except('tipo'), ['tipo' => 'todos'])) }}"
-               class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors {{ $tipoActual === 'todos' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                Todos <span class="ml-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">{{ $counts['todos'] }}</span>
-            </a>
-            <a href="{{ route('legal.matriz.index', array_merge(request()->except('tipo'), ['tipo' => 'escritos'])) }}"
-               class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors {{ $tipoActual === 'escritos' ? 'border-purple-500 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                📝 Escritos <span class="ml-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">{{ $counts['escritos'] }}</span>
-            </a>
-            <a href="{{ route('legal.matriz.index', array_merge(request()->except('tipo'), ['tipo' => 'consulta'])) }}"
-               class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors {{ $tipoActual === 'consulta' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                💬 Consultas <span class="ml-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">{{ $counts['consulta'] }}</span>
-            </a>
-            <a href="{{ route('legal.matriz.index', array_merge(request()->except('tipo'), ['tipo' => 'ambos'])) }}"
-               class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors {{ $tipoActual === 'ambos' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                🔄 Ambos <span class="ml-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">{{ $counts['ambos'] }}</span>
-            </a>
-        </nav>
-    </div>
-
-    {{-- Filtros --}}
-    <form method="GET" action="{{ route('legal.matriz.index') }}" class="p-4">
-        @if(request('tipo'))
-            <input type="hidden" name="tipo" value="{{ request('tipo') }}">
-        @endif
-        <div class="flex flex-col sm:flex-row gap-3 items-end">
-            <div class="flex-1">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Buscar</label>
-                <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Empresa o consulta..."
-                    class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5 px-3">
-            </div>
-            <div class="flex-1">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Empresa</label>
-                <select name="empresa" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    <option value="">Todas las empresas</option>
-                    @foreach($empresas as $emp)
-                        <option value="{{ $emp }}" {{ request('empresa') === $emp ? 'selected' : '' }}>{{ $emp }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex-1">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Categoría</label>
-                <select name="categoria_id" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    <option value="">Todas las categorías</option>
-                    @foreach($categorias as $cat)
-                        <option value="{{ $cat->id }}" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>
-                            {{ $cat->nombre }}
-                        </option>
-                        @foreach($cat->subcategorias as $sub)
-                            <option value="{{ $sub->id }}" {{ request('categoria_id') == $sub->id ? 'selected' : '' }}>
-                                &nbsp;&nbsp;&nbsp;↳ {{ $sub->nombre }}
-                            </option>
-                        @endforeach
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-sm">
-                    Filtrar
-                </button>
-                @if(request('empresa') || request('categoria_id') || request('buscar') || request('tipo'))
-                    <a href="{{ route('legal.matriz.index') }}" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm">
-                        Limpiar
-                    </a>
-                @endif
-            </div>
+{{-- FILTROS --}}
+<form method="GET" action="{{ route('legal.matriz.index') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
+    <div class="flex flex-col sm:flex-row gap-3 items-end">
+        <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Buscar</label>
+            <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Empresa o consulta..."
+                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5 px-3">
         </div>
-    </form>
-</div>
+        <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Empresa</label>
+            <select name="empresa" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                <option value="">Todas las empresas</option>
+                @foreach($empresas as $emp)
+                    <option value="{{ $emp }}" {{ request('empresa') === $emp ? 'selected' : '' }}>{{ $emp }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Categoría</label>
+            <select name="categoria_id" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                <option value="">Todas las categorías</option>
+                @foreach($categorias as $cat)
+                    <option value="{{ $cat->id }}" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>
+                        {{ $cat->nombre }}
+                    </option>
+                    @foreach($cat->subcategorias as $sub)
+                        <option value="{{ $sub->id }}" {{ request('categoria_id') == $sub->id ? 'selected' : '' }}>
+                            &nbsp;&nbsp;&nbsp;↳ {{ $sub->nombre }}
+                        </option>
+                    @endforeach
+                @endforeach
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-sm">
+                Filtrar
+            </button>
+            @if(request('empresa') || request('categoria_id') || request('buscar'))
+                <a href="{{ route('legal.matriz.index') }}" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 transition shadow-sm">
+                    Limpiar
+                </a>
+            @endif
+        </div>
+    </div>
+</form>
 
 {{-- TABLA --}}
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -153,7 +116,6 @@
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-left">
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Tipo</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Consulta</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
@@ -166,21 +128,6 @@
                     <tr class="hover:bg-amber-50/40 transition-colors group">
                         <td class="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
                             {{ $proyecto->empresa ?? '—' }}
-                        </td>
-                        <td class="px-5 py-4">
-                            @if($proyecto->tipo === 'consulta')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                    Consulta
-                                </span>
-                            @elseif($proyecto->tipo === 'escritos')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-                                    Escritos
-                                </span>
-                            @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                                    Ambos
-                                </span>
-                            @endif
                         </td>
                         <td class="px-5 py-4">
                             @if($proyecto->categoria?->parent)
@@ -254,131 +201,57 @@
             <form id="formAgregarProyecto" action="{{ route('legal.matriz.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
                 @csrf
 
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-red-500">*</span></label>
-                        <input type="text" name="empresa" required placeholder="Nombre del proyecto"
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" name="empresa" placeholder="Nombre del proyecto"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Cliente</label>
-                        <input type="text" name="cliente" placeholder="Nombre del cliente"
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Tipo <span class="text-red-500">*</span></label>
-                        <select name="tipo" id="tipoSelect" required onchange="cambiarCamposTipo()"
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                            <option value="consulta">Consulta</option>
-                            <option value="escritos">Escritos</option>
-                            <option value="ambos">Ambos</option>
-                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
-                        <div class="relative">
-                            <select name="categoria_id" id="nuevaCategoria" required
-                                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5 pr-10">
-                                <option value="">Selecciona una categoría</option>
-                                @foreach($categorias as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                                @endforeach
-                                <option value="__nueva__">+ Crear nueva categoría</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                            </div>
-                        </div>
-                        <div id="nuevaCategoriaInput" class="hidden mt-2">
-                            <input type="text" name="nueva_categoria_nombre" 
-                                placeholder="Nombre de la nueva categoría"
-                                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                            <p class="text-xs text-amber-600 mt-1">Se creará automáticamente al guardar el proyecto</p>
-                        </div>
+                        <select name="categoria_id" id="nuevaCategoria" required
+                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                            <option value="">Selecciona una categoría</option>
+                            @foreach($categorias as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
-                {{-- Campos condicionales según tipo --}}
-                <div id="camposConsulta" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta</label>
-                        <textarea name="consulta" rows="3" placeholder="Descripción detallada de la consulta..."
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
-                        <textarea name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta *</label>
+                    <textarea name="consulta" rows="3" required placeholder="Descripción detallada de la consulta..."
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
                 </div>
 
-                <div id="camposEscritos" class="hidden space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Detalles</label>
-                        <textarea name="detalles" rows="4" placeholder="Detalles del escrito o documento..."
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                    </div>
-                    
-                    {{-- Sección: Archivos --}}
-                    <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                                </svg>
-                                Archivos del sistema
-                            </p>
-                            <span class="text-xs text-slate-400">PDF, Word, Excel, Imágenes</span>
-                        </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
+                    <textarea name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
+                </div>
 
-                        <div id="archivosContainer" class="space-y-2"></div>
-
-                        <button type="button" onclick="agregarArchivoRow()"
-                            class="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-amber-300 text-amber-600 rounded-xl text-sm font-semibold hover:bg-amber-50 transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                {{-- Sección: Archivos --}}
+                <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                             </svg>
-                            Añadir archivo
-                        </button>
+                            Archivos del sistema
+                        </p>
+                        <span class="text-xs text-slate-400">PDF, Word, Excel, Imágenes</span>
                     </div>
-                </div>
 
-                <div id="camposAmbos" class="hidden space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta</label>
-                            <textarea name="consulta" rows="3" placeholder="Descripción detallada de la consulta..."
-                                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado</label>
-                            <textarea name="resultado" rows="3" placeholder="Resultado o resolución..."
-                                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Detalles</label>
-                        <textarea name="detalles" rows="2" placeholder="Detalles adicionales..."
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
-                    </div>
-                    <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                                </svg>
-                                Archivos del sistema
-                            </p>
-                        </div>
-                        <div id="archivosContainerAmbos" class="space-y-2"></div>
-                        <button type="button" onclick="agregarArchivoRowAmbos()"
-                            class="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-amber-300 text-amber-600 rounded-xl text-sm font-semibold hover:bg-amber-50 transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Añadir archivo
-                        </button>
-                    </div>
+                    <div id="archivosContainer" class="space-y-2"></div>
+
+                    <button type="button" onclick="agregarArchivoRow()"
+                        class="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-amber-300 text-amber-600 rounded-xl text-sm font-semibold hover:bg-amber-50 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Añadir archivo
+                    </button>
                 </div>
 
                 {{-- Footer --}}
@@ -421,20 +294,11 @@
             <form id="formEditarProyecto" action="" method="POST" class="p-6 space-y-5 hidden">
                 @csrf
                 @method('PUT')
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-red-500">*</span></label>
-                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre del proyecto" required
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre del proyecto"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Tipo <span class="text-red-500">*</span></label>
-                        <select id="editTipo" name="tipo" required
-                            class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                            <option value="consulta">Consulta</option>
-                            <option value="escritos">Escritos</option>
-                            <option value="ambos">Ambos</option>
-                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
@@ -512,41 +376,6 @@
 <script>
     let archivoIdx = 0;
 
-    // Mostrar/ocultar input de nueva categoría
-    document.getElementById('nuevaCategoria').addEventListener('change', function() {
-        const inputContainer = document.getElementById('nuevaCategoriaInput');
-        if (this.value === '__nueva__') {
-            inputContainer.classList.remove('hidden');
-            this.required = false;
-            this.value = '';
-        } else {
-            inputContainer.classList.add('hidden');
-            if (this.value !== '') {
-                this.required = true;
-            }
-        }
-    });
-
-    // Cambiar campos según tipo
-    function cambiarCamposTipo() {
-        const tipo = document.getElementById('tipoSelect').value;
-        const camposConsulta = document.getElementById('camposConsulta');
-        const camposEscritos = document.getElementById('camposEscritos');
-        const camposAmbos = document.getElementById('camposAmbos');
-        
-        camposConsulta.classList.add('hidden');
-        camposEscritos.classList.add('hidden');
-        camposAmbos.classList.add('hidden');
-        
-        if (tipo === 'consulta') {
-            camposConsulta.classList.remove('hidden');
-        } else if (tipo === 'escritos') {
-            camposEscritos.classList.remove('hidden');
-        } else if (tipo === 'ambos') {
-            camposAmbos.classList.remove('hidden');
-        }
-    }
-
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -556,8 +385,6 @@
         document.getElementById(id).classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
     }
-
-    let archivoIdxAmbos = 0;
 
     function agregarArchivoRow() {
         const container = document.getElementById('archivosContainer');
@@ -569,28 +396,6 @@
                 <input type="text" name="archivos_nombre[${idx}]" placeholder="Nombre del archivo (opcional)"
                     class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-700 focus:border-amber-500 focus:ring-amber-500 text-xs py-2 px-3">
                 <input type="file" name="archivos_file[${idx}]"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
-                    class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
-            </div>
-            <button type="button" onclick="this.closest('div').remove()"
-                class="mt-1 p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>`;
-        container.appendChild(row);
-    }
-
-    function agregarArchivoRowAmbos() {
-        const container = document.getElementById('archivosContainerAmbos');
-        const idx = archivoIdxAmbos++;
-        const row = document.createElement('div');
-        row.className = 'flex gap-2 items-start';
-        row.innerHTML = `
-            <div class="flex-1 space-y-1.5">
-                <input type="text" name="archivos_nombre_ambos[${idx}]" placeholder="Nombre del archivo (opcional)"
-                    class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-700 focus:border-amber-500 focus:ring-amber-500 text-xs py-2 px-3">
-                <input type="file" name="archivos_file_ambos[${idx}]"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
                     class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
             </div>
@@ -759,7 +564,6 @@
         .then(data => {
             const p = data.proyecto;
             document.getElementById('editEmpresa').value   = p.empresa   || '';
-            document.getElementById('editTipo').value     = p.tipo      || 'consulta';
             document.getElementById('editConsulta').value  = p.consulta  || '';
             document.getElementById('editResultado').value = p.resultado || '';
             document.getElementById('editSubtitulo').textContent = p.empresa

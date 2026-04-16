@@ -160,8 +160,14 @@ class ActivityController extends Controller
         // Inicializar query base
         $query = Activity::query();
 
-        // Filtrar por usuario (excepto dirección que ve todo)
-        if (! $esDireccion) {
+        // Filtrar por usuario
+        if ($esDireccion) {
+            // Dirección ve todo sin restricción de usuario
+        } elseif ($esSupervisor && ! $request->filled('user_id')) {
+            // Supervisor sin usuario seleccionado: ver todo su equipo
+            $query->whereIn('user_id', $idsVisibles);
+        } else {
+            // Usuario normal o supervisor filtrando por alguien específico
             $query->where('user_id', $targetUserId);
         }
 
