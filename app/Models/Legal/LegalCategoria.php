@@ -8,7 +8,7 @@ class LegalCategoria extends Model
 {
     protected $table = 'legal_categorias';
 
-    protected $fillable = ['nombre', 'parent_id'];
+    protected $fillable = ['nombre', 'parent_id', 'tipo'];
 
     public function parent()
     {

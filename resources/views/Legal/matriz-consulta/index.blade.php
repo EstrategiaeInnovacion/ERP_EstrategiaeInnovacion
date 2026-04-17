@@ -35,7 +35,7 @@
                 </svg>
                 Gestionar Categorías
             </a>
-            <button onclick="abrirModal('modalAgregarProyecto')"
+            <button onclick="abrirAgregarProyecto()"
                 class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-200 hover:-translate-y-0.5 transition-all">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -58,32 +58,27 @@
 <form method="GET" action="{{ route('legal.matriz.index') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
     <div class="flex flex-col sm:flex-row gap-3 items-end">
         <div class="flex-1">
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Buscar</label>
-            <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Empresa o consulta..."
-                class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5 px-3">
-        </div>
-        <div class="flex-1">
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Empresa</label>
-            <select name="empresa" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                <option value="">Todas las empresas</option>
+            <label id="labelFiltroEmpresa" class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Empresa</label>
+            <select name="empresa" id="filtroEmpresa" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+                <option value="" id="filtroEmpresaPlaceholder">Todas las empresas</option>
+                {{-- Opciones inyectadas por JS según pestaña --}}
                 @foreach($empresas as $emp)
-                    <option value="{{ $emp }}" {{ request('empresa') === $emp ? 'selected' : '' }}>{{ $emp }}</option>
+                    <option value="{{ $emp }}" data-grupo="consultas" {{ request('empresa') === $emp ? 'selected' : '' }}>{{ $emp }}</option>
+                @endforeach
+                @foreach($proyectosNombres as $proy)
+                    <option value="{{ $proy }}" data-grupo="escritos" {{ request('empresa') === $proy ? 'selected' : '' }}>{{ $proy }}</option>
                 @endforeach
             </select>
         </div>
         <div class="flex-1">
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Categoría</label>
-            <select name="categoria_id" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
+            <select name="categoria_id" id="filtroCategorias" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                 <option value="">Todas las categorías</option>
-                @foreach($categorias as $cat)
-                    <option value="{{ $cat->id }}" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>
-                        {{ $cat->nombre }}
-                    </option>
-                    @foreach($cat->subcategorias as $sub)
-                        <option value="{{ $sub->id }}" {{ request('categoria_id') == $sub->id ? 'selected' : '' }}>
-                            &nbsp;&nbsp;&nbsp;↳ {{ $sub->nombre }}
-                        </option>
-                    @endforeach
+                @foreach($categoriasConsultas as $cat)
+                    <option value="{{ $cat->id }}" data-grupo="consultas" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>{{ $cat->nombre }}</option>
+                @endforeach
+                @foreach($categoriasEscritos as $cat)
+                    <option value="{{ $cat->id }}" data-grupo="escritos" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>{{ $cat->nombre }}</option>
                 @endforeach
             </select>
         </div>
@@ -100,85 +95,219 @@
     </div>
 </form>
 
-{{-- TABLA --}}
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    @if($proyectos->isEmpty())
-        <div class="text-center py-20 text-slate-400">
-            <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+@php
+    $proyectosConsultas = $proyectos->filter(fn($p) => in_array($p->tipo, ['consulta', 'ambos']));
+    $proyectosEscritos  = $proyectos->filter(fn($p) => in_array($p->tipo, ['escritos', 'ambos']));
+@endphp
+
+{{-- TABS NAV --}}
+<div class="flex gap-1">
+    <button onclick="cambiarTab('consultas')" id="tab-consultas"
+        class="tab-btn px-6 py-3 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm">
+        <span class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
             </svg>
-            <p class="font-semibold text-slate-500">No hay proyectos registrados</p>
-            <p class="text-sm mt-1">Usa "Añadir Proyecto" para comenzar.</p>
+            Consultas
+            <span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700 font-semibold">{{ $proyectosConsultas->count() }}</span>
+        </span>
+    </button>
+    <button onclick="cambiarTab('escritos')" id="tab-escritos"
+        class="tab-btn px-6 py-3 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all">
+        <span class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Escritos
+            <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600 font-semibold">{{ $proyectosEscritos->count() }}</span>
+        </span>
+    </button>
+</div>
+
+{{-- PANEL: Consultas --}}
+<div id="panel-consultas" class="tab-panel">
+    {{-- Buscador interno --}}
+    <div class="bg-white border border-b-0 border-slate-200 rounded-tr-2xl px-4 pt-3 pb-3">
+        <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" id="buscarConsultas" oninput="buscarEnTab('buscarConsultas','tbodyConsultas')" placeholder="Buscar por empresa, categoría o consulta..."
+                class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:border-amber-500 focus:ring-amber-500 focus:outline-none">
         </div>
-    @else
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-left">
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Consulta</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Recursos</th>
-                        <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach($proyectos as $proyecto)
-                    <tr class="hover:bg-amber-50/40 transition-colors group">
-                        <td class="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
-                            {{ $proyecto->empresa ?? '—' }}
-                        </td>
-                        <td class="px-5 py-4">
-                            @if($proyecto->categoria?->parent)
-                                <span class="text-xs text-slate-400">{{ $proyecto->categoria->parent->nombre }}&nbsp;/&nbsp;</span>
-                            @endif
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                                {{ $proyecto->categoria?->nombre ?? '—' }}
-                            </span>
-                        </td>
-                        <td class="px-5 py-4 text-slate-600 max-w-xs">
-                            <div class="line-clamp-3">{{ $proyecto->consulta }}</div>
-                        </td>
-                        <td class="px-5 py-4 text-slate-600 max-w-xs">
-                            <div class="line-clamp-3">{{ $proyecto->resultado }}</div>
-                        </td>
-                        <td class="px-5 py-4 text-center">
-                            <button onclick="verExpediente({{ $proyecto->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-xs rounded-lg border border-amber-200 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                Ver ({{ $proyecto->archivos_count ?? $proyecto->archivos->count() }})
-                            </button>
-                        </td>
-                        <td class="px-5 py-4 text-center">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="abrirEditar({{ $proyecto->id }})"
-                                    class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-transparent hover:border-slate-200 transition">
+    </div>
+    <div class="bg-white rounded-b-2xl border border-t-0 border-slate-200 shadow-sm overflow-hidden">
+        @if($proyectosConsultas->isEmpty())
+            <div class="text-center py-20 text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="font-semibold text-slate-500">No hay consultas registradas</p>
+                <p class="text-sm mt-1">Usa "Añadir Proyecto" para comenzar.</p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Consulta</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Recursos</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyConsultas" class="divide-y divide-slate-100">
+                        @foreach($proyectosConsultas as $proyecto)
+                        <tr class="hover:bg-amber-50/40 transition-colors group" data-search="{{ strtolower(($proyecto->empresa ?? '') . ' ' . ($proyecto->categoria?->nombre ?? '') . ' ' . ($proyecto->consulta ?? '') . ' ' . ($proyecto->resultado ?? '')) }}">
+                            <td class="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
+                                {{ $proyecto->empresa ?? '—' }}
+                            </td>
+                            <td class="px-5 py-4">
+                                @if($proyecto->categoria?->parent)
+                                    <span class="text-xs text-slate-400">{{ $proyecto->categoria->parent->nombre }}&nbsp;/&nbsp;</span>
+                                @endif
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                    {{ $proyecto->categoria?->nombre ?? '—' }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-slate-600 max-w-xs">
+                                <div class="line-clamp-3">{{ $proyecto->consulta }}</div>
+                            </td>
+                            <td class="px-5 py-4 text-slate-600 max-w-xs">
+                                <div class="line-clamp-3">{{ $proyecto->resultado }}</div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <button onclick="verExpediente({{ $proyecto->id }})"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-xs rounded-lg border border-amber-200 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                     </svg>
+                                    Ver ({{ $proyecto->archivos_count ?? $proyecto->archivos->count() }})
                                 </button>
-                                <form action="{{ route('legal.matriz.destroy', $proyecto->id) }}" method="POST"
-                                      onsubmit="return confirm('¿Eliminar el proyecto de {{ addslashes($proyecto->empresa) }}? Se borrarán también sus archivos.')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition">
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button onclick="abrirEditar({{ $proyecto->id }})"
+                                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-transparent hover:border-slate-200 transition">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                         </svg>
                                     </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                                    <form action="{{ route('legal.matriz.destroy', $proyecto->id) }}" method="POST"
+                                          onsubmit="return confirm('¿Eliminar el proyecto de {{ addslashes($proyecto->empresa) }}? Se borrarán también sus archivos.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                            class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+</div>
+
+{{-- PANEL: Escritos --}}
+<div id="panel-escritos" class="tab-panel hidden">
+    {{-- Buscador interno --}}
+    <div class="bg-white border border-b-0 border-slate-200 rounded-tr-2xl px-4 pt-3 pb-3">
+        <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" id="buscarEscritos" oninput="buscarEnTab('buscarEscritos','tbodyEscritos')" placeholder="Buscar por proyecto, categoría o descripción..."
+                class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:border-amber-500 focus:ring-amber-500 focus:outline-none">
         </div>
-    @endif
+    </div>
+    <div class="bg-white rounded-b-2xl border border-t-0 border-slate-200 shadow-sm overflow-hidden">
+        @if($proyectosEscritos->isEmpty())
+            <div class="text-center py-20 text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="font-semibold text-slate-500">No hay escritos registrados</p>
+                <p class="text-sm mt-1">Usa "Añadir Proyecto" para comenzar.</p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Descripción</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Recursos</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyEscritos" class="divide-y divide-slate-100">
+                        @foreach($proyectosEscritos as $proyecto)
+                        <tr class="hover:bg-amber-50/40 transition-colors group" data-search="{{ strtolower(($proyecto->empresa ?? '') . ' ' . ($proyecto->categoria?->nombre ?? '') . ' ' . ($proyecto->consulta ?? '') . ' ' . ($proyecto->resultado ?? '')) }}">
+                            <td class="px-5 py-4 font-semibold text-slate-800 whitespace-nowrap">
+                                {{ $proyecto->empresa ?? '—' }}
+                            </td>
+                            <td class="px-5 py-4">
+                                @if($proyecto->categoria?->parent)
+                                    <span class="text-xs text-slate-400">{{ $proyecto->categoria->parent->nombre }}&nbsp;/&nbsp;</span>
+                                @endif
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                    {{ $proyecto->categoria?->nombre ?? '—' }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-slate-600 max-w-xs">
+                                <div class="line-clamp-3">{{ $proyecto->consulta }}</div>
+                            </td>
+                            <td class="px-5 py-4 text-slate-600 max-w-xs">
+                                <div class="line-clamp-3">{{ $proyecto->resultado }}</div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <button onclick="verExpediente({{ $proyecto->id }})"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-xs rounded-lg border border-amber-200 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    Ver ({{ $proyecto->archivos_count ?? $proyecto->archivos->count() }})
+                                </button>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button onclick="abrirEditar({{ $proyecto->id }})"
+                                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-transparent hover:border-slate-200 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                        </svg>
+                                    </button>
+                                    <form action="{{ route('legal.matriz.destroy', $proyecto->id) }}" method="POST"
+                                          onsubmit="return confirm('¿Eliminar el proyecto de {{ addslashes($proyecto->empresa) }}? Se borrarán también sus archivos.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                            class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
 </div>
 
 {{-- ==================== MODAL: AÑADIR PROYECTO ==================== --}}
@@ -201,10 +330,32 @@
             <form id="formAgregarProyecto" action="{{ route('legal.matriz.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
                 @csrf
 
+                {{-- TIPO TOGGLE --}}
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Tipo *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-200">
+                        <button type="button" id="btnNuevoConsulta" onclick="cambiarTipoFormNuevo('consulta')"
+                            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold bg-amber-600 text-white transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                            </svg>
+                            Consulta
+                        </button>
+                        <button type="button" id="btnNuevoEscritos" onclick="cambiarTipoFormNuevo('escritos')"
+                            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition border-l border-slate-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Escritos
+                        </button>
+                    </div>
+                    <input type="hidden" name="tipo" id="nuevoTipoInput" value="consulta">
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
-                        <input type="text" name="empresa" placeholder="Nombre del proyecto"
+                        <label id="labelNuevoEmpresa" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre de la Empresa</label>
+                        <input type="text" name="empresa" id="nuevoEmpresa" placeholder="Nombre de la empresa"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
@@ -212,20 +363,17 @@
                         <select name="categoria_id" id="nuevaCategoria" required
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                             <option value="">Selecciona una categoría</option>
-                            @foreach($categorias as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                            @endforeach
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta *</label>
-                    <textarea name="consulta" rows="3" required placeholder="Descripción detallada de la consulta..."
+                    <label id="labelNuevoConsulta" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta</label>
+                    <textarea name="consulta" id="nuevoConsulta" rows="3" placeholder="Descripción detallada de la consulta..."
                         class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
                 </div>
 
-                <div>
+                <div id="divNuevoResultado">
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
                     <textarea name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
                         class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
@@ -294,10 +442,33 @@
             <form id="formEditarProyecto" action="" method="POST" class="p-6 space-y-5 hidden">
                 @csrf
                 @method('PUT')
+
+                {{-- TIPO TOGGLE --}}
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Tipo *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-200">
+                        <button type="button" id="btnEditConsulta" onclick="cambiarTipoFormEditar('consulta')"
+                            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold bg-amber-600 text-white transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                            </svg>
+                            Consulta
+                        </button>
+                        <button type="button" id="btnEditEscritos" onclick="cambiarTipoFormEditar('escritos')"
+                            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition border-l border-slate-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Escritos
+                        </button>
+                    </div>
+                    <input type="hidden" name="tipo" id="editTipoInput" value="consulta">
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre del Proyecto <span class="text-slate-400 font-normal">(opcional)</span></label>
-                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre del proyecto"
+                        <label id="labelEditEmpresa" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre de la Empresa</label>
+                        <input type="text" id="editEmpresa" name="empresa" placeholder="Nombre de la empresa"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
@@ -305,18 +476,15 @@
                         <select id="editCategoria" name="categoria_id" required
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                             <option value="">Selecciona una categoría</option>
-                            @foreach($categorias as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                            @endforeach
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta *</label>
-                    <textarea id="editConsulta" name="consulta" rows="3" required placeholder="Descripción detallada de la consulta..."
+                    <label id="labelEditConsulta" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta</label>
+                    <textarea id="editConsulta" name="consulta" rows="3" placeholder="Descripción detallada de la consulta..."
                         class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
                 </div>
-                <div>
+                <div id="divEditResultado">
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
                     <textarea id="editResultado" name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
                         class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
@@ -374,7 +542,159 @@
 
 @push('scripts')
 <script>
+    const categoriasData = @json($categorias->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombre, 'tipo' => $c->tipo])->values());
+
+    let tabActiva = 'consultas';
+
+    const TIPO_ACTIVE   = 'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold bg-amber-600 text-white transition';
+    const TIPO_INACTIVE = 'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition border-l border-slate-200';
+
+    function filtrarCategoriasSelect(selectId, tipo, selectedId) {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const filtradas = categoriasData.filter(c => c.tipo === tipo);
+        sel.innerHTML = '<option value="">Selecciona una categoría</option>';
+        filtradas.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.nombre;
+            if (selectedId && c.id == selectedId) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    function cambiarTipoFormNuevo(tipo) {
+        document.getElementById('nuevoTipoInput').value = tipo;
+        const btnC = document.getElementById('btnNuevoConsulta');
+        const btnE = document.getElementById('btnNuevoEscritos');
+        if (tipo === 'consulta') {
+            btnC.className = TIPO_ACTIVE;
+            btnE.className = TIPO_INACTIVE;
+            document.getElementById('labelNuevoEmpresa').textContent = 'NOMBRE DE LA EMPRESA';
+            document.getElementById('nuevoEmpresa').placeholder = 'Nombre de la empresa';
+            document.getElementById('labelNuevoConsulta').textContent = 'CONSULTA';
+            document.getElementById('nuevoConsulta').placeholder = 'Descripción detallada de la consulta...';
+            document.getElementById('divNuevoResultado').classList.remove('hidden');
+        } else {
+            btnC.className = TIPO_INACTIVE.replace('border-l border-slate-200', '');
+            btnE.className = TIPO_ACTIVE;
+            document.getElementById('labelNuevoEmpresa').textContent = 'NOMBRE DEL PROYECTO';
+            document.getElementById('nuevoEmpresa').placeholder = 'Nombre del proyecto';
+            document.getElementById('labelNuevoConsulta').textContent = 'DESCRIPCIÓN';
+            document.getElementById('nuevoConsulta').placeholder = 'Descripción del escrito...';
+            document.getElementById('divNuevoResultado').classList.add('hidden');
+        }
+        filtrarCategoriasSelect('nuevaCategoria', tipo);
+    }
+
+    function cambiarTipoFormEditar(tipo, selectedCatId) {
+        document.getElementById('editTipoInput').value = tipo;
+        const btnC = document.getElementById('btnEditConsulta');
+        const btnE = document.getElementById('btnEditEscritos');
+        if (tipo === 'consulta') {
+            btnC.className = TIPO_ACTIVE;
+            btnE.className = TIPO_INACTIVE;
+            document.getElementById('labelEditEmpresa').textContent = 'NOMBRE DE LA EMPRESA';
+            document.getElementById('editEmpresa').placeholder = 'Nombre de la empresa';
+            document.getElementById('labelEditConsulta').textContent = 'CONSULTA';
+            document.getElementById('editConsulta').placeholder = 'Descripción detallada de la consulta...';
+            document.getElementById('divEditResultado').classList.remove('hidden');
+        } else {
+            btnC.className = TIPO_INACTIVE.replace('border-l border-slate-200', '');
+            btnE.className = TIPO_ACTIVE;
+            document.getElementById('labelEditEmpresa').textContent = 'NOMBRE DEL PROYECTO';
+            document.getElementById('editEmpresa').placeholder = 'Nombre del proyecto';
+            document.getElementById('labelEditConsulta').textContent = 'DESCRIPCIÓN';
+            document.getElementById('editConsulta').placeholder = 'Descripción del escrito...';
+            document.getElementById('divEditResultado').classList.add('hidden');
+        }
+        filtrarCategoriasSelect('editCategoria', tipo, selectedCatId);
+    }
+
+    function abrirAgregarProyecto() {
+        const tipo = tabActiva === 'escritos' ? 'escritos' : 'consulta';
+        cambiarTipoFormNuevo(tipo);
+        abrirModal('modalAgregarProyecto');
+    }
+
     let archivoIdx = 0;
+
+    function buscarEnTab(inputId, tbodyId) {
+        const term  = document.getElementById(inputId).value.toLowerCase().trim();
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        let visible = 0;
+        tbody.querySelectorAll('tr[data-search]').forEach(row => {
+            const match = !term || row.dataset.search.includes(term);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        // Mostrar fila vacía si no hay resultados
+        let emptyRow = tbody.querySelector('tr.no-results');
+        if (!emptyRow) {
+            emptyRow = document.createElement('tr');
+            emptyRow.className = 'no-results';
+            emptyRow.innerHTML = '<td colspan="6" class="text-center py-10 text-slate-400 text-sm">Sin resultados para "<span class="font-semibold text-slate-600"></span>"</td>';
+            tbody.appendChild(emptyRow);
+        }
+        if (visible === 0 && term) {
+            emptyRow.querySelector('span').textContent = term;
+            emptyRow.style.display = '';
+        } else {
+            emptyRow.style.display = 'none';
+        }
+    }
+
+    function sincronizarFiltros(tab) {
+        // Label empresa/proyecto
+        const labelEmp = document.getElementById('labelFiltroEmpresa');
+        if (labelEmp) labelEmp.textContent = tab === 'escritos' ? 'PROYECTO' : 'EMPRESA';
+
+        // Placeholder del select
+        const placeholder = document.getElementById('filtroEmpresaPlaceholder');
+        if (placeholder) placeholder.textContent = tab === 'escritos' ? 'Todos los proyectos' : 'Todas las empresas';
+
+        // Mostrar/ocultar opciones empresa
+        document.querySelectorAll('#filtroEmpresa option[data-grupo]').forEach(opt => {
+            opt.hidden = opt.dataset.grupo !== tab;
+        });
+        // Resetear si la opción seleccionada no pertenece al tab activo
+        const empSel = document.getElementById('filtroEmpresa');
+        if (empSel) {
+            const selected = empSel.options[empSel.selectedIndex];
+            if (selected && selected.dataset.grupo && selected.dataset.grupo !== tab) {
+                empSel.value = '';
+            }
+        }
+
+        // Mostrar/ocultar opciones de categoría
+        document.querySelectorAll('#filtroCategorias option[data-grupo]').forEach(opt => {
+            opt.hidden = opt.dataset.grupo !== tab;
+        });
+        const catSel = document.getElementById('filtroCategorias');
+        if (catSel) {
+            const selectedCat = catSel.options[catSel.selectedIndex];
+            if (selectedCat && selectedCat.dataset.grupo && selectedCat.dataset.grupo !== tab) {
+                catSel.value = '';
+            }
+        }
+    }
+
+    function cambiarTab(tab) {
+        tabActiva = tab;
+        ['consultas', 'escritos'].forEach(t => {
+            const btn   = document.getElementById('tab-' + t);
+            const panel = document.getElementById('panel-' + t);
+            if (t === tab) {
+                btn.className = 'tab-btn px-6 py-3 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm';
+                panel.classList.remove('hidden');
+            } else {
+                btn.className = 'tab-btn px-6 py-3 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all';
+                panel.classList.add('hidden');
+            }
+        });
+        sincronizarFiltros(tab);
+    }
 
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
@@ -570,10 +890,7 @@
                 ? `Editando: ${p.empresa}`
                 : 'Modifica los datos de la consulta.';
 
-            const sel = document.getElementById('editCategoria');
-            if (p.categoria_id) {
-                sel.value = p.categoria_id;
-            }
+            cambiarTipoFormEditar(p.tipo || 'consulta', p.categoria_id);
 
             form.action = `/legal/matriz/${id}`;
             cargando.classList.add('hidden');
@@ -596,20 +913,24 @@
         }
     });
 
-    // Auto-abrir modal de nuevo proyecto cuando se viene de crear una categoría
+    // Inicializar filtros según pestaña activa al cargar
+    sincronizarFiltros(tabActiva);
+
     (function autoAbrirNuevaCategoria() {
         const params = new URLSearchParams(window.location.search);
         const catId  = params.get('nueva_categoria');
         if (!catId) return;
 
+        const catTipo = params.get('nueva_categoria_tipo') || 'consulta';
+        cambiarTipoFormNuevo(catTipo);
+
         const sel = document.getElementById('nuevaCategoria');
-        if (sel) {
-            sel.value = catId;
-        }
+        if (sel) sel.value = catId;
         abrirModal('modalAgregarProyecto');
 
-        // Limpiar el param de la URL sin recargar
+        // Limpiar los params de la URL sin recargar
         params.delete('nueva_categoria');
+        params.delete('nueva_categoria_tipo');
         const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         history.replaceState(null, '', newUrl);
     })();

@@ -24,14 +24,19 @@ class CategoriaLegalController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'tipo'   => 'required|in:consulta,escritos',
         ]);
 
         $categoria = LegalCategoria::create([
             'nombre'    => $request->nombre,
+            'tipo'      => $request->tipo,
             'parent_id' => null,
         ]);
 
-        return redirect()->route('legal.matriz.index', ['nueva_categoria' => $categoria->id])
+        return redirect()->route('legal.matriz.index', [
+                'nueva_categoria'      => $categoria->id,
+                'nueva_categoria_tipo' => $categoria->tipo,
+            ])
             ->with('success', 'Categoría "' . $categoria->nombre . '" creada. Ahora puedes crear un proyecto con ella.');
     }
 

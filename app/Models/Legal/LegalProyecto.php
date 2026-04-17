@@ -8,7 +8,7 @@ class LegalProyecto extends Model
 {
     protected $table = 'legal_proyectos';
 
-    protected $fillable = ['empresa', 'categoria_id', 'consulta', 'resultado'];
+    protected $fillable = ['empresa', 'tipo', 'categoria_id', 'consulta', 'resultado', 'cliente', 'detalles'];
 
     public function categoria()
     {

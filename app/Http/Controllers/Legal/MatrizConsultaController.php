@@ -41,16 +41,19 @@ class MatrizConsultaController extends Controller
 
         $proyectos = $query->orderBy('empresa')->orderBy('created_at', 'desc')->get();
         $categorias = LegalCategoria::with('subcategorias')->whereNull('parent_id')->orderBy('nombre')->get();
-        $empresas = LegalProyecto::select('empresa')->distinct()->orderBy('empresa')->pluck('empresa');
+        $categoriasConsultas = $categorias->filter(fn($c) => $c->tipo === 'consulta')->values();
+        $categoriasEscritos  = $categorias->filter(fn($c) => $c->tipo === 'escritos')->values();
+        $empresas = LegalProyecto::where('tipo', 'consulta')->select('empresa')->distinct()->orderBy('empresa')->pluck('empresa');
+        $proyectosNombres = LegalProyecto::where('tipo', 'escritos')->select('empresa')->distinct()->orderBy('empresa')->pluck('empresa');
 
-        return view('Legal.matriz-consulta.index', compact('proyectos', 'categorias', 'empresas'));
+        return view('Legal.matriz-consulta.index', compact('proyectos', 'categorias', 'categoriasConsultas', 'categoriasEscritos', 'empresas', 'proyectosNombres'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'empresa' => 'required|string|max:255',
-            'tipo' => 'required|in:consulta,escritos,ambos',
+            'tipo' => 'required|in:consulta,escritos',
             'cliente' => 'nullable|string|max:255',
             'consulta' => 'nullable|string',
             'resultado' => 'nullable|string',
@@ -116,7 +119,7 @@ class MatrizConsultaController extends Controller
 
         $request->validate([
             'empresa' => 'required|string|max:255',
-            'tipo' => 'required|in:consulta,escritos,ambos',
+            'tipo' => 'required|in:consulta,escritos',
             'categoria_id' => 'required|exists:legal_categorias,id',
             'cliente' => 'nullable|string|max:255',
             'consulta' => 'nullable|string',

@@ -50,6 +50,24 @@
             @csrf
 
             <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Tipo *</label>
+                <div class="flex rounded-xl overflow-hidden border border-slate-200">
+                    <button type="button" id="btnCatConsulta" onclick="seleccionarTipoCat('consulta')"
+                        class="flex-1 py-2.5 text-sm font-bold bg-amber-600 text-white transition">
+                        Consulta
+                    </button>
+                    <button type="button" id="btnCatEscritos" onclick="seleccionarTipoCat('escritos')"
+                        class="flex-1 py-2.5 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition border-l border-slate-200">
+                        Escritos
+                    </button>
+                </div>
+                <input type="hidden" name="tipo" id="catTipoInput" value="consulta">
+                @error('tipo')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
                 <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre *</label>
                 <input type="text" name="nombre" required placeholder="Ej: Derecho Corporativo"
                     class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
@@ -66,49 +84,136 @@
     </div>
 
     {{-- LISTADO DE CATEGORÍAS --}}
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-lg font-bold text-slate-900">Categorías existentes</h2>
-            <span class="text-xs text-slate-400 bg-slate-100 rounded-full px-2.5 py-1 font-semibold">
-                {{ $categorias->count() }} categoría(s)
-            </span>
+    @php
+        $catsConsulta = $categorias->filter(fn($c) => $c->tipo === 'consulta')->values();
+        $catsEscritos = $categorias->filter(fn($c) => $c->tipo === 'escritos')->values();
+    @endphp
+    <div class="flex flex-col">
+        {{-- Tabs nav --}}
+        <div class="flex gap-1">
+            <button type="button" onclick="cambiarTabCat('consulta')" id="tabcat-consulta"
+                class="px-5 py-2.5 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                </svg>
+                Consultas
+                <span class="px-1.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700 font-semibold">{{ $catsConsulta->count() }}</span>
+            </button>
+            <button type="button" onclick="cambiarTabCat('escritos')" id="tabcat-escritos"
+                class="px-5 py-2.5 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Escritos
+                <span class="px-1.5 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600 font-semibold">{{ $catsEscritos->count() }}</span>
+            </button>
         </div>
 
-        @if($categorias->isEmpty())
-            <div class="text-center py-16 text-slate-400">
-                <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                </svg>
-                <p class="text-sm">No hay categorías creadas aún.</p>
-            </div>
-        @else
-            <ul class="divide-y divide-slate-100">
-                @foreach($categorias as $cat)
-                <li class="px-6 py-3">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold bg-amber-50 text-amber-800">
-                                {{ $cat->nombre }}
-                            </span>
-                            <span class="text-xs text-slate-400">
-                                {{ $cat->proyectos->count() }} proyecto(s)
-                            </span>
+        {{-- Panel Consultas --}}
+        <div id="panelcat-consulta" class="bg-white rounded-b-2xl rounded-tr-2xl border border-slate-200 shadow-sm overflow-hidden">
+            @if($catsConsulta->isEmpty())
+                <div class="text-center py-16 text-slate-400">
+                    <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                    <p class="text-sm">No hay categorías de consulta creadas aún.</p>
+                </div>
+            @else
+                <ul class="divide-y divide-slate-100">
+                    @foreach($catsConsulta as $cat)
+                    <li class="px-6 py-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold bg-amber-50 text-amber-800">
+                                    {{ $cat->nombre }}
+                                </span>
+                                <span class="text-xs text-slate-400">{{ $cat->proyectos->count() }} proyecto(s)</span>
+                            </div>
+                            <form action="{{ route('legal.categorias.destroy', $cat->id) }}" method="POST"
+                                  onsubmit="return confirm('¿Eliminar la categoría \'{{ addslashes($cat->nombre) }}\'?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
                         </div>
-                        <form action="{{ route('legal.categorias.destroy', $cat->id) }}" method="POST"
-                              onsubmit="return confirm('¿Eliminar la categoría \'{{ addslashes($cat->nombre) }}\'?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                </li>
-                @endforeach
-            </ul>
-        @endif
+                    </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+
+        {{-- Panel Escritos --}}
+        <div id="panelcat-escritos" class="hidden bg-white rounded-b-2xl rounded-tr-2xl border border-slate-200 shadow-sm overflow-hidden">
+            @if($catsEscritos->isEmpty())
+                <div class="text-center py-16 text-slate-400">
+                    <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <p class="text-sm">No hay categorías de escritos creadas aún.</p>
+                </div>
+            @else
+                <ul class="divide-y divide-slate-100">
+                    @foreach($catsEscritos as $cat)
+                    <li class="px-6 py-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold bg-sky-50 text-sky-800">
+                                    {{ $cat->nombre }}
+                                </span>
+                                <span class="text-xs text-slate-400">{{ $cat->proyectos->count() }} proyecto(s)</span>
+                            </div>
+                            <form action="{{ route('legal.categorias.destroy', $cat->id) }}" method="POST"
+                                  onsubmit="return confirm('¿Eliminar la categoría \'{{ addslashes($cat->nombre) }}\'?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+    function cambiarTabCat(tipo) {
+        ['consulta', 'escritos'].forEach(t => {
+            const tab   = document.getElementById('tabcat-' + t);
+            const panel = document.getElementById('panelcat-' + t);
+            if (t === tipo) {
+                tab.className = 'px-5 py-2.5 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm flex items-center gap-1.5';
+                panel.classList.remove('hidden');
+            } else {
+                tab.className = 'px-5 py-2.5 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5';
+                panel.classList.add('hidden');
+            }
+        });
+    }
+
+    function seleccionarTipoCat(tipo) {
+        document.getElementById('catTipoInput').value = tipo;
+        const btnC = document.getElementById('btnCatConsulta');
+        const btnE = document.getElementById('btnCatEscritos');
+        if (tipo === 'consulta') {
+            btnC.className = 'flex-1 py-2.5 text-sm font-bold bg-amber-600 text-white transition';
+            btnE.className = 'flex-1 py-2.5 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition border-l border-slate-200';
+        } else {
+            btnC.className = 'flex-1 py-2.5 text-sm font-semibold bg-white text-slate-500 hover:bg-slate-50 transition';
+            btnE.className = 'flex-1 py-2.5 text-sm font-bold bg-amber-600 text-white transition border-l border-amber-600';
+        }
+        // Sincronizar con la pestaña del listado
+        cambiarTabCat(tipo);
+    }
+</script>
+@endpush
 @endsection
