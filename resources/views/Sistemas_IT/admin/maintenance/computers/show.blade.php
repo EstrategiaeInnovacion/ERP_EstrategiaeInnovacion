@@ -39,7 +39,7 @@
 
         $imageCount = $userImages->count() + $adminImages->count();
         $lastMaintenanceAt = $profile->last_maintenance_at ? $profile->last_maintenance_at->copy()->timezone('America/Mexico_City') : null;
-        $nextMaintenanceAt = $lastMaintenanceAt ? $lastMaintenanceAt->copy()->addMonths(4) : null;
+        $nextMaintenanceAt = $profile->next_maintenance_at ? $profile->next_maintenance_at->copy()->timezone('America/Mexico_City') : ($lastMaintenanceAt ? $lastMaintenanceAt->copy()->addMonths(4) : null);
         $lastUpdatedAt = $lastMaintenanceAt ?? optional($latestTicket)->updated_at ?? $profile->updated_at;
     @endphp
 
@@ -79,6 +79,53 @@
                         Ver ticket {{ optional($profile->ticket)->folio ?? '#' . $profile->last_ticket_id }}
                     </a>
                 @endif
+                <button type="button" onclick="document.getElementById('modalEliminarFicha').classList.remove('hidden')"
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors text-sm font-semibold shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Eliminar ficha
+                </button>
+            </div>
+        </div>
+
+        {{-- Modal: Confirmar eliminación de ficha --}}
+        <div id="modalEliminarFicha" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="document.getElementById('modalEliminarFicha').classList.add('hidden')"></div>
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">¿Eliminar esta ficha técnica?</h3>
+                        <p class="text-sm text-slate-600 mt-1">
+                            Se eliminará la ficha <span class="font-semibold text-slate-900">{{ $profile->identifier ?? 'sin identificador' }}</span>.
+                            @if($latestTicket && $latestTicket->estado !== 'cerrado')
+                                <br><span class="text-blue-700 font-medium">El ticket {{ $latestTicket->folio }} seguirá activo</span> y podrás registrar una nueva ficha para él.
+                            @else
+                                <br>El ticket vinculado no se eliminará.
+                            @endif
+                        </p>
+                        <p class="text-xs text-red-600 mt-2 font-medium">Esta acción no se puede deshacer.</p>
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modalEliminarFicha').classList.add('hidden')"
+                        class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition">
+                        Cancelar
+                    </button>
+                    <form method="POST" action="{{ route('admin.maintenance.computers.destroy', $profile) }}">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition shadow-sm">
+                            Sí, eliminar ficha
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -89,9 +136,19 @@
                     <p class="text-sm text-slate-500">Datos principales para identificar el equipo y su estado actual.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $profile->is_loaned ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700' }}">
-                        {{ $profile->is_loaned ? 'Prestado' : 'Disponible' }}
-                    </span>
+                    @if($equiposAsignados->isNotEmpty())
+                        @php
+                            $eqHeader = $equiposAsignados->firstWhere('id', $profile->equipo_asignado_id)
+                                ?? $equiposAsignados->firstWhere('es_principal', true)
+                                ?? $equiposAsignados->first();
+                        @endphp
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                            {{ $eqHeader->nombre_equipo }}
+                            @if($equiposAsignados->count() > 1)
+                                · {{ $eqHeader->es_principal ? 'Principal' : 'Secundaria' }}
+                            @endif
+                        </span>
+                    @endif
                     @if($latestTicket)
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $latestTicket->estado_badge }}">
                             Ticket {{ $latestTicket->folio }} · {{ ucfirst(str_replace('_', ' ', $latestTicket->estado)) }}
@@ -147,12 +204,24 @@
                                     </p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Próximo mantenimiento estimado</p>
+                                    <p class="text-xs font-medium text-slate-500 uppercase">Próximo mantenimiento</p>
                                     <p class="text-base text-slate-800 mt-1">
                                         @if($nextMaintenanceAt)
-                                            {{ $nextMaintenanceAt->format('d/m/Y H:i') }}
+                                            @php
+                                                $diasRestantes = (int) now('America/Mexico_City')->startOfDay()->diffInDays($nextMaintenanceAt->copy()->startOfDay(), false);
+                                            @endphp
+                                            {{ $nextMaintenanceAt->format('d/m/Y') }}
+                                            @if($diasRestantes < 0)
+                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">VENCIDO hace {{ abs($diasRestantes) }} día(s)</span>
+                                            @elseif($diasRestantes === 0)
+                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">HOY</span>
+                                            @elseif($diasRestantes <= 7)
+                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">En {{ $diasRestantes }} día(s)</span>
+                                            @else
+                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">En {{ $diasRestantes }} días</span>
+                                            @endif
                                         @else
-                                            En seguimiento
+                                            <span class="text-slate-400">Sin fecha programada</span>
                                         @endif
                                     </p>
                                 </div>
@@ -292,29 +361,128 @@
                     </section>
 
                     <aside class="space-y-6">
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-inner">
-                            <h3 class="text-sm font-semibold text-slate-900 mb-4">Situación del préstamo</h3>
-                            <dl class="space-y-3 text-sm text-slate-700">
-                                <div class="flex items-start justify-between gap-4">
-                                    <dt class="text-slate-500">Estado</dt>
-                                    <dd class="font-medium">{{ $profile->is_loaned ? 'Prestado' : 'Disponible' }}</dd>
-                                </div>
-                                @if($profile->is_loaned)
-                                    <div>
-                                        <dt class="text-slate-500">Responsable</dt>
-                                        <dd class="font-medium">{{ $profile->loaned_to_name }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-slate-500">Correo</dt>
-                                        <dd class="font-medium break-words">{{ $profile->loaned_to_email }}</dd>
-                                    </div>
+                        {{-- Equipo(s) asignado(s) al solicitante --}}
+                        @if($equiposAsignados->isNotEmpty())
+                            <div class="rounded-3xl border border-indigo-200 bg-indigo-50 p-6 shadow-inner">
+                                <h3 class="text-sm font-semibold text-indigo-900 mb-1 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                    </svg>
+                                    Equipo(s) asignado(s)
+                                </h3>
+                                <p class="text-xs text-indigo-600 mb-4">Computadoras registradas para {{ optional($latestTicket?->user)->name ?? 'el solicitante' }}.</p>
+
+                                @if($equiposAsignados->count() > 1)
+                                    {{-- Selector de equipo a mantener --}}
+                                    <form method="POST" action="{{ route('admin.maintenance.computers.setEquipo', $profile) }}" class="mb-4">
+                                        @csrf
+                                        @method('PATCH')
+                                        <label class="block text-xs font-semibold text-indigo-800 mb-1.5">Equipo a mantener</label>
+                                        <select name="equipo_asignado_id"
+                                            class="w-full rounded-lg border border-indigo-300 bg-white text-sm text-indigo-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-2">
+                                            @foreach($equiposAsignados as $eq)
+                                                <option value="{{ $eq->id }}"
+                                                    {{ $profile->equipo_asignado_id == $eq->id ? 'selected' : '' }}>
+                                                    {{ $eq->nombre_equipo }}
+                                                    ({{ $eq->modelo ?? 'Sin modelo' }})
+                                                    {{ $eq->es_principal ? '· Principal' : '· Secundaria' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit"
+                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition">
+                                            Confirmar selección
+                                        </button>
+                                    </form>
                                 @endif
+
+                                {{-- Detalle del equipo seleccionado (o el principal si no hay selección) --}}
+                                @php
+                                    $equipoMostrar = $equiposAsignados->firstWhere('id', $profile->equipo_asignado_id)
+                                        ?? $equiposAsignados->firstWhere('es_principal', true)
+                                        ?? $equiposAsignados->first();
+                                @endphp
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $equipoMostrar->es_principal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600' }}">
+                                            {{ $equipoMostrar->es_principal ? 'Principal' : 'Secundaria' }}
+                                        </span>
+                                        @if($equiposAsignados->count() > 1 && $profile->equipo_asignado_id)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                                Seleccionada para mantenimiento
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-indigo-600 uppercase font-medium">Nombre del equipo</p>
+                                        <p class="font-semibold text-indigo-900">{{ $equipoMostrar->nombre_equipo ?? '—' }}</p>
+                                    </div>
+                                    @if($equipoMostrar->modelo)
+                                    <div>
+                                        <p class="text-xs text-indigo-600 uppercase font-medium">Modelo</p>
+                                        <p class="text-indigo-900">{{ $equipoMostrar->modelo }}</p>
+                                    </div>
+                                    @endif
+                                    @if($equipoMostrar->numero_serie)
+                                    <div>
+                                        <p class="text-xs text-indigo-600 uppercase font-medium">Número de serie</p>
+                                        <p class="text-indigo-900 font-mono text-xs">{{ $equipoMostrar->numero_serie }}</p>
+                                    </div>
+                                    @endif
+                                    @if($equipoMostrar->nombre_usuario_pc)
+                                    <div>
+                                        <p class="text-xs text-indigo-600 uppercase font-medium">Usuario de Windows</p>
+                                        <p class="text-indigo-900">{{ $equipoMostrar->nombre_usuario_pc }}</p>
+                                    </div>
+                                    @endif
+                                    @if($equipoMostrar->notas)
+                                    <div>
+                                        <p class="text-xs text-indigo-600 uppercase font-medium">Notas</p>
+                                        <p class="text-indigo-800 text-xs">{{ $equipoMostrar->notas }}</p>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-inner">
+                                <h3 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                    </svg>
+                                    Equipo asignado
+                                </h3>
+                                <p class="text-sm text-slate-500">Sin equipos asignados registrados para este solicitante.</p>
+                                <dl class="mt-3 space-y-2 text-sm text-slate-700">
+                                    <div>
+                                        <dt class="text-slate-500 text-xs uppercase">Último ticket vinculado</dt>
+                                        <dd class="font-medium">{{ optional($latestTicket)->folio ?? 'Sin asignar' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-slate-500 text-xs uppercase">Última intervención</dt>
+                                        <dd class="font-medium">
+                                            @if($lastMaintenanceAt)
+                                                {{ $lastMaintenanceAt->format('d/m/Y H:i') }}
+                                            @elseif($latestTicket)
+                                                {{ $latestTicket->updated_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}
+                                            @else
+                                                Sin registro
+                                            @endif
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        @endif
+
+                        {{-- Resumen de ticket --}}
+                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-inner">
+                            <h3 class="text-sm font-semibold text-slate-900 mb-3">Resumen del ticket</h3>
+                            <dl class="space-y-3 text-sm text-slate-700">
                                 <div>
-                                    <dt class="text-slate-500">Último ticket vinculado</dt>
+                                    <dt class="text-slate-500 text-xs uppercase">Último ticket vinculado</dt>
                                     <dd class="font-medium">{{ optional($latestTicket)->folio ?? 'Sin asignar' }}</dd>
                                 </div>
                                 <div>
-                                    <dt class="text-slate-500">Última intervención</dt>
+                                    <dt class="text-slate-500 text-xs uppercase">Última intervención</dt>
                                     <dd class="font-medium">
                                         @if($lastMaintenanceAt)
                                             {{ $lastMaintenanceAt->format('d/m/Y H:i') }}

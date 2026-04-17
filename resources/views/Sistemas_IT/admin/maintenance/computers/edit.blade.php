@@ -96,25 +96,6 @@
                 @error('replacement_components.*')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
             </div>
 
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                <label class="flex items-start text-sm text-gray-700">
-                    <input type="checkbox" name="is_loaned" value="1" class="mt-1 mr-2 rounded border-gray-300 text-green-600 focus:ring-green-500" {{ old('is_loaned', $profile->is_loaned) ? 'checked' : '' }}>
-                    <span>Marcar equipo como prestado actualmente<br><span class="text-xs text-gray-500">Proporciona los datos de la persona que tiene el equipo en resguardo.</span></span>
-                </label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="loaned_to_name" class="block text-xs font-medium text-gray-600 mb-1">Nombre de la persona</label>
-                        <input type="text" id="loaned_to_name" name="loaned_to_name" value="{{ old('loaned_to_name', $profile->loaned_to_name) }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        @error('loaned_to_name')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label for="loaned_to_email" class="block text-xs font-medium text-gray-600 mb-1">Correo electrónico</label>
-                        <input type="email" id="loaned_to_email" name="loaned_to_email" value="{{ old('loaned_to_email', $profile->loaned_to_email) }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        @error('loaned_to_email')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-            </div>
-
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="text-sm text-gray-500">
                     Última actualización: {{ optional($profile->updated_at)->format('d/m/Y H:i') ?? 'Sin registro' }}

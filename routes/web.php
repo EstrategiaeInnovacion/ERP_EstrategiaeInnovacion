@@ -451,6 +451,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
 
         Route::post('/maintenance/computers', 'storeComputer')->name('computers.store');
         Route::get('/maintenance/computers/{computerProfile}', 'showComputer')->name('computers.show');
+        Route::patch('/maintenance/computers/{computerProfile}/equipo', 'setEquipoAsignado')->name('computers.setEquipo');
         Route::get('/maintenance/computers/{computerProfile}/edit', 'editComputer')->name('computers.edit');
         Route::put('/maintenance/computers/{computerProfile}', 'updateComputer')->name('computers.update');
         Route::delete('/maintenance/computers/{computerProfile}', 'destroyComputer')->name('computers.destroy');

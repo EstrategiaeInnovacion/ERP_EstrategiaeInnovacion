@@ -351,7 +351,7 @@ class MaintenanceController extends Controller
 
         $maintenanceTickets = Ticket::query()
             ->where('tipo_problema', 'mantenimiento')
-            ->with(['computerProfile', 'user'])
+            ->with(['computerProfile', 'user.equiposAsignados'])
             ->orderByDesc('created_at')
             ->limit(15)
             ->get();
@@ -559,9 +559,22 @@ class MaintenanceController extends Controller
         $latestTicket = $tickets->first();
         $historyTickets = $tickets->skip(1);
 
+        // Empleado asociado al usuario que creó el ticket
         $empleado = null;
-        if ($computerProfile->is_loaned && $computerProfile->loaned_to_email) {
+        $ticketUser = optional($latestTicket)->user;
+
+        if ($ticketUser) {
+            $empleado = \App\Models\Empleado::where('correo', $ticketUser->email)->first();
+        } elseif ($computerProfile->is_loaned && $computerProfile->loaned_to_email) {
             $empleado = \App\Models\Empleado::where('correo', $computerProfile->loaned_to_email)->first();
+        }
+
+        // Equipos asignados al usuario del ticket
+        $equiposAsignados = collect();
+        if ($ticketUser) {
+            $equiposAsignados = \App\Models\Sistemas_IT\EquipoAsignado::where('user_id', $ticketUser->id)
+                ->orderByDesc('es_principal')
+                ->get();
         }
 
         return view('Sistemas_IT.admin.maintenance.computers.show', [
@@ -571,8 +584,20 @@ class MaintenanceController extends Controller
             'latestTicket' => $latestTicket,
             'historyTickets' => $historyTickets,
             'empleado' => $empleado,
+            'equiposAsignados' => $equiposAsignados,
             'componentOptions' => $this->getReplacementComponentOptions(),
         ]);
+    }
+
+    public function setEquipoAsignado(Request $request, ComputerProfile $computerProfile): \Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'equipo_asignado_id' => ['nullable', 'integer', 'exists:it_equipos_asignados,id'],
+        ]);
+
+        $computerProfile->update(['equipo_asignado_id' => $validated['equipo_asignado_id'] ?? null]);
+
+        return back()->with('success', 'Equipo de mantenimiento actualizado correctamente.');
     }
 
     private function getReplacementComponentOptions(): array
@@ -603,9 +628,13 @@ class MaintenanceController extends Controller
             'replacement_components' => ['nullable', 'array'],
             'replacement_components.*' => ['string'],
             'last_maintenance_at' => ['nullable', 'date'],
-            'is_loaned' => ['nullable', 'boolean'],
-            'loaned_to_name' => ['nullable', 'string', 'max:255'],
-            'loaned_to_email' => ['nullable', 'email', 'max:255'],
+            // Paso 6 — notas técnicas del ticket
+            'ticket_estado' => ['nullable', 'in:abierto,en_proceso,cerrado'],
+            'ticket_observaciones' => ['nullable', 'string'],
+            'ticket_maintenance_report' => ['nullable', 'string'],
+            'ticket_closure_observations' => ['nullable', 'string'],
+            'ticket_imagenes_admin' => ['nullable', 'array'],
+            'ticket_imagenes_admin.*' => ['image', 'mimes:jpeg,png,jpg,gif', 'max:4096'],
         ]);
 
         $profile = ComputerProfile::create([
@@ -618,19 +647,52 @@ class MaintenanceController extends Controller
             'aesthetic_observations' => $data['aesthetic_observations'] ?? null,
             'replacement_components' => $data['replacement_components'] ?? null,
             'last_maintenance_at' => $data['last_maintenance_at'] ?? null,
-            'is_loaned' => isset($data['is_loaned']) ? (bool)$data['is_loaned'] : false,
-            'loaned_to_name' => $data['loaned_to_name'] ?? null,
-            'loaned_to_email' => $data['loaned_to_email'] ?? null,
+            'next_maintenance_at' => !empty($data['last_maintenance_at'])
+                ? Carbon::parse($data['last_maintenance_at'])->addMonths(4)
+                : null,
+            'maintenance_reminder_sent_at' => null,
             'last_ticket_id' => $data['maintenance_ticket_id'] ?? null,
         ]);
 
         if (!empty($data['maintenance_ticket_id'])) {
-            Ticket::where('id', $data['maintenance_ticket_id'])->update([
-                'computer_profile_id' => $profile->id,
-            ]);
+            $ticket = Ticket::find($data['maintenance_ticket_id']);
+            if ($ticket) {
+                $ticketUpdate = ['computer_profile_id' => $profile->id];
+
+                $estado = $data['ticket_estado'] ?? null;
+                if ($estado) {
+                    $ticketUpdate['estado'] = $estado;
+                    if ($estado === 'cerrado' && $ticket->estado !== 'cerrado') {
+                        $ticketUpdate['fecha_cierre'] = now('America/Mexico_City');
+                    }
+                }
+
+                if (isset($data['ticket_observaciones'])) {
+                    $ticketUpdate['observaciones'] = $data['ticket_observaciones'];
+                }
+                if (isset($data['ticket_maintenance_report'])) {
+                    $ticketUpdate['maintenance_report'] = $data['ticket_maintenance_report'];
+                }
+                if (isset($data['ticket_closure_observations'])) {
+                    $ticketUpdate['closure_observations'] = $data['ticket_closure_observations'];
+                }
+
+                // Procesar imágenes
+                if ($request->hasFile('ticket_imagenes_admin')) {
+                    $existingImages = $ticket->imagenes_admin ?? [];
+                    foreach ($request->file('ticket_imagenes_admin') as $imagen) {
+                        if ($imagen->isValid()) {
+                            $existingImages[] = base64_encode(file_get_contents($imagen->getPathname()));
+                        }
+                    }
+                    $ticketUpdate['imagenes_admin'] = $existingImages;
+                }
+
+                $ticket->update($ticketUpdate);
+            }
         }
 
-        return back()->with('success', 'Ficha técnica registrada correctamente.');
+        return back()->with('success', 'Ficha técnica y notas del ticket registradas correctamente.');
     }
 
     public function editComputer(ComputerProfile $computerProfile): View
@@ -674,6 +736,14 @@ class MaintenanceController extends Controller
             $data['last_ticket_id'] = $data['maintenance_ticket_id'];
         }
 
+        // Recalcular próximo mantenimiento si cambia la fecha del último
+        if (array_key_exists('last_maintenance_at', $data)) {
+            $data['next_maintenance_at'] = !empty($data['last_maintenance_at'])
+                ? Carbon::parse($data['last_maintenance_at'])->addMonths(4)
+                : null;
+            $data['maintenance_reminder_sent_at'] = null; // reset para que vuelva a avisar
+        }
+
         $computerProfile->update($data);
 
         return redirect()
@@ -683,10 +753,16 @@ class MaintenanceController extends Controller
 
     public function destroyComputer(ComputerProfile $computerProfile): RedirectResponse
     {
+        // Desvincular el ticket antes de borrar la ficha
+        // (el FK onDelete('set null') también lo hace, pero lo hacemos explícito
+        //  para que el ticket quede disponible para una nueva ficha de inmediato)
+        Ticket::where('computer_profile_id', $computerProfile->id)
+            ->update(['computer_profile_id' => null]);
+
         $computerProfile->delete();
 
         return redirect()
-            ->route('admin.maintenance.index')
-            ->with('success', 'Ficha técnica eliminada correctamente.');
+            ->route('admin.maintenance.index', ['tab' => 'profiles'])
+            ->with('success', 'Ficha técnica eliminada. El ticket sigue activo y puedes registrar una nueva ficha para él.');
     }
 }

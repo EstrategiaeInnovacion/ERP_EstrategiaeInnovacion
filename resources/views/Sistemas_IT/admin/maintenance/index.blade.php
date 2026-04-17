@@ -9,15 +9,7 @@
                 <h2 class="text-3xl font-bold text-gray-900">Gestión de Mantenimientos</h2>
                 <p class="text-gray-600">Administra la agenda de mantenimientos y la documentación técnica de los equipos.</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <a href="{{ route('admin.maintenance.computers.index') }}"
-                    class="inline-flex items-center px-4 py-2 rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                    Expedientes de equipos
-                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </a>
-            </div>
+
         </div>
 
         @if (session('success'))
@@ -214,111 +206,41 @@
                 </section>
 
                 <section id="tab-profiles" data-tab-panel class="space-y-8 hidden">
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-900">Registrar ficha técnica de equipo</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Selecciona un ticket desde "Seguimiento administrativo de tickets" para completar los datos de la ficha técnica del equipo.</p>
+                    <div class="space-y-1">
+                        <h3 class="text-xl font-semibold text-slate-900">Nueva ficha técnica de equipo</h3>
+                        <p class="text-sm text-slate-500 max-w-2xl">Completa los datos del equipo y el mantenimiento realizado. Selecciona primero el ticket para auto-llenar los campos.</p>
                     </div>
 
-                    <form method="POST" action="{{ route('admin.maintenance.computers.store') }}" class="space-y-6 hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm" id="technicalProfileForm">
+                    <form method="POST" action="{{ route('admin.maintenance.computers.store') }}" class="space-y-0" id="technicalProfileForm" enctype="multipart/form-data">
                         @csrf
 
-                        <!-- Sección: Información básica del equipo -->
-                        <div class="border-b border-gray-200 pb-6">
-                            <h3 class="text-base font-semibold text-gray-900 mb-4">Información básica del equipo</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div>
-                                    <label for="identifier" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Identificador del equipo <span class="text-red-500">*</span>
-                                    </label>
-                                    <input type="text" id="identifier" name="identifier" value="{{ old('identifier') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required placeholder="Ej: LAPTOP001">
-                                    @error('identifier')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="brand" class="block text-sm font-medium text-gray-700 mb-1.5">Marca</label>
-                                    <input type="text" id="brand" name="brand" value="{{ old('brand') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Ej: Dell, HP, Lenovo">
-                                    @error('brand')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="model" class="block text-sm font-medium text-gray-700 mb-1.5">Modelo</label>
-                                    <input type="text" id="model" name="model" value="{{ old('model') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Ej: Latitude 5420">
-                                    @error('model')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 1 · Ticket de origen
+                        ══════════════════════════════════════════════════════ --}}
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">1</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Ticket de mantenimiento</h4>
+                                <span class="text-xs text-slate-500">— vincula la ficha con la solicitud del usuario</span>
                             </div>
-                        </div>
-
-                        <!-- Sección: Especificaciones técnicas -->
-                        <div class="border-b border-gray-200 pb-6">
-                            <h3 class="text-base font-semibold text-gray-900 mb-4">Especificaciones técnicas</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-5 space-y-3">
                                 <div>
-                                    <label for="disk_type" class="block text-sm font-medium text-gray-700 mb-1.5">Tipo de disco</label>
-                                    <input type="text" id="disk_type" name="disk_type" value="{{ old('disk_type') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Ej: SSD 256GB">
-                                    @error('disk_type')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="ram_capacity" class="block text-sm font-medium text-gray-700 mb-1.5">Capacidad de RAM</label>
-                                    <input type="text" id="ram_capacity" name="ram_capacity" value="{{ old('ram_capacity') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Ej: 8GB DDR4">
-                                    @error('ram_capacity')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label for="battery_status" class="block text-sm font-medium text-gray-700 mb-1.5">Estado de batería</label>
-                                    <select id="battery_status" name="battery_status"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">Selecciona una opción</option>
-                                        <option value="functional" {{ old('battery_status') === 'functional' ? 'selected' : '' }}>Funcional</option>
-                                        <option value="partially_functional" {{ old('battery_status') === 'partially_functional' ? 'selected' : '' }}>Parcialmente funcional</option>
-                                        <option value="damaged" {{ old('battery_status') === 'damaged' ? 'selected' : '' }}>Dañada</option>
-                                    </select>
-                                    @error('battery_status')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sección: Mantenimiento y observaciones -->
-                        <div class="border-b border-gray-200 pb-6">
-                            <h3 class="text-base font-semibold text-gray-900 mb-4">Mantenimiento y observaciones</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label for="maintenance_ticket_id" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Ticket de mantenimiento relacionado
-                                    </label>
+                                    <label for="maintenance_ticket_id" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Ticket relacionado</label>
                                     <select id="maintenance_ticket_id" name="maintenance_ticket_id"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">Selecciona un ticket</option>
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">— Selecciona un ticket —</option>
                                         @foreach ($maintenanceTickets as $ticket)
                                             @php
                                                 $createdAt = optional($ticket->created_at)->timezone('America/Mexico_City');
+                                                $equiposUser = optional($ticket->user)->equiposAsignados ?? collect();
+                                                $estadoBadge = match($ticket->estado) {
+                                                    'abierto'    => '🟢 Abierto',
+                                                    'en_proceso' => '🔵 En proceso',
+                                                    'cerrado'    => '⚫ Cerrado',
+                                                    default      => $ticket->estado
+                                                };
                                             @endphp
-                                            <option value="{{ $ticket->id }}" 
+                                            <option value="{{ $ticket->id }}"
                                                 {{ (string) old('maintenance_ticket_id') === (string) $ticket->id ? 'selected' : '' }}
                                                 data-equipment-identifier="{{ $ticket->equipment_identifier ?? '' }}"
                                                 data-equipment-brand="{{ $ticket->equipment_brand ?? '' }}"
@@ -327,286 +249,261 @@
                                                 data-ram-capacity="{{ $ticket->ram_capacity ?? '' }}"
                                                 data-battery-status="{{ $ticket->battery_status ?? '' }}"
                                                 data-aesthetic-observations="{{ $ticket->aesthetic_observations ?? '' }}"
-                                                data-replacement-components="{{ $ticket->replacement_components ? json_encode($ticket->replacement_components) : '[]' }}">
-                                                {{ $ticket->folio }} · {{ $ticket->nombre_solicitante }} · {{ $createdAt ? $createdAt->format('d/m/Y H:i') : 'Sin fecha' }}
+                                                data-replacement-components="{{ $ticket->replacement_components ? json_encode($ticket->replacement_components) : '[]' }}"
+                                                data-equipos-asignados="{{ $equiposUser->map(fn($e) => ['id'=>$e->id,'nombre'=>$e->nombre_equipo,'modelo'=>$e->modelo,'serie'=>$e->numero_serie,'usuario'=>$e->nombre_usuario_pc,'principal'=>$e->es_principal])->values()->toJson() }}">
+                                                {{ $ticket->folio }} · {{ $ticket->nombre_solicitante }} · {{ $estadoBadge }} · {{ $createdAt ? $createdAt->format('d/m/Y') : 'Sin fecha' }}
                                             </option>
                                         @endforeach
                                     </select>
-                                    <p class="text-xs text-gray-500 mt-1.5">El ticket seleccionado se vinculará como el último mantenimiento realizado.</p>
                                     @error('maintenance_ticket_id')
                                         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                                     @enderror
                                 </div>
 
-                                <div>
-                                    <label for="last_maintenance_at" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Último mantenimiento registrado
-                                    </label>
-                                    <input type="datetime-local" id="last_maintenance_at" name="last_maintenance_at"
-                                        value="{{ old('last_maintenance_at') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    @error('last_maintenance_at')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
+                                {{-- Picker de equipo asignado --}}
+                                <div id="equipoPicker" class="hidden rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                                    <p class="text-xs font-semibold text-indigo-800 mb-2.5 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                        Equipos registrados para este usuario — selecciona el que se va a mantener
+                                    </p>
+                                    <div id="equipoPickerOptions" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label for="aesthetic_observations" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                    Observaciones estéticas
-                                </label>
-                                <textarea id="aesthetic_observations" name="aesthetic_observations" rows="3"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Describe el estado físico del equipo, rayones, golpes, etc.">{{ old('aesthetic_observations') }}</textarea>
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 2 · Identificación del equipo
+                        ══════════════════════════════════════════════════════ --}}
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">2</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Identificación del equipo</h4>
+                                <span class="text-xs text-slate-500">— número de inventario, marca y modelo</span>
+                            </div>
+                            <div class="p-5">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="identifier" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                                            Identificador / N° inventario <span class="text-red-500">*</span>
+                                        </label>
+                                        <input type="text" id="identifier" name="identifier" value="{{ old('identifier') }}"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ej: LAPTOP-EI-001">
+                                        @error('identifier')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label for="brand" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Marca</label>
+                                        <input type="text" id="brand" name="brand" value="{{ old('brand') }}"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ej: Dell, HP, Lenovo">
+                                        @error('brand')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label for="model" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Modelo</label>
+                                        <input type="text" id="model" name="model" value="{{ old('model') }}"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ej: Latitude 5420">
+                                        @error('model')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 3 · Especificaciones técnicas
+                        ══════════════════════════════════════════════════════ --}}
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">3</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Especificaciones técnicas</h4>
+                                <span class="text-xs text-slate-500">— hardware del equipo al momento del mantenimiento</span>
+                            </div>
+                            <div class="p-5">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="disk_type" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tipo y capacidad de disco</label>
+                                        <input type="text" id="disk_type" name="disk_type" value="{{ old('disk_type') }}"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ej: SSD 256 GB, HDD 1 TB">
+                                        @error('disk_type')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label for="ram_capacity" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Memoria RAM</label>
+                                        <input type="text" id="ram_capacity" name="ram_capacity" value="{{ old('ram_capacity') }}"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ej: 8 GB DDR4, 16 GB DDR5">
+                                        @error('ram_capacity')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label for="battery_status" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Estado de la batería</label>
+                                        <select id="battery_status" name="battery_status"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">— Sin evaluar —</option>
+                                            <option value="functional" {{ old('battery_status') === 'functional' ? 'selected' : '' }}>✅ Funcional</option>
+                                            <option value="partially_functional" {{ old('battery_status') === 'partially_functional' ? 'selected' : '' }}>⚠️ Parcialmente funcional</option>
+                                            <option value="damaged" {{ old('battery_status') === 'damaged' ? 'selected' : '' }}>❌ Dañada / Sin batería</option>
+                                        </select>
+                                        @error('battery_status')
+                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 4 · Estado físico del equipo
+                        ══════════════════════════════════════════════════════ --}}
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">4</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Estado físico del equipo</h4>
+                                <span class="text-xs text-slate-500">— condición estética al momento de recibir el equipo</span>
+                            </div>
+                            <div class="p-5">
+                                <label for="aesthetic_observations" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones estéticas</label>
+                                <textarea id="aesthetic_observations" name="aesthetic_observations" rows="4"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Describe el estado físico: rayones, golpes, bisagras, teclado, pantalla, puertos, etc.">{{ old('aesthetic_observations') }}</textarea>
                                 @error('aesthetic_observations')
                                     <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- Sección: Componentes reemplazados -->
-                        <div class="border-b border-gray-200 pb-6">
-                            <h3 class="text-base font-semibold text-gray-900 mb-3">Componentes reemplazados</h3>
-                            <p class="text-sm text-gray-600 mb-4">Marca los componentes que fueron reemplazados durante el mantenimiento</p>
-                            
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                @foreach ($componentOptions as $value => $label)
-                                    <label class="flex items-center text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-2.5 cursor-pointer transition-colors">
-                                        <input type="checkbox" name="replacement_components[]" value="{{ $value }}"
-                                            class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            {{ is_array(old('replacement_components')) && in_array($value, old('replacement_components', []), true) ? 'checked' : '' }}>
-                                        <span class="text-xs">{{ $label }}</span>
-                                    </label>
-                                @endforeach
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 5 · Registro del mantenimiento
+                        ══════════════════════════════════════════════════════ --}}
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">5</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Registro del mantenimiento</h4>
+                                <span class="text-xs text-slate-500">— fecha y componentes intervenidos</span>
                             </div>
-                            @error('replacement_components')
-                                <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
-                            @enderror
-                            @error('replacement_components.*')
-                                <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Sección: Préstamo de equipo -->
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-5">
-                            <label class="flex items-start text-sm text-gray-900 font-medium cursor-pointer">
-                                <input type="checkbox" name="is_loaned" value="1" id="is_loaned"
-                                    class="mt-0.5 mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    {{ old('is_loaned') ? 'checked' : '' }}>
-                                <div>
-                                    <span class="block mb-1">Marcar equipo como prestado actualmente</span>
-                                    <span class="text-xs text-gray-600 font-normal">Selecciona a la persona responsable desde el directorio de usuarios.</span>
-                                </div>
-                            </label>
-
-                            <div id="loanDetails" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 {{ old('is_loaned') ? '' : 'hidden' }}">
-                                <div>
-                                    <label for="loaned_to_name" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Nombre de la persona
-                                    </label>
-                                    <input list="loanedNameOptions" type="text" id="loaned_to_name" name="loaned_to_name"
-                                        value="{{ old('loaned_to_name') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                        placeholder="Selecciona o escribe el nombre">
-                                    <datalist id="loanedNameOptions">
-                                        @foreach ($users as $user)
-                                            <option value="{{ $user->name }}"></option>
-                                        @endforeach
-                                    </datalist>
-                                    @error('loaned_to_name')
+                            <div class="p-5 space-y-5">
+                                <div class="max-w-xs">
+                                    <label for="last_maintenance_at" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Fecha del mantenimiento realizado</label>
+                                    <input type="datetime-local" id="last_maintenance_at" name="last_maintenance_at"
+                                        value="{{ old('last_maintenance_at') }}"
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <p class="text-xs text-slate-500 mt-1">Se calculará automáticamente la próxima fecha de mantenimiento a 4 meses.</p>
+                                    @error('last_maintenance_at')
                                         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                                     @enderror
                                 </div>
+
                                 <div>
-                                    <label for="loaned_to_email" class="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Correo electrónico
-                                    </label>
-                                    <input list="loanedEmailOptions" type="email" id="loaned_to_email" name="loaned_to_email"
-                                        value="{{ old('loaned_to_email') }}"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                        placeholder="Selecciona o escribe el correo">
-                                    <datalist id="loanedEmailOptions">
-                                        @foreach ($users as $user)
-                                            <option value="{{ $user->email }}"></option>
+                                    <p class="text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Componentes reemplazados o intervenidos</p>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                                        @foreach ($componentOptions as $value => $label)
+                                            <label class="flex items-center gap-2.5 text-sm text-slate-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl px-3 py-2.5 cursor-pointer transition-colors group">
+                                                <input type="checkbox" name="replacement_components[]" value="{{ $value }}"
+                                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    {{ is_array(old('replacement_components')) && in_array($value, old('replacement_components', []), true) ? 'checked' : '' }}>
+                                                <span class="text-xs font-medium group-hover:text-blue-700 transition-colors">{{ $label }}</span>
+                                            </label>
                                         @endforeach
-                                    </datalist>
-                                    @error('loaned_to_email')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                    </div>
+                                    @error('replacement_components')
+                                        <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
+                                    @enderror
+                                    @error('replacement_components.*')
+                                        <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Botón de envío -->
+                        {{-- ══════════════════════════════════════════════════════
+                             PASO 6 · Notas técnicas y seguimiento del ticket
+                        ══════════════════════════════════════════════════════ --}}
+                        <div id="seguimientoStep" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
+                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
+                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">6</span>
+                                <h4 class="text-sm font-semibold text-slate-800">Notas técnicas del mantenimiento</h4>
+                                <span class="text-xs text-slate-500">— observaciones, reporte e imágenes del técnico (se guardan en el ticket)</span>
+                            </div>
 
-                        <!-- Botón de envío -->
-                        <div class="flex justify-end pt-4">
+                            {{-- placeholder cuando no hay ticket --}}
+                            <div id="seguimientoNoTicket" class="p-5 text-sm text-slate-400 italic">
+                                Selecciona un ticket en el Paso 1 para completar las notas técnicas.
+                            </div>
+
+                            {{-- Contenido cuando sí hay ticket seleccionado --}}
+                            <div id="seguimientoContent" class="hidden p-5 space-y-5">
+                                {{-- Estado del ticket --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Estado del ticket</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach(['abierto' => ['label'=>'Abierto','color'=>'green'], 'en_proceso' => ['label'=>'En proceso','color'=>'blue'], 'cerrado' => ['label'=>'Cerrado','color'=>'slate']] as $val => $cfg)
+                                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition text-xs font-medium
+                                                @if($val === 'abierto') border-green-200 bg-green-50 text-green-700 hover:bg-green-100
+                                                @elseif($val === 'en_proceso') border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100
+                                                @else border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 @endif">
+                                                <input type="radio" name="ticket_estado" value="{{ $val }}" class="accent-blue-600"
+                                                    {{ old('ticket_estado', 'en_proceso') === $val ? 'checked' : '' }}>
+                                                {{ $cfg['label'] }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                {{-- Observaciones + Reporte --}}
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones del administrador</label>
+                                        <textarea name="ticket_observaciones" rows="4"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Notas internas sobre el mantenimiento...">{{ old('ticket_observaciones') }}</textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Reporte técnico</label>
+                                        <textarea name="ticket_maintenance_report" rows="4"
+                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Describe el trabajo realizado, diagnóstico, solución...">{{ old('ticket_maintenance_report') }}</textarea>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones al cerrar (opcional)</label>
+                                    <textarea name="ticket_closure_observations" rows="2"
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Notas finales, recomendaciones, pendientes...">{{ old('ticket_closure_observations') }}</textarea>
+                                </div>
+
+                                {{-- Imágenes --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Imágenes del técnico (evidencia)</label>
+                                    <input type="file" name="ticket_imagenes_admin[]" multiple accept="image/*"
+                                        class="block w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
+                                        data-maintenance-upload>
+                                    <p class="text-xs text-slate-500 mt-1" data-upload-status>0 archivos seleccionados.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Botón único de envío --}}
+                        <div class="flex items-center justify-between pt-2 mt-4">
+                            <p class="text-xs text-slate-500">La ficha y el seguimiento del ticket se guardarán en un solo paso.</p>
                             <button type="submit"
-                                class="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                class="inline-flex items-center px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-colors text-sm">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Registrar ficha técnica
+                                Guardar ficha técnica
                             </button>
                         </div>
                     </form>
-
-                    <div class="border border-blue-100 rounded-2xl bg-white shadow-sm mt-6">
-                        <div class="px-5 py-4 border-b border-blue-100 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <h4 class="text-lg font-semibold text-slate-900">Seguimiento administrativo de tickets</h4>
-                                <p class="text-sm text-slate-500">Actualiza observaciones, reportes y evidencias directamente desde la ficha técnica.</p>
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-slate-500 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                                Selecciona un ticket para mostrar el formulario.
-                            </div>
-                        </div>
-
-                        <div class="p-6 space-y-6">
-                            @php
-                                $activeTicketId = old('target_ticket_id', session('active_ticket_form'));
-                                // Filtrar solo tickets sin ficha técnica asociada y no cancelados por el usuario
-                                $ticketsWithoutProfile = $maintenanceTickets->filter(function($ticket) {
-                                    return is_null($ticket->computer_profile_id) && !$ticket->closed_by_user;
-                                });
-                            @endphp
-
-                            @if($ticketsWithoutProfile->isEmpty())
-                                <p class="text-sm text-slate-500">Todos los tickets de mantenimiento ya tienen ficha técnica registrada.</p>
-                            @else
-                                <div class="space-y-2">
-                                    <label for="maintenanceTicketSelector" class="block text-sm font-medium text-slate-700">Ticket de mantenimiento</label>
-                                    <select id="maintenanceTicketSelector" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" data-default="{{ $activeTicketId ? 'ticket-' . $activeTicketId : '' }}">
-                                        <option value="">Selecciona un ticket para gestionarlo</option>
-                                        @foreach($ticketsWithoutProfile as $ticket)
-                                            @php
-                                                $createdAt = optional($ticket->created_at)->timezone('America/Mexico_City');
-                                                $closedAt = optional($ticket->fecha_cierre)->timezone('America/Mexico_City');
-                                                $label = $ticket->folio . ' · ' . $ticket->nombre_solicitante;
-                                            @endphp
-                                            <option value="ticket-{{ $ticket->id }}" {{ (string) $activeTicketId === (string) $ticket->id ? 'selected' : '' }}>
-                                                {{ $label }} ({{ $createdAt ? $createdAt->format('d/m/Y H:i') : 'Sin fecha' }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="space-y-6" id="maintenanceTicketForms">
-                                    @foreach($ticketsWithoutProfile as $ticket)
-                                        @php
-                                            $isActiveTicket = (string) $activeTicketId === (string) $ticket->id;
-                                            $createdAt = optional($ticket->created_at)->timezone('America/Mexico_City');
-                                            $closedAt = optional($ticket->fecha_cierre)->timezone('America/Mexico_City');
-                                            $scheduledAt = optional($ticket->maintenance_scheduled_at)->timezone('America/Mexico_City');
-                                            $observacionesValue = $isActiveTicket ? old('observaciones', $ticket->observaciones) : $ticket->observaciones;
-                                            $maintenanceReportValue = $isActiveTicket ? old('maintenance_report', $ticket->maintenance_report) : $ticket->maintenance_report;
-                                            $closureObservationsValue = $isActiveTicket ? old('closure_observations', $ticket->closure_observations) : $ticket->closure_observations;
-                                            $removedImages = $isActiveTicket ? (array) old('removed_admin_images', []) : [];
-                                        @endphp
-                                        <div class="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-4 hidden" data-ticket-panel="ticket-{{ $ticket->id }}">
-                                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                                <div>
-                                                    <p class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500">Ticket de mantenimiento</p>
-                                                    <h5 class="text-lg font-semibold text-slate-900">{{ $ticket->folio }}</h5>
-                                                    <p class="text-xs text-slate-500 mt-1">
-                                                        Creado {{ $createdAt ? $createdAt->format('d/m/Y H:i') : 'sin fecha' }} ·
-                                                        Estado {{ ucfirst(str_replace('_', ' ', $ticket->estado)) }}
-                                                        @if($closedAt)
-                                                            · Cerrado {{ $closedAt->format('d/m/Y H:i') }}
-                                                        @endif
-                                                        @if($scheduledAt)
-                                                            · Programado {{ $scheduledAt->format('d/m/Y H:i') }}
-                                                        @endif
-                                                    </p>
-                                                </div>
-                                                <a href="{{ route('admin.tickets.show', $ticket) }}" class="inline-flex items-center px-3 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition">
-                                                    Ver ticket completo
-                                                    <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </a>
-                                            </div>
-
-                                            <form method="POST" action="{{ route('admin.tickets.update', $ticket) }}" class="space-y-5" enctype="multipart/form-data">
-                                                @csrf
-                                                @method('PATCH')
-
-                                                <input type="hidden" name="estado" value="{{ $isActiveTicket ? old('estado', $ticket->estado) : $ticket->estado }}">
-                                                <input type="hidden" name="target_ticket_id" value="{{ $ticket->id }}">
-                                                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-
-                                                <div class="space-y-2">
-                                                    <label for="adminObservations{{ $ticket->id }}" class="block text-xs font-medium text-slate-700">Observaciones del administrador</label>
-                                                    <textarea id="adminObservations{{ $ticket->id }}" name="observaciones" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ $observacionesValue }}</textarea>
-                                                    @if($isActiveTicket)
-                                                        @error('observaciones')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                                    @endif
-                                                </div>
-
-                                                <div class="space-y-3">
-                                                    <div class="space-y-2">
-                                                        <label for="adminImages{{ $ticket->id }}" class="block text-xs font-medium text-slate-700">Imágenes del administrador</label>
-                                                        <input type="file" id="adminImages{{ $ticket->id }}" name="imagenes_admin[]" multiple accept="image/*" class="block w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200" data-maintenance-upload>
-                                                        <p class="text-xs text-slate-500" data-upload-status>0 archivos seleccionados.</p>
-                                                        @if($isActiveTicket)
-                                                            @error('imagenes_admin')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                                            @error('imagenes_admin.*')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                                        @endif
-                                                    </div>
-
-                                                    @if($ticket->imagenes_admin && count($ticket->imagenes_admin) > 0)
-                                                        <div class="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
-                                                            <p class="text-xs font-semibold text-slate-700">Imágenes existentes</p>
-                                                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                                @foreach($ticket->imagenes_admin as $index => $imagen)
-                                                                    <label class="group relative cursor-pointer border border-slate-200 rounded-lg overflow-hidden">
-                                                                        <img src="data:image/jpeg;base64,{{ $imagen }}" alt="Imagen administrador {{ $index + 1 }}" class="h-24 w-full object-cover">
-                                                                        <span class="absolute bottom-1 left-1 bg-slate-900/80 text-white text-[10px] font-medium px-2 py-0.5 rounded">IMG {{ $index + 1 }}</span>
-                                                                        <input type="checkbox" name="removed_admin_images[]" value="{{ $index }}" class="absolute top-2 right-2 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" {{ in_array($index, $removedImages, true) ? 'checked' : '' }}>
-                                                                    </label>
-                                                                @endforeach
-                                                            </div>
-                                                            <p class="text-[11px] text-slate-500">Marca las imágenes que deseas eliminar antes de guardar.</p>
-                                                        </div>
-                                                    @endif
-                                                </div>
-
-                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div class="space-y-2">
-                                                        <label for="maintenanceReport{{ $ticket->id }}" class="block text-xs font-medium text-slate-700">Reporte técnico</label>
-                                                        <textarea id="maintenanceReport{{ $ticket->id }}" name="maintenance_report" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ $maintenanceReportValue }}</textarea>
-                                                        @if($isActiveTicket)
-                                                            @error('maintenance_report')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                                        @endif
-                                                    </div>
-                                                    <div class="space-y-2">
-                                                        <label for="closureObservations{{ $ticket->id }}" class="block text-xs font-medium text-slate-700">Observaciones al cerrar</label>
-                                                        <textarea id="closureObservations{{ $ticket->id }}" name="closure_observations" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ $closureObservationsValue }}</textarea>
-                                                        @if($isActiveTicket)
-                                                            @error('closure_observations')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                                        @endif
-                                                    </div>
-                                                </div>
-
-                                                <div class="pt-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                    <p class="text-[11px] text-slate-500">Los cambios se guardarán directamente en el ticket seleccionado.</p>
-                                                    <button type="submit" class="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition">
-                                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        Guardar seguimiento
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    </div>
                 </section>
 
                 <section id="tab-expedientes" data-tab-panel class="space-y-6 hidden">
@@ -820,64 +717,13 @@
                 });
             });
 
-            const isLoanedCheckbox = document.getElementById('is_loaned');
-            const loanDetails = document.getElementById('loanDetails');
-            const nameInput = document.getElementById('loaned_to_name');
-            const emailInput = document.getElementById('loaned_to_email');
+            const isLoanedCheckbox = null;
+            const loanDetails = null;
+            const nameInput = null;
+            const emailInput = null;
             const maintenanceUsers = @json($users->map(function ($user) {
                 return ['name' => $user->name, 'email' => $user->email];
             }));
-
-            function toggleLoanDetails() {
-                if (!loanDetails) {
-                    return;
-                }
-
-                if (isLoanedCheckbox && isLoanedCheckbox.checked) {
-                    loanDetails.classList.remove('hidden');
-                } else {
-                    loanDetails.classList.add('hidden');
-                }
-            }
-
-            function syncFromName() {
-                if (!nameInput || !emailInput) {
-                    return;
-                }
-
-                const value = nameInput.value.trim().toLowerCase();
-                const user = maintenanceUsers.find(user => user.name.toLowerCase() === value);
-                if (user) {
-                    emailInput.value = user.email;
-                }
-            }
-
-            function syncFromEmail() {
-                if (!nameInput || !emailInput) {
-                    return;
-                }
-
-                const value = emailInput.value.trim().toLowerCase();
-                const user = maintenanceUsers.find(user => user.email.toLowerCase() === value);
-                if (user) {
-                    nameInput.value = user.name;
-                }
-            }
-
-            if (isLoanedCheckbox) {
-                isLoanedCheckbox.addEventListener('change', toggleLoanDetails);
-                toggleLoanDetails();
-            }
-
-            if (nameInput) {
-                nameInput.addEventListener('change', syncFromName);
-                nameInput.addEventListener('blur', syncFromName);
-            }
-
-            if (emailInput) {
-                emailInput.addEventListener('change', syncFromEmail);
-                emailInput.addEventListener('blur', syncFromEmail);
-            }
 
             calculateSlots();
             updateTotalDays();
@@ -913,208 +759,125 @@
 
             // Event listener para auto-llenar formulario de ficha técnica
             const profileTicketSelector = document.getElementById('maintenance_ticket_id');
+            const equipoPicker = document.getElementById('equipoPicker');
+            const equipoPickerOptions = document.getElementById('equipoPickerOptions');
+
+            function aplicarEquipo(eq) {
+                const identifierField = document.getElementById('identifier');
+                const brandField     = document.getElementById('brand');
+                const modelField     = document.getElementById('model');
+                if (identifierField) identifierField.value = eq.nombre || '';
+                if (brandField)      brandField.value      = '';
+                if (modelField)      modelField.value      = eq.modelo || '';
+            }
+
+            function renderEquipoPicker(equipos) {
+                if (!equipoPicker || !equipoPickerOptions) return;
+                if (!equipos || equipos.length === 0) {
+                    equipoPicker.classList.add('hidden');
+                    return;
+                }
+                equipoPickerOptions.innerHTML = '';
+                equipos.forEach((eq, idx) => {
+                    const card = document.createElement('label');
+                    card.className = 'flex items-start gap-3 p-2.5 bg-white border border-indigo-200 rounded-lg cursor-pointer hover:border-indigo-400 transition';
+                    card.innerHTML = `
+                        <input type="radio" name="_equipo_picker" value="${idx}" class="mt-0.5 accent-indigo-600" ${eq.principal ? 'checked' : ''}>
+                        <div class="text-sm">
+                            <span class="font-semibold text-indigo-900">${eq.nombre}</span>
+                            ${eq.principal ? '<span class="ml-1.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">Principal</span>' : '<span class="ml-1.5 text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Secundaria</span>'}
+                            <br>
+                            <span class="text-xs text-gray-500">${eq.modelo || 'Sin modelo'}${eq.serie ? ' · S/N: ' + eq.serie : ''}${eq.usuario ? ' · Usuario: ' + eq.usuario : ''}</span>
+                        </div>`;
+                    const radio = card.querySelector('input');
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) aplicarEquipo(eq);
+                    });
+                    equipoPickerOptions.appendChild(card);
+                    // Auto-fill con principal o primero
+                    if (eq.principal || idx === 0) aplicarEquipo(eq);
+                });
+                equipoPicker.classList.remove('hidden');
+            }
+
             if (profileTicketSelector) {
                 profileTicketSelector.addEventListener('change', function() {
                     const selectedOption = this.options[this.selectedIndex];
                     
                     if (selectedOption && selectedOption.value) {
-                        // Obtener los datos del ticket desde los data attributes
+                        // Leer equipos asignados del usuario
+                        let equiposAsignados = [];
+                        try {
+                            equiposAsignados = JSON.parse(selectedOption.dataset.equiposAsignados || '[]');
+                        } catch(e) {}
+
+                        // Datos del ticket (fallback si no hay equipo asignado)
                         const equipmentIdentifier = selectedOption.dataset.equipmentIdentifier || '';
-                        const equipmentBrand = selectedOption.dataset.equipmentBrand || '';
-                        const equipmentModel = selectedOption.dataset.equipmentModel || '';
-                        const diskType = selectedOption.dataset.diskType || '';
-                        const ramCapacity = selectedOption.dataset.ramCapacity || '';
-                        const batteryStatus = selectedOption.dataset.batteryStatus || '';
+                        const equipmentBrand      = selectedOption.dataset.equipmentBrand || '';
+                        const equipmentModel      = selectedOption.dataset.equipmentModel || '';
+                        const diskType            = selectedOption.dataset.diskType || '';
+                        const ramCapacity         = selectedOption.dataset.ramCapacity || '';
+                        const batteryStatus       = selectedOption.dataset.batteryStatus || '';
                         const aestheticObservations = selectedOption.dataset.aestheticObservations || '';
-                        
-                        console.log('Datos del ticket:', {
-                            equipmentIdentifier, equipmentBrand, equipmentModel, 
-                            diskType, ramCapacity, batteryStatus
-                        });
-                        
-                        // Llenar los campos del formulario (IDs correctos)
-                        const identifierField = document.getElementById('identifier');
-                        const brandField = document.getElementById('brand');
-                        const modelField = document.getElementById('model');
-                        const diskTypeField = document.getElementById('disk_type');
-                        const ramField = document.getElementById('ram_capacity');
-                        const batteryField = document.getElementById('battery_status');
-                        const aestheticField = document.getElementById('aesthetic_observations');
-                        
-                        if (identifierField) {
-                            identifierField.value = equipmentIdentifier;
-                            console.log('Identificador llenado:', equipmentIdentifier);
-                        }
-                        if (brandField) {
-                            brandField.value = equipmentBrand;
-                            console.log('Marca llenada:', equipmentBrand);
-                        }
-                        if (modelField) {
-                            modelField.value = equipmentModel;
-                            console.log('Modelo llenado:', equipmentModel);
-                        }
-                        if (diskTypeField) diskTypeField.value = diskType;
-                        if (ramField) ramField.value = ramCapacity;
-                        if (batteryField) batteryField.value = batteryStatus;
+
+                        // Llenar campos de especificaciones técnicas desde el ticket
+                        const diskTypeField   = document.getElementById('disk_type');
+                        const ramField        = document.getElementById('ram_capacity');
+                        const batteryField    = document.getElementById('battery_status');
+                        const aestheticField  = document.getElementById('aesthetic_observations');
+                        if (diskTypeField)  diskTypeField.value  = diskType;
+                        if (ramField)       ramField.value       = ramCapacity;
+                        if (batteryField)   batteryField.value   = batteryStatus;
                         if (aestheticField) aestheticField.value = aestheticObservations;
-                        
-                        // Manejar componentes de reemplazo (checkboxes)
+
+                        // Si hay equipos asignados, mostrar picker (prioridad sobre campos del ticket)
+                        if (equiposAsignados.length > 0) {
+                            renderEquipoPicker(equiposAsignados);
+                        } else {
+                            // Fallback: usar datos del ticket
+                            if (equipoPicker) equipoPicker.classList.add('hidden');
+                            const identifierField = document.getElementById('identifier');
+                            const brandField      = document.getElementById('brand');
+                            const modelField      = document.getElementById('model');
+                            if (identifierField) identifierField.value = equipmentIdentifier;
+                            if (brandField)      brandField.value      = equipmentBrand;
+                            if (modelField)      modelField.value      = equipmentModel;
+                        }
+
+                        // Componentes de reemplazo
                         try {
                             const replacementComponents = JSON.parse(selectedOption.dataset.replacementComponents || '[]');
-                            
-                            // Desmarcar todos los checkboxes primero
-                            document.querySelectorAll('input[name="replacement_components[]"]').forEach(checkbox => {
-                                checkbox.checked = false;
-                            });
-                            
-                            // Marcar los checkboxes que vienen en el ticket
+                            document.querySelectorAll('input[name="replacement_components[]"]').forEach(cb => { cb.checked = false; });
                             replacementComponents.forEach(component => {
-                                const checkbox = document.querySelector(`input[name="replacement_components[]"][value="${component}"]`);
-                                if (checkbox) {
-                                    checkbox.checked = true;
-                                }
+                                const cb = document.querySelector(`input[name="replacement_components[]"][value="${component}"]`);
+                                if (cb) cb.checked = true;
                             });
-                        } catch (e) {
-                            console.error('Error al procesar componentes de reemplazo:', e);
-                        }
+                        } catch (e) {}
+
+                        // Mostrar/ocultar Step 6
+                        const seguimientoNoTicket = document.getElementById('seguimientoNoTicket');
+                        const seguimientoContent  = document.getElementById('seguimientoContent');
+                        if (seguimientoNoTicket) seguimientoNoTicket.classList.add('hidden');
+                        if (seguimientoContent)  seguimientoContent.classList.remove('hidden');
                     } else {
-                        // Si se deselecciona el ticket, limpiar los campos
-                        const fieldsToClear = [
-                            'identifier', 'brand', 'model', 
-                            'disk_type', 'ram_capacity', 'battery_status', 'aesthetic_observations'
-                        ];
-                        
-                        fieldsToClear.forEach(fieldId => {
-                            const field = document.getElementById(fieldId);
-                            if (field) field.value = '';
+                        if (equipoPicker) equipoPicker.classList.add('hidden');
+                        ['identifier','brand','model','disk_type','ram_capacity','battery_status','aesthetic_observations'].forEach(id => {
+                            const f = document.getElementById(id);
+                            if (f) f.value = '';
                         });
-                        
-                        // Desmarcar todos los checkboxes
-                        document.querySelectorAll('input[name="replacement_components[]"]').forEach(checkbox => {
-                            checkbox.checked = false;
-                        });
+                        document.querySelectorAll('input[name="replacement_components[]"]').forEach(cb => { cb.checked = false; });
+
+                        // Ocultar Step 6
+                        const seguimientoNoTicket = document.getElementById('seguimientoNoTicket');
+                        const seguimientoContent  = document.getElementById('seguimientoContent');
+                        if (seguimientoNoTicket) seguimientoNoTicket.classList.remove('hidden');
+                        if (seguimientoContent)  seguimientoContent.classList.add('hidden');
                     }
                 });
             }
 
-            const maintenanceSelector = document.getElementById('maintenanceTicketSelector');
-            const maintenancePanels = document.querySelectorAll('[data-ticket-panel]');
+            // (seguimiento integrado en Step 6 del formulario — no requiere paneles separados)
 
-            console.log('=== INICIALIZACIÓN DE SEGUIMIENTO ===');
-            console.log('maintenanceSelector encontrado:', maintenanceSelector);
-            console.log('maintenancePanels encontrados:', maintenancePanels.length);
-
-            if (maintenanceSelector && maintenancePanels.length) {
-                const showMaintenancePanel = (panelId) => {
-                    maintenancePanels.forEach((panel) => {
-                        panel.classList.toggle('hidden', panel.dataset.ticketPanel !== panelId || !panelId);
-                    });
-                };
-
-                const applyDefaultPanel = () => {
-                    const defaultValue = maintenanceSelector.dataset.default;
-
-                    if (maintenanceSelector.value) {
-                        showMaintenancePanel(maintenanceSelector.value);
-                    } else if (defaultValue) {
-                        maintenanceSelector.value = defaultValue;
-                        showMaintenancePanel(defaultValue);
-                    } else {
-                        showMaintenancePanel('');
-                    }
-                };
-
-                maintenanceSelector.addEventListener('change', (event) => {
-                    const selectedValue = event.target.value;
-                    console.log('=== EVENTO CHANGE EN SEGUIMIENTO ===');
-                    console.log('Valor seleccionado:', selectedValue);
-                    showMaintenancePanel(selectedValue);
-                    
-                    // Si se seleccionó un ticket, también seleccionarlo arriba en el formulario de ficha técnica
-                    if (selectedValue) {
-                        const ticketId = selectedValue.replace('ticket-', '');
-                        console.log('ID del ticket extraído:', ticketId);
-                        
-                        // Activar el tab de "Ficha técnica" primero
-                        const tabProfilesTrigger = document.querySelector('[data-tab-target="tab-profiles"]');
-                        console.log('Tab trigger encontrado:', tabProfilesTrigger);
-                        
-                        if (tabProfilesTrigger) {
-                            const targetId = 'tab-profiles';
-                            
-                            // Actualizar estilos de los botones
-                            const tabButtons = document.querySelectorAll('.tab-trigger');
-                            console.log('Botones de tab encontrados:', tabButtons.length);
-                            tabButtons.forEach(btn => {
-                                btn.classList.remove('bg-white', 'shadow-sm', 'text-blue-700');
-                                btn.classList.add('text-slate-600');
-                            });
-                            tabProfilesTrigger.classList.add('bg-white', 'shadow-sm', 'text-blue-700');
-                            tabProfilesTrigger.classList.remove('text-slate-600');
-                            
-                            // Mostrar el panel correcto
-                            const tabPanels = document.querySelectorAll('[data-tab-panel]');
-                            console.log('Paneles de tab encontrados:', tabPanels.length);
-                            tabPanels.forEach(panel => {
-                                const shouldHide = panel.id !== targetId;
-                                console.log(`Panel ${panel.id}: ${shouldHide ? 'ocultar' : 'mostrar'}`);
-                                panel.classList.toggle('hidden', shouldHide);
-                            });
-                            console.log('✓ Tab activado');
-                        } else {
-                            console.error('✗ No se encontró el tab trigger');
-                        }
-                        
-                        // Pequeña pausa para que el tab se active
-                        setTimeout(() => {
-                            const profileTicketSelector = document.getElementById('maintenance_ticket_id');
-                            const technicalProfileForm = document.getElementById('technicalProfileForm');
-                            
-                            console.log('Buscando elementos del formulario...');
-                            console.log('- Formulario:', technicalProfileForm);
-                            console.log('- Selector de ticket:', profileTicketSelector);
-                            console.log('- Clases del formulario:', technicalProfileForm?.classList.toString());
-                            
-                            if (profileTicketSelector && technicalProfileForm) {
-                                // Mostrar el formulario
-                                console.log('Removiendo clase hidden del formulario...');
-                                technicalProfileForm.classList.remove('hidden');
-                                console.log('- Clases después de remover hidden:', technicalProfileForm.classList.toString());
-                                console.log('✓ Formulario debería estar visible');
-                                
-                                // Seleccionar el ticket
-                                console.log('Asignando ticketId al selector:', ticketId);
-                                profileTicketSelector.value = ticketId;
-                                console.log('Valor del selector después de asignar:', profileTicketSelector.value);
-                                
-                                // Disparar evento change para que se llenen los campos
-                                console.log('Disparando evento change...');
-                                profileTicketSelector.dispatchEvent(new Event('change'));
-                                console.log('✓ Evento change disparado');
-                                
-                                // Scroll hacia el formulario
-                                console.log('Haciendo scroll al formulario...');
-                                technicalProfileForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                console.log('✓ Scroll completado');
-                            } else {
-                                console.error('✗ No se encontró el formulario o el selector de ticket');
-                                console.error('- profileTicketSelector:', profileTicketSelector);
-                                console.error('- technicalProfileForm:', technicalProfileForm);
-                            }
-                        }, 200);
-                    } else {
-                        // Si se deselecciona, ocultar el formulario
-                        console.log('Deseleccionado - ocultando formulario');
-                        const technicalProfileForm = document.getElementById('technicalProfileForm');
-                        if (technicalProfileForm) {
-                            technicalProfileForm.classList.add('hidden');
-                            console.log('✓ Formulario oculto');
-                        }
-                    }
-                });
-
-                applyDefaultPanel();
-            }
         });
 
         function updateEndDateMin() {

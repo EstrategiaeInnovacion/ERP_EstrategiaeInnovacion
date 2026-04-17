@@ -280,4 +280,12 @@ class User extends Authenticatable implements CanResetPasswordContract
     {
         return $this->hasOne(Empleado::class);
     }
+
+    /**
+     * Equipos asignados al usuario
+     */
+    public function equiposAsignados()
+    {
+        return $this->hasMany(\App\Models\Sistemas_IT\EquipoAsignado::class);
+    }
 }
