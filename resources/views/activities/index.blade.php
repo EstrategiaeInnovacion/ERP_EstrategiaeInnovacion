@@ -151,7 +151,8 @@
         {{-- 3.1. SIDEBAR DE PROYECTOS --}}
         {{-- ======================================================= --}}
         @php
-            $mostrarSidebarProyectos = (isset($esRh) && $esRh) || (isset($proyectos) && $proyectos->count() > 0);
+            $proyectoSeleccionadoId = request('proyecto_id');
+            $mostrarSidebarProyectos = (isset($esRh) && $esRh) || (isset($proyectos) && $proyectos->count() > 0) || !empty($proyectoSeleccionadoId);
         @endphp
         @if($mostrarSidebarProyectos)
         @php
@@ -169,7 +170,15 @@
                     <a href="{{ route('proyectos.index') }}" class="text-[10px] text-indigo-600 hover:underline font-bold">Ver todos</a>
                 @endif
             </div>
-            @if(isset($proyectos) && $proyectos->count() > 0)
+            @php
+                $proyectosList = isset($proyectos) ? $proyectos : collect();
+                $proyectoSeleccionado = null;
+
+                // Si hay un proyecto seleccionado pero no está en la lista, buscarlo para mostrarlo
+                if (!empty($proyectoSeleccionadoId) && $proyectoSeleccionadoId !== 'sin_proyecto' && !$proyectosList->contains('id', (int)$proyectoSeleccionadoId)) {
+                    $proyectoSeleccionado = Proyecto::find((int)$proyectoSeleccionadoId);
+                }
+            @endphp
             <div class="flex flex-wrap gap-2">
                 {{-- Opción: Todos los proyectos --}}
                 <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => null]) }}" 
@@ -178,7 +187,7 @@
                 </a>
                 
                 {{-- Lista de proyectos --}}
-                @foreach($proyectos as $proy)
+                @foreach($proyectosList as $proy)
                     <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => $proy->id]) }}" 
                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {{ $proyectoSeleccionadoId == $proy->id ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100' }}"
                        title="{{ $proy->nombre }}">
@@ -187,6 +196,14 @@
                     </a>
                 @endforeach
 
+                {{-- Proyecto seleccionado que no está en la lista (ej: responsable IT que no es owner) --}}
+                @if($proyectoSeleccionado)
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-300 flex items-center gap-2">
+                        <span class="whitespace-nowrap truncate max-w-[120px]">{{ $proyectoSeleccionado->nombre }}</span>
+                        <span class="text-[10px] text-slate-400">({{ $proyectoSeleccionado->actividades()->count() }})</span>
+                    </span>
+                @endif
+
                 {{-- Opción: Sin proyecto --}}
                 <a href="{{ request()->fullUrlWithQuery(['proyecto_id' => 'sin_proyecto']) }}" 
                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {{ $proyectoSeleccionadoId == 'sin_proyecto' ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100' }}">
@@ -194,9 +211,6 @@
                     <span class="whitespace-nowrap">Sin proyecto</span>
                 </a>
             </div>
-            @else
-            <p class="text-xs text-slate-400">No hay proyectos disponibles</p>
-            @endif
         </div>
         @endif
 

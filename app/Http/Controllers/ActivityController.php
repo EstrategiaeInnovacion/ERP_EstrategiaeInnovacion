@@ -138,7 +138,8 @@ class ActivityController extends Controller
                 $proyectoAccesible = Proyecto::where('archivado', false)
                     ->where(function ($q) use ($user) {
                         $q->where('usuario_id', $user->id)
-                            ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id));
+                            ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
+                            ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
                     })
                     ->pluck('id')
                     ->toArray();
@@ -245,12 +246,13 @@ class ActivityController extends Controller
         $esRh = $user->isRh();
         $proyectosQuery = Proyecto::where('archivado', false);
 
-        if (! $esRh) {
-            $proyectosQuery->where(function ($q) use ($user) {
-                $q->where('usuario_id', $user->id)
-                    ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id));
-            });
-        }
+if (! $esRh) {
+                $proyectosQuery->where(function ($q) use ($user) {
+                    $q->where('usuario_id', $user->id)
+                        ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
+                        ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
+                });
+            }
         $proyectos = $proyectosQuery->orderBy('nombre')->get();
 
         return view('activities.index', compact(
