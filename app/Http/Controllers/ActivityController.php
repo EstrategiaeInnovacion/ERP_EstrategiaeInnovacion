@@ -203,7 +203,7 @@ class ActivityController extends Controller
             ->orderByRaw("CASE WHEN user_id = {$user->id} THEN 0 ELSE 1 END")
             ->orderByRaw("CASE estatus WHEN 'Completado' THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
-            ->orderBy('fecha_compromiso', 'desc')
+            ->orderBy('fecha_compromiso', 'asc')
             ->orderBy('created_at', 'desc')
             ->orderBy('hora_inicio_programada')
             ->get();
