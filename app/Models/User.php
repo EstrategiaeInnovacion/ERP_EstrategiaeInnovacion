@@ -223,9 +223,11 @@ class User extends Authenticatable implements CanResetPasswordContract
         }
 
         // Coordinadores y Directores pueden ver el reloj checador de su equipo
+        // También si tiene subordinados asignados
         if ($this->empleado) {
             $posNorm = $this->normalizeString($this->empleado->posicion ?? '');
-            if (str_contains($posNorm, 'coordinador') || str_contains($posNorm, 'coordinadora') || str_contains($posNorm, 'direcc')) {
+            $tieneSubordinados = $this->empleado->subordinados()->exists();
+            if (str_contains($posNorm, 'coordinador') || str_contains($posNorm, 'coordinadora') || str_contains($posNorm, 'direcc') || $tieneSubordinados) {
                 return [
                     'available' => true,
                     'route' => route('rh.reloj.equipo'),
