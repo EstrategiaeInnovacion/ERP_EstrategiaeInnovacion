@@ -83,13 +83,25 @@ class ProyectoController extends Controller
 
         if ($request->has('usuarios') && is_array($request->usuarios)) {
             $proyecto->usuarios()->sync($request->usuarios);
+            foreach ($request->usuarios as $usuarioId) {
+                $usuario = User::find($usuarioId);
+                if ($usuario && $usuario->email) {
+                    NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'usuario');
+                }
+            }
         }
 
         if ($request->has('responsables_ti') && is_array($request->responsables_ti)) {
             $proyecto->responsablesTi()->sync($request->responsables_ti);
+            foreach ($request->responsables_ti as $usuarioId) {
+                $usuario = User::find($usuarioId);
+                if ($usuario && $usuario->email) {
+                    NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'responsable_ti');
+                }
+            }
         }
 
-        return redirect()->route('proyectos.index')->with('success', 'Proyecto creado correctamente.');
+        return redirect()->route('proyectos.index')->with('success', 'Proyecto criado correctamente.');
     }
 
     public function show($id)
