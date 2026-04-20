@@ -244,9 +244,10 @@ class ActivityController extends Controller
 
         // Cargar proyectos disponibles para el usuario
         $esRh = $user->isRh();
+        $esRhCoordinador = $user->isRhCoordinador();
         $proyectosQuery = Proyecto::where('archivado', false);
 
-if (! $esRh) {
+        if (! $esRhCoordinador) {
                 $proyectosQuery->where(function ($q) use ($user) {
                     $q->where('usuario_id', $user->id)
                         ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
