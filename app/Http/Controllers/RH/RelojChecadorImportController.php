@@ -706,6 +706,7 @@ class RelojChecadorImportController extends Controller
             'asistenciasOk' => $kpis['ok'],
             'fechaInicioDb' => $inicio,
             'fechaFinDb' => $fin,
+            'todosEmpleados' => $empleados,
         ]);
     }
 }
