@@ -67,7 +67,12 @@ class Capacitacion extends Model
 
                 foreach ($puestosLimpios as $puestoPermitido) {
                     $puestoPermitido = mb_strtolower(trim($puestoPermitido), 'UTF-8');
-                    if (!empty($puestoPermitido) && str_contains($posicionEmpleado, $puestoPermitido)) {
+                    if (empty($puestoPermitido)) {
+                        continue;
+                    }
+                    // Usar word boundary para evitar que "TI" haga match en "Logistica"
+                    $pattern = '/\b' . preg_quote($puestoPermitido, '/') . '\b/ui';
+                    if (preg_match($pattern, $posicionEmpleado)) {
                         return true;
                     }
                 }
