@@ -77,16 +77,16 @@
                     {{-- ACCIONES RÁPIDAS POR ROL --}}
                     <div class="mt-6 md:mt-0 flex flex-wrap gap-3 items-center">
                         
-                        {{-- Botón PANEL DINÁMICO (según posición) - Solo muestra si es IT, RH o Logística --}}
+                        {{-- Botones de PANEL (todos los disponibles según posición y privilegios) --}}
                         @php
-                            $panelInfo = Auth::user()->getPanelInfo();
+                            $paneles = Auth::user()->getAllPanels();
                         @endphp
-                        @if($panelInfo['available'])
-                            <a href="{{ $panelInfo['route'] }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                        @foreach($paneles as $panel)
+                            <a href="{{ $panel['route'] }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                                {{ $panelInfo['label'] }}
+                                {{ $panel['label'] }}
                             </a>
-                        @endif
+                        @endforeach
 
                         <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
                             <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span> Sistema Operativo

@@ -272,6 +272,69 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     /**
+     * Retorna TODOS los paneles disponibles para el usuario
+     * Útil para el Dashboard cuando un usuario puede acceder a múltiples paneles
+     */
+    public function getAllPanels(): array
+    {
+        $panels = [];
+
+        // Mi Equipo: si tiene subordinados (coordinador, director, o cualquier usuario con subordinados)
+        if ($this->empleado) {
+            $posNorm = $this->normalizeString($this->empleado->posicion ?? '');
+            $tieneSubordinados = $this->empleado->subordinados()->exists();
+            if (str_contains($posNorm, 'coordinador') || str_contains($posNorm, 'coordinadora') || str_contains($posNorm, 'direcc') || $tieneSubordinados) {
+                $panels[] = [
+                    'route' => route('rh.reloj.equipo'),
+                    'label' => 'Mi Equipo',
+                ];
+            }
+        }
+
+        // Solo admins pueden acceder a Panel IT, RH, Logística, Legal
+        if (!$this->isAdmin()) {
+            return $panels;
+        }
+
+        // Panel IT: si posición es IT/TI/Sistemas
+        $posicion = $this->normalizeString($this->empleado->posicion ?? '');
+        if (str_contains($posicion, ' ti') || str_contains($posicion, 'ti ') || $posicion === 'ti' || $posicion === 'it' || str_contains($posicion, 'sistemas')) {
+            $panels[] = [
+                'route' => route('admin.dashboard'),
+                'label' => 'Panel IT',
+            ];
+        }
+
+        // Panel RH: si posición es administracion rh
+        if (str_contains($posicion, 'administracion rh')) {
+            $panels[] = [
+                'route' => route('recursos-humanos.index'),
+                'label' => 'Panel RH',
+            ];
+        }
+
+        // Panel Logística: si posición es logistica/operaciones/aduana
+        if (str_contains($posicion, 'logistica') || str_contains($posicion, 'operaciones') || str_contains($posicion, 'aduana')) {
+            $panels[] = [
+                'route' => route('logistica.index'),
+                'label' => 'Panel Logística',
+            ];
+        }
+
+        // Panel Legal: si posición o área es Legal/Jurídico
+        $area = $this->normalizeString($this->empleado->area ?? '');
+        if (str_contains($posicion, 'legal') || str_contains($area, 'legal') ||
+            str_contains($posicion, 'juridico') || str_contains($area, 'juridico')) {
+            $panels[] = [
+                'route' => route('legal.dashboard'),
+                'label' => 'Panel Legal',
+            ];
+        }
+
+        return $panels;
+    }
+
+    /**
      * Verificar si el usuario tiene un rol específico
      */
     public function scopeTi($query)
