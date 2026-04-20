@@ -78,6 +78,17 @@
                 <span class="text-gray-400 text-sm font-medium bg-white px-2">--- O ---</span>
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Usuarios Específicos (Opcional)</label>
+                <p class="text-xs text-gray-500 mb-2">Selecciona usuarios específicos que pueden ver este video.</p>
+                <select name="usuarios_permitidos[]" multiple class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" size="5">
+                    @foreach($usuarios as $usuario)
+                        <option value="{{ $usuario->id }}" {{ in_array($usuario->id, $video->usuarios_permitidos ?? []) ? 'selected' : '' }}>{{ $usuario->name }}</option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Mantén presionado Ctrl (Cmd en Mac) para seleccionar varios.</p>
+            </div>
+
             {{-- Reemplazar Video --}}
             <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
                 <label class="block text-yellow-800 font-bold mb-2">Reemplazar con Archivo de Video</label>

@@ -68,6 +68,17 @@
                     <span class="text-gray-400 text-sm font-medium bg-white px-2">--- O ---</span>
                 </div>
 
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuarios Específicos (Opcional)</label>
+                    <p class="text-xs text-gray-500 mb-2">Selecciona usuarios específicos que pueden ver este video. Deja vacío si seleccionaste puestos arriba.</p>
+                    <select name="usuarios_permitidos[]" multiple class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" size="5">
+                        @foreach($usuarios as $usuario)
+                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Mantén presionado Ctrl (Cmd en Mac) para seleccionar varios.</p>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Archivo de Video (MP4)</label>
                     <input type="file" name="video" accept="video/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">

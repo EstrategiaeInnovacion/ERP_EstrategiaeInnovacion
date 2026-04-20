@@ -50,10 +50,10 @@ class CapacitacionController extends Controller
     public function manage()
     {
         $videos = Capacitacion::orderBy('created_at', 'desc')->get();
-        // Obtener puestos únicos de empleados
         $puestos = \App\Models\Empleado::distinct()->pluck('posicion')->filter()->sort()->values();
+        $usuarios = \App\Models\User::orderBy('name')->get(['id', 'name']);
 
-        return view('Recursos_Humanos.capacitacion.manage', compact('videos', 'puestos'));
+        return view('Recursos_Humanos.capacitacion.manage', compact('videos', 'puestos', 'usuarios'));
     }
 
     public function store(Request $request)
@@ -61,9 +61,11 @@ class CapacitacionController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'categoria' => 'nullable|string|max:255', // <-- AGREGADO
-            'puestos_permitidos' => 'nullable|array', // <-- SE CAMBIO A ARRAY
-            'puestos_permitidos.*' => 'string', // Validar que cada elemento sea string
+            'categoria' => 'nullable|string|max:255',
+            'puestos_permitidos' => 'nullable|array',
+            'puestos_permitidos.*' => 'string',
+            'usuarios_permitidos' => 'nullable|array',
+            'usuarios_permitidos.*' => 'integer',
             'youtube_url' => 'nullable|url',
             // Video requerido solo si NO hay youtube_url
             'video' => 'required_without:youtube_url|mimes:mp4,mov,ogg,qt|max:200000',
@@ -76,14 +78,15 @@ class CapacitacionController extends Controller
                 $path = $request->file('video')->store('capacitacion', 'public');
             }
 
-            // Como ahora viene en array desde el select multiple, no necesitamos explode
             $puestosArray = $request->puestos_permitidos;
+            $usuariosArray = $request->usuarios_permitidos;
 
             $capacitacion = Capacitacion::create([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
                 'categoria' => $request->categoria,
                 'puestos_permitidos' => $puestosArray,
+                'usuarios_permitidos' => $usuariosArray,
                 'archivo_path' => $path,
                 'youtube_url' => $request->youtube_url,
                 'subido_por' => Auth::id(),
@@ -113,7 +116,8 @@ class CapacitacionController extends Controller
     {
         $video = Capacitacion::with('adjuntos')->findOrFail($id);
         $puestos = \App\Models\Empleado::distinct()->pluck('posicion')->filter()->sort()->values();
-        return view('Recursos_Humanos.capacitacion.edit', compact('video', 'puestos'));
+        $usuarios = \App\Models\User::orderBy('name')->get(['id', 'name']);
+        return view('Recursos_Humanos.capacitacion.edit', compact('video', 'puestos', 'usuarios'));
     }
 
     public function update(Request $request, $id)
@@ -121,15 +125,29 @@ class CapacitacionController extends Controller
         try {
             $video = Capacitacion::findOrFail($id);
 
-            $request->validate([
+$request->validate([
                 'titulo' => 'required|string|max:255',
                 'descripcion' => 'nullable|string',
-                'categoria' => 'nullable|string|max:255',
+                'categoria' => 'nullable|string',
                 'puestos_permitidos' => 'nullable|array',
                 'puestos_permitidos.*' => 'string',
+                'usuarios_permitidos' => 'nullable|array',
+                'usuarios_permitidos.*' => 'integer',
                 'youtube_url' => 'nullable|url',
                 'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
                 'adjuntos.*' => 'nullable|file|max:10240'
+            ]);
+
+            $puestosArray = $request->puestos_permitidos;
+            $usuariosArray = $request->usuarios_permitidos;
+
+            $video->update([
+                'titulo' => $request->titulo,
+                'descripcion' => $request->descripcion,
+                'categoria' => $request->categoria,
+                'puestos_permitidos' => $puestosArray,
+                'usuarios_permitidos' => $usuariosArray,
+                'youtube_url' => $request->youtube_url,
             ]);
 
             $puestosArray = $request->puestos_permitidos;
