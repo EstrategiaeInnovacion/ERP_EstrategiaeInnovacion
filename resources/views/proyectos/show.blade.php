@@ -142,6 +142,38 @@
             @endif
         </div>
 
+        {{-- Lista de Responsables de TI --}}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Responsables de TI</h3>
+                @if($esRh)
+                <button onclick="document.getElementById('responsablesTiModal').classList.remove('hidden')" class="text-xs text-indigo-600 hover:underline font-medium">+ Agregar</button>
+                @endif
+            </div>
+            @if($proyecto->responsablesTi->count() > 0)
+                <div class="flex flex-wrap gap-2">
+                    @foreach($proyecto->responsablesTi as $respTi)
+                        <div class="flex items-center gap-2 px-3 py-2 bg-cyan-50 rounded-lg border border-cyan-200">
+                            <div class="w-8 h-8 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center text-sm font-bold">
+                                {{ substr($respTi->name, 0, 2) }}
+                            </div>
+                            <span class="text-sm font-medium text-slate-700">{{ $respTi->name }}</span>
+                            @if($esRh)
+                            <form action="{{ route('proyectos.quitarResponsableTi', [$proyecto, $respTi->id]) }}" method="POST" class="ml-1">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-slate-400 hover:text-red-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </form>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-slate-400">No hay responsables de TI asignados</p>
+            @endif
+        </div>
+
         {{-- Actividades del Proyecto --}}
         <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <div class="flex justify-between items-center mb-4">
@@ -270,21 +302,74 @@
                         
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Seleccionar usuarios</label>
-                            <select name="usuarios[]" multiple class="w-full rounded-lg border-slate-300 text-sm py-2.5" size="6">
-                                @php
-                                    $usuariosAsignados = $proyecto->usuarios()->pluck('users.id')->toArray();
-                                    $usuarios = \App\Models\User::whereHas('empleado', fn($q) => $q->where('es_activo', true))->orderBy('name')->get();
-                                @endphp
-                                @foreach($usuarios as $u)
-                                    <option value="{{ $u->id }}" {{ in_array($u->id, $usuariosAsignados) ? 'selected' : '' }}>{{ $u->name }}</option>
-                                @endforeach
-                            </select>
-                            <p class="text-xs text-slate-400 mt-1">Mantén presionado Ctrl/Cmd para seleccionar varios</p>
+                            @php
+                                $usuariosAsignados = $proyecto->usuarios()->pluck('users.id')->toArray();
+                                $usuarios = \App\Models\User::whereHas('empleado', fn($q) => $q->where('es_activo', true))->orderBy('name')->get();
+                            @endphp
+                            @if($usuarios->count() > 0)
+                                <div class="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1 bg-slate-50">
+                                    @foreach($usuarios as $u)
+                                        <label class="flex items-center gap-2 p-1 hover:bg-slate-100 rounded cursor-pointer">
+                                            <input type="checkbox" name="usuarios[]" value="{{ $u->id }}" {{ in_array($u->id, $usuariosAsignados) ? 'checked' : '' }} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                            <span class="text-sm text-slate-700">{{ $u->name }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-xs text-slate-400">No hay usuarios disponibles</p>
+                            @endif
                         </div>
                     </div>
                     <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-slate-200">
                         <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition">Agregar</button>
                         <button type="button" onclick="document.getElementById('usersModal').classList.add('hidden')" class="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Agregar Responsables de TI --}}
+<div id="responsablesTiModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="document.getElementById('responsablesTiModal').classList.add('hidden')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-md">
+                <form action="{{ route('proyectos.asignarResponsablesTi', $proyecto) }}" method="POST">
+                    @csrf
+                    <div class="bg-white px-6 py-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-slate-800">Agregar Responsables de TI</h3>
+                            <button type="button" onclick="document.getElementById('responsablesTiModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-cyan-600 uppercase mb-1.5">Seleccionar responsables de TI</label>
+                            @php
+                                $responsablesAsignados = $proyecto->responsablesTi()->pluck('users.id')->toArray();
+                                $usuariosTi = \App\Models\User::ti()->whereHas('empleado', fn($q) => $q->where('es_activo', true))->orderBy('name')->get();
+                            @endphp
+                            @if($usuariosTi->count() > 0)
+                                <div class="max-h-48 overflow-y-auto border border-cyan-200 rounded-lg p-2 space-y-1 bg-cyan-50">
+                                    @foreach($usuariosTi as $u)
+                                        <label class="flex items-center gap-2 p-1 hover:bg-cyan-100 rounded cursor-pointer">
+                                            <input type="checkbox" name="responsables_ti[]" value="{{ $u->id }}" {{ in_array($u->id, $responsablesAsignados) ? 'checked' : '' }} class="rounded border-cyan-300 text-cyan-600 focus:ring-cyan-500">
+                                            <span class="text-sm text-slate-700">{{ $u->name }}</span>
+                                            <span class="text-xs text-cyan-500">({{ $u->empleado->posicion ?? 'TI' }})</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-xs text-slate-400">No hay usuarios de TI disponibles</p>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-slate-200">
+                        <button type="submit" class="bg-cyan-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-cyan-700 transition">Agregar</button>
+                        <button type="button" onclick="document.getElementById('responsablesTiModal').classList.add('hidden')" class="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition">Cancelar</button>
                     </div>
                 </form>
             </div>

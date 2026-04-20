@@ -163,12 +163,12 @@ class ActivityController extends Controller
         // Filtrar por usuario
         if ($esDireccion) {
             // Dirección ve todo sin restricción de usuario
-        } elseif ($esSupervisor && ! $request->filled('user_id')) {
-            // Supervisor sin usuario seleccionado: ver todo su equipo
-            $query->whereIn('user_id', $idsVisibles);
-        } else {
-            // Usuario normal o supervisor filtrando por alguien específico
+        } elseif ($request->filled('user_id')) {
+            // Supervisor/dirección seleccionó un usuario específico
             $query->where('user_id', $targetUserId);
+        } else {
+            // Supervisor sin seleccionar = solo sus propias actividades
+            $query->where('user_id', $user->id);
         }
 
         // Aplicar filtro de proyecto
@@ -198,23 +198,14 @@ class ActivityController extends Controller
             });
         }
 
-        $activitiesList = $query
+        $mainActivities = $query
             ->orderByRaw("CASE WHEN user_id = {$user->id} THEN 0 ELSE 1 END")
             ->orderByRaw("CASE estatus WHEN 'Completado' THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
+            ->orderBy('fecha_compromiso')
             ->orderBy('created_at', 'desc')
             ->orderBy('hora_inicio_programada')
             ->get();
-
-        $pendingActivities = collect();
-        if (! $isHistoryView) {
-            $pendingActivities = Activity::with(['user.empleado', 'historial.user'])
-                ->where('user_id', $targetUserId)
-                ->where('estatus', 'Por Aprobar')
-                ->get();
-        }
-
-        $mainActivities = $activitiesList->merge($pendingActivities)->unique('id');
 
         // 5. VARIABLES DE EQUIPO
         $teamUsers = collect();

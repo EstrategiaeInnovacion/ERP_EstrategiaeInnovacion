@@ -114,6 +114,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/proyectos/{id}/restore', [App\Http\Controllers\ProyectoController::class, 'restore'])->name('proyectos.restore');
     Route::post('/proyectos/{id}/usuarios', [App\Http\Controllers\ProyectoController::class, 'asignarUsuarios'])->name('proyectos.asignarUsuarios');
     Route::delete('/proyectos/{id}/usuarios/{userId}', [App\Http\Controllers\ProyectoController::class, 'quitarUsuario'])->name('proyectos.quitarUsuario');
+    Route::post('/proyectos/{id}/responsables-ti', [App\Http\Controllers\ProyectoController::class, 'asignarResponsablesTi'])->name('proyectos.asignarResponsablesTi');
+    Route::delete('/proyectos/{id}/responsables-ti/{userId}', [App\Http\Controllers\ProyectoController::class, 'quitarResponsableTi'])->name('proyectos.quitarResponsableTi');
     Route::get('/proyectos/usuarios/lista', [App\Http\Controllers\ProyectoController::class, 'listaUsuarios'])->name('proyectos.listaUsuarios');
     Route::post('/proyectos/{id}/finalizar', [App\Http\Controllers\ProyectoController::class, 'finalizar'])->name('proyectos.finalizar');
     Route::get('/proyectos/{id}/reporte', [App\Http\Controllers\ProyectoController::class, 'reporte'])->name('proyectos.reporte');

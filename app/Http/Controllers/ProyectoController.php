@@ -84,12 +84,16 @@ class ProyectoController extends Controller
             $proyecto->usuarios()->sync($request->usuarios);
         }
 
+        if ($request->has('responsables_ti') && is_array($request->responsables_ti)) {
+            $proyecto->responsablesTi()->sync($request->responsables_ti);
+        }
+
         return redirect()->route('proyectos.index')->with('success', 'Proyecto creado correctamente.');
     }
 
     public function show($id)
     {
-        $proyecto = Proyecto::with(['creador', 'usuarios.empleado', 'actividades.user'])->findOrFail($id);
+        $proyecto = Proyecto::with(['creador', 'usuarios.empleado', 'responsablesTi.empleado', 'actividades.user'])->findOrFail($id);
 
         $user = Auth::user();
         $esRh = $user->isRh();
@@ -144,6 +148,10 @@ class ProyectoController extends Controller
             $proyecto->usuarios()->sync($request->usuarios);
         }
 
+        if ($request->has('responsables_ti')) {
+            $proyecto->responsablesTi()->sync($request->responsables_ti);
+        }
+
         return redirect()->back()->with('success', 'Proyecto actualizado.');
     }
 
@@ -194,6 +202,25 @@ class ProyectoController extends Controller
         return redirect()->back()->with('success', 'Usuarios asignados correctamente.');
     }
 
+    public function asignarResponsablesTi(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (! $user->isRh()) {
+            abort(403, 'No tienes permiso para asignar responsables de TI.');
+        }
+
+        $proyecto = Proyecto::findOrFail($id);
+
+        $request->validate([
+            'responsables_ti' => 'required|array',
+            'responsables_ti.*' => 'exists:users,id',
+        ]);
+
+        $proyecto->responsablesTi()->sync($request->responsables_ti);
+
+        return redirect()->back()->with('success', 'Responsables de TI asignados correctamente.');
+    }
+
     public function quitarUsuario(Request $request, $id, $userId)
     {
         $user = Auth::user();
@@ -205,6 +232,19 @@ class ProyectoController extends Controller
         $proyecto->usuarios()->detach($userId);
 
         return redirect()->back()->with('success', 'Usuario removido del proyecto.');
+    }
+
+    public function quitarResponsableTi(Request $request, $id, $userId)
+    {
+        $user = Auth::user();
+        if (! $user->isRh()) {
+            abort(403, 'No puedes quitar responsables de TI.');
+        }
+
+        $proyecto = Proyecto::findOrFail($id);
+        $proyecto->responsablesTi()->detach($userId);
+
+        return redirect()->back()->with('success', 'Responsable de TI removido del proyecto.');
     }
 
     public function listaUsuarios()

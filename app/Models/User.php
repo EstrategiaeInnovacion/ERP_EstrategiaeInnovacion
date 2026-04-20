@@ -260,6 +260,19 @@ class User extends Authenticatable implements CanResetPasswordContract
     /**
      * Verificar si el usuario tiene un rol específico
      */
+    public function scopeTi($query)
+    {
+        return $query->whereHas('empleado', function ($q) {
+            $q->where(function ($sub) {
+                $sub->whereRaw("LOWER(posicion) LIKE '% ti'")
+                    ->orWhereRaw("LOWER(posicion) LIKE 'ti %'")
+                    ->orWhereRaw("LOWER(posicion) = 'ti'")
+                    ->orWhereRaw("LOWER(posicion) = 'it'")
+                    ->orWhereRaw("LOWER(posicion) LIKE '%sistemas%'");
+            });
+        });
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
