@@ -680,15 +680,15 @@ class RelojChecadorImportController extends Controller
         }
         $horasTotales = round($totalMinutos / 60, 1);
 
-        return view('Recursos_Humanos.reloj_checador', [
-            'empleados' => $empleados,
+        return view('Recursos_Humanos.reloj_checador', compact(
+            'empleados',
             'sinResultados' => false,
             'busqueda' => $search,
             'fechaInicio' => $inicio,
             'fechaFin' => $fin,
-            'kpis' => $kpis,
-            'horasTotales' => $horasTotales,
+            'kpis',
+            'horasTotales',
             'esSoloLectura' => true,
-        ]);
+        ));
     }
 }
