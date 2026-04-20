@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotificarAsignacionProyecto;
 use App\Models\Empleado;
 use App\Models\Proyecto;
 use App\Models\User;
@@ -199,6 +200,13 @@ class ProyectoController extends Controller
 
         $proyecto->usuarios()->sync($request->usuarios);
 
+        foreach ($request->usuarios as $usuarioId) {
+            $usuario = \App\Models\User::find($usuarioId);
+            if ($usuario && $usuario->email) {
+                NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'usuario');
+            }
+        }
+
         return redirect()->back()->with('success', 'Usuarios asignados correctamente.');
     }
 
@@ -217,6 +225,13 @@ class ProyectoController extends Controller
         ]);
 
         $proyecto->responsablesTi()->sync($request->responsables_ti);
+
+        foreach ($request->responsables_ti as $usuarioId) {
+            $usuario = \App\Models\User::find($usuarioId);
+            if ($usuario && $usuario->email) {
+                NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'responsable_ti');
+            }
+        }
 
         return redirect()->back()->with('success', 'Responsables de TI asignados correctamente.');
     }
