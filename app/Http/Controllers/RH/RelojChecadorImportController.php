@@ -700,6 +700,12 @@ class RelojChecadorImportController extends Controller
             'topRetardos' => collect([]),
             'fechaInicioFormato' => $start->translatedFormat('d M'),
             'fechaFinFormato' => $end->translatedFormat('d M'),
+            'retardos' => $kpis['retardos'],
+            'faltas' => $kpis['faltas'],
+            'totalRegistros' => $kpis['total'],
+            'asistenciasOk' => $kpis['ok'],
+            'fechaInicioDb' => $inicio,
+            'fechaFinDb' => $fin,
         ]);
     }
 }
