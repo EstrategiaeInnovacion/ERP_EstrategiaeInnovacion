@@ -68,7 +68,26 @@
                         <div class="flex justify-between items-start mb-4">
                             <h3 class="text-lg font-bold text-slate-800 truncate">{{ $proyecto->nombre }}</h3>
                             @if(request('archivado') == '1')
-                                <span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium">Archivado</span>
+                                <div class="relative" x-data="{ open: false }">
+                                    <button @click="open = !open" @click.outside="open = false" class="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium hover:bg-slate-200 transition">
+                                        Archivado ▾
+                                    </button>
+                                    <div x-show="open" class="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-10" style="display: none;">
+                                        <form action="{{ route('proyectos.restore', $proyecto->id) }}" method="POST" class="p-1">
+                                            @csrf
+                                            <button type="submit" class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-emerald-50 rounded">
+                                                Restaurar
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('proyectos.forceDelete', $proyecto->id) }}" method="POST" class="p-1" onsubmit="return confirm('¿Eliminar permanentemente este proyecto y todas sus actividades?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                         
