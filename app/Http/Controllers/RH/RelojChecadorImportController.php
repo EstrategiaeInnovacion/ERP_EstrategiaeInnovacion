@@ -571,7 +571,8 @@ class RelojChecadorImportController extends Controller
     }
 
     /**
-     * Vista de reloj checador para coordinadores/directores (solo lectura).
+     * Vista de reloj checador para supervisores/coordinadores (solo lectura).
+     * Acceso permitido si tiene subordinados asignados.
      */
     public function equipo(Request $request)
     {
@@ -582,20 +583,21 @@ class RelojChecadorImportController extends Controller
             abort(403, 'No tienes acceso a este módulo.');
         }
 
-        // Verificar si es coordinador o director
-        $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
-        $esCoordinador = Str::contains($posicion, ['coordinador', 'coordinadora', 'direcc']);
-
-        if (!$esCoordinador) {
+        // Verificar si tiene subordinados (cualquier supervisor)
+        $subordinadosQuery = $miEmpleado->subordinados()->where('es_activo', true);
+        
+        if (!$subordinadosQuery->exists()) {
             abort(403, 'No tienes acceso a este módulo.');
         }
 
+        $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
+        
         // Si es director, ve todo el personal activo
         if (Str::contains($posicion, 'direcc')) {
             $subordinados = Empleado::where('es_activo', true)->pluck('id')->toArray();
         } else {
-            // Coordinadores ven solo sus subordinados
-            $subordinados = $miEmpleado->subordinados()->where('es_activo', true)->pluck('id')->toArray();
+            // Supervisores ven solo sus subordinados
+            $subordinados = $subordinadosQuery->pluck('id')->toArray();
         }
 
         if (empty($subordinados)) {
@@ -680,15 +682,15 @@ class RelojChecadorImportController extends Controller
         }
         $horasTotales = round($totalMinutos / 60, 1);
 
-        return view('Recursos_Humanos.reloj_checador', compact(
-            'empleados',
+        return view('Recursos_Humanos.reloj_checador', [
+            'empleados' => $empleados,
             'sinResultados' => false,
             'busqueda' => $search,
             'fechaInicio' => $inicio,
             'fechaFin' => $fin,
-            'kpis',
-            'horasTotales',
+            'kpis' => $kpis,
+            'horasTotales' => $horasTotales,
             'esSoloLectura' => true,
-        ));
+        ]);
     }
 }
