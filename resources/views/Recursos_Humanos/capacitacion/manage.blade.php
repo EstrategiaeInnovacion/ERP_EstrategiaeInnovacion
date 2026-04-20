@@ -71,13 +71,34 @@
                 <div class="col-span-1 md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Usuarios Específicos (Opcional)</label>
                     <p class="text-xs text-gray-500 mb-2">Selecciona usuarios específicos que pueden ver este video. Deja vacío si seleccionaste puestos arriba.</p>
-                    <select name="usuarios_permitidos[]" multiple class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" size="5">
-                        @foreach($usuarios as $usuario)
-                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                    <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-2 bg-gray-50">
+                        <div class="flex items-start mb-2 pb-2 border-b border-gray-200">
+                            <div class="flex items-center h-5">
+                                <input id="select_all_usuarios" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-2 text-xs">
+                                <label for="select_all_usuarios" class="font-bold text-gray-800 cursor-pointer">Seleccionar Todos</label>
+                            </div>
+                        </div>
+                        @foreach($usuarios as $index => $usuario)
+                            <div class="flex items-start mb-1">
+                                <div class="flex items-center h-5">
+                                    <input id="usuario_{{ $index }}" name="usuarios_permitidos[]" value="{{ $usuario->id }}" type="checkbox" class="usuario-checkbox focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-2 text-xs">
+                                    <label for="usuario_{{ $index }}" class="font-medium text-gray-700 cursor-pointer">{{ $usuario->name }}</label>
+                                </div>
+                            </div>
                         @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Mantén presionado Ctrl (Cmd en Mac) para seleccionar varios.</p>
+                    </div>
                 </div>
+
+                <script>
+                    document.getElementById('select_all_usuarios').addEventListener('change', function() {
+                        const checkboxes = document.querySelectorAll('.usuario-checkbox');
+                        checkboxes.forEach(cb => cb.checked = this.checked);
+                    });
+                </script>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Archivo de Video (MP4)</label>
