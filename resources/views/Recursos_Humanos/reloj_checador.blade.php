@@ -303,18 +303,20 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    {{-- Botón de Aviso (Siempre visible para cualquier tipo de aviso) --}}
+                                    @if(!($esSoloLectura ?? false))
+                                        {{-- Botón de Aviso --}}
                                         <button onclick="abrirModalAviso({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', {{ $retardosEmp }}, {{ $faltasEmp }}, '{{ $fechaInicioFormato }} al {{ $fechaFinFormato }}')" class="inline-flex items-center px-3 py-1.5 bg-rose-50 border border-rose-300 rounded-lg text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-100 transition" title="Enviar aviso al empleado">
                                             <svg class="w-3.5 h-3.5 mr-1.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                             Enviar Aviso
                                         </button>
 
-                                    {{-- Botón de Historial de Avisos (Solo si tiene avisos previos) --}}
-                                    @if($empleado->avisosAsistencia->count() > 0)
-                                        <button onclick="abrirModalHistorialAvisos('{{ addslashes($empleado->nombre) }}', {{ json_encode($empleado->avisosAsistencia) }})" class="inline-flex items-center px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-lg text-xs font-medium text-amber-700 shadow-sm hover:bg-amber-100 transition" title="Ver historial de avisos">
-                                            <svg class="w-3.5 h-3.5 mr-1.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            Historial Avisos
-                                        </button>
+                                        {{-- Botón de Historial de Avisos (Solo si tiene avisos previos) --}}
+                                        @if($empleado->avisosAsistencia->count() > 0)
+                                            <button onclick="abrirModalHistorialAvisos('{{ addslashes($empleado->nombre) }}', {{ json_encode($empleado->avisosAsistencia) }})" class="inline-flex items-center px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-lg text-xs font-medium text-amber-700 shadow-sm hover:bg-amber-100 transition" title="Ver historial de avisos">
+                                                <svg class="w-3.5 h-3.5 mr-1.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                Historial Avisos
+                                            </button>
+                                        @endif
                                     @endif
 
                                     @if(!($esSoloLectura ?? false))
@@ -323,10 +325,12 @@
                                         Registrar Asistencia
                                     </button>
                                     @endif
+                                    @if(!($esSoloLectura ?? false))
                                     <button onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ now()->toDateString() }}')" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Nueva Incidencia
                                     </button>
+                                    @endif
                                 </div>
                             </div>
 
@@ -380,15 +384,15 @@
                                             }
                                         @endphp
                                         
-                                        <div class="relative w-[130px] flex-shrink-0 rounded-lg border {{ $cardClass }} p-2.5 transition-all duration-200 hover:shadow-md cursor-pointer group/day"
+<div class="relative w-[130px] flex-shrink-0 rounded-lg border {{ $cardClass }} p-2.5 transition-all duration-200 hover:shadow-md cursor-pointer group/day"
                                              @if($asistencia)
                                                  onclick="abrirModalEdicion({{ $asistencia }})"
                                                  title="Click para editar"
-                                             @else
+                                             @elseif(!($esSoloLectura ?? false))
                                                  onclick="abrirModalJustificar({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', '{{ $fechaObj->toDateString() }}', '{{ $fechaObj->translatedFormat('d M Y') }}')"
                                                  title="Click para justificar"
                                              @endif
-                                        >
+                                         >
                                             <div class="flex justify-between items-center mb-2">
                                                 <span class="text-xs font-bold text-gray-500">{{ $fechaObj->translatedFormat('d M') }}</span>
                                                 <span class="text-[10px] uppercase text-gray-400">{{ $fechaObj->translatedFormat('D') }}</span>

@@ -1,6 +1,6 @@
 {
-  "_vendor-DPM6ATJm.js": {
-    "file": "assets/vendor-DPM6ATJm.js",
+  "_vendor-ZN7-Ibpq.js": {
+    "file": "assets/vendor-ZN7-Ibpq.js",
     "name": "vendor"
   },
   "resources/css/Logistica/index.css": {
@@ -26,7 +26,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-lekoNxrC.css",
+    "file": "assets/app-Bh3iWUAe.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -35,13 +35,13 @@
     ]
   },
   "resources/js/Logistica/index.js": {
-    "file": "assets/index-DybH0UbV.js",
+    "file": "assets/index-9sM7zwNa.js",
     "name": "index",
     "src": "resources/js/Logistica/index.js",
     "isEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_vendor-DPM6ATJm.js"
+      "_vendor-ZN7-Ibpq.js"
     ]
   },
   "resources/js/Recursos_Humanos/index.js": {
@@ -63,12 +63,12 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BKmoI7tw.js",
+    "file": "assets/app-BpWmiWz5.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_vendor-DPM6ATJm.js"
+      "_vendor-ZN7-Ibpq.js"
     ]
   }
 }
