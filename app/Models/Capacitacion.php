@@ -39,9 +39,13 @@ class Capacitacion extends Model
             return true;
         }
 
+        // Limpiar valores vacíos para evitar falsos positivos con str_contains()
+        $puestosLimpios = array_values(array_filter($this->puestos_permitidos ?? [], fn($p) => !empty(trim((string) $p))));
+        $usuariosLimpios = array_values(array_filter($this->usuarios_permitidos ?? [], fn($u) => !is_null($u)));
+
         // Si no hay restricciones (ni puestos ni usuarios), es público para todos
-        $tieneRestriccionPuestos = !empty($this->puestos_permitidos);
-        $tieneRestriccionUsuarios = !empty($this->usuarios_permitidos);
+        $tieneRestriccionPuestos = !empty($puestosLimpios);
+        $tieneRestriccionUsuarios = !empty($usuariosLimpios);
 
         if (!$tieneRestriccionPuestos && !$tieneRestriccionUsuarios) {
             return true;
@@ -49,7 +53,7 @@ class Capacitacion extends Model
 
         // Verificar restricciones por usuarios específicos
         if ($tieneRestriccionUsuarios) {
-            if (in_array($user->id, $this->usuarios_permitidos)) {
+            if (in_array($user->id, $usuariosLimpios)) {
                 return true;
             }
         }
@@ -61,9 +65,9 @@ class Capacitacion extends Model
             if (!empty($posicionEmpleado)) {
                 $posicionEmpleado = mb_strtolower($posicionEmpleado, 'UTF-8');
 
-                foreach ($this->puestos_permitidos as $puestoPermitido) {
+                foreach ($puestosLimpios as $puestoPermitido) {
                     $puestoPermitido = mb_strtolower(trim($puestoPermitido), 'UTF-8');
-                    if (str_contains($posicionEmpleado, $puestoPermitido)) {
+                    if (!empty($puestoPermitido) && str_contains($posicionEmpleado, $puestoPermitido)) {
                         return true;
                     }
                 }

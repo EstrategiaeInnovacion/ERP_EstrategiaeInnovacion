@@ -144,25 +144,12 @@ $request->validate([
                 'adjuntos.*' => 'nullable|file|max:10240'
             ]);
 
-            $puestosArray = $request->puestos_permitidos;
-            $usuariosArray = $request->usuarios_permitidos;
-
             $video->update([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
                 'categoria' => $request->categoria,
-                'puestos_permitidos' => $puestosArray,
-                'usuarios_permitidos' => $usuariosArray,
-                'youtube_url' => $request->youtube_url,
-            ]);
-
-            $puestosArray = $request->puestos_permitidos;
-
-            $video->update([
-                'titulo' => $request->titulo,
-                'descripcion' => $request->descripcion,
-                'categoria' => $request->categoria,
-                'puestos_permitidos' => $puestosArray,
+                'puestos_permitidos' => $request->puestos_permitidos,
+                'usuarios_permitidos' => $request->usuarios_permitidos,
                 'youtube_url' => $request->youtube_url,
             ]);
 
