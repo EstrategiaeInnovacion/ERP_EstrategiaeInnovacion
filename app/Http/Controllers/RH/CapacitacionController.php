@@ -41,6 +41,12 @@ class CapacitacionController extends Controller
     public function show($id)
     {
         $video = Capacitacion::with('adjuntos')->findOrFail($id);
+
+        $user = Auth::user();
+        if (!$video->isVisibleFor($user)) {
+            abort(403, 'No tienes permiso para ver esta capacitación.');
+        }
+
         return view('Recursos_Humanos.capacitacion.show', compact('video'));
     }
 
