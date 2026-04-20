@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/proyectos/{id}', [App\Http\Controllers\ProyectoController::class, 'update'])->name('proyectos.update');
     Route::delete('/proyectos/{id}', [App\Http\Controllers\ProyectoController::class, 'destroy'])->name('proyectos.destroy');
     Route::post('/proyectos/{id}/restore', [App\Http\Controllers\ProyectoController::class, 'restore'])->name('proyectos.restore');
+    Route::delete('/proyectos/{id}/force', [App\Http\Controllers\ProyectoController::class, 'forceDelete'])->name('proyectos.forceDelete');
     Route::post('/proyectos/{id}/usuarios', [App\Http\Controllers\ProyectoController::class, 'asignarUsuarios'])->name('proyectos.asignarUsuarios');
     Route::delete('/proyectos/{id}/usuarios/{userId}', [App\Http\Controllers\ProyectoController::class, 'quitarUsuario'])->name('proyectos.quitarUsuario');
     Route::post('/proyectos/{id}/responsables-ti', [App\Http\Controllers\ProyectoController::class, 'asignarResponsablesTi'])->name('proyectos.asignarResponsablesTi');

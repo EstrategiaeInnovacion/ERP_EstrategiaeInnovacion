@@ -199,6 +199,23 @@ class ProyectoController extends Controller
         return redirect()->route('proyectos.index', ['archivado' => '0'])->with('success', 'Proyecto restaurado.');
     }
 
+    public function forceDelete($id)
+    {
+        $user = Auth::user();
+        if (!$user->isRh()) {
+            abort(403, 'No tienes permiso para eliminar proyectos.');
+        }
+
+        $proyecto = Proyecto::with(['actividades', 'usuarios', 'responsablesTi'])->findOrFail($id);
+
+        $proyecto->actividades()->delete();
+        $proyecto->usuarios()->detach();
+        $proyecto->responsablesTi()->detach();
+        $proyecto->delete();
+
+        return redirect()->route('proyectos.index', ['archivado' => '1'])->with('success', 'Proyecto eliminado permanentemente.');
+    }
+
     public function asignarUsuarios(Request $request, $id)
     {
         $user = Auth::user();
