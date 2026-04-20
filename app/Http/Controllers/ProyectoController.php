@@ -16,6 +16,7 @@ class ProyectoController extends Controller
     {
         $user = Auth::user();
         $esRh = $user->isRh();
+        $esRhCoordinador = $user->isRhCoordinador();
         $miEmpleado = $user->empleado;
 
         $esCoordinador = false;
@@ -25,7 +26,7 @@ class ProyectoController extends Controller
 
         $query = Proyecto::with(['creador', 'usuarios']);
 
-        if (! $esRh) {
+        if (! $esRhCoordinador) {
             if ($esCoordinador && $miEmpleado) {
                 $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray();
                 $query->where(function ($q) use ($user, $subordinadosIds) {
@@ -55,13 +56,13 @@ class ProyectoController extends Controller
             return $p;
         });
 
-        return view('proyectos.index', compact('proyectos', 'proyectosConActividades', 'esRh', 'esCoordinador'));
+        return view('proyectos.index', compact('proyectos', 'proyectosConActividades', 'esRh', 'esRhCoordinador', 'esCoordinador'));
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (! $user->isRh()) {
+        if (! $user->isRhCoordinador()) {
             abort(403, 'No tienes permiso para crear proyectos.');
         }
 
@@ -113,6 +114,7 @@ class ProyectoController extends Controller
 
         $user = Auth::user();
         $esRh = $user->isRh();
+        $esRhCoordinador = $user->isRhCoordinador();
         $miEmpleado = $user->empleado;
 
         $esCoordinador = false;
@@ -120,7 +122,7 @@ class ProyectoController extends Controller
             $esCoordinador = Empleado::where('supervisor_id', $miEmpleado->id)->exists();
         }
 
-        $puedeVer = $esRh ||
+        $puedeVer = $esRhCoordinador ||
                     $proyecto->usuario_id === $user->id ||
                     $proyecto->usuarios()->where('users.id', $user->id)->exists() ||
                     ($esCoordinador && $proyecto->usuarios()->whereIn('users.id',
@@ -132,13 +134,13 @@ class ProyectoController extends Controller
 
         $siguienteJunta = $proyecto->siguienteFechaJunta();
 
-        return view('proyectos.show', compact('proyecto', 'siguienteJunta', 'esRh'));
+        return view('proyectos.show', compact('proyecto', 'siguienteJunta', 'esRh', 'esRhCoordinador'));
     }
 
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (! $user->isRh()) {
+        if (! $user->isRhCoordinador()) {
             abort(403, 'No tienes permiso para editar proyectos.');
         }
 
@@ -174,7 +176,7 @@ class ProyectoController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        if (! $user->isRh()) {
+        if (! $user->isRhCoordinador()) {
             abort(403, 'No tienes permiso para archivar proyectos.');
         }
 
@@ -188,7 +190,7 @@ class ProyectoController extends Controller
     public function restore($id)
     {
         $user = Auth::user();
-        if (! $user->isRh()) {
+        if (! $user->isRhCoordinador()) {
             abort(403, 'No tienes permiso para restaurar proyectos.');
         }
 

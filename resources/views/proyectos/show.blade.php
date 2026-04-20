@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $esRh = $esRh ?? false;
+    $esRh = $esRhCoordinador ?? $esRh ?? false;
 @endphp
 
 <div class="min-h-screen bg-slate-50/50 py-8">

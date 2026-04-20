@@ -139,6 +139,29 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     /**
+     * Verifica si el usuario es Coordinador (o superior) de RH.
+     * Requiere ser RH + tener 'coordinador', 'coordinadora', 'direcc' en posicion o ser admin.
+     */
+    public function isRhCoordinador(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if (!$this->isRh()) {
+            return false;
+        }
+
+        $posicion = $this->normalizeString($this->empleado->posicion ?? '');
+
+        return str_contains($posicion, 'coordinador')
+            || str_contains($posicion, 'coordinadora')
+            || str_contains($posicion, 'direcc')
+            || str_contains($posicion, 'gerente')
+            || str_contains($posicion, 'jefe');
+    }
+
+    /**
      * Verificar si el usuario es de Logística
      */
     public function isLogistica(): bool

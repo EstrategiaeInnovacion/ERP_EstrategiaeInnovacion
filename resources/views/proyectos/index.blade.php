@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $esRh = $esRh ?? false;
+    $esRh = $esRhCoordinador ?? $esRh ?? false;
     $esCoordinador = $esCoordinador ?? false;
 @endphp
 
