@@ -682,6 +682,10 @@ class RelojChecadorImportController extends Controller
         }
         $horasTotales = round($totalMinutos / 60, 1);
 
+        $totalDias = $empleados->total() * count($fechas);
+        $asistenciasOk = $kpis['ok'];
+        $porcentajeAsistencia = $totalDias > 0 ? round(($asistenciasOk / $totalDias) * 100, 1) : 0;
+
         return view('Recursos_Humanos.reloj_checador', [
             'empleados' => $empleados,
             'sinResultados' => false,
@@ -691,6 +695,11 @@ class RelojChecadorImportController extends Controller
             'kpis' => $kpis,
             'horasTotales' => $horasTotales,
             'esSoloLectura' => true,
+            'fechas' => $fechas,
+            'porcentajeAsistencia' => $porcentajeAsistencia,
+            'topRetardos' => collect([]),
+            'fechaInicioFormato' => $start->translatedFormat('d M'),
+            'fechaFinFormato' => $end->translatedFormat('d M'),
         ]);
     }
 }
