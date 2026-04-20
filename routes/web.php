@@ -336,6 +336,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
         Route::delete('/clear', 'clear')->name('clear');
         Route::delete('/clear-rango', 'clearRango')->name('clearRango');
         Route::post('/aviso', 'enviarAviso')->name('aviso');
+        Route::get('/equipo', 'equipo')->name('equipo');
     }
     );
 

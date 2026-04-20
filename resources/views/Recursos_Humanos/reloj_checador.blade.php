@@ -16,10 +16,12 @@
                 <p class="text-xs text-gray-500 mt-1">Gestión de entradas, salidas e incidencias del personal.</p>
             </div>
             <div class="flex gap-3">
+                @if(!($esSoloLectura ?? false))
                 <button onclick="abrirModalIncidencia()" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition shadow-sm">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Registrar Incidencia
                 </button>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -315,10 +317,12 @@
                                         </button>
                                     @endif
 
+                                    @if(!($esSoloLectura ?? false))
                                     <button onclick="abrirModalAsistencia({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}')" class="inline-flex items-center px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Registrar Asistencia
                                     </button>
+                                    @endif
                                     <button onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ now()->toDateString() }}')" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Nueva Incidencia

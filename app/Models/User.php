@@ -222,6 +222,18 @@ class User extends Authenticatable implements CanResetPasswordContract
             ];
         }
 
+        // Coordinadores y Directores pueden ver el reloj checador de su equipo
+        if ($this->empleado) {
+            $posNorm = $this->normalizeString($this->empleado->posicion ?? '');
+            if (str_contains($posNorm, 'coordinador') || str_contains($posNorm, 'coordinadora') || str_contains($posNorm, 'direcc')) {
+                return [
+                    'available' => true,
+                    'route' => route('rh.reloj.equipo'),
+                    'label' => 'Mi Equipo',
+                ];
+            }
+        }
+
         // Los demás paneles SÍ requieren ser admin
         if (!$this->isAdmin()) {
             return [

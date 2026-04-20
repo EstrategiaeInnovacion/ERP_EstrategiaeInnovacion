@@ -569,4 +569,126 @@ class RelojChecadorImportController extends Controller
 
         return back()->with('success', 'Aviso enviado exitosamente al dashboard y por correo electrónico (si aplica).');
     }
+
+    /**
+     * Vista de reloj checador para coordinadores/directores (solo lectura).
+     */
+    public function equipo(Request $request)
+    {
+        $user = auth()->user();
+        $miEmpleado = $user->empleado;
+
+        if (!$miEmpleado) {
+            abort(403, 'No tienes acceso a este módulo.');
+        }
+
+        // Verificar si es coordinador o director
+        $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
+        $esCoordinador = Str::contains($posicion, ['coordinador', 'coordinadora', 'direcc']);
+
+        if (!$esCoordinador) {
+            abort(403, 'No tienes acceso a este módulo.');
+        }
+
+        // Si es director, ve todo el personal activo
+        if (Str::contains($posicion, 'direcc')) {
+            $subordinados = Empleado::where('es_activo', true)->pluck('id')->toArray();
+        } else {
+            // Coordinadores ven solo sus subordinados
+            $subordinados = $miEmpleado->subordinados()->where('es_activo', true)->pluck('id')->toArray();
+        }
+
+        if (empty($subordinados)) {
+            return view('Recursos_Humanos.reloj_checador', [
+                'empleados' => collect([]),
+                'sinResultados' => false,
+                'busqueda' => null,
+                'fechaInicio' => $request->input('fecha_inicio', now()->startOfMonth()->toDateString()),
+                'fechaFin' => $request->input('fecha_inicio', now()->endOfMonth()->toDateString()),
+                'kpis' => ['total' => 0, 'ok' => 0, 'retardos' => 0, 'faltas' => 0],
+                'horasTotales' => 0,
+                'esSoloLectura' => true,
+            ]);
+        }
+
+        Carbon::setLocale('es');
+
+        $inicio = $request->input('fecha_inicio', now()->startOfMonth()->toDateString());
+        $fin = $request->input('fecha_fin', now()->endOfMonth()->toDateString());
+        $start = Carbon::parse($inicio);
+        $end = Carbon::parse($fin);
+
+        $fechas = [];
+        $loopDate = $start->copy();
+        while ($loopDate->lte($end)) {
+            if (!$loopDate->isWeekend()) {
+                $fechas[] = $loopDate->copy();
+            }
+            $loopDate->addDay();
+        }
+
+        $dbFechaFin = Carbon::parse($fin)->addDay()->format('Y-m-d');
+
+        $search = $request->input('search');
+
+        $empleados = Empleado::query()
+            ->whereIn('id', $subordinados)
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                        ->orWhere('id_empleado', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('nombre')
+            ->with([
+                'asistencias' => function ($q) use ($inicio, $dbFechaFin) {
+                    $q->where('fecha', '>=', $inicio)
+                        ->where('fecha', '<', $dbFechaFin);
+                },
+                'avisosAsistencia' => function ($q) {
+                    $q->orderBy('created_at', 'desc')->with('enviadoPor');
+                },
+            ])
+            ->paginate(15)
+            ->withQueryString();
+
+        $baseQuery = Asistencia::query()
+            ->whereIn('empleado_id', $subordinados)
+            ->where('fecha', '>=', $inicio)
+            ->where('fecha', '<', $dbFechaFin);
+
+        $kpis = [
+            'total' => (clone $baseQuery)->count(),
+            'ok' => (clone $baseQuery)->where('es_retardo', false)->count(),
+            'retardos' => (clone $baseQuery)->where('es_retardo', true)->where('es_justificado', false)->count(),
+            'faltas' => (clone $baseQuery)->where('tipo_registro', 'falta')->count(),
+        ];
+
+        $registrosTiempos = (clone $baseQuery)
+            ->whereNotNull('entrada')
+            ->whereNotNull('salida')
+            ->get();
+
+        $totalMinutos = 0;
+        foreach ($registrosTiempos as $reg) {
+            $entrada = Carbon::parse($reg->fecha->format('Y-m-d') . ' ' . $reg->entrada);
+            $salida = Carbon::parse($reg->fecha->format('Y-m-d') . ' ' . $reg->salida);
+            $minutos = $salida->diffInMinutes($entrada);
+            if ($minutos > 0) {
+                $totalMinutos += $minutos;
+            }
+        }
+        $horasTotales = round($totalMinutos / 60, 1);
+
+        return view('Recursos_Humanos.reloj_checador', compact(
+            'empleados',
+            'sinResultados' => false,
+            'busqueda' => $search,
+            'fechaInicio' => $inicio,
+            'fechaFin' => $fin,
+            'kpis',
+            'horasTotales',
+            'esSoloLectura' => true,
+        ));
+    }
 }
