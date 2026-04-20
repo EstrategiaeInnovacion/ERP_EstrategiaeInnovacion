@@ -2,14 +2,6 @@
 
 @section('title', 'Nuevo Ticket')
 
-{{-- 1. ESTILOS --}}
-{{-- 
-Tailwind JIT Safelist
-bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-100 shadow-indigo-200 hover:text-indigo-600 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-indigo-50/50 hover:border-indigo-300 group-hover:text-indigo-500 text-indigo-600
-bg-slate-600 hover:bg-slate-700 focus:ring-slate-100 shadow-slate-200 hover:text-slate-600 focus:border-slate-500 focus:ring-slate-500 hover:bg-slate-50/50 hover:border-slate-300 group-hover:text-slate-500 text-slate-600
-bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-100 shadow-emerald-200 hover:text-emerald-600 focus:border-emerald-500 focus:ring-emerald-500 hover:bg-emerald-50/50 hover:border-emerald-300 group-hover:text-emerald-500 text-emerald-600
-bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blue-600 focus:border-blue-500 focus:ring-blue-500 hover:bg-blue-50/50 hover:border-blue-300 group-hover:text-blue-500 text-blue-600
---}}
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
@@ -82,8 +74,6 @@ bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blu
         </div>
 
         <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200 border border-slate-100 overflow-hidden relative">
-            
-            {{-- Header con Gradiente --}}
             <div class="relative bg-gradient-to-r {{ $config['gradient'] }} p-8 sm:p-10 text-white overflow-hidden">
                 <div class="absolute right-0 top-0 -mt-4 -mr-4 text-white opacity-10 transform rotate-12">
                     <svg class="w-64 h-64" fill="currentColor" viewBox="0 0 24 24"><path d="{{ $config['icon'] }}"></path></svg>
@@ -117,7 +107,6 @@ bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blu
                             @if($tipo == 'software') <input type="hidden" name="nombre_programa" value="Otro"> @endif
                         </div>
 
-                        {{-- Solo mostrar Prioridad si NO es mantenimiento --}}
                         @if($tipo != 'mantenimiento')
                         <div class="col-span-2 md:col-span-1">
                             <label for="prioridad" class="block text-sm font-bold text-slate-700 mb-2">Nivel de Impacto</label>
@@ -151,8 +140,7 @@ bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blu
                                             
                                             <input type="hidden" name="fecha_requerida" id="fecha_requerida_input" required>
                                             <input type="hidden" name="hora_requerida" id="hora_requerida_input" required>
-                                            {{-- Para compatibilidad con tu validación de backend si usas slots ID --}}
-                                            <input type="hidden" name="maintenance_slot_id" id="maintenance_slot_id" value="1"> 
+                                            <input type="hidden" name="maintenance_slot_id" id="maintenance_slot_id" value="1">
 
                                             <div id="time-slots-container" class="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto pr-1">
                                                 <div class="col-span-3 text-center py-10">
@@ -199,7 +187,6 @@ bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 shadow-blue-200 hover:text-blu
                                 </label>
                                 <p class="text-xs text-slate-400 mt-1">Máximo 10 imágenes, 5MB cada una. (JPG, PNG, GIF)</p>
                             </div>
-                            {{-- Barra de progreso de subida --}}
                             <div id="upload-progress" class="hidden mt-3">
                                 <div class="flex items-center justify-between text-xs text-slate-600 mb-1">
                                     <span>Procesando imágenes...</span>
@@ -241,13 +228,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let selectedFiles = [];
 
-    // Click en dropzone abre el selector
     dropzone.addEventListener('click', function(e) {
         if (e.target.closest('label')) return;
         input.click();
     });
 
-    // Drag & drop
     dropzone.addEventListener('dragover', function(e) {
         e.preventDefault();
         dropzone.classList.add('border-blue-400', 'bg-blue-50/50');
@@ -271,14 +256,12 @@ document.addEventListener('DOMContentLoaded', function() {
         let processed = 0;
         let totalToProcess = filesToProcess.length;
         
-        // Mostrar barra de progreso
         if (totalToProcess > 0) {
             progressContainer.classList.remove('hidden');
             progressBar.style.width = '0%';
             progressText.textContent = '0/' + totalToProcess;
         }
         
-        // Procesar archivos con animación
         filesToProcess.forEach(function(file, i) {
             setTimeout(function() {
                 if (selectedFiles.length >= MAX_FILES) {
@@ -298,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 progressBar.style.width = percent + '%';
                 progressText.textContent = processed + '/' + totalToProcess;
                 
-                // Cuando termine, ocultar progreso y renderizar
                 if (processed >= totalToProcess) {
                     setTimeout(function() {
                         progressContainer.classList.add('hidden');
@@ -308,7 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, i * 100); // Pequeño delay entre cada archivo para efecto visual
         });
         
-        // Si no hay archivos, renderizar inmediatamente
         if (totalToProcess === 0) {
             renderPreviews();
         }
@@ -334,7 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
             img.className = 'w-full h-24 object-cover bg-slate-100';
             img.alt = file.name;
             
-            // Placeholder mientras carga
             const placeholder = document.createElement('div');
             placeholder.className = 'w-full h-24 bg-slate-100 flex items-center justify-center';
             placeholder.innerHTML = '<svg class="w-6 h-6 text-slate-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
@@ -368,9 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Antes de enviar, inyectar archivos en un nuevo input
     form.addEventListener('submit', function() {
-        // Limpiar inputs anteriores
         form.querySelectorAll('input[name="imagenes[]"][data-injected]').forEach(function(el) { el.remove(); });
 
         const dt = new DataTransfer();
@@ -389,16 +367,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 @endsection
 
-{{-- 2. LÓGICA REFORZADA DEL CALENDARIO --}}
 @if($tipo == 'mantenimiento')
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ============================================
-            // 1. OBTENER FECHA DEL SERVIDOR (PHP -> JS)
-            // ============================================
             @if(isset($serverTime))
                 const serverDateStr = "{{ $serverTime->format('Y-m-d') }}";
                 const currentServerHour = {{ $serverTime->hour }};
@@ -410,7 +384,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentServerMinute = now.getMinutes();
             @endif
 
-            // Nuevos slots predefinidos: 9am a 4pm (7 slots de 1 hora cada uno)
             const timeSlots = [
                 { start: '09:00', end: '10:00', label: '09:00 AM' },
                 { start: '10:00', end: '11:00', label: '10:00 AM' },
@@ -421,10 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { start: '15:00', end: '16:00', label: '03:00 PM' }
             ];
 
-            // Cache de disponibilidad por fecha
             const availabilityCache = {};
-            
-            // URLs de API
             const apiSlotsUrl = "{{ route('maintenance.slots') }}";
             const apiCheckUrl = "{{ route('maintenance.check-availability') }}";
 
@@ -453,12 +423,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Cargar slots iniciales
             loadSlotsForDate(serverDateStr);
             dateInput.value = serverDateStr;
 
             async function loadSlotsForDate(dateStr) {
-                // Mostrar loading
                 slotsContainer.innerHTML = `
                     <div class="col-span-3 py-6 text-center">
                         <svg class="animate-spin h-6 w-6 mx-auto text-emerald-500" fill="none" viewBox="0 0 24 24">
@@ -470,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
 
                 try {
-                    // Obtener disponibilidad de la API
                     const response = await fetch(`${apiSlotsUrl}?date=${dateStr}`, {
                         headers: {
                             'Accept': 'application/json',
@@ -483,8 +450,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     const data = await response.json();
-                    
-                    // Guardar en cache
                     availabilityCache[dateStr] = data.slots || [];
                     
                     generateTimeSlots(dateStr, data.slots || []);
@@ -504,7 +469,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const isToday = (dateStr === serverDateStr);
                 let availableCount = 0;
 
-                // Crear un mapa de disponibilidad desde la API
                 const slotMap = {};
                 apiSlots.forEach(s => {
                     slotMap[s.start] = s;

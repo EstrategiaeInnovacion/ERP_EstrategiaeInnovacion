@@ -23,22 +23,22 @@
         </div>
 
         <div class="flex gap-2 mb-8">
-            <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-slate-300 transition text-left min-w-[120px]">
+            <div class="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-left min-w-[120px]">
                 <span class="text-2xl font-bold text-slate-800">{{ $tickets->count() }}</span>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total</p>
-            </button>
-            <button class="px-4 py-2 bg-emerald-50/50 border border-emerald-100 rounded-xl hover:shadow-md hover:border-emerald-200 transition text-left min-w-[120px]">
+            </div>
+            <div class="px-4 py-2 bg-emerald-50/50 border border-emerald-100 rounded-xl text-left min-w-[120px]">
                 <span class="text-2xl font-bold text-emerald-600">{{ $tickets->where('estado', 'Abierto')->count() }}</span>
                 <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Abiertos</p>
-            </button>
-            <button class="px-4 py-2 bg-amber-50/50 border border-amber-100 rounded-xl hover:shadow-md hover:border-amber-200 transition text-left min-w-[120px]">
+            </div>
+            <div class="px-4 py-2 bg-amber-50/50 border border-amber-100 rounded-xl text-left min-w-[120px]">
                 <span class="text-2xl font-bold text-amber-600">{{ $tickets->where('estado', 'En Proceso')->count() }}</span>
                 <p class="text-[10px] text-amber-500 font-bold uppercase tracking-wider">En Proceso</p>
-            </button>
-            <button class="px-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl hover:shadow-md hover:border-slate-300 transition text-left min-w-[120px]">
+            </div>
+            <div class="px-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-left min-w-[120px]">
                 <span class="text-2xl font-bold text-slate-500">{{ $tickets->where('estado', 'Cerrado')->count() }}</span>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Resueltos</p>
-            </button>
+            </div>
         </div>
 
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">

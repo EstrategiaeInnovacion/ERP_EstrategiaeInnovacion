@@ -307,16 +307,16 @@ class User extends Authenticatable implements CanResetPasswordContract
             ];
         }
 
-        // Panel Logística: admins O usuarios con posición logistica/operaciones/aduana
-        if ($esAdmin || str_contains($posicion, 'logistica') || str_contains($posicion, 'operaciones') || str_contains($posicion, 'aduana')) {
+        // Panel Logística: usuarios con posición logistica/operaciones/aduana
+        if (str_contains($posicion, 'logistica') || str_contains($posicion, 'operaciones') || str_contains($posicion, 'aduana')) {
             $panels[] = [
                 'route' => route('logistica.index'),
                 'label' => 'Panel Logística',
             ];
         }
 
-        // Panel Legal: admins O usuarios con posición/área Legal/Jurídico
-        if ($esAdmin || str_contains($posicion, 'legal') || str_contains($area, 'legal') ||
+        // Panel Legal: usuarios con posición/área Legal/Jurídico
+        if (str_contains($posicion, 'legal') || str_contains($area, 'legal') ||
             str_contains($posicion, 'juridico') || str_contains($area, 'juridico')) {
             $panels[] = [
                 'route' => route('legal.dashboard'),
