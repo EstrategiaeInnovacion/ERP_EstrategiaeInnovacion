@@ -8,6 +8,7 @@ use App\Models\Proyecto;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class ProyectoController extends Controller
 {
@@ -86,7 +87,8 @@ class ProyectoController extends Controller
             foreach ($request->usuarios as $usuarioId) {
                 $usuario = User::find($usuarioId);
                 if ($usuario && $usuario->email) {
-                    NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'usuario');
+                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario');
+                    Mail::to($usuario->email)->send($correo);
                 }
             }
         }
@@ -96,7 +98,8 @@ class ProyectoController extends Controller
             foreach ($request->responsables_ti as $usuarioId) {
                 $usuario = User::find($usuarioId);
                 if ($usuario && $usuario->email) {
-                    NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'responsable_ti');
+                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti');
+                    Mail::to($usuario->email)->send($correo);
                 }
             }
         }
@@ -215,7 +218,8 @@ class ProyectoController extends Controller
         foreach ($request->usuarios as $usuarioId) {
             $usuario = \App\Models\User::find($usuarioId);
             if ($usuario && $usuario->email) {
-                NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'usuario');
+                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario');
+                Mail::to($usuario->email)->send($correo);
             }
         }
 
@@ -241,7 +245,8 @@ class ProyectoController extends Controller
         foreach ($request->responsables_ti as $usuarioId) {
             $usuario = \App\Models\User::find($usuarioId);
             if ($usuario && $usuario->email) {
-                NotificarAsignacionProyecto::dispatch($proyecto, $usuario, 'responsable_ti');
+                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti');
+                Mail::to($usuario->email)->send($correo);
             }
         }
 
