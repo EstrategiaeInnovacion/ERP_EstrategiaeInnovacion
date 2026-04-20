@@ -231,11 +231,11 @@ class ActivityController extends Controller
         $misRechazos = Activity::where('user_id', $user->id)->where('estatus', 'Rechazado')->get();
 
         $kpis = [
-            'total' => $activitiesList->count(),
-            'completadas' => $activitiesList->where('estatus', 'Completado')->count(),
-            'proceso' => $activitiesList->where('estatus', 'En proceso')->count(),
-            'planeadas' => $activitiesList->where('estatus', 'Planeado')->count(),
-            'retardos' => $activitiesList->where('estatus', 'Retardo')->count(),
+            'total' => $mainActivities->count(),
+            'completadas' => $mainActivities->where('estatus', 'Completado')->count(),
+            'proceso' => $mainActivities->where('estatus', 'En proceso')->count(),
+            'planeadas' => $mainActivities->where('estatus', 'Planeado')->count(),
+            'retardos' => $mainActivities->where('estatus', 'Retardo')->count(),
         ];
 
         $startOfWeek = now()->startOfWeek();
