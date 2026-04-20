@@ -12,6 +12,11 @@ class AreaRHMiddleware
     {
         $user = $request->user();
         
+        // Si es la ruta de equipo (supervisores), dejar pasar
+        if ($request->routeIs('rh.reloj.equipo')) {
+            return $next($request);
+        }
+        
         // Verificar posicion del empleado
         $posicion = $user?->empleado?->posicion;
         $posNorm = $posicion ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($posicion)), 'UTF-8') : null;
