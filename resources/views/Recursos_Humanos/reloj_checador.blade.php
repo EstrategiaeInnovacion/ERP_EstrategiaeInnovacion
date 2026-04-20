@@ -301,13 +301,11 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    {{-- Botón de Aviso (Solo si tiene retardos o faltas) --}}
-                                    @if($retardosEmp > 0 || $faltasEmp > 0)
+                                    {{-- Botón de Aviso (Siempre visible para cualquier tipo de aviso) --}}
                                         <button onclick="abrirModalAviso({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', {{ $retardosEmp }}, {{ $faltasEmp }}, '{{ $fechaInicioFormato }} al {{ $fechaFinFormato }}')" class="inline-flex items-center px-3 py-1.5 bg-rose-50 border border-rose-300 rounded-lg text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-100 transition" title="Enviar aviso al empleado">
                                             <svg class="w-3.5 h-3.5 mr-1.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                             Enviar Aviso
                                         </button>
-                                    @endif
 
                                     {{-- Botón de Historial de Avisos (Solo si tiene avisos previos) --}}
                                     @if($empleado->avisosAsistencia->count() > 0)
