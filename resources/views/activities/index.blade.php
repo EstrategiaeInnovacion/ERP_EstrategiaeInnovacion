@@ -152,7 +152,7 @@
         {{-- ======================================================= --}}
         @php
             $proyectoSeleccionadoId = request('proyecto_id');
-            $mostrarSidebarProyectos = (isset($esRh) && $esRh) || (isset($proyectos) && $proyectos->count() > 0) || !empty($proyectoSeleccionadoId);
+            $mostrarSidebarProyectos = (isset($proyectos) && $proyectos->count() > 0) || !empty($proyectoSeleccionadoId);
         @endphp
         @if($mostrarSidebarProyectos)
         @php
