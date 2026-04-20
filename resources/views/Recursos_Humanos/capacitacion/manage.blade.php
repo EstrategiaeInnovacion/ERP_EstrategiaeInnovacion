@@ -134,9 +134,25 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($videos as $video)
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td class="px-6 py-4">
                         <div class="text-sm font-bold text-gray-900">{{ $video->titulo }}</div>
                         <div class="text-xs text-gray-500 truncate max-w-xs">{{ $video->descripcion }}</div>
+                        @php
+                            $puestosV = array_values(array_filter($video->puestos_permitidos ?? [], fn($p) => !empty(trim((string)$p))));
+                            $usuariosV = array_values(array_filter($video->usuarios_permitidos ?? [], fn($u) => !is_null($u)));
+                            $esPublicoV = empty($puestosV) && empty($usuariosV);
+                        @endphp
+                        @if($esPublicoV)
+                            <span class="inline-flex items-center gap-1 mt-1 bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">🌐 Público</span>
+                        @else
+                            <span class="inline-flex items-center gap-1 mt-1 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">🔒 Restringido</span>
+                            @if(!empty($puestosV))
+                                <div class="mt-1 text-xs text-gray-500">Puestos: {{ implode(', ', $puestosV) }}</div>
+                            @endif
+                            @if(!empty($usuariosV))
+                                <div class="text-xs text-gray-500">{{ count($usuariosV) }} usuario(s) específico(s)</div>
+                            @endif
+                        @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {{ $video->created_at->format('d/m/Y H:i') }}

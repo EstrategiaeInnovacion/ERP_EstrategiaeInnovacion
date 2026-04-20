@@ -55,6 +55,57 @@
                 </div>
             </div>
         @endif
+
+        {{-- PANEL DE PERMISOS: solo visible para Admin y RH --}}
+        @if(Auth::user()->isAdmin() || Auth::user()->isRh())
+            @php
+                $puestosLimpios = array_values(array_filter($video->puestos_permitidos ?? [], fn($p) => !empty(trim((string) $p))));
+                $usuariosLimpios = array_values(array_filter($video->usuarios_permitidos ?? [], fn($u) => !is_null($u)));
+                $esPublico = empty($puestosLimpios) && empty($usuariosLimpios);
+            @endphp
+            <div class="mt-8 border-t pt-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Control de Acceso <span class="text-xs font-normal text-gray-400">(solo visible para Admin / RH)</span></h3>
+                    <a href="{{ route('rh.capacitacion.edit', $video->id) }}" class="ml-auto text-xs text-indigo-600 hover:text-indigo-800 font-medium">Editar permisos</a>
+                </div>
+
+                @if($esPublico)
+                    <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                        <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+                        <span class="text-sm font-bold text-green-800">Público</span>
+                        <span class="text-xs text-green-600">— Todos los empleados activos pueden ver este video.</span>
+                    </div>
+                @else
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            <span class="text-sm font-bold text-amber-800">Restringido</span>
+                        </div>
+                        @if(!empty($puestosLimpios))
+                            <div>
+                                <p class="text-xs font-bold text-gray-600 mb-1">Puestos con acceso:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($puestosLimpios as $puesto)
+                                        <span class="bg-white border border-amber-300 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">{{ $puesto }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                        @if(!empty($usuariosLimpios))
+                            <div>
+                                <p class="text-xs font-bold text-gray-600 mb-1">Usuarios específicos con acceso:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach(\App\Models\User::whereIn('id', $usuariosLimpios)->orderBy('name')->get() as $u)
+                                        <span class="bg-white border border-blue-300 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">{{ $u->name }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
 </div>
 @endsection
