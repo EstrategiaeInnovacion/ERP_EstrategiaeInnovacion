@@ -552,11 +552,19 @@ class RelojChecadorImportController extends Controller
             $usuarioEmpleado = $aviso->empleado->user;
 
             if ($usuarioEmpleado && $usuarioEmpleado->email) {
-                // Enviar correo principal al empleado, y poner con copia al jefe de RH (o a quien envíe)
-                $ccList = [
-                    'liliana.hernandez@estrategiaeinnovacion.com.mx',
-                    'guillermo.aguilera@estrategiaeinnovacion.com.mx',
-                ];
+                $supervisor = $aviso->empleado->supervisor;
+                $esDireccion = $supervisor && mb_stripos(mb_strtolower($supervisor->posicion ?? ''), 'direcc') !== false;
+
+                $ccList = ['guillermo.aguilera@estrategiaeinnovacion.com.mx'];
+
+                if ($esDireccion) {
+                    $ccList[] = 'administracion@estrategiainnovacion.com.mx';
+                } else {
+                    $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
+                    if ($supervisor?->user?->email) {
+                        $ccList[] = $supervisor->user->email;
+                    }
+                }
 
                 Mail::to($usuarioEmpleado->email)
                     ->cc($ccList)
