@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Sistemas_IT;
 
 use App\Http\Controllers\Controller;
-use App\Mail\NuevoTicketNotificacion;
 use App\Models\Sistemas_IT\ComputerProfile;
 use App\Models\Sistemas_IT\MaintenanceBooking;
 use App\Models\Sistemas_IT\MaintenanceSlot;
