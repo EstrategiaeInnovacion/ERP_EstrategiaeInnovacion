@@ -88,7 +88,7 @@ class ProyectoController extends Controller
             foreach ($request->usuarios as $usuarioId) {
                 $usuario = User::find($usuarioId);
                 if ($usuario && $usuario->email) {
-                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario');
+                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario', $user);
                     Mail::to($usuario->email)->send($correo);
                 }
             }
@@ -99,7 +99,7 @@ class ProyectoController extends Controller
             foreach ($request->responsables_ti as $usuarioId) {
                 $usuario = User::find($usuarioId);
                 if ($usuario && $usuario->email) {
-                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti');
+                    $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti', $user);
                     Mail::to($usuario->email)->send($correo);
                 }
             }
@@ -237,7 +237,7 @@ class ProyectoController extends Controller
         foreach ($request->usuarios as $usuarioId) {
             $usuario = \App\Models\User::find($usuarioId);
             if ($usuario && $usuario->email) {
-                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario');
+                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'usuario', $user);
                 Mail::to($usuario->email)->send($correo);
             }
         }
@@ -264,7 +264,7 @@ class ProyectoController extends Controller
         foreach ($request->responsables_ti as $usuarioId) {
             $usuario = \App\Models\User::find($usuarioId);
             if ($usuario && $usuario->email) {
-                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti');
+                $correo = new \App\Mail\ProyectoAsignado($proyecto, $usuario, 'responsable_ti', $user);
                 Mail::to($usuario->email)->send($correo);
             }
         }
