@@ -73,8 +73,7 @@ class CapacitacionController extends Controller
             'usuarios_permitidos' => 'nullable|array',
             'usuarios_permitidos.*' => 'integer',
             'youtube_url' => 'nullable|url',
-            // Video requerido solo si NO hay youtube_url
-            'video' => 'required_without:youtube_url|mimes:mp4,mov,ogg,qt|max:200000',
+            'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
             'adjuntos.*' => 'nullable|file|max:10240'
         ]);
 

@@ -7,8 +7,18 @@
         <a href="{{ route('capacitacion.index') }}" class="text-indigo-600 hover:text-indigo-900 font-bold">Ir a la Galería Pública &rarr;</a>
     </div>
 
+    @if($errors->any())
+        <div class="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg">
+            <ul class="list-disc list-inside text-sm text-red-700">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="bg-white rounded-lg shadow-sm p-6 mb-8 border border-gray-200">
-        <h3 class="text-lg font-semibold mb-4 text-gray-700">Subir Nuevo Video</h3>
+        <h3 class="text-lg font-semibold mb-4 text-gray-700">Subir Nueva Capacitación</h3>
         <form action="{{ route('rh.capacitacion.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -101,9 +111,9 @@
                 </script>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Archivo de Video (MP4)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Archivo de Video (MP4) <span class="text-gray-400 font-normal">(Opcional)</span></label>
                     <input type="file" name="video" accept="video/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    <p class="text-xs text-gray-500 mt-1">Requerido si no hay enlace de YouTube. Recomendado < 50MB.</p>
+                    <p class="text-xs text-gray-500 mt-1">Opcional. Puedes subir solo documentos sin necesidad de video. Recomendado &lt; 50MB.</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
