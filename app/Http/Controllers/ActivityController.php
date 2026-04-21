@@ -163,7 +163,12 @@ class ActivityController extends Controller
 
         // Filtrar por usuario
         if ($esDireccion) {
-            // Dirección ve todo sin restricción de usuario
+            // Dirección: si hay usuario seleccionado, filtra; si no, solo propias
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $targetUserId);
+            } else {
+                $query->where('user_id', $user->id);
+            }
         } elseif ($request->filled('user_id')) {
             // Supervisor/dirección seleccionó un usuario específico
             $query->where('user_id', $targetUserId);
