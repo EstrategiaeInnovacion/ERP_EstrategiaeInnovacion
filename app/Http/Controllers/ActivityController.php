@@ -162,7 +162,13 @@ class ActivityController extends Controller
         $query = Activity::query();
 
         // Filtrar por usuario
-        if ($esDireccion) {
+        if ($filterOrigin === 'delegadas') {
+            $query->where('asignado_por', $user->id);
+        } elseif ($filterOrigin === 'propias') {
+            $query->where('user_id', $user->id)->where('asignado_por', $user->id);
+        } elseif ($filterOrigin === 'recibidas') {
+            $query->where('user_id', $user->id)->where('asignado_por', '!=', $user->id);
+        } elseif ($esDireccion) {
             // Dirección: si hay usuario seleccionado, filtra; si no, solo propias
             if ($request->filled('user_id')) {
                 $query->where('user_id', $targetUserId);
