@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Matriz de Consulta - Legal')
+@section('title', 'Matriz de Consultas y Escritos - Legal')
 
 @push('styles')
 <style>
@@ -22,9 +22,9 @@
             <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
                 <a href="{{ route('legal.dashboard') }}" class="hover:text-amber-600 transition-colors">Panel Legal</a>
                 <span>/</span>
-                <span class="text-slate-700 font-medium">Matriz de Consulta</span>
+                <span class="text-slate-700 font-medium">Matriz de Consultas y Escritos</span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900">Matriz de Consulta</h1>
+            <h1 class="text-2xl font-bold text-slate-900">Matriz de Consultas y Escritos</h1>
             <p class="text-slate-500 mt-1 text-sm">Registro y seguimiento de consultas jurídicas por empresa.</p>
         </div>
         <div class="flex gap-3 flex-wrap">
@@ -33,7 +33,7 @@
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                 </svg>
-                Gestionar Categorías
+                Gestionar Dependencias
             </a>
             <button onclick="abrirAgregarProyecto()"
                 class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-200 hover:-translate-y-0.5 transition-all">
