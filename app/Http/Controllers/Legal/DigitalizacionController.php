@@ -49,7 +49,7 @@ class DigitalizacionController extends Controller
         $request->validate([
             'file'          => 'required|file|mimes:pdf|max:51200',
             'splitEnabled'  => 'nullable|boolean',
-            'numberOfParts' => 'nullable|integer|min:2|max:8',
+            'numberOfParts' => 'nullable|integer|min:2|max:18',
             'orientation'   => 'nullable|string|in:auto,portrait,landscape',
             'modo'          => 'nullable|in:vucem,general',
         ]);

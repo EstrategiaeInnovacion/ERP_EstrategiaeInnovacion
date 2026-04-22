@@ -147,7 +147,7 @@ class VucemPdfConverter
             ]);
             
             // Paso 2: Verificar si se solicitó división personalizada
-            if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 8) {
+            if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 18) {
                 // División personalizada en N partes
                 Log::info("VucemConverter: División personalizada solicitada en {$numberOfParts} partes");
                 
@@ -1343,7 +1343,7 @@ class VucemPdfConverter
 
                 if ($dpiCompliant) {
                     // ── División explícita pedida por el usuario ──────────────
-                    if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 8) {
+                    if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 18) {
                         $s1TotalPages = $this->getPdfPageCount($bestStage1Path);
                         $partsInfo = $this->splitPdfByPageRangesGs($bestStage1Path, $outputPath, $numberOfParts, $s1TotalPages);
 
@@ -1439,7 +1439,7 @@ class VucemPdfConverter
             $totalPages = 0;
 
             // División explícita + Stage 2 (rasterización): calidades progresivas
-            if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 8) {
+            if ($splitEnabled && $numberOfParts >= 2 && $numberOfParts <= 18) {
                 $splitQualities = [15, 10, 8, 5];
                 $bestSplitPartsInfo = null;
                 $bestSplitTotalSize = PHP_INT_MAX;

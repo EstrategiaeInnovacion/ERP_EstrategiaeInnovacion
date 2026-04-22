@@ -157,7 +157,7 @@
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Número de partes</label>
                             <select id="numberOfParts" name="numberOfParts"
                                     class="w-40 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition">
-                                @for($i = 2; $i <= 8; $i++)
+                                @for($i = 2; $i <= 18; $i++)
                                     <option value="{{ $i }}">{{ $i }} partes</option>
                                 @endfor
                             </select>
