@@ -31,12 +31,14 @@ class ProyectoController extends Controller
                 $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray();
                 $query->where(function ($q) use ($user, $subordinadosIds) {
                     $q->where('usuario_id', $user->id)
-                        ->orWhereHas('usuarios', fn ($uq) => $uq->whereIn('users.id', array_merge([$user->id], $subordinadosIds)));
+                        ->orWhereHas('usuarios', fn ($uq) => $uq->whereIn('users.id', array_merge([$user->id], $subordinadosIds)))
+                        ->orWhereHas('responsablesTi', fn ($uq) => $uq->where('users.id', $user->id));
                 });
             } else {
                 $query->where(function ($q) use ($user) {
                     $q->where('usuario_id', $user->id)
-                        ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id));
+                        ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
+                        ->orWhereHas('responsablesTi', fn ($uq) => $uq->where('users.id', $user->id));
                 });
             }
         }

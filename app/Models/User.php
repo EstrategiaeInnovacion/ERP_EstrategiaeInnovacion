@@ -144,7 +144,7 @@ class User extends Authenticatable implements CanResetPasswordContract
      */
     public function isRhCoordinador(): bool
     {
-        if ($this->isAdmin()) {
+        if ($this->isAdmin() && $this->isRh()) {
             return true;
         }
 
