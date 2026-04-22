@@ -71,9 +71,9 @@
             </select>
         </div>
         <div class="flex-1">
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Categoría</label>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Dependencia</label>
             <select name="categoria_id" id="filtroCategorias" class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                <option value="">Todas las categorías</option>
+                <option value="">Todas las dependencias</option>
                 @foreach($categoriasConsultas as $cat)
                     <option value="{{ $cat->id }}" data-grupo="consultas" {{ request('categoria_id') == $cat->id ? 'selected' : '' }}>{{ $cat->nombre }}</option>
                 @endforeach
