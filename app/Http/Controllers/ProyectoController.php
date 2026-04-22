@@ -127,6 +127,7 @@ class ProyectoController extends Controller
         $puedeVer = $esRhCoordinador ||
                     $proyecto->usuario_id === $user->id ||
                     $proyecto->usuarios()->where('users.id', $user->id)->exists() ||
+                    $proyecto->responsablesTi()->where('users.id', $user->id)->exists() ||
                     ($esCoordinador && $proyecto->usuarios()->whereIn('users.id',
                         Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->toArray())->exists());
 
