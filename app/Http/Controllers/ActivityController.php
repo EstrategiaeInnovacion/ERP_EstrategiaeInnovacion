@@ -163,7 +163,7 @@ class ActivityController extends Controller
 
         // Filtrar por usuario
         if ($filterOrigin === 'delegadas') {
-            $query->where('asignado_por', $user->id);
+            $query->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
         } elseif ($filterOrigin === 'propias') {
             $query->where('user_id', $user->id)->where('asignado_por', $user->id);
         } elseif ($filterOrigin === 'recibidas') {
