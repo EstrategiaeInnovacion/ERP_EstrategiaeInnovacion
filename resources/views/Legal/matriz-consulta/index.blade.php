@@ -225,7 +225,7 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input type="text" id="buscarEscritos" oninput="buscarEnTab('buscarEscritos','tbodyEscritos')" placeholder="Buscar por proyecto, categoría o descripción..."
+            <input type="text" id="buscarEscritos" oninput="buscarEnTab('buscarEscritos','tbodyEscritos')" placeholder="Buscar por proyecto, dependencia o descripción..."
                 class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:border-amber-500 focus:ring-amber-500 focus:outline-none">
         </div>
     </div>
@@ -244,7 +244,7 @@
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-left">
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nombre del Proyecto</th>
-                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Categoría</th>
+                            <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Dependencia</th>
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Descripción</th>
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Recursos</th>
@@ -359,10 +359,10 @@
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Dependencia *</label>
                         <select name="categoria_id" id="nuevaCategoria" required
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                            <option value="">Selecciona una categoría</option>
+                            <option value="">Selecciona una dependencia</option>
                         </select>
                     </div>
                 </div>
@@ -472,10 +472,10 @@
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Categoría *</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Dependencia *</label>
                         <select id="editCategoria" name="categoria_id" required
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
-                            <option value="">Selecciona una categoría</option>
+                            <option value="">Selecciona una dependencia</option>
                         </select>
                     </div>
                 </div>
@@ -553,7 +553,7 @@
         const sel = document.getElementById(selectId);
         if (!sel) return;
         const filtradas = categoriasData.filter(c => c.tipo === tipo);
-        sel.innerHTML = '<option value="">Selecciona una categoría</option>';
+        sel.innerHTML = '<option value="">Selecciona una dependencia</option>';
         filtradas.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
