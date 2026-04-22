@@ -168,6 +168,14 @@ class ActivityController extends Controller
             $query->where('user_id', $user->id)->where('asignado_por', $user->id);
         } elseif ($filterOrigin === 'recibidas') {
             $query->where('user_id', $user->id)->where('asignado_por', '!=', $user->id);
+        } elseif ($filterOrigin === 'todos' || $filterOrigin === '') {
+            // Todas las actividades: propias + delegadas a otros
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere(function ($qq) use ($user) {
+                      $qq->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
+                  });
+            });
         } elseif ($esDireccion) {
             // Dirección: si hay usuario seleccionado, filtra; si no, solo propias
             if ($request->filled('user_id')) {
