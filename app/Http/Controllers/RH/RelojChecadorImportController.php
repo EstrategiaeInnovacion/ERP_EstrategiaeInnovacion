@@ -558,9 +558,10 @@ class RelojChecadorImportController extends Controller
                 $ccList = ['guillermo.aguilera@estrategiaeinnovacion.com.mx'];
 
                 if ($esDireccion) {
-                    $ccList[] = 'administracion@estrategiainnovacion.com.mx';
+                    $ccList[] = 'administracion@estrategiaeinnovacion.com.mx';
                 } else {
                     $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
+                    $ccList[] = 'administracion@estrategiaeinnovacion.com.mx';
                     if ($supervisor?->user?->email) {
                         $ccList[] = $supervisor->user->email;
                     }
