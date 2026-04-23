@@ -264,11 +264,11 @@ class RelojChecadorImportController extends Controller
         $entrada = $request->entrada;
         $salida = $request->salida;
 
-        // Determinar si es retardo (entrada después de las 9:00)
+        // Determinar si es retardo (entrada después de las 8:40)
         $esRetardo = false;
         if ($entrada) {
             $horaEntrada = Carbon::createFromFormat('H:i', $entrada);
-            $limite = Carbon::createFromFormat('H:i', '09:00');
+            $limite = Carbon::createFromFormat('H:i', '08:40');
             $esRetardo = $horaEntrada->gt($limite);
         }
 
@@ -424,12 +424,12 @@ class RelojChecadorImportController extends Controller
                 if ($asistencia->entrada) {
                     try {
                         $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
-                        $limite = Carbon::createFromFormat('H:i', '09:00');
+                        $limite = Carbon::createFromFormat('H:i', '08:40');
                         $esRetardo = $horaEntrada->gt($limite);
                     } catch (\Exception $e) {
                         try {
                             $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
-                            $limite = Carbon::createFromFormat('H:i', '09:00');
+                            $limite = Carbon::createFromFormat('H:i', '08:40');
                             $esRetardo = $horaEntrada->gt($limite);
                         } catch (\Exception $e2) {
                         }
@@ -476,17 +476,17 @@ class RelojChecadorImportController extends Controller
 
         // Si tiene horarios, revertir al estado original
         if ($asistencia->entrada || $asistencia->salida) {
-            // Recalcular si era retardo (entrada después de las 9:00)
+            // Recalcular si era retardo (entrada después de las 8:40)
             $esRetardo = false;
             if ($asistencia->entrada) {
                 try {
                     $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
-                    $limite = Carbon::createFromFormat('H:i', '09:00');
+                    $limite = Carbon::createFromFormat('H:i', '08:40');
                     $esRetardo = $horaEntrada->gt($limite);
                 } catch (\Exception $e) {
                     try {
                         $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
-                        $limite = Carbon::createFromFormat('H:i', '09:00');
+                        $limite = Carbon::createFromFormat('H:i', '08:40');
                         $esRetardo = $horaEntrada->gt($limite);
                     } catch (\Exception $e2) {
                     }
