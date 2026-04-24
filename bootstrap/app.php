@@ -13,13 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'admin'          => \App\Http\Middleware\AdminMiddleware::class,
             'sistemas_admin' => \App\Http\Middleware\SistemasAdminMiddleware::class,
-            'area.rh' => \App\Http\Middleware\AreaRHMiddleware::class,
+            'area.rh'        => \App\Http\Middleware\AreaRHMiddleware::class,
             'area.logistica' => \App\Http\Middleware\AreaLogisticaMiddleware::class,
-            'area.legal' => \App\Http\Middleware\AreaLegalMiddleware::class,
-            'api.key' => \App\Http\Middleware\CheckApiKey::class,
+            'area.legal'     => \App\Http\Middleware\AreaLegalMiddleware::class,
+            'api.key'        => \App\Http\Middleware\CheckApiKey::class,
         ]);
+
+        // Cabeceras de seguridad HTTP — solo agrega headers de respuesta,
+        // no modifica cookies, sesiones ni el flujo de autenticación.
+        $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
