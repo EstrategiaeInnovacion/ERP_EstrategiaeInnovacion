@@ -5,6 +5,8 @@
 @section('content')
 @php
     $esRh = $esRhCoordinador ?? $esRh ?? false;
+    $esResponsableProyecto = $esResponsableProyecto ?? false;
+    $puedeFinalizarProyecto = $esRh || $esResponsableProyecto;
 @endphp
 
 <div class="min-h-screen bg-slate-50/50 py-8">
@@ -23,9 +25,9 @@
                     @endif
                 </div>
             </div>
-            @if($esRh)
+            @if($esRh || $esResponsableProyecto)
             <div class="flex gap-3">
-                @if(!$proyecto->finalizado)
+                @if(!$proyecto->finalizado && $puedeFinalizarProyecto)
                 <button onclick="document.getElementById('finalizarModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Finalizar Proyecto

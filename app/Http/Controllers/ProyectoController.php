@@ -137,7 +137,17 @@ class ProyectoController extends Controller
 
         $siguienteJunta = $proyecto->siguienteFechaJunta();
 
-        return view('proyectos.show', compact('proyecto', 'siguienteJunta', 'esRh', 'esRhCoordinador'));
+        // Es el responsable principal del proyecto (no IT)
+        $esResponsableProyecto = $proyecto->usuario_id === $user->id ||
+            $proyecto->usuarios()->where('users.id', $user->id)->exists();
+        // Excluir si SOLO es responsable de TI y no está en colaboradores ni es creador
+        if (!($proyecto->usuario_id === $user->id) &&
+            !$proyecto->usuarios()->where('users.id', $user->id)->exists() &&
+            $proyecto->responsablesTi()->where('users.id', $user->id)->exists()) {
+            $esResponsableProyecto = false;
+        }
+
+        return view('proyectos.show', compact('proyecto', 'siguienteJunta', 'esRh', 'esRhCoordinador', 'esResponsableProyecto'));
     }
 
     public function update(Request $request, $id)
@@ -492,11 +502,14 @@ class ProyectoController extends Controller
     public function finalizar(Request $request, $id)
     {
         $user = Auth::user();
-        if (! $user->isRh()) {
+        $proyecto = Proyecto::findOrFail($id);
+
+        $esResponsable = $proyecto->usuario_id === $user->id ||
+            $proyecto->usuarios()->where('users.id', $user->id)->exists();
+
+        if (! $user->isRh() && ! $esResponsable) {
             abort(403, 'No tienes permiso para finalizar proyectos.');
         }
-
-        $proyecto = Proyecto::findOrFail($id);
 
         $request->validate([
             'fecha_fin_real' => 'required|date',
