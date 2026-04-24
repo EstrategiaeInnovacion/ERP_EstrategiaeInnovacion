@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- ERP Estrategia e Innovación — Solo URLs públicas (sin autenticación) -->
+
+    <url>
+        <loc>https://erp.estrategiaeinnovacion.com.mx/</loc>
+        <lastmod>2026-04-24</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <url>
+        <loc>https://erp.estrategiaeinnovacion.com.mx/forgot-password</loc>
+        <lastmod>2026-04-24</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+
+    <url>
+        <loc>https://erp.estrategiaeinnovacion.com.mx/operacion/consulta-publica</loc>
+        <lastmod>2026-04-24</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
+    </url>
+</urlset>
