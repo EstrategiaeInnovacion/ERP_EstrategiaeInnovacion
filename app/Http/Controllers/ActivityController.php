@@ -169,25 +169,22 @@ class ActivityController extends Controller
         } elseif ($filterOrigin === 'recibidas') {
             $query->where('user_id', $user->id)->where('asignado_por', '!=', $user->id);
         } elseif ($filterOrigin === 'todos' || $filterOrigin === '') {
-            // Todas las actividades: propias + delegadas a otros
-            $query->where(function ($q) use ($user) {
-                $q->where('user_id', $user->id)
-                  ->orWhere(function ($qq) use ($user) {
-                      $qq->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
-                  });
-            });
-        } elseif ($esDireccion) {
-            // Dirección: si hay usuario seleccionado, filtra; si no, solo propias
-            if ($request->filled('user_id')) {
+            if ($request->filled('user_id') && ($esSupervisor || $esDireccion) && $targetUserId != $user->id) {
+                // Usuario específico seleccionado por supervisor/dirección: todas sus tareas
                 $query->where('user_id', $targetUserId);
             } else {
-                $query->where('user_id', $user->id);
+                // Para TODOS (dirección, supervisor, empleado): propias + delegadas + recibidas
+                $query->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                      ->orWhere(function ($qq) use ($user) {
+                          $qq->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
+                      });
+                });
             }
-        } elseif ($request->filled('user_id')) {
-            // Supervisor/dirección seleccionó un usuario específico
+        } elseif ($request->filled('user_id') && ($esSupervisor || $esDireccion)) {
+            // Supervisor/dirección con usuario seleccionado fuera del filtro "todos"
             $query->where('user_id', $targetUserId);
         } else {
-            // Supervisor sin seleccionar = solo sus propias actividades
             $query->where('user_id', $user->id);
         }
 

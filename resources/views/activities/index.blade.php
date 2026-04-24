@@ -345,7 +345,7 @@
                                 
                                 // Determinar origen
                                 $rowType = 'ajena';
-                                $rowClass = 'border-l-4 border-slate-200 opacity-75';
+                                $rowClass = 'border-l-4 border-sky-400 bg-sky-50/20 hover:bg-sky-50/50';
 
                                 if ($isMine && $isSelfAssigned) {
                                     $rowType = 'personal'; 
@@ -374,6 +374,8 @@
                                         <div class="flex flex-col items-center justify-center" title="De: {{ $act->asignador->name ?? '?' }}"><div class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center animate-pulse"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></div></div>
                                     @elseif($rowType == 'delegada')
                                         <div class="flex flex-col items-center justify-center" title="Para: {{ $act->user->name }}"><div class="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></div></div>
+                                    @elseif($rowType == 'ajena')
+                                        <div class="flex flex-col items-center justify-center" title="Subordinado: {{ $act->user->name }}"><div class="w-5 h-5 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div></div>
                                     @endif
                                 </td>
 
@@ -392,6 +394,7 @@
                                         <div class="flex flex-wrap items-center gap-1 mt-0.5">
                                             @if($rowType == 'delegada') <span class="text-[9px] text-purple-600 bg-purple-50 px-1 rounded border border-purple-100">↪ {{ strtok($act->user->name, ' ') }}</span> @endif
                                             @if($rowType == 'recibida') <span class="text-[9px] text-blue-600 bg-blue-50 px-1 rounded border border-blue-100">↩ {{ strtok($act->asignador->name ?? '?', ' ') }}</span> @endif
+                                            @if($rowType == 'ajena') <span class="text-[9px] text-sky-600 bg-sky-50 px-1 rounded border border-sky-200">👤 {{ strtok($act->user->name, ' ') }}</span> @endif
                                             @if($act->hora_inicio_programada) <span class="text-[9px] text-slate-500 font-mono bg-slate-100 px-1 rounded">{{ \Carbon\Carbon::parse($act->hora_inicio_programada)->format('H:i') }}</span> @endif
                                         </div>
                                         @if($act->comentarios)
