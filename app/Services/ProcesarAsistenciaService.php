@@ -15,7 +15,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class ProcesarAsistenciaService
 {
     protected string $horaRegex = '/\\b(2[0-3]|[01]?\\d):([0-5]\\d)\\b/u';
-    protected string $horaEntradaLimite = '08:45:00';
+    protected string $horaEntradaLimite = '08:40:00';
     protected bool $persistRegistros = true;
     protected array $collectedRegistros = [];
 
