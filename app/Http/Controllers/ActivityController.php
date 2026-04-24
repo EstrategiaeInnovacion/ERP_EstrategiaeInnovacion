@@ -173,7 +173,7 @@ class ActivityController extends Controller
                 // Usuario específico seleccionado por supervisor/dirección: todas sus tareas
                 $query->where('user_id', $targetUserId);
             } else {
-                // Para TODOS (dirección, supervisor, empleado): propias + delegadas + recibidas
+                // Para TODOS: propias + delegadas + recibidas
                 $query->where(function ($q) use ($user) {
                     $q->where('user_id', $user->id)
                       ->orWhere(function ($qq) use ($user) {
@@ -236,13 +236,29 @@ class ActivityController extends Controller
         $globalPendingCount = 0;
         $usersWithPending = [];
 
-        if ($esSupervisor || $esDireccion) {
-            $alertQuery = Activity::where('estatus', 'Por Aprobar');
-            if (! $esDireccion) {
-                $alertQuery->whereIn('user_id', $idsVisibles);
+        if (($esSupervisor || $esDireccion) && $miEmpleado) {
+            // Reconsultar subordinados directos activos con user_id válido
+            $subordinadosActivosIds = Empleado::where('supervisor_id', $miEmpleado->id)
+                ->where('es_activo', true)
+                ->whereNotNull('user_id')
+                ->pluck('user_id')
+                ->toArray();
+
+            if (count($subordinadosActivosIds) > 0) {
+                $alertQuery = Activity::whereIn('estatus', ['Por Aprobar', 'Por Validar'])
+                    ->where(function ($q) use ($subordinadosActivosIds, $user) {
+                        // Tareas asignadas a sus subordinados (de cualquier origen)
+                        $q->whereIn('user_id', $subordinadosActivosIds)
+                          // O tareas que él delegó a alguien fuera del equipo
+                          ->orWhere(function ($qq) use ($user, $subordinadosActivosIds) {
+                              $qq->where('asignado_por', $user->id)
+                                 ->whereNotIn('user_id', $subordinadosActivosIds)
+                                 ->where('user_id', '!=', $user->id);
+                          });
+                    });
+                $globalPendingCount = $alertQuery->count();
+                $usersWithPending = $alertQuery->pluck('user_id')->unique()->toArray();
             }
-            $globalPendingCount = $alertQuery->count();
-            $usersWithPending = $alertQuery->pluck('user_id')->unique()->toArray();
         }
 
         $misRechazos = Activity::where('user_id', $user->id)->where('estatus', 'Rechazado')->get();
@@ -541,15 +557,36 @@ class ActivityController extends Controller
     {
         $activity = Activity::findOrFail($id);
         $user = Auth::user();
+        $miEmpleado = $user->empleado;
 
-        $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
-        $esSupervisor = $user->empleado && $activity->user->empleado && $user->empleado->id === $activity->user->empleado->supervisor_id;
+        if (! $miEmpleado) {
+            abort(403, 'No tienes permiso para eliminar esta actividad.');
+        }
 
-        if ($esDireccion || $esSupervisor) {
+        $posicion = strtolower($miEmpleado->posicion ?? '');
+        $esDireccion = str_contains($posicion, 'direcc');
+        $esSupervisor = Empleado::where('supervisor_id', $miEmpleado->id)->exists();
+
+        // ¿La tarea es propia?
+        $esPropia = $activity->user_id === $user->id;
+
+        // ¿La tarea pertenece a un subordinado directo?
+        $actividadEmpleado = optional($activity->user)->empleado;
+        $esDeSubordinado = $actividadEmpleado && $actividadEmpleado->supervisor_id === $miEmpleado->id;
+
+        // ¿La delegó él?
+        $esDelegada = $activity->asignado_por === $user->id;
+
+        if ($esDireccion && ($esPropia || $esDeSubordinado || $esDelegada)) {
             $activity->delete();
-
             return redirect()->back()->with('success', 'Eliminado.');
         }
+
+        if ($esSupervisor && ($esPropia || $esDeSubordinado || $esDelegada)) {
+            $activity->delete();
+            return redirect()->back()->with('success', 'Eliminado.');
+        }
+
         abort(403, 'No tienes permiso para eliminar esta actividad.');
     }
 
