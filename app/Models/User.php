@@ -148,11 +148,22 @@ class User extends Authenticatable implements CanResetPasswordContract
             return true;
         }
 
+        $posicion = $this->normalizeString($this->empleado?->posicion ?? '');
+
+        // Detección directa: "Coordinador de RH" / "Coordinadora de RH" en el puesto
+        if (str_contains($posicion, 'rh') &&
+            (str_contains($posicion, 'coordinador') || str_contains($posicion, 'coordinadora'))) {
+            return true;
+        }
+
         if (!$this->isRh()) {
             return false;
         }
 
-        $posicion = $this->normalizeString($this->empleado->posicion ?? '');
+        // Si tiene el toggle "Es Coordinador / Jefe" activado en RH
+        if ($this->empleado?->es_coordinador) {
+            return true;
+        }
 
         return str_contains($posicion, 'coordinador')
             || str_contains($posicion, 'coordinadora')
