@@ -504,10 +504,7 @@ class ProyectoController extends Controller
         $user = Auth::user();
         $proyecto = Proyecto::findOrFail($id);
 
-        $esResponsable = $proyecto->usuario_id === $user->id ||
-            $proyecto->usuarios()->where('users.id', $user->id)->exists();
-
-        if (! $user->isRh() && ! $esResponsable) {
+        if (! $user->isRhCoordinador()) {
             abort(403, 'No tienes permiso para finalizar proyectos.');
         }
 

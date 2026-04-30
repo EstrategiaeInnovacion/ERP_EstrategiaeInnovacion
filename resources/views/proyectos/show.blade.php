@@ -6,7 +6,7 @@
 @php
     $esRh = $esRhCoordinador ?? $esRh ?? false;
     $esResponsableProyecto = $esResponsableProyecto ?? false;
-    $puedeFinalizarProyecto = $esRh || $esResponsableProyecto;
+    $puedeFinalizarProyecto = $esRhCoordinador ?? false;
 @endphp
 
 <div class="min-h-screen bg-slate-50/50 py-8">
