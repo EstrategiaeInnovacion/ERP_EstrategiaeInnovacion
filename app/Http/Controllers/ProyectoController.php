@@ -563,12 +563,16 @@ class ProyectoController extends Controller
         $metricas = $proyecto->metricas();
         $actividades = $proyecto->actividades()->with('user')->orderBy('fecha_compromiso')->get();
 
-        $html = view('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'))->render();
-
-        $pdf = Browsershot::html($html)->pdf();
-
-        return response($pdf)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="reporte-'.str_replace(' ', '-', $proyecto->nombre).'.pdf"');
+        try {
+            $html = view('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'))->render();
+            $pdf = Browsershot::html($html)->pdf();
+            return response($pdf)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="reporte-'.str_replace(' ', '-', $proyecto->nombre).'.pdf"');
+        } catch (\Exception $e) {
+            // Fallback to dompdf if Browsershot fails
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('proyectos.reporte_pdf', compact('proyecto', 'metricas', 'actividades', 'esRh'));
+            return $pdf->download('reporte-'.str_replace(' ', '-', $proyecto->nombre).'.pdf');
+        }
     }
 }
