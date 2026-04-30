@@ -69,6 +69,7 @@ class ProcesarAsistenciaService
                 $dayColumns = $this->mapDayColumns($sheet);
 
                 if (!$periodo || empty($dayColumns)) {
+                    Log::warning("Hoja omitida: {$sheetTitle}. Periodo detectado: " . ($periodo ? 'Sí' : 'No') . ". Columnas detectadas: " . (!empty($dayColumns) ? 'Sí' : 'No'));
                     continue;
                 }
 
@@ -229,9 +230,11 @@ class ProcesarAsistenciaService
     // (El resto de métodos helpers siguen igual: parsePeriodo, mapDayColumns, etc...)
     protected function parsePeriodo(Worksheet $sheet): ?array
     {
-        for ($row = 1; $row <= 50; $row++) {
+        for ($row = 1; $row <= 100; $row++) {
             $rowVals = $this->getRowValues($sheet, $row);
             $joined = implode(' ', $rowVals);
+            
+            // Formato YYYY/MM/DD ~ YYYY/MM/DD
             if (preg_match('/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s*[~-]\s*(?:(\d{4})[\/\-])?(\d{1,2})[\/\-](\d{1,2})/', $joined, $m)) {
                 try {
                     $year = (int)$m[1];
@@ -251,6 +254,17 @@ class ProcesarAsistenciaService
                     continue;
                 }
             }
+            // Formato DD/MM/YYYY ~ DD/MM/YYYY
+            elseif (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s*[~-]\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/', $joined, $m)) {
+                try {
+                    $start = Carbon::create((int)$m[3], (int)$m[2], (int)$m[1]);
+                    $end = Carbon::create((int)$m[6], (int)$m[5], (int)$m[4]);
+                    return ['inicio' => $start, 'fin' => $end];
+                }
+                catch (\Throwable $e) {
+                    continue;
+                }
+            }
         }
         return null;
     }
@@ -258,7 +272,7 @@ class ProcesarAsistenciaService
     protected function mapDayColumns(Worksheet $sheet): array
     {
         $highestCol = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
-        for ($row = 1; $row <= 30; $row++) {
+        for ($row = 1; $row <= 60; $row++) {
             $map = [];
             for ($col = 1; $col <= $highestCol; $col++) {
                 $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
@@ -293,12 +307,23 @@ class ProcesarAsistenciaService
 
     protected function construirFecha(array $periodo, int $day): Carbon
     {
-        $date = $periodo['inicio']->copy()->day($day);
-        if ($day < $periodo['inicio']->day)
-            $date->addMonth();
-        if ($periodo['inicio']->month == 12 && $date->month == 1)
-            $date->addYear();
-        return $date;
+        $year = $periodo['inicio']->year;
+        $month = $periodo['inicio']->month;
+        
+        // Si el día es menor al día de inicio, probablemente pertenece al mes siguiente
+        if ($day < $periodo['inicio']->day) {
+            $month++;
+            if ($month > 12) {
+                $month = 1;
+                $year++;
+            }
+        }
+        
+        // Evitar desbordamientos de días (ej. 31 en abril)
+        $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
+        $safeDay = min($day, $daysInMonth);
+
+        return Carbon::create($year, $month, $safeDay);
     }
 
     protected function buscarEmpleadoId(string $no, ?string $nombre): ?int
