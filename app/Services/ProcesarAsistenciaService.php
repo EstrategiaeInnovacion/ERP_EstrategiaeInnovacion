@@ -284,7 +284,7 @@ class ProcesarAsistenciaService
                     }
                 }
             }
-            if (count($map) >= 5)
+            if (count($map) >= 1)
                 return $map;
         }
         return [];
