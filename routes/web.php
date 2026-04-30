@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/proyectos/usuarios/lista', [App\Http\Controllers\ProyectoController::class, 'listaUsuarios'])->name('proyectos.listaUsuarios');
     Route::post('/proyectos/{id}/finalizar', [App\Http\Controllers\ProyectoController::class, 'finalizar'])->name('proyectos.finalizar');
     Route::get('/proyectos/{id}/reporte', [App\Http\Controllers\ProyectoController::class, 'reporte'])->name('proyectos.reporte');
+    Route::get('/proyectos/{id}/reporte/pdf', [App\Http\Controllers\ProyectoController::class, 'reportePdf'])->name('proyectos.reporte.pdf');
 
     // Actividades del Proyecto (vista dedicada)
     Route::get('/proyectos/{proyecto}/actividades', [App\Http\Controllers\ProyectoController::class, 'actividades'])->name('proyectos.actividades');

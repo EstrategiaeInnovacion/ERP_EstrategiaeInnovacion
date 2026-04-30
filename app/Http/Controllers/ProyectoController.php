@@ -543,4 +543,27 @@ class ProyectoController extends Controller
 
         return view('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
     }
+
+    public function reportePdf($id)
+    {
+        $user = Auth::user();
+        $esRh = $user->isRh();
+
+        $proyecto = Proyecto::with(['creador', 'usuarios', 'actividades.user'])->findOrFail($id);
+
+        $puedeVer = $esRh ||
+                    $proyecto->usuario_id === $user->id ||
+                    $proyecto->usuarios()->where('users.id', $user->id)->exists();
+
+        if (! $puedeVer) {
+            abort(403, 'No tienes acceso a este proyecto.');
+        }
+
+        $metricas = $proyecto->metricas();
+        $actividades = $proyecto->actividades()->with('user')->orderBy('fecha_compromiso')->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
+
+        return $pdf->download('reporte-' . str_replace(' ', '-', $proyecto->nombre) . '.pdf');
+    }
 }
