@@ -13,6 +13,7 @@
         "laravel/tinker": "^2.10.1",
         "phpoffice/phpspreadsheet": "*",
         "phpoffice/phpword": "^1.4",
+        "spatie/browsershot": "^5.3",
         "spatie/laravel-query-builder": "^6.4",
         "symfony/http-client": "^7.4",
         "symfony/microsoft-graph-mailer": "^7.4"
