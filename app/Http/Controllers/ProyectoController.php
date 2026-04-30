@@ -6,6 +6,7 @@ use App\Jobs\NotificarAsignacionProyecto;
 use App\Models\Empleado;
 use App\Models\Proyecto;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -562,7 +563,7 @@ class ProyectoController extends Controller
         $metricas = $proyecto->metricas();
         $actividades = $proyecto->actividades()->with('user')->orderBy('fecha_compromiso')->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
+        $pdf = Pdf::loadView('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
 
         return $pdf->download('reporte-' . str_replace(' ', '-', $proyecto->nombre) . '.pdf');
     }
