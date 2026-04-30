@@ -563,7 +563,7 @@ class ProyectoController extends Controller
         $metricas = $proyecto->metricas();
         $actividades = $proyecto->actividades()->with('user')->orderBy('fecha_compromiso')->get();
 
-        $pdf = Pdf::loadView('proyectos.reporte', compact('proyecto', 'metricas', 'actividades', 'esRh'));
+        $pdf = Pdf::loadView('proyectos.reporte_pdf', compact('proyecto', 'metricas', 'actividades', 'esRh'));
 
         return $pdf->download('reporte-' . str_replace(' ', '-', $proyecto->nombre) . '.pdf');
     }
