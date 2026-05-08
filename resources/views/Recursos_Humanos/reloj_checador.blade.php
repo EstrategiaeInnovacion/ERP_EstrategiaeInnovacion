@@ -7,6 +7,11 @@
 @endpush
 
 @section('content')
+    @php
+        $esSoloLectura = $esSoloLectura ?? false;
+        $rutaRelojListado = $esSoloLectura ? route('rh.reloj.equipo') : route('rh.reloj.index');
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -16,7 +21,7 @@
                 <p class="text-xs text-gray-500 mt-1">Gestión de entradas, salidas e incidencias del personal.</p>
             </div>
             <div class="flex gap-3">
-                @if(!($esSoloLectura ?? false))
+                @if(!$esSoloLectura)
                 <button onclick="abrirModalIncidencia()" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition shadow-sm">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Registrar Incidencia
@@ -54,7 +59,7 @@
                             </div>
                         </div>
                         <div class="bg-gray-50 px-6 py-4 flex justify-center gap-3">
-                            <a href="{{ route('rh.reloj.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                            <a href="{{ $rutaRelojListado }}" class="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                                 Limpiar filtros
                             </a>
                             <button type="button" @click="showNoResults = false" class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition">
@@ -147,12 +152,14 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 bg-white border-b border-gray-100 flex flex-col lg:flex-row justify-between items-center gap-4">
                     
-                    <button @click="openImport = !openImport" :class="{'bg-blue-50 text-blue-700 border-blue-100': openImport, 'bg-gray-50 text-gray-700 border-gray-200': !openImport}" class="flex items-center px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-200 w-full lg:w-auto justify-center lg:justify-start group">
-                        <svg class="w-5 h-5 mr-2 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        <span x-text="openImport ? 'Cerrar Importador' : 'Importar Archivo Excel'"></span>
-                    </button>
+                    @if(!$esSoloLectura)
+                        <button @click="openImport = !openImport" :class="{'bg-blue-50 text-blue-700 border-blue-100': openImport, 'bg-gray-50 text-gray-700 border-gray-200': !openImport}" class="flex items-center px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-200 w-full lg:w-auto justify-center lg:justify-start group">
+                            <svg class="w-5 h-5 mr-2 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <span x-text="openImport ? 'Cerrar Importador' : 'Importar Archivo Excel'"></span>
+                        </button>
+                    @endif
 
-                    <form method="GET" action="{{ route('rh.reloj.index') }}" class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
+                    <form method="GET" action="{{ $rutaRelojListado }}" class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
                         <div class="relative w-full sm:w-64">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -172,6 +179,7 @@
                 </div>
 
                 {{-- AREA DE CARGA (Importador) --}}
+                @if(!$esSoloLectura)
                 <div x-show="openImport" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-blue-50/50 border-b border-blue-100 p-6" style="display: none;">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
@@ -235,6 +243,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
             {{-- VISTA CENTRADA EN EL EMPLEADO (Employee-First) --}}
@@ -303,7 +312,7 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    @if(!($esSoloLectura ?? false))
+                                    @if(!$esSoloLectura)
                                         {{-- Botón de Aviso --}}
                                         <button onclick="abrirModalAviso({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', {{ $retardosEmp }}, {{ $faltasEmp }}, '{{ $fechaInicioFormato }} al {{ $fechaFinFormato }}')" class="inline-flex items-center px-3 py-1.5 bg-rose-50 border border-rose-300 rounded-lg text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-100 transition" title="Enviar aviso al empleado">
                                             <svg class="w-3.5 h-3.5 mr-1.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -319,13 +328,13 @@
                                         @endif
                                     @endif
 
-                                    @if(!($esSoloLectura ?? false))
+                                    @if(!$esSoloLectura)
                                     <button onclick="abrirModalAsistencia({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}')" class="inline-flex items-center px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Registrar Asistencia
                                     </button>
                                     @endif
-                                    @if(!($esSoloLectura ?? false))
+                                    @if(!$esSoloLectura)
                                     <button onclick="abrirModalIncidencia({{ $empleado->id }}, '{{ now()->toDateString() }}')" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
                                         <svg class="w-3.5 h-3.5 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Nueva Incidencia
@@ -385,12 +394,14 @@
                                         @endphp
                                         
 <div class="relative w-[130px] flex-shrink-0 rounded-lg border {{ $cardClass }} p-2.5 transition-all duration-200 hover:shadow-md cursor-pointer group/day"
-                                             @if($asistencia)
+                                             @if($asistencia && !$esSoloLectura)
                                                  onclick="abrirModalEdicion({{ $asistencia }})"
                                                  title="Click para editar"
-                                             @elseif(!($esSoloLectura ?? false))
+                                             @elseif(!$asistencia && !$esSoloLectura)
                                                  onclick="abrirModalJustificar({{ $empleado->id }}, '{{ addslashes($empleado->nombre) }}', '{{ $fechaObj->toDateString() }}', '{{ $fechaObj->translatedFormat('d M Y') }}')"
                                                  title="Click para justificar"
+                                             @elseif($asistencia)
+                                                 title="Solo lectura"
                                              @endif
                                          >
                                             <div class="flex justify-between items-center mb-2">
@@ -821,12 +832,14 @@
             }
         });
 
-        // Importador JS (Sin cambios)
-        document.getElementById('importForm').addEventListener('submit', function(e) {
+        const importForm = document.getElementById('importForm');
+        if (importForm) {
+        importForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
             const uniqueKey = 'import_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             formData.append('progress_key', uniqueKey);
+            const progressUrl = "{{ route('rh.reloj.import.progress', ['key' => '__KEY__']) }}".replace('__KEY__', encodeURIComponent(uniqueKey));
 
             // Agregar filtro de empleados seleccionados
             const filtroSelect = document.getElementById('empleadosFiltro');
@@ -850,7 +863,7 @@
             progressMessage.innerText = 'Iniciando...';
 
             let pollInterval = setInterval(() => {
-                fetch(`/recursos-humanos/reloj/progress/${uniqueKey}`)
+                fetch(progressUrl)
                     .then(r => r.json())
                     .then(status => {
                         let p = status.percent || 0;
@@ -891,6 +904,7 @@
                 btn.innerHTML = originalText;
             });
         });
+        }
 
         // Modales
         var currentRecordId = null;
@@ -911,9 +925,12 @@
         }
 
         // === AJAX: Guardar edición sin recargar la página ===
-        document.getElementById('formEdicion').addEventListener('submit', function(e) {
+        const formEdicion = document.getElementById('formEdicion');
+        if (formEdicion) {
+            formEdicion.addEventListener('submit', function(e) {
             e.preventDefault(); // fallback: por si algún input dispara submit
-        });
+            });
+        }
 
         function guardarEdicion() {
             const form = document.getElementById('formEdicion');
