@@ -21,17 +21,6 @@ class RelojChecadorImportController extends Controller
 {
     public function index(Request $request)
     {
-        // Si el usuario tiene subordinados y NO es dirección ni TI, redirigir a equipo
-        $user = auth()->user();
-        $miEmpleado = $user?->empleado;
-        if ($miEmpleado) {
-            $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
-            $esAdminGlobal = Str::contains($posicion, 'direcc') || Str::contains($posicion, ' ti') || $posicion === 'ti';
-            if (!$esAdminGlobal && $miEmpleado->subordinados()->where('es_activo', true)->exists()) {
-                return redirect()->route('rh.reloj.equipo', $request->query());
-            }
-        }
-
         // Configurar Carbon en español
         Carbon::setLocale('es');
 
