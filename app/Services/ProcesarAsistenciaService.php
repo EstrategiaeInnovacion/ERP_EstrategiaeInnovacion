@@ -162,6 +162,18 @@ class ProcesarAsistenciaService
                 $entrada = $horas[$i];
                 $salida = $horas[$i + 1] ?? null;
 
+                // Solo se procesa la primera entrada del día (par i=0) o entradas matutinas.
+                // Checadas adicionales (ej. re-scan al salir) ya están en el JSON `checadas`
+                // del primer registro y no deben generar un segundo registro con es_retardo=true.
+                if ($i > 0) {
+                    $entradaHora = Carbon::parse($entrada)->format('H:i:s');
+                    // Si la "entrada" del segundo par o posterior es después de las 13:00,
+                    // es un re-scan de salida/tarde, no una entrada real — ignorar.
+                    if ($entradaHora >= '13:00:00') {
+                        continue;
+                    }
+                }
+
                 $esRetardo = false;
                 if ($entrada) {
                     try {

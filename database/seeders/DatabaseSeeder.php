@@ -28,8 +28,6 @@ class DatabaseSeeder extends Seeder
             // InventarioSeeder::class, // Parece ser el viejo, revisa si debes usar este o el de abajo
             //MigracionExternaSeeder::class,
 
-            // 5. Operaciones (Depende de todo lo anterior)
-            OperacionLogisticaSeeder::class,
             SincronizarDatosNuevosSeeder::class,
         ]);
     }

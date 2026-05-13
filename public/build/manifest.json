@@ -1,7 +1,14 @@
 {
-  "_vendor-ZN7-Ibpq.js": {
-    "file": "assets/vendor-ZN7-Ibpq.js",
-    "name": "vendor"
+  "_vendor-BJGhN4YH.js": {
+    "file": "assets/vendor-BJGhN4YH.js",
+    "name": "vendor",
+    "css": [
+      "assets/vendor-CksuuEqD.css"
+    ]
+  },
+  "_vendor-CksuuEqD.css": {
+    "file": "assets/vendor-CksuuEqD.css",
+    "src": "_vendor-CksuuEqD.css"
   },
   "resources/css/Logistica/index.css": {
     "file": "assets/index-DAwJ79uZ.css",
@@ -26,7 +33,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BRo1CrpW.css",
+    "file": "assets/app-DwiltkLF.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -35,13 +42,13 @@
     ]
   },
   "resources/js/Logistica/index.js": {
-    "file": "assets/index-9sM7zwNa.js",
+    "file": "assets/index-Oj-RFknS.js",
     "name": "index",
     "src": "resources/js/Logistica/index.js",
     "isEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_vendor-ZN7-Ibpq.js"
+      "_vendor-BJGhN4YH.js"
     ]
   },
   "resources/js/Recursos_Humanos/index.js": {
@@ -63,12 +70,12 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BpWmiWz5.js",
+    "file": "assets/app-BHnQHaSJ.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_vendor-ZN7-Ibpq.js"
+      "_vendor-BJGhN4YH.js"
     ]
   }
 }

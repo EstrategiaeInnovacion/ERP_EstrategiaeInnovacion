@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Logistica;
 
 use App\Http\Controllers\Controller;
 use App\Models\Logistica\Cliente;
-use App\Models\Logistica\OperacionLogistica;
 use App\Models\Empleado;
 use App\Services\ClienteImportService;
 use Illuminate\Http\Request;
@@ -61,13 +60,9 @@ class ClienteController extends Controller
             return response()->json(['success' => true, 'clientes' => $query->get()]);
         }
 
-        // Si necesitas paginación para una vista
-        return view('Logistica.catalogos', [
+        return view('Logistica.clientes', [
             'clientes' => $query->paginate(15),
-            'agentesAduanales' => \App\Models\Logistica\AgenteAduanal::orderBy('agente_aduanal')->paginate(15),
-            'transportes' => \App\Models\Logistica\Transporte::orderBy('transporte')->paginate(15),
-            // Solo cargar estos si es Admin O Supervisor
-            'todosEjecutivos' => ($esAdmin || $esSupervisorLogistica) ?Empleado::where('es_activo', true)->orderBy('nombre')->get() : [],
+            'todosEjecutivos' => $esSupervisorLogistica ? Empleado::where('es_activo', 1)->whereRaw("LOWER(posicion) LIKE '%logistic%'")->orderBy('nombre')->get() : [],
             'esAdmin' => $esAdmin,
             'esSupervisorLogistica' => $esSupervisorLogistica,
             'equipo' => $equipo
@@ -152,13 +147,6 @@ class ClienteController extends Controller
     public function destroy($id)
     {
         $cliente = Cliente::findOrFail($id);
-
-        // Verificar uso en operaciones (por nombre, ya que no usas ID en operaciones)
-        $uso = OperacionLogistica::where('cliente', $cliente->cliente)->count();
-        if ($uso > 0) {
-            return response()->json(['success' => false, 'message' => "No se puede eliminar: tiene $uso operaciones asociadas."], 400);
-        }
-
         $cliente->delete();
         return response()->json(['success' => true, 'message' => 'Cliente eliminado']);
     }

@@ -15,9 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin'          => \App\Http\Middleware\AdminMiddleware::class,
             'sistemas_admin' => \App\Http\Middleware\SistemasAdminMiddleware::class,
-            'area.rh'        => \App\Http\Middleware\AreaRHMiddleware::class,
-            'area.logistica' => \App\Http\Middleware\AreaLogisticaMiddleware::class,
-            'area.legal'     => \App\Http\Middleware\AreaLegalMiddleware::class,
+            'area.rh'              => \App\Http\Middleware\AreaRHMiddleware::class,
+            'area.logistica'       => \App\Http\Middleware\AreaLogisticaMiddleware::class,
+            'area.legal'           => \App\Http\Middleware\AreaLegalMiddleware::class,
+            'area.anexo24'         => \App\Http\Middleware\AreaAnexo24Middleware::class,
+            'area.postoperaciones' => \App\Http\Middleware\AreaPostOperacionesMiddleware::class,
+            'area.auditoria'       => \App\Http\Middleware\AreaAuditoriaMiddleware::class,
             'api.key'        => \App\Http\Middleware\CheckApiKey::class,
         ]);
 

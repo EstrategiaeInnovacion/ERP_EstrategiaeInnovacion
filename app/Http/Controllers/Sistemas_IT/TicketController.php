@@ -894,6 +894,7 @@ class TicketController extends Controller
         $slots = MaintenanceSlot::active()
             ->where('date', '>=', now('America/Mexico_City')->toDateString())
             ->where('capacity', '>', DB::raw('booked_count'))
+            ->where('start_time', '!=', '14:00:00') // 2:00 PM reservado para comida
             ->orderBy('date')
             ->orderBy('start_time')
             ->get(['id', 'date', 'start_time', 'end_time', 'capacity', 'booked_count'])

@@ -10,17 +10,10 @@ use App\Http\Controllers\Legal\DigitalizacionController;
 use App\Http\Controllers\Legal\LegalController;
 use App\Http\Controllers\Legal\MatrizConsultaController;
 use App\Http\Controllers\Legal\PaginaLegalController;
-use App\Http\Controllers\Logistica\AgenteAduanalController;
 use App\Http\Controllers\Logistica\ClienteController;
-use App\Http\Controllers\Logistica\ColumnaVisibleController;
-use App\Http\Controllers\Logistica\LogisticaCorreoCCController;
-// --- Controllers de Recursos Humanos ---
-use App\Http\Controllers\Logistica\OperacionLogisticaController;
-use App\Http\Controllers\Logistica\PedimentoController;
-use App\Http\Controllers\Logistica\PostOperacionController;
-use App\Http\Controllers\Logistica\ReporteController;
+use App\Http\Controllers\Logistica\MatrizSeguimientoController;
 // --- Controllers de Legal ---
-use App\Http\Controllers\Logistica\TransporteController;
+use App\Http\Controllers\Logistica\MatrizApoyoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RH\CapacitacionController;
 use App\Http\Controllers\RH\ExpedienteController;
@@ -34,6 +27,13 @@ use App\Http\Controllers\Sistemas_IT\MaintenanceController;
 use App\Http\Controllers\Sistemas_IT\NotificationController;
 use App\Http\Controllers\Sistemas_IT\TicketController; // <--- AGREGADO
 use App\Http\Controllers\Users\UsersController; // <--- AGREGADO
+use App\Http\Controllers\Administracion\AdministracionController;
+use App\Http\Controllers\Administracion\ClienteAdminController;
+use App\Http\Controllers\Administracion\PerfilClienteController;
+use App\Http\Controllers\Anexo24\Anexo24Controller;
+use App\Http\Controllers\PostOperaciones\PostOperacionesPanelController;
+use App\Http\Controllers\Auditoria\AuditoriaController;
+use App\Http\Controllers\Shared\ClientesReadonlyController;
 use Illuminate\Support\Facades\Route;
 
 /* |-------------------------------------------------------------------------- | Web Routes |-------------------------------------------------------------------------- */
@@ -55,11 +55,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// Consulta pública Logística
-Route::controller(OperacionLogisticaController::class)->prefix('logistica/consulta-publica')->name('logistica.consulta-publica.')->group(function () {
-    Route::get('/', 'consultaPublica')->name('index');
-    Route::get('/buscar', 'buscarOperacionPublica')->name('buscar');
-});
 
 // 2. RUTAS DE AUTENTICACIÓN
 Route::middleware('guest')->group(function () {
@@ -73,6 +68,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 // 3. RUTAS GENERALES (Autenticadas)
 Route::middleware('auth')->group(function () {
+    // Digitalización de documentos (herramientas PDF) — disponible para todos
+    Route::get('/digitalizacion', [DigitalizacionController::class, 'index'])->name('digitalizacion.index');
+    Route::post('/digitalizacion/convertir', [DigitalizacionController::class, 'convert'])->name('digitalizacion.convert');
+    Route::post('/digitalizacion/validar', [DigitalizacionController::class, 'validatePdf'])->name('digitalizacion.validate');
+    Route::post('/digitalizacion/comprimir', [DigitalizacionController::class, 'compress'])->name('digitalizacion.compress');
+    Route::post('/digitalizacion/combinar', [DigitalizacionController::class, 'merge'])->name('digitalizacion.merge');
+    Route::post('/digitalizacion/extraer', [DigitalizacionController::class, 'extractImages'])->name('digitalizacion.extract');
+
     // Perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -177,138 +180,39 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
         return view('Logistica.index');
     }
     )->name('index');
-    Route::get('/matriz-seguimiento', [OperacionLogisticaController::class, 'index'])->name('matriz-seguimiento');
-
-    // --- API Configuración de Columnas por Ejecutivo ---
-    Route::prefix('columnas-config')->name('columnas-config.')->group(function () {
-        Route::get('/ejecutivos', [ColumnaVisibleController::class, 'getEjecutivos'])->name('ejecutivos');
-        Route::get('/ejecutivo/{empleadoId}', [ColumnaVisibleController::class, 'getConfiguracion'])->name('get');
-        Route::post('/guardar', [ColumnaVisibleController::class, 'guardarConfiguracion'])->name('guardar');
-        Route::post('/guardar-completa', [ColumnaVisibleController::class, 'guardarConfiguracionCompleta'])->name('guardar-completa');
-        // Rutas para configuración global (mostrar a todos)
-        Route::get('/global', [ColumnaVisibleController::class, 'getConfiguracionGlobal'])->name('global');
-        Route::post('/guardar-global', [ColumnaVisibleController::class, 'guardarConfiguracionGlobal'])->name('guardar-global');
-    }
-    );
-
-    // Operaciones
-    Route::resource('operaciones', OperacionLogisticaController::class);
-    Route::post('operaciones/recalcular-status', [OperacionLogisticaController::class, 'recalcularStatus'])->name('operaciones.recalcular');
-    Route::put('operaciones/{id}/status', [OperacionLogisticaController::class, 'updateStatus'])->name('operaciones.status');
-    Route::get('operaciones/{id}/historial', [OperacionLogisticaController::class, 'obtenerHistorial'])->name('operaciones.historial');
-
-    // Catálogos Básicos
-    Route::resource('clientes', ClienteController::class);
+    // Administrar Clientes — rutas estáticas primero para no colisionar con el resource
     Route::post('clientes/importar', [ClienteController::class, 'import'])->name('clientes.import');
     Route::post('clientes/asignar-ejecutivo', [ClienteController::class, 'asignarEjecutivo'])->name('clientes.asignar-ejecutivo');
     Route::delete('clientes/all/delete', [ClienteController::class, 'deleteAll'])->middleware('admin')->name('clientes.delete-all');
+    Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
 
-    Route::resource('agentes', AgenteAduanalController::class)->except(['index', 'create', 'edit', 'show']);
+    // Cuestionario clientes (solo lectura) — URL distinta para no colisionar con el resource
+    Route::get('/clientes/perfil', [ClientesReadonlyController::class, 'index'])->name('clientes.perfil');
 
-    Route::resource('transportes', TransporteController::class)->except(['index', 'create', 'edit', 'show']);
-    Route::get('transportes/por-tipo', [TransporteController::class, 'getByType'])->name('transportes.by-type');
+    // Matriz de Seguimiento
+    Route::get('/matriz-seguimiento', [MatrizSeguimientoController::class, 'index'])->name('matriz-seguimiento');
+    Route::post('/matriz-seguimiento', [MatrizSeguimientoController::class, 'store'])->name('matriz-seguimiento.store');
+    Route::put('/matriz-seguimiento/{seguimiento}', [MatrizSeguimientoController::class, 'update'])->name('matriz-seguimiento.update');
+    Route::patch('/matriz-seguimiento/{seguimiento}/completar', [MatrizSeguimientoController::class, 'completar'])->name('matriz-seguimiento.completar');
+    Route::delete('/matriz-seguimiento/{seguimiento}', [MatrizSeguimientoController::class, 'destroy'])->name('matriz-seguimiento.destroy');
+    Route::get('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'getComentarios'])->name('matriz-seguimiento.comentarios');
+    Route::post('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'storeComentario'])->name('matriz-seguimiento.comentarios.store');
 
-    // --- PEDIMENTOS (AGREGADO) ---
-    Route::controller(PedimentoController::class)->prefix('pedimentos')->name('pedimentos.')->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{id}', 'show')->name('show');
-        Route::delete('/{id}', 'destroy')->name('destroy');
-        Route::put('/{id}/estado-pago', 'updateEstadoPago')->name('update-estado');
-        Route::post('/marcar-pagados', 'marcarPagados')->name('marcar-pagados');
-        Route::get('/clave/{clave}', 'getPedimentosPorClave')->name('por-clave');
-        Route::post('/actualizar-individual', 'actualizarPedimento')->name('actualizar-individual');
-        Route::get('/monedas/list', 'getMonedas')->name('monedas');
-    }
-    );
-
-    // --- IMPORTACIÓN Y API DE PEDIMENTOS (PedimentoImportController) ---
-    Route::controller(\App\Http\Controllers\Logistica\PedimentoImportController::class)
-        ->prefix('pedimentos/gestion') // Prefijo URL
-        ->name('pedimentos.import.') // Prefijo Nombre: logistica.pedimentos.import.
-        ->group(function () {
-
-            // Esta es la ruta que te daba error: 'logistica.pedimentos.import.legacy'
-            Route::post('/importar-legacy', 'import')->name('legacy');
-
-            // Rutas API para gestión del catálogo (CRUD AJAX)
-            Route::get('/', 'index')->name('index'); // Listar JSON
-            Route::post('/', 'store')->name('store'); // Crear
-            Route::put('/{id}', 'update')->name('update'); // Editar
-            Route::delete('/{id}', 'destroy')->name('destroy'); // Eliminar
-            Route::delete('/limpiar-todo', 'clear')->name('clear'); // Truncate
-
-            // Selects dinámicos
-            Route::get('/categorias-list', 'getCategorias')->name('categorias');
-            Route::get('/subcategorias-list', 'getSubcategorias')->name('subcategorias');
-        }
-        );
-
-    // --- CORREOS CC ---
-    // 1. Ruta API específica (La que faltaba)
-    // Apuntamos al método index, asumiendo que detecta si es AJAX para devolver JSON
-    Route::get('correos-cc/api', [LogisticaCorreoCCController::class, 'index'])
-        ->name('correos-cc.api');
-
-    // 2. CRUD Estándar
-    Route::resource('correos-cc', LogisticaCorreoCCController::class);
-
-    // Post-Operaciones
-    Route::controller(PostOperacionController::class)->prefix('post-operaciones')->name('post-operaciones.')->group(function () {
-        Route::get('globales', 'indexGlobales')->name('globales');
-        Route::post('globales', 'storeGlobal')->name('store-global');
-        Route::put('globales/{id}', 'updateGlobal')->name('update-global');
-        Route::delete('globales/{id}', 'destroyGlobal')->name('destroy-global');
-        Route::get('operaciones/{id}', 'getByOperacion')->name('get-by-operacion');
-        Route::put('operaciones/{id}/actualizar', 'bulkUpdate')->name('bulk-update');
-    }
-    );
-
-    // Reportes
-    Route::controller(ReporteController::class)->prefix('reportes')->name('reportes.')->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/export', 'exportCSV')->name('export');
-        Route::get('/exportar-matriz', 'exportMatrizSeguimiento')->name('export-matriz');
-        Route::get('/export-excel', 'exportExcelProfesional')->name('export-excel');
-        Route::get('/resumen/exportar', 'exportResumenEjecutivo')->name('resumen.export');
-        Route::get('/pedimentos/exportar', [\App\Http\Controllers\Logistica\PedimentoController::class, 'exportCSV'])
-            ->name('pedimentos.export');
-        Route::post('/enviar-correo', 'enviarCorreo')->name('enviar-correo');
-    }
-    );
-
-    // --- VISTA GENERAL DE CATÁLOGOS (La que faltaba) ---
-    Route::get('/catalogos', [\App\Http\Controllers\Logistica\CatalogosController::class, 'index'])
-        ->name('catalogos');
-
-    // --- CAMPOS PERSONALIZADOS (Configuración) ---
-    Route::controller(\App\Http\Controllers\Logistica\CampoPersonalizadoController::class)
-        ->prefix('campos-personalizados')
-        ->name('campos-personalizados.')
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::post('/', 'store')->name('store');
-            Route::put('/{id}', 'update')->name('update');
-            Route::delete('/{id}', 'destroy')->name('destroy');
-            Route::put('/{id}/toggle-activo', 'toggleActivo')->name('toggle-activo');
-
-            // ESTA ES LA RUTA CRÍTICA QUE FALTA O FALLA:
-            Route::post('/valor', 'storeValor')->name('store-valor');
-
-            Route::get('/activos', 'getCamposActivos');
-            Route::get('/operacion/{id}/valores', 'getValoresOperacion');
-        }
-        );
-
-    // --- GESTIÓN DE EQUIPO (SUPERVISORES) ---
-    Route::controller(\App\Http\Controllers\Logistica\EquipoController::class)
-        ->prefix('equipo')->name('equipo.')
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::post('/', 'store')->name('store');
-            Route::delete('/{id}', 'destroy')->name('destroy');
-        }
-        );
+    // Matriz de Apoyo Operativo
+    Route::get('/matriz-apoyo', [MatrizApoyoController::class, 'index'])->name('matriz-apoyo');
+    Route::get('/matriz-apoyo/calificaciones', [MatrizApoyoController::class, 'calificaciones'])->name('matriz-apoyo.calificaciones');
+    Route::post('/matriz-apoyo/agentes', [MatrizApoyoController::class, 'storeAgente'])->name('matriz-apoyo.agentes.store');
+    Route::put('/matriz-apoyo/agentes/{agente}', [MatrizApoyoController::class, 'updateAgente'])->name('matriz-apoyo.agentes.update');
+    Route::delete('/matriz-apoyo/agentes/{agente}', [MatrizApoyoController::class, 'destroyAgente'])->name('matriz-apoyo.agentes.destroy');
+    Route::post('/matriz-apoyo/forwarders', [MatrizApoyoController::class, 'storeForwarder'])->name('matriz-apoyo.forwarders.store');
+    Route::put('/matriz-apoyo/forwarders/{forwarder}', [MatrizApoyoController::class, 'updateForwarder'])->name('matriz-apoyo.forwarders.update');
+    Route::delete('/matriz-apoyo/forwarders/{forwarder}', [MatrizApoyoController::class, 'destroyForwarder'])->name('matriz-apoyo.forwarders.destroy');
+    Route::post('/matriz-apoyo/navieras', [MatrizApoyoController::class, 'storeNaviera'])->name('matriz-apoyo.navieras.store');
+    Route::put('/matriz-apoyo/navieras/{naviera}', [MatrizApoyoController::class, 'updateNaviera'])->name('matriz-apoyo.navieras.update');
+    Route::delete('/matriz-apoyo/navieras/{naviera}', [MatrizApoyoController::class, 'destroyNaviera'])->name('matriz-apoyo.navieras.destroy');
+    Route::post('/matriz-apoyo/arrastres', [MatrizApoyoController::class, 'storeArrastre'])->name('matriz-apoyo.arrastres.store');
+    Route::put('/matriz-apoyo/arrastres/{arrastre}', [MatrizApoyoController::class, 'updateArrastre'])->name('matriz-apoyo.arrastres.update');
+    Route::delete('/matriz-apoyo/arrastres/{arrastre}', [MatrizApoyoController::class, 'destroyArrastre'])->name('matriz-apoyo.arrastres.destroy');
 });
 
 // 5. MÓDULO RECURSOS HUMANOS
@@ -423,16 +327,46 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
     Route::put('/programas/{id}', [PaginaLegalController::class, 'update'])->name('programas.update');
     Route::delete('/programas/{id}', [PaginaLegalController::class, 'destroy'])->name('programas.destroy');
 
-    // Digitalización de documentos (herramientas PDF)
-    Route::get('/digitalizacion', [DigitalizacionController::class, 'index'])->name('digitalizacion.index');
-    Route::post('/digitalizacion/convertir', [DigitalizacionController::class, 'convert'])->name('digitalizacion.convert');
-    Route::post('/digitalizacion/validar', [DigitalizacionController::class, 'validatePdf'])->name('digitalizacion.validate');
-    Route::post('/digitalizacion/comprimir', [DigitalizacionController::class, 'compress'])->name('digitalizacion.compress');
-    Route::post('/digitalizacion/combinar', [DigitalizacionController::class, 'merge'])->name('digitalizacion.merge');
-    Route::post('/digitalizacion/extraer', [DigitalizacionController::class, 'extractImages'])->name('digitalizacion.extract');
+    // Cuestionario clientes (solo lectura)
+    Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
 });
 
-// 6. MÓDULO SISTEMAS (ADMIN)
+// 8. MÓDULO ANEXO 24
+Route::middleware(['auth', 'verified', 'area.anexo24'])->prefix('anexo24')->name('anexo24.')->group(function () {
+    Route::get('/', [Anexo24Controller::class, 'dashboard'])->name('dashboard');
+    Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
+});
+
+// 9. MÓDULO POST-OPERACIONES
+Route::middleware(['auth', 'verified', 'area.postoperaciones'])->prefix('postoperaciones')->name('postoperaciones.')->group(function () {
+    Route::get('/', [PostOperacionesPanelController::class, 'dashboard'])->name('dashboard');
+    Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
+});
+
+// 10. MÓDULO AUDITORÍA
+Route::middleware(['auth', 'verified', 'area.auditoria'])->prefix('auditoria')->name('auditoria.')->group(function () {
+    Route::get('/', [AuditoriaController::class, 'dashboard'])->name('dashboard');
+    Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
+});
+
+// 6. MÓDULO ADMINISTRACIÓN
+Route::middleware(['auth', 'verified', 'admin'])->prefix('administracion')->name('administracion.')->group(function () {
+    Route::get('/', [AdministracionController::class, 'dashboard'])->name('dashboard');
+
+    // Clientes de Administración
+    Route::prefix('clientes')->name('clientes.')->group(function () {
+        Route::get('/', [ClienteAdminController::class, 'index'])->name('index');
+        Route::post('/', [ClienteAdminController::class, 'store'])->name('store');
+        Route::put('/{cliente}', [ClienteAdminController::class, 'update'])->name('update');
+        Route::delete('/{cliente}', [ClienteAdminController::class, 'destroy'])->name('destroy');
+
+        // Perfil / cuestionario
+        Route::get('/{cliente}/perfil', [PerfilClienteController::class, 'show'])->name('perfil');
+        Route::post('/{cliente}/perfil', [PerfilClienteController::class, 'upsert'])->name('perfil.guardar');
+    });
+});
+
+// 7. MÓDULO SISTEMAS (ADMIN)
 Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 

@@ -1,6 +1,12 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import flatpickr from 'flatpickr';
+import { Spanish } from 'flatpickr/dist/l10n/es.js';
+import 'flatpickr/dist/flatpickr.min.css';
+
+window.flatpickr = flatpickr;
+window.flatpickr.l10ns.es = Spanish;
 
 // Import component modules
 import { initNotificationDropdown } from './Sistemas_IT/components/notifications.js';

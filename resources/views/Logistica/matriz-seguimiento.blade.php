@@ -1,1049 +1,1178 @@
 @extends('layouts.erp')
-
-@section('title', 'Matriz de Seguimiento - Logística')
-
-@push('styles')
-    <style>
-        /* Estilos para la tabla con cabecera fija */
-        .table-container {
-            max-height: 75vh;
-            overflow: auto;
-            position: relative;
-        }
-        thead th {
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        /* La columna de acciones fija a la derecha */
-        .sticky-right {
-            position: sticky;
-            right: 0;
-            z-index: 25;
-            background-color: white;
-            box-shadow: -4px 0 8px -4px rgba(0,0,0,0.1);
-        }
-        
-        /* Scrollbar personalizado sutil */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-    </style>
-@endpush
-
-@push('scripts')
-    <script>
-        // Configuración global para el JS
-        window.token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        window.empleadoIdActual = {{ isset($empleadoActual) && $empleadoActual ? $empleadoActual->id : 'null' }};
-        // Columnas opcionales activas para el empleado actual (para mostrar/ocultar campos en modal)
-        window.columnasOpcionalesActivas = @json($columnasOpcionalesVisibles ?? []);
-    </script>
-    <script src="{{ asset('js/Logistica/matriz-seguimiento.js') }}?v={{ md5(time()) }}"></script>
-@endpush
+@section('title', 'Matriz de Seguimiento')
 
 @section('content')
-    <div class="min-h-screen bg-slate-50 pb-12">
-        <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
-            
-            {{-- Banner Preview (Solo visible para Admin en modo preview) --}}
-            @if(isset($modoPreview) && $modoPreview && isset($empleadoPreview))
-            <div class="bg-amber-100 border border-amber-200 rounded-2xl p-4 shadow-sm mb-6 flex items-center justify-between mt-6">
+<div class="min-h-screen bg-slate-50 pb-12">
+    <div class="max-w-[1600px] mx-auto sm:px-6 lg:px-8 space-y-6">
+
+        {{-- HEADER --}}
+        <div class="bg-white border-b border-slate-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                        <a href="{{ route('logistica.index') }}" class="hover:text-emerald-600 transition-colors">Panel Logística</a>
+                        <span>/</span>
+                        <span class="text-slate-700 font-medium">Matriz de Seguimiento</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900">Matriz de Seguimiento</h1>
+                    <p class="text-slate-500 mt-1 text-sm">Seguimiento y control del estado de operaciones de comercio exterior por cliente.</p>
+                </div>
                 <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    <div>
-                        <h3 class="font-bold text-amber-800">Modo Previsualización</h3>
-                        <p class="text-amber-700 text-sm">Viendo como: <strong>{{ $empleadoPreview->nombre }}</strong></p>
-                    </div>
-                </div>
-                <a href="{{ route('logistica.matriz-seguimiento') }}" class="text-sm bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">Salir</a>
-            </div>
-            @endif
-
-            {{-- 1. ENCABEZADO Y BOTONES --}}
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-6">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
-                        {{ !empty($verCompletadas) ? 'Apartado de Completadas' : 'Matriz de Seguimiento' }}
-                    </h1>
-                    <p class="text-slate-500 text-sm">
-                        {{ !empty($verCompletadas) ? 'Operaciones finalizadas para consulta histórica.' : 'Gestión operativa y control de tiempos logísticos.' }}
-                    </p>
-                    <div class="mt-3 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-                        <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->except(['page', 'ver_completadas', 'filter.status']), ['ver_completadas' => 0])) }}"
-                           class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ empty($verCompletadas) ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                            Matriz Activa
-                        </a>
-                        <a href="{{ route('logistica.matriz-seguimiento', array_merge(request()->except(['page', 'ver_completadas', 'filter.status']), ['ver_completadas' => 1])) }}"
-                           class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ !empty($verCompletadas) ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            {{ isset($esAdmin) && $esAdmin ? 'Todas las Completadas' : 'Mis Completadas' }}
-                            @if(($conteoCompletadas ?? 0) > 0)
-                                <span class="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ !empty($verCompletadas) ? 'bg-white/30 text-white' : 'bg-emerald-100 text-emerald-700' }}">{{ $conteoCompletadas }}</span>
-                            @endif
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="flex flex-wrap gap-3">
-                    @if(empty($verCompletadas))
-                    <button onclick="abrirModal()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Nueva Operación
+                    <input type="text" id="buscar-seguimiento"
+                           placeholder="Buscar en la tabla..."
+                           oninput="filtrarSeguimiento()"
+                           class="text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-56">
+                    <button onclick="abrirModal()"
+                            class="flex items-center gap-1.5 px-4 py-2 text-white font-bold text-sm rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                            style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Nuevo Registro
                     </button>
-                    @endif
-
-                    {{-- Botón Exportar preservando filtros actuales --}}
-                    <a href="{{ route('logistica.reportes.export-matriz', request()->query()) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Exportar Excel
-                    </a>
-
-                    @if(isset($esAdmin) && $esAdmin)
-                    <button onclick="abrirModalCamposPersonalizados()" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        Configurar
-                    </button>
-                    @endif
-                </div>
-            </div>
-
-            {{-- 2. FILTROS RÁPIDOS (Actualizado para Spatie Query Builder) --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <form method="GET" action="{{ route('logistica.matriz-seguimiento') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 items-end">
-                    <input type="hidden" name="ver_completadas" value="{{ !empty($verCompletadas) ? 1 : 0 }}">
-                    
-                    {{-- Preservar el ordenamiento al filtrar --}}
-                    @if(request('sort'))
-                        <input type="hidden" name="sort" value="{{ request('sort') }}">
-                    @endif
-
-                    {{-- Filtro Búsqueda General --}}
-                    <div class="col-span-1 md:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Buscar</label>
-                        <div class="relative">
-                            <input type="text" name="filter[search]" value="{{ request('filter.search') }}" placeholder="Folio, Cliente, Pedimento..." class="w-full pl-10 pr-4 py-2 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Filtro Cliente --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cliente</label>
-                        <select name="filter[cliente]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                            <option value="todos">Todos</option>
-                            @foreach($clientes as $cliente)
-                                <option value="{{ $cliente->id }}" {{ request('filter.cliente') == $cliente->id ? 'selected' : '' }}>
-                                    {{ $cliente->cliente }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Filtro Ejecutivo: solo visible para admin --}}
-                    @if(isset($esAdmin) && $esAdmin)
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Ejecutivo</label>
-                        <select name="filter[ejecutivo]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                            <option value="todos">Todos</option>
-                            @foreach($empleados ?? [] as $ejecutivo)
-                                <option value="{{ $ejecutivo->nombre }}" {{ request('filter.ejecutivo') == $ejecutivo->nombre ? 'selected' : '' }}>
-                                    {{ $ejecutivo->nombre }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-
-                    {{-- Filtro Status --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>
-                        <select name="filter[status]" class="w-full rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                            <option value="todos">Todos</option>
-                            <option value="In Process" {{ request('filter.status') == 'In Process' ? 'selected' : '' }}>En Proceso</option>
-                            @if(!empty($verCompletadas))
-                                <option value="Done" {{ request('filter.status') == 'Done' ? 'selected' : '' }}>Completado</option>
-                            @endif
-                            <option value="Out of Metric" {{ request('filter.status') == 'Out of Metric' ? 'selected' : '' }}>Fuera Métrica</option>
-                        </select>
-                    </div>
-
-                    {{-- Botones de Acción --}}
-                    <div class="flex gap-2">
-                        <button type="submit" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-3 rounded-xl transition-colors text-sm">
-                            Filtrar
-                        </button>
-                        <a href="{{ route('logistica.matriz-seguimiento') }}" class="flex items-center justify-center px-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl transition-colors" title="Limpiar Filtros">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </a>
-                    </div>
-                </form>
-            </div>
-
-            {{-- 3. BANNER INFORMATIVO (solo en vista de completadas) --}}
-            @if(!empty($verCompletadas))
-            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-4 -mb-2">
-                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-emerald-800">
-                        @if(isset($esAdmin) && $esAdmin)
-                            Historial global de operaciones completadas
-                        @else
-                            Mis operaciones completadas — {{ isset($empleadoActual) ? $empleadoActual->nombre : 'Ejecutivo' }}
-                        @endif
-                    </p>
-                    <p class="text-xs text-emerald-600">
-                        {{ $conteoCompletadas ?? 0 }} {{ ($conteoCompletadas ?? 0) == 1 ? 'operación finalizada' : 'operaciones finalizadas' }} · Solo lectura histórica
-                    </p>
-                </div>
-            </div>
-            @endif
-
-            {{-- 3. TABLA PRINCIPAL --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden {{ !empty($verCompletadas) ? 'border-emerald-200' : '' }}">
-                <div class="table-container custom-scrollbar">
-                    <table class="w-full text-sm text-left text-slate-600">
-                        <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-wider">
-                            <tr>
-                                {{-- COLUMNAS ORDENADAS (Predeterminadas + Opcionales en su posición) --}}
-                                @foreach($columnasOrdenadas ?? [] as $colInfo)
-                                    @php
-                                        $esOpcional = ($colInfo['tipo'] ?? 'predeterminada') === 'opcional';
-                                        $headerClass = $esOpcional 
-                                            ? 'bg-slate-200 border-b border-slate-300 text-slate-600' 
-                                            : 'bg-slate-50 border-b border-slate-200';
-                                    @endphp
-                                    <th class="px-3 py-3 {{ $headerClass }} whitespace-nowrap text-xs">
-                                        {{ $colInfo['nombre'] }}
-                                        @if($esOpcional)
-                                            <span class="ml-1 text-slate-400 text-[9px]">●</span>
-                                        @endif
-                                    </th>
-                                @endforeach
-                                
-                                {{-- Columnas Dinámicas (Campos Personalizados) --}}
-                                @foreach($camposPersonalizados ?? [] as $campo)
-                                    <th class="px-3 py-3 bg-indigo-50 border-b border-indigo-100 whitespace-nowrap text-indigo-700 text-xs">{{ Str::limit($campo->nombre, 15) }}</th>
-                                @endforeach
-                                
-                                <th class="px-3 py-3 bg-slate-50 border-b border-slate-200 text-right sticky-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse ($operaciones as $op)
-                                <tr class="hover:bg-slate-50 transition-colors group">
-                                    @foreach($columnasOrdenadas ?? [] as $colInfo)
-                                        @php
-                                            $columna = $colInfo['columna'];
-                                            $esOpcional = ($colInfo['tipo'] ?? 'predeterminada') === 'opcional';
-                                            $cellClass = $esOpcional ? 'bg-slate-100/50' : '';
-                                        @endphp
-                                        <td class="px-3 py-2.5 text-xs {{ $cellClass }}">
-                                            @switch($columna)
-                                                @case('id')
-                                                    <span class="font-bold text-slate-900">#{{ $op->id }}</span>
-                                                    @break
-                                                @case('cliente')
-                                                    <div class="font-medium text-slate-800 truncate max-w-[150px]" title="{{ $op->cliente }}">
-                                                        {{ Str::limit($op->cliente, 20) }}
-                                                    </div>
-                                                    @break
-                                                @case('operacion')
-                                                    <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold {{ $op->operacion == 'IMPORTACION' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700' }}">
-                                                        {{ substr($op->operacion, 0, 3) }}
-                                                        </span>
-                                                        @break
-                                                    @case('tipo_operacion_enum')
-                                                        <span class="text-slate-500">{{ $op->tipo_operacion_enum ?? '--' }}</span>
-                                                        @break
-                                                    @case('status')
-                                                        @php
-                                                            $status = $op->status_manual ?: $op->status_calculado;
-                                                            $colorClass = match($status) {
-                                                                'Done' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                                                                'Out of Metric' => 'bg-rose-100 text-rose-700 border-rose-200',
-                                                                default => 'bg-amber-100 text-amber-700 border-amber-200'
-                                                            };
-                                                        @endphp
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border {{ $colorClass }}">
-                                                            {{ $status ?? 'In Process' }}
-                                                        </span>
-                                                        @break
-                                                    @case('ejecutivo')
-                                                        <div class="flex items-center gap-1">
-                                                            <div class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold">
-                                                                {{ substr($op->ejecutivo ?? 'U', 0, 1) }}
-                                                            </div>
-                                                            <span class="truncate max-w-[80px]">{{ Str::limit($op->ejecutivo, 12) ?? 'N/A' }}</span>
-                                                        </div>
-                                                        @break
-                                                    @case('fecha_embarque')
-                                                    @case('fecha_arribo_aduana')
-                                                    @case('fecha_modulacion')
-                                                    @case('fecha_arribo_planta')
-                                                    @case('fecha_etd')
-                                                    @case('fecha_zarpe')
-                                                        {{ $op->$columna ? $op->$columna->format('d/m/y') : '--' }}
-                                                        @break
-                                                    @case('post_operaciones')
-                                                        @php
-                                                            $totalPost = $op->postOperaciones->count();
-                                                            $completas = $op->postOperaciones->where('status', 'Completado')->count();
-                                                            $porcentaje = $totalPost > 0 ? ($completas / $totalPost) * 100 : 0;
-                                                            $barColor = $porcentaje == 100 ? 'bg-emerald-500' : ($porcentaje > 0 ? 'bg-blue-500' : 'bg-slate-300');
-                                                        @endphp
-                                                        <button onclick="verPostOperaciones({{ $op->id }})" class="group w-full max-w-[80px]" title="Gestionar Checklist">
-                                                            <div class="flex justify-between text-[9px] font-bold text-slate-600 mb-0.5">
-                                                                <span>{{ $completas }}/{{ $totalPost }}</span>
-                                                            </div>
-                                                            <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                                                                <div class="{{ $barColor }} h-1.5 rounded-full" style="width: {{ $porcentaje }}%"></div>
-                                                            </div>
-                                                        </button>
-                                                        @break
-                                                    @case('pedimento_en_carpeta')
-                                                        @if($op->pedimento_en_carpeta)
-                                                            <span class="text-emerald-600">✓</span>
-                                                        @else
-                                                            <span class="text-slate-400">○</span>
-                                                        @endif
-                                                        @break
-                                                    @case('resultado')
-                                                    @case('target')
-                                                    @case('dias_transito')
-                                                        <span class="font-mono">{{ $op->$columna ?? '--' }}</span>
-                                                        @break
-                                                    @case('comentarios')
-                                                        <button onclick="verComentarios({{ $op->id }})" class="text-slate-400 hover:text-blue-600" title="{{ $op->comentarios }}">
-                                                            @if($op->comentarios)
-                                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6l-4 4V5z"></path></svg>
-                                                            @else
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                                                            @endif
-                                                        </button>
-                                                        @break
-                                                    @default
-                                                        <span class="truncate max-w-[100px] block" title="{{ $op->$columna }}">{{ Str::limit($op->$columna, 15) ?? '--' }}</span>
-                                                @endswitch
-                                            </td>
-                                    @endforeach
-
-                                    {{-- Campos Personalizados --}}
-                                    @foreach($camposPersonalizados ?? [] as $campo)
-                                        <td class="px-3 py-2.5 text-xs bg-indigo-50/30">
-                                            @include('Logistica.partials.campo-personalizado-celda', [
-                                                'operacion' => $op, 
-                                                'campo' => $campo, 
-                                                'valorCampo' => $valoresMap[$op->id][$campo->id] ?? null
-                                            ])
-                                        </td>
-                                    @endforeach
-
-                                    {{-- Acciones --}}
-                                    <td class="px-3 py-2.5 text-right sticky-right group-hover:bg-slate-50">
-                                        <div class="flex justify-end gap-1">
-                                            <button onclick="verHistorial({{ $op->id }})" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Historial">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            </button>
-                                            <button onclick="editarOperacion({{ $op->id }})" class="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Editar">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="50" class="px-6 py-12 text-center text-slate-400">
-                                        No se encontraron operaciones con los filtros seleccionados.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                {{-- Paginación manteniendo filtros --}}
-                <div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
-                    {{ $operaciones->links() }}
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- ========================================================= --}}
-    {{-- SECCIÓN DE MODALES (Mantenida intacta) --}}
-    {{-- ========================================================= --}}
-
-    <div id="modalOperacion" class="modal-overlay fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-6 border-b border-slate-100">
-                <h3 class="text-xl font-bold text-slate-800" id="modalTitle">Nueva Operación</h3>
-                <button onclick="cerrarModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+        {{-- FILTER BAR --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
+            @if($esCoordinador)
+            {{-- Coordinador: filtro server-side por cliente o ejecutivo --}}
+            <form method="GET" action="{{ route('logistica.matriz-seguimiento') }}" class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Filtrar por cliente</label>
+                    <select name="filtro_cliente"
+                            class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-[180px]">
+                        <option value="">— Todos los clientes —</option>
+                        @foreach($todosClientes as $c)
+                            <option value="{{ $c }}" {{ $filtroCliente === $c ? 'selected' : '' }}>{{ $c }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Filtrar por ejecutivo</label>
+                    <select name="filtro_ejecutivo"
+                            class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-[180px]">
+                        <option value="">— Solo mis operaciones —</option>
+                        @foreach($ejecutivos as $ej)
+                            <option value="{{ $ej->user_id }}" {{ $filtroEjecutivo == $ej->user_id ? 'selected' : '' }}>{{ $ej->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit"
+                        class="px-4 py-2 rounded-xl text-white font-bold text-sm transition shadow-sm hover:shadow-md"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">Aplicar filtro</button>
+                @if($filtroCliente || $filtroEjecutivo)
+                    <a href="{{ route('logistica.matriz-seguimiento') }}"
+                       class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">Limpiar</a>
+                    <span class="text-xs text-slate-500 self-center">
+                        Mostrando resultados filtrados
+                        @if($filtroCliente) &mdash; cliente: <strong>{{ $filtroCliente }}</strong>@endif
+                        @if($filtroEjecutivo) &mdash; ejecutivo: <strong>{{ $ejecutivos->firstWhere('user_id', $filtroEjecutivo)?->nombre ?? 'ID '.$filtroEjecutivo }}</strong>@endif
+                    </span>
+                @endif
+            </form>
+            @else
+            {{-- Ejecutivo: filtro client-side por mis clientes --}}
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Mis Clientes</label>
+                    <select id="filtro-mis-clientes" onchange="filtrarPorCliente()"
+                            class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-[200px]">
+                        <option value="">— Todos mis clientes —</option>
+                        @foreach($misClientes as $c)
+                            <option value="{{ mb_strtolower($c, 'UTF-8') }}">{{ $c }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar">
-                <form id="formOperacion" class="space-y-6">
-                    @csrf
-                    <input type="hidden" id="operacionId" name="operacion_id">
-                    <input type="hidden" id="isEditing" name="_method">
-                    
-                    {{-- Sección 1: Información Principal --}}
-                    <div class="bg-slate-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            Información Principal
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Tipo de Operación *</label>
-                                <select name="operacion" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="IMPORTACION">Importación</option>
-                                    <option value="EXPORTACION">Exportación</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Medio de Transporte</label>
-                                <select name="tipo_operacion_enum" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="Terrestre">Terrestre</option>
-                                    <option value="Aerea">Aérea</option>
-                                    <option value="Maritima">Marítima</option>
-                                    <option value="Ferrocarril">Ferrocarril</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Ejecutivo Asignado *</label>
-                                <select name="ejecutivo" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    @foreach($empleados ?? [] as $emp)
-                                        <option value="{{ $emp->nombre }}">{{ $emp->nombre }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Cliente *</label>
-                                <select name="cliente" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar cliente...</option>
-                                    @foreach($clientes ?? [] as $cli)
-                                        <option value="{{ $cli->cliente }}">{{ $cli->cliente }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Proveedor o Cliente (Destino/Origen)</label>
-                                <input type="text" name="proveedor_o_cliente" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Nombre del proveedor o destinatario">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Proveedor</label>
-                                <input type="text" name="proveedor" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Nombre del proveedor">
-                            </div>
-                        </div>
-                    </div>
+            @endif
+        </div>
 
-                    {{-- Sección 2: Referencias y Documentos --}}
-                    <div class="bg-blue-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            Referencias y Documentos
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Referencia Cliente</label>
-                                <input type="text" name="referencia_cliente" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="REF-001">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Referencia Interna</label>
-                                <input type="text" name="referencia_interna" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="INT-001">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Clave</label>
-                                <input type="text" name="clave" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Clave de pedimento">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">No. de Factura</label>
-                                <input type="text" name="no_factura" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="FAC-12345">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">No. Pedimento</label>
-                                <input type="text" name="no_pedimento" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="25 XX XXXX XXXXXXX">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Guía / BL</label>
-                                <input type="text" name="guia_bl" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Tracking o B/L">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Asunto de Correo</label>
-                                <input type="text" name="mail_subject" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Subject email">
-                            </div>
-                            <div class="flex items-center pt-4">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="pedimento_en_carpeta" value="1" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-xs text-slate-600">Pedimento en Carpeta</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Sección 3: Agente Aduanal y Aduana --}}
-                    <div class="bg-amber-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                            Aduana y Agente Aduanal
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Aduana</label>
-                                <select name="aduana" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    @foreach($aduanas ?? [] as $aduana)
-                                        <option value="{{ $aduana->aduana }}">{{ $aduana->aduana }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Agente Aduanal</label>
-                                <select name="agente_aduanal" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    @foreach($agentesAduanales ?? [] as $agente)
-                                        <option value="{{ $agente->agente_aduanal }}">{{ $agente->agente_aduanal }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Referencia A.A</label>
-                                <input type="text" name="referencia_aa" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Ref. del agente">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Transporte</label>
-                                <select name="transporte" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    @foreach($transportes ?? [] as $trans)
-                                        <option value="{{ $trans->transporte }}">{{ $trans->transporte }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Sección 4: Fechas --}}
-                    <div class="bg-green-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            Fechas
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha ETD</label>
-                                <input type="date" name="fecha_etd" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha de Zarpe</label>
-                                <input type="date" name="fecha_zarpe" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha de Embarque</label>
-                                <input type="date" name="fecha_embarque" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha Arribo Aduana</label>
-                                <input type="date" name="fecha_arribo_aduana" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha Salida Aduana (Modulación)</label>
-                                <input type="date" name="fecha_modulacion" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha Arribo Planta</label>
-                                <input type="date" name="fecha_arribo_planta" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Sección 5: Información Adicional (Solo campos opcionales activos) --}}
-                    @php
-                        $columnasOpcionalesActivas = $columnasOpcionalesVisibles ?? [];
-                        $tieneOpcionalesActivos = count($columnasOpcionalesActivas) > 0;
-                    @endphp
-                    
-                    @if($tieneOpcionalesActivos)
-                    <div class="bg-purple-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                            Información Adicional
-                            <span class="text-xs text-slate-400 font-normal">(Campos personalizados)</span>
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            @if(in_array('tipo_carga', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Tipo de Carga</label>
-                                <select name="tipo_carga" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="FCL">FCL (Full Container)</option>
-                                    <option value="LCL">LCL (Less Container)</option>
-                                    <option value="FTL">FTL (Full Truck)</option>
-                                    <option value="LTL">LTL (Less Truck)</option>
-                                    <option value="Bulk">Bulk / Granel</option>
-                                </select>
-                            </div>
+        {{-- TABLE --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg">Operaciones Activas</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ $registros->count() }} registro(s)</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" style="min-width: 1800px;">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMPO / EX</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Transporte</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Aduana</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Clave</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Pedimento</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">BL / Guía</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETD</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETA</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Previo</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cita de Despacho</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Arribo a Planta</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Resultado</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Comentarios</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Indicadores</th>
+                            @if($esCoordinador)
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ejecutivo</th>
                             @endif
-                            @if(in_array('tipo_incoterm', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Incoterm</label>
-                                <select name="tipo_incoterm" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="EXW">EXW - Ex Works</option>
-                                    <option value="FCA">FCA - Free Carrier</option>
-                                    <option value="FAS">FAS - Free Alongside Ship</option>
-                                    <option value="FOB">FOB - Free on Board</option>
-                                    <option value="CFR">CFR - Cost and Freight</option>
-                                    <option value="CIF">CIF - Cost, Insurance & Freight</option>
-                                    <option value="CPT">CPT - Carriage Paid To</option>
-                                    <option value="CIP">CIP - Carriage & Insurance Paid</option>
-                                    <option value="DAP">DAP - Delivered at Place</option>
-                                    <option value="DPU">DPU - Delivered at Place Unloaded</option>
-                                    <option value="DDP">DDP - Delivered Duty Paid</option>
-                                </select>
-                            </div>
-                            @endif
-                            @if(in_array('puerto_salida', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Puerto de Salida</label>
-                                <input type="text" name="puerto_salida" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Puerto/Aeropuerto origen">
-                            </div>
-                            @endif
-                            @if(in_array('in_charge', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Responsable (In Charge)</label>
-                                <input type="text" name="in_charge" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Nombre responsable">
-                            </div>
-                            @endif
-                            @if(in_array('tipo_previo', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Modalidad/Previo</label>
-                                <select name="tipo_previo" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="Directo">Directo</option>
-                                    <option value="Previo">Previo</option>
-                                    <option value="Consolidado">Consolidado</option>
-                                </select>
-                            </div>
-                            @endif
-                            @if(in_array('proveedor', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Proveedor</label>
-                                <input type="text" name="proveedor" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Nombre del proveedor">
-                            </div>
-                            @endif
-                            @if(in_array('fecha_etd', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha ETD</label>
-                                <input type="date" name="fecha_etd" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            @endif
-                            @if(in_array('fecha_zarpe', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Fecha de Zarpe</label>
-                                <input type="date" name="fecha_zarpe" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                            </div>
-                            @endif
-                            @if(in_array('pedimento_en_carpeta', $columnasOpcionalesActivas))
-                            <div class="flex items-center pt-4">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="pedimento_en_carpeta" value="1" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-xs text-slate-600">Pedimento en Carpeta</span>
-                                </label>
-                            </div>
-                            @endif
-                            @if(in_array('referencia_cliente', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Referencia Cliente</label>
-                                <input type="text" name="referencia_cliente" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="REF-001">
-                            </div>
-                            @endif
-                            @if(in_array('mail_subject', $columnasOpcionalesActivas))
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Asunto de Correo</label>
-                                <input type="text" name="mail_subject" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Subject email">
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    @endif
-
-                    {{-- Sección 6: Campos Personalizados Dinámicos (de BD) --}}
-                    @if(isset($camposPersonalizados) && count($camposPersonalizados) > 0)
-                    <div class="bg-cyan-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                            Campos Adicionales
-                            <span class="text-xs text-slate-400 font-normal">(Personalizados)</span>
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="campos-personalizados-dinamicos">
-                            @foreach($camposPersonalizados as $campo)
-                                @if($campo->activo)
-                                <div>
-                                    <label class="block text-xs font-medium mb-1 text-slate-600">
-                                        {{ $campo->nombre }}
-                                        @if($campo->requerido)<span class="text-red-500">*</span>@endif
-                                    </label>
-                                    
-                                    @switch($campo->tipo)
-                                        @case('texto')
-                                        @case('email')
-                                        @case('telefono')
-                                        @case('url')
-                                            <input type="{{ $campo->tipo === 'email' ? 'email' : ($campo->tipo === 'telefono' ? 'tel' : ($campo->tipo === 'url' ? 'url' : 'text')) }}" 
-                                                name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                            @break
-                                        
-                                        @case('descripcion')
-                                            <textarea name="campo_{{ $campo->id }}" rows="2" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}></textarea>
-                                            @break
-                                        
-                                        @case('numero')
-                                            <input type="number" name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                            @break
-                                        
-                                        @case('decimal')
-                                        @case('moneda')
-                                            <input type="number" step="0.01" name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                            @break
-                                        
-                                        @case('fecha')
-                                            <input type="date" name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                            @break
-                                        
-                                        @case('booleano')
-                                            <div class="flex items-center pt-1">
-                                                <label class="flex items-center gap-2 cursor-pointer">
-                                                    <input type="checkbox" name="campo_{{ $campo->id }}" value="1" 
-                                                        class="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
-                                                    <span class="text-sm text-slate-600">Sí</span>
-                                                </label>
-                                            </div>
-                                            @break
-                                        
-                                        @case('selector')
-                                            <select name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                                <option value="">Seleccionar...</option>
-                                                @if($campo->opciones)
-                                                    @foreach($campo->opciones as $opcion)
-                                                        <option value="{{ $opcion }}">{{ $opcion }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
-                                            @break
-                                        
-                                        @case('multiple')
-                                            <div class="space-y-1 p-2 border rounded-lg bg-white max-h-32 overflow-y-auto">
-                                                @if($campo->opciones)
-                                                    @foreach($campo->opciones as $opcion)
-                                                        <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
-                                                            <input type="checkbox" name="campo_{{ $campo->id }}[]" value="{{ $opcion }}" 
-                                                                class="rounded border-slate-300 text-cyan-600">
-                                                            <span>{{ $opcion }}</span>
-                                                        </label>
-                                                    @endforeach
-                                                @endif
-                                            </div>
-                                            @break
-                                        
-                                        @default
-                                            <input type="text" name="campo_{{ $campo->id }}" 
-                                                class="w-full rounded-lg border-slate-300 focus:border-cyan-500 text-sm"
-                                                {{ $campo->requerido ? 'required' : '' }}>
-                                    @endswitch
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-seguimiento" class="divide-y divide-slate-100">
+                        @forelse($registros as $reg)
+                        @php
+                            $searchStr = mb_strtolower(implode(' ', array_filter([
+                                $reg->ref_interna, $reg->proveedor_cliente, $reg->factura,
+                                $reg->impo_ex, $reg->tipo_operacion, $reg->transporte,
+                                $reg->aduana, $reg->clave, $reg->pedimento, $reg->bl_guia,
+                                $reg->status, $reg->resultado, $reg->target, $reg->comentarios,
+                                $reg->user?->name,
+                            ])));
+                            $esMia = $esCoordinador && ($reg->user_id === $miUserId);
+                        @endphp
+                        <tr class="seg-row transition-colors {{ $esMia ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
+                            data-row-id="{{ $reg->id }}"
+                            data-search="{{ $searchStr }}">
+                            <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">
+                                <div class="flex items-center gap-1.5">
+                                    @if($esMia)
+                                        <span title="Mi operación" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 flex-shrink-0">
+                                            <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                    @endif
+                                    {{ $reg->ref_interna ?? '—' }}
                                 </div>
+                            </td>
+                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->proveedor_cliente ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->impo_ex === 'IMPO')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">IMPO</span>
+                                @elseif($reg->impo_ex === 'EX')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">EX</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
                                 @endif
-                            @endforeach
-                        </div>
+                            </td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->tipo_operacion ?? '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->transporte)
+                                    <button data-id="{{ $reg->id }}" onclick="verTransporte(Number(this.dataset.id))"
+                                            class="inline-flex items-center gap-1.5 text-sm text-emerald-700 font-semibold hover:underline focus:outline-none">
+                                        {{ $reg->transporte }}
+                                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->aduana ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->clave ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->pedimento ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->bl_guia ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->etd ? $reg->etd->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->eta ? $reg->eta->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->previo ? $reg->previo->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->cita_despacho ? $reg->cita_despacho->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->arribo_planta ? $reg->arribo_planta->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @php
+                                    $statusColors = [
+                                        'Pendiente'          => 'bg-slate-100 text-slate-600',
+                                        'En Tránsito'        => 'bg-blue-100 text-blue-700',
+                                        'En Aduana'          => 'bg-yellow-100 text-yellow-700',
+                                        'Previo Programado'  => 'bg-purple-100 text-purple-700',
+                                        'Cita Programada'    => 'bg-indigo-100 text-indigo-700',
+                                        'Despachado'         => 'bg-cyan-100 text-cyan-700',
+                                        'Entregado'          => 'bg-emerald-100 text-emerald-700',
+                                        'Cancelado'          => 'bg-red-100 text-red-600',
+                                    ];
+                                    $sc = $statusColors[$reg->status] ?? 'bg-slate-100 text-slate-600';
+                                @endphp
+                                @if($reg->status)
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $sc }}">{{ $reg->status }}</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @php
+                                    $resColors = [
+                                        'En Proceso' => 'bg-blue-100 text-blue-700',
+                                        'Exitoso'    => 'bg-emerald-100 text-emerald-700',
+                                        'Demorado'   => 'bg-amber-100 text-amber-700',
+                                        'Cancelado'  => 'bg-red-100 text-red-600',
+                                    ];
+                                    $rc = $resColors[$reg->resultado] ?? 'bg-slate-100 text-slate-600';
+                                @endphp
+                                @if($reg->resultado)
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $rc }}">{{ $reg->resultado }}</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
+                            <td class="px-3 py-3 text-center whitespace-nowrap">
+                                <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                        title="Ver / agregar comentarios">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                                    </svg>
+                                    <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
+                                </button>
+                            </td>
+                            {{-- INDICADORES --}}
+                            @php
+                                $hoy = \Carbon\Carbon::today();
+
+                                // 1. Métrica operativa (días en aduana vs target)
+                                $metricaColor = null; $metricaLabel = null; $diasEnAduana = null;
+                                if ($reg->eta) {
+                                    $targetDias = $reg->tipo_operacion === 'Marítimo' ? 7 : 3;
+                                    $diasEnAduana = $reg->eta->diffInDays($hoy, false);
+                                    $statusTerminado = in_array($reg->status, ['Despachado', 'Entregado']);
+                                    if ($statusTerminado) {
+                                        $metricaColor = 'bg-emerald-100 text-emerald-700';
+                                        $metricaLabel = 'Completado';
+                                    } elseif ($diasEnAduana > $targetDias) {
+                                        $metricaColor = 'bg-red-100 text-red-700';
+                                        $metricaLabel = 'Fuera de métrica';
+                                    } else {
+                                        $metricaColor = 'bg-yellow-100 text-yellow-700';
+                                        $metricaLabel = 'En proceso';
+                                    }
+                                }
+
+                                // 2. Días libres / demurrage (fijo: 20 días)
+                                $demurrageColor = null; $demurrageLabel = null; $diasRestantes = null;
+                                $diasLibres = $reg->dias_libres ?? 20;
+                                if ($reg->eta) {
+                                    $ultimoDia = $reg->eta->copy()->addDays($diasLibres);
+                                    $diasRestantes = $hoy->diffInDays($ultimoDia, false);
+                                    if ($diasRestantes < 0) {
+                                        $demurrageColor = 'bg-red-900 text-white';
+                                        $demurrageLabel = 'Vencido';
+                                    } elseif ($diasRestantes < 10) {
+                                        $demurrageColor = 'bg-red-100 text-red-700';
+                                        $demurrageLabel = $diasRestantes . 'd restantes';
+                                    } elseif ($diasRestantes < 15) {
+                                        $demurrageColor = 'bg-orange-100 text-orange-700';
+                                        $demurrageLabel = $diasRestantes . 'd restantes';
+                                    } else {
+                                        $demurrageColor = 'bg-emerald-100 text-emerald-700';
+                                        $demurrageLabel = $diasRestantes . 'd restantes';
+                                    }
+                                }
+                            @endphp
+                            <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <div class="flex flex-col items-center gap-1">
+                                    @if($metricaLabel)
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $metricaColor }}" title="Días en aduana: {{ $diasEnAduana }}d">
+                                            {{ $metricaLabel }}
+                                        </span>
+                                    @endif
+                                    @if($demurrageLabel)
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $demurrageColor }}" title="Días libres: {{ $diasLibres }}">
+                                            {{ $demurrageLabel }}
+                                        </span>
+                                    @endif
+                                    @if(!$metricaLabel && !$demurrageLabel)
+                                        <span class="text-slate-300 text-xs">—</span>
+                                    @endif
+                                </div>
+                            </td>
+                            @if($esCoordinador)
+                            <td class="px-3 py-3 whitespace-nowrap text-sm">
+                                @if($esMia)
+                                    <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                                        Yo
+                                    </span>
+                                @else
+                                    <span class="text-slate-600">{{ $reg->user?->name ?? '—' }}</span>
+                                @endif
+                            </td>
+                            @endif
+                            <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    @if($reg->status !== 'Entregado')
+                                    <button data-id="{{ $reg->id }}" onclick="completarRegistro(Number(this.dataset.id))"
+                                            class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                                            title="Completar operación">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                    @endif
+                                    <button data-id="{{ $reg->id }}" onclick="editarRegistro(Number(this.dataset.id))"
+                                            class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                    </button>
+                                    <button data-id="{{ $reg->id }}" onclick="eliminarRegistro(Number(this.dataset.id))"
+                                            class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                            title="Eliminar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr id="empty-row">
+                            <td colspan="{{ $esCoordinador ? 22 : 21 }}" class="px-6 py-12 text-center text-slate-400">
+                                <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                No hay registros aún. Crea el primero con el botón "+ Nuevo Registro".
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- COMPLETADOS --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between cursor-pointer select-none"
+                 onclick="toggleCompletados()">
+                <div class="flex items-center gap-3">
+                    <h3 class="font-bold text-slate-800 text-lg">Completados</h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">{{ $completados->count() }}</span>
+                </div>
+                <svg id="completados-arrow" class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div id="completados-body" class="hidden overflow-x-auto">
+                <table class="w-full text-sm" style="min-width: 1100px;">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETA</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Arribo a Planta</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Resultado</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
+                            @if($esCoordinador)
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ejecutivo</th>
+                            @endif
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-completados" class="divide-y divide-slate-100">
+                        @forelse($completados as $reg)
+                        @php
+                            $searchStrC = mb_strtolower(implode(' ', array_filter([
+                                $reg->ref_interna, $reg->proveedor_cliente, $reg->factura,
+                                $reg->tipo_operacion, $reg->status, $reg->resultado, $reg->target,
+                                $reg->user?->name,
+                            ])));
+                            $statusColors = [
+                                'Entregado' => 'bg-emerald-100 text-emerald-700',
+                                'Cancelado' => 'bg-red-100 text-red-600',
+                            ];
+                            $resColors = [
+                                'En Proceso' => 'bg-blue-100 text-blue-700',
+                                'Exitoso'    => 'bg-emerald-100 text-emerald-700',
+                                'Demorado'   => 'bg-amber-100 text-amber-700',
+                                'Cancelado'  => 'bg-red-100 text-red-600',
+                            ];
+                            $esMiaC = $esCoordinador && ($reg->user_id === $miUserId);
+                        @endphp
+                        <tr class="seg-row transition-colors {{ $esMiaC ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
+                            data-row-id="{{ $reg->id }}"
+                            data-search="{{ $searchStrC }}">
+                            <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">{{ $reg->ref_interna ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->proveedor_cliente ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->tipo_operacion ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->eta ? $reg->eta->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->arribo_planta ? $reg->arribo_planta->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->status)
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $statusColors[$reg->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->status }}</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->resultado)
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $resColors[$reg->resultado] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->resultado }}</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
+                            @if($esCoordinador)
+                            <td class="px-3 py-3 whitespace-nowrap text-sm">
+                                @if($esMiaC)
+                                    <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                                        Yo
+                                    </span>
+                                @else
+                                    <span class="text-slate-600">{{ $reg->user?->name ?? '—' }}</span>
+                                @endif
+                            </td>
+                            @endif
+                            <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button data-id="{{ $reg->id }}" onclick="editarRegistro(Number(this.dataset.id))"
+                                            class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Editar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                    </button>
+                                    <button data-id="{{ $reg->id }}" onclick="eliminarRegistro(Number(this.dataset.id))"
+                                            class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                            title="Eliminar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="{{ $esCoordinador ? 11 : 10 }}" class="px-6 py-8 text-center text-slate-400 text-sm">
+                                Sin operaciones completadas.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{{-- MODAL ADD/EDIT --}}
+<div id="modal-seguimiento" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModal()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white rounded-t-3xl border-b border-slate-100 px-8 py-5 flex items-center justify-between z-10">
+            <h2 id="modal-title" class="text-xl font-bold text-slate-800">Nuevo Registro</h2>
+            <button onclick="cerrarModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="form-seguimiento" class="px-8 py-6 space-y-6" onsubmit="submitForm(event)">
+            <input type="hidden" id="registro-id" value="">
+
+            {{-- Row 1 --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Ref. Interna</label>
+                    <input type="text" id="f-ref_interna" maxlength="100"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="REF-001">
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-bold text-slate-600">Proveedor / Cliente</label>
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                            <input type="checkbox" id="check-es-proveedor" onchange="toggleProveedorCliente()"
+                                   class="w-3.5 h-3.5 rounded accent-emerald-600">
+                            <span class="text-xs text-slate-500 font-medium">Es proveedor</span>
+                        </label>
                     </div>
+                    <select id="f-proveedor_cliente"
+                            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">— Seleccionar cliente —</option>
+                        @foreach($misClientes as $cliente)
+                            <option value="{{ $cliente }}">{{ $cliente }}</option>
+                        @endforeach
+                    </select>
+                    <input type="text" id="f-proveedor_texto" maxlength="255"
+                           class="hidden w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="Nombre del proveedor">
+                    @if($misClientes->isEmpty())
+                        <p class="text-xs text-amber-600 mt-1">No tienes clientes asignados.</p>
                     @endif
-
-                    {{-- Sección 7: Status y Comentarios --}}
-                    <div class="bg-rose-50 rounded-xl p-4">
-                        <h4 class="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Status y Comentarios
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Status Manual (Forzado)</label>
-                                <select name="status_manual" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm">
-                                    <option value="">Automático (calculado)</option>
-                                    <option value="In Process">En Proceso</option>
-                                    <option value="Done">Completado</option>
-                                    <option value="Out of Metric">Fuera de Métrica</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1 text-slate-600">Comentarios</label>
-                                <textarea name="comentarios" rows="2" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm" placeholder="Observaciones generales..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                        <button type="button" onclick="cerrarModal()" class="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 font-medium text-slate-600">Cancelar</button>
-                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm">
-                            <span class="flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Guardar Operación
-                            </span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalPostOperaciones" class="modal-overlay fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-800">Tareas Post-Operación</h3>
-                    <p class="text-sm text-slate-500" id="tituloPostOp">Checklist de cumplimiento</p>
                 </div>
-                <button onclick="cerrarModalPostOperaciones()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
-            </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
-                <div id="loaderPostOp" class="hidden flex justify-center py-8">Cargando...</div>
-                <div id="listaPostOperaciones" class="space-y-3"></div>
-                <div id="emptyPostOp" class="hidden text-center py-8 text-slate-500">No hay tareas asignadas.</div>
-            </div>
-            <div class="p-4 border-t bg-white rounded-b-2xl flex justify-end">
-                <button onclick="guardarCambiosPostOp()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-sm transition-all">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
-
-    @if(isset($esAdmin) && $esAdmin)
-    <div id="modalCamposPersonalizados" class="modal-overlay fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
-            <div class="p-6 border-b flex justify-between items-center bg-slate-800 text-white rounded-t-2xl">
                 <div>
-                    <h3 class="font-bold text-xl">Configuración del Sistema</h3>
-                    <p class="text-slate-300 text-sm">Gestiona columnas, campos personalizados y tareas estándar.</p>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Factura</label>
+                    <input type="text" id="f-factura" maxlength="100"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="No. de factura">
                 </div>
-                <button onclick="cerrarModalCamposPersonalizados()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            
-            {{-- Pestañas de navegación --}}
-            <div class="border-b border-slate-200 bg-slate-50">
-                <nav class="flex -mb-px px-6">
-                    <button onclick="mostrarTabConfig('columnas')" id="tabColumnas" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
-                        Columnas por Ejecutivo
-                    </button>
-                    <button onclick="mostrarTabConfig('campos')" id="tabCampos" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        Campos Personalizados
-                    </button>
-                    <button onclick="mostrarTabConfig('checklist')" id="tabChecklist" class="tab-config-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                        Checklist Estándar
-                    </button>
-                </nav>
+
+            {{-- Row 2 --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">IMPO / EX</label>
+                    <select id="f-impo_ex" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">— Seleccionar —</option>
+                        <option value="IMPO">IMPO</option>
+                        <option value="EX">EX</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">T. Operación</label>
+                    <select id="f-tipo_operacion" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">— Seleccionar —</option>
+                        @foreach($tiposOperacion as $tipo)
+                            <option value="{{ $tipo }}">{{ $tipo }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Transporte</label>
+                    <input type="text" id="f-transporte" maxlength="255"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="Nombre del transportista">
+                </div>
             </div>
-            
-            <div class="flex-1 overflow-hidden">
-                {{-- TAB 1: Columnas por Ejecutivo --}}
-                <div id="panelColumnas" class="tab-config-panel h-full overflow-y-auto p-6">
-                    <h4 class="font-bold text-lg text-slate-800 mb-2">Columnas Extra por Ejecutivo</h4>
-                    <p class="text-sm text-slate-500 mb-4">Configura qué campos opcionales se muestran para cada ejecutivo en la matriz y el formulario.</p>
-                    
-                    {{-- Selector de Ejecutivo --}}
-                    <div class="bg-blue-50 rounded-xl p-4 mb-4">
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Seleccionar Ejecutivo</label>
-                        <select id="selectorEjecutivoConfig" class="w-full rounded-lg border-slate-300 focus:border-blue-500 text-sm py-2" onchange="cargarConfiguracionEjecutivo(this.value)">
-                            <option value="">-- Selecciona un ejecutivo --</option>
-                            @foreach($empleados ?? [] as $emp)
-                                <option value="{{ $emp->id }}">{{ $emp->nombre }} - {{ $emp->posicion }}</option>
+
+            {{-- Detalles de Transporte --}}
+            <div id="seccion-detalles-maritimo" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4 hidden">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Detalles de Transporte <span class="font-normal text-slate-400 normal-case">(opcional)</span></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label id="lbl-naviera" class="block text-xs font-semibold text-slate-600 mb-1.5">Naviera</label>
+                        <input type="text" id="f-naviera" maxlength="255"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                               placeholder="Nombre de la naviera">
+                    </div>
+                    <div id="campo-buque">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Buque</label>
+                        <input type="text" id="f-buque" maxlength="255"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                               placeholder="Nombre del buque">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Carga FCL / LCL</label>
+                        <select id="f-carga_tipo" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                            <option value="">— Seleccionar —</option>
+                            @foreach($cargaTipos as $ct)
+                                <option value="{{ $ct }}">{{ $ct }}</option>
                             @endforeach
                         </select>
                     </div>
-
-                    {{-- Lista de Columnas Opcionales --}}
-                    <div id="contenedorColumnasOpcionales" class="hidden">
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                            <div class="text-sm text-amber-800 space-y-1">
-                                <p><strong>Configuración de columnas:</strong></p>
-                                <p>• <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">Mostrar a todos</span> - La columna será visible para todos los ejecutivos.</p>
-                                <p>• <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Solo este ejecutivo</span> - La columna solo será visible para el ejecutivo seleccionado.</p>
-                            </div>
-                        </div>
-                        
-                        <div id="listaColumnasOpcionales" class="space-y-3">
-                            {{-- Se llena dinámicamente por JS --}}
-                        </div>
-                        
-                        <div class="mt-4 flex justify-end">
-                            <button onclick="guardarConfiguracionColumnas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                Guardar Configuración
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="mensajeSeleccionarEjecutivo" class="text-center py-12 text-slate-400">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Selecciona un ejecutivo para configurar sus columnas
-                    </div>
-                </div>
-                
-                {{-- TAB 2: Campos Personalizados --}}
-                <div id="panelCampos" class="tab-config-panel h-full overflow-y-auto p-6 hidden">
-                    <h4 class="font-bold text-lg text-slate-800 mb-2">Campos Personalizados</h4>
-                    <p class="text-sm text-slate-500 mb-4">Crea campos adicionales que aparecerán en todas las operaciones.</p>
-                    
-                    {{-- Formulario para nuevo campo --}}
-                    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 mb-6 border border-indigo-100">
-                        <h5 class="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                            Crear Nuevo Campo
-                        </h5>
-                        <form id="formNuevoCampoCompleto" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Campo *</label>
-                                    <input type="text" id="nuevoCampoNombre" required 
-                                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" 
-                                        placeholder="Ej: Número de Contenedor">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Campo *</label>
-                                    <select id="nuevoCampoTipo" required 
-                                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        onchange="mostrarOpcionesCampo(this.value)">
-                                        <option value="texto">📝 Texto corto</option>
-                                        <option value="descripcion">📄 Descripción (multilínea)</option>
-                                        <option value="numero">🔢 Número entero</option>
-                                        <option value="decimal">💲 Número decimal</option>
-                                        <option value="moneda">💰 Moneda</option>
-                                        <option value="fecha">📅 Fecha</option>
-                                        <option value="booleano">✅ Sí/No</option>
-                                        <option value="selector">📋 Selector (una opción)</option>
-                                        <option value="multiple">☑️ Opción múltiple</option>
-                                        <option value="email">📧 Correo electrónico</option>
-                                        <option value="telefono">📞 Teléfono</option>
-                                        <option value="url">🔗 URL/Enlace</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            {{-- Opciones para selector/múltiple --}}
-                            <div id="contenedorOpcionesCampo" class="hidden">
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Opciones (una por línea)</label>
-                                <textarea id="nuevoCampoOpciones" rows="3" 
-                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    placeholder="Opción 1&#10;Opción 2&#10;Opción 3"></textarea>
-                            </div>
-                            
-                            <div class="flex items-center gap-6">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="nuevoCampoRequerido" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-sm text-slate-700">Campo obligatorio</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="nuevoCampoActivo" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-sm text-slate-700">Activo</span>
-                                </label>
-                            </div>
-                            
-                            <div class="flex justify-end">
-                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                                    Crear Campo
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    {{-- Lista de campos existentes --}}
                     <div>
-                        <h5 class="font-semibold text-slate-700 mb-3 flex items-center justify-between">
-                            <span>Campos Existentes</span>
-                            <span id="contadorCampos" class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">0 campos</span>
-                        </h5>
-                        <div id="listaCamposPersonalizados" class="space-y-2">
-                            <div class="text-center py-8 text-slate-400">
-                                <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                <p class="text-sm">Cargando campos...</p>
-                            </div>
-                        </div>
+                        <label id="lbl-no-contenedor" class="block text-xs font-semibold text-slate-600 mb-1.5">No. Contenedor</label>
+                        <input type="text" id="f-no_contenedor" maxlength="100"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                               placeholder="Número de contenedor">
                     </div>
-                </div>
-                
-                {{-- TAB 3: Checklist Estándar --}}
-                <div id="panelChecklist" class="tab-config-panel h-full overflow-y-auto p-6 hidden">
-                    <h4 class="font-bold text-lg text-slate-800 mb-2">Checklist Estándar</h4>
-                    <p class="text-sm text-slate-500 mb-4">Tareas automáticas para nuevas operaciones.</p>
-                    
-                    {{-- Formulario para agregar nueva tarea --}}
-                    <form id="formNuevaPlantilla" class="flex gap-2 mb-4">
-                        <input type="text" id="newPlantillaNombre" class="flex-1 rounded-lg border-slate-300 text-sm" placeholder="Nueva tarea...">
-                        <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 font-medium">+</button>
-                    </form>
-                    
-                    {{-- Lista de tareas existentes --}}
-                    <div class="mb-3">
-                        <h5 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tareas Activas</h5>
-                    </div>
-                    <div id="listaPlantillasConfig" class="space-y-2 max-h-[400px] overflow-y-auto">
-                        <div class="text-center py-4">
-                            <svg class="w-8 h-8 mx-auto text-slate-300 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <p class="text-slate-400 text-sm mt-2">Cargando tareas...</p>
-                        </div>
-                    </div>
-                    
-                    {{-- Tip --}}
-                    <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                        <p class="text-xs text-blue-700">
-                            <strong>Tip:</strong> Haz clic en el nombre de una tarea para editarla directamente.
-                        </p>
+                    <div>
+                        <label id="lbl-tipo-contenedor" class="block text-xs font-semibold text-slate-600 mb-1.5">Tipo de Contenedor</label>
+                        <input type="text" id="f-tipo_contenedor" maxlength="50"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                               placeholder="Ej. 40' HC, 20' ST...">
                     </div>
                 </div>
             </div>
-            <div class="p-4 border-t bg-slate-50 rounded-b-2xl text-right">
-                <button onclick="cerrarModalCamposPersonalizados()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-white">Cerrar</button>
+
+            {{-- Row 3 --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Aduana</label>
+                    <select id="f-aduana" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">— Sin aduana —</option>
+                        @foreach($aduanas as $a)
+                            <option value="{{ $a->aduana }}{{ $a->seccion }}">{{ $a->aduana }}{{ $a->seccion }} - {{ $a->denominacion }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Clave</label>
+                    <select id="f-clave" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">— Sin clave —</option>
+                        @foreach($claves as $c)
+                            <option value="{{ $c->clave }}">{{ $c->clave }} - {{ $c->descripcion }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Pedimento</label>
+                    <input type="text" id="f-pedimento" maxlength="100"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="No. pedimento">
+                </div>
+            </div>
+
+            {{-- Row 4 --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">BL / Guía</label>
+                    <input type="text" id="f-bl_guia" maxlength="100"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="No. BL o guía">
+                </div>
+            </div>
+
+            {{-- Dates Row --}}
+            <div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Fechas</p>
+                <div class="grid grid-cols-2 sm:grid-cols-6 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">ETD</label>
+                        <input type="date" id="f-etd"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">ETA</label>
+                        <input type="date" id="f-eta"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Previo</label>
+                        <input type="date" id="f-previo"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Cita Despacho</label>
+                        <input type="date" id="f-cita_despacho"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Arribo a Planta</label>
+                        <input type="date" id="f-arribo_planta"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Campos ocultos con valores fijos --}}
+            <input type="hidden" id="f-target" maxlength="100">
+            <input type="hidden" id="f-dias_libres" value="20">
+
+            {{-- Footer --}}
+            <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button" onclick="cerrarModal()"
+                        class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="btn-submit"
+                        class="px-6 py-2.5 rounded-xl text-white font-bold text-sm transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@php
+$mapReg = function ($r) {
+    return [
+        'id'               => $r->id,
+        'ref_interna'      => $r->ref_interna,
+        'proveedor_cliente'=> $r->proveedor_cliente,
+        'factura'          => $r->factura,
+        'impo_ex'          => $r->impo_ex,
+        'tipo_operacion'   => $r->tipo_operacion,
+        'transporte'       => $r->transporte,
+        'naviera'          => $r->naviera,
+        'buque'            => $r->buque,
+        'carga_tipo'       => $r->carga_tipo,
+        'no_contenedor'    => $r->no_contenedor,
+        'tipo_contenedor'  => $r->tipo_contenedor,
+        'aduana'           => $r->aduana,
+        'clave'            => $r->clave,
+        'pedimento'        => $r->pedimento,
+        'bl_guia'          => $r->bl_guia,
+        'etd'              => optional($r->etd)->format('Y-m-d'),
+        'eta'              => optional($r->eta)->format('Y-m-d'),
+        'dias_libres'      => $r->dias_libres,
+        'previo'           => optional($r->previo)->format('Y-m-d'),
+        'cita_despacho'    => optional($r->cita_despacho)->format('Y-m-d'),
+        'arribo_planta'    => optional($r->arribo_planta)->format('Y-m-d'),
+        'status'           => $r->status,
+        'resultado'        => $r->resultado,
+        'target'           => $r->target,
+        'comentarios'      => $r->comentarios,
+        'user_id'          => $r->user_id,
+        'user_name'        => $r->user?->name,
+    ];
+};
+$registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray();
+@endphp
+<div id="registros-data" data-registros='@json($registrosJs)' class="hidden"></div>
+
+{{-- MODAL DETALLE TRANSPORTE --}}
+<div id="modal-transporte" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalTransporte()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4">
+        <div class="bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Detalle de Transporte</h2>
+                <p id="dt-transporte-nombre" class="text-sm text-emerald-700 font-semibold mt-0.5"></p>
+            </div>
+            <button onclick="cerrarModalTransporte()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p id="dt-lbl-naviera" class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Naviera</p>
+                    <p id="dt-naviera" class="text-sm font-semibold text-slate-700">—</p>
+                </div>
+                <div id="dt-campo-buque">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Buque</p>
+                    <p id="dt-buque" class="text-sm font-semibold text-slate-700">—</p>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Carga</p>
+                    <p id="dt-carga_tipo" class="text-sm font-semibold text-slate-700">—</p>
+                </div>
+                <div>
+                    <p id="dt-lbl-no-contenedor" class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">No. Contenedor</p>
+                    <p id="dt-no_contenedor" class="text-sm font-semibold text-slate-700 font-mono">—</p>
+                </div>
+                <div class="col-span-2">
+                    <p id="dt-lbl-tipo-contenedor" class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo de Contenedor</p>
+                    <p id="dt-tipo_contenedor" class="text-sm font-semibold text-slate-700">—</p>
+                </div>
             </div>
         </div>
     </div>
-    @endif
+</div>
 
-    <div id="modalHistorial" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl p-6 w-full max-w-3xl max-h-[80vh] overflow-auto"><div class="flex justify-between mb-4"><h3 class="font-bold text-lg">Historial</h3><button onclick="cerrarModalHistorial()" class="text-2xl">&times;</button></div><div id="historialContent"></div></div></div>
-    
-    <div id="modalComentarios" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl p-6 w-full max-w-2xl"><div class="flex justify-between mb-4"><h3 class="font-bold text-lg">Comentarios</h3><button onclick="cerrarModalComentarios()" class="text-2xl">&times;</button></div><div id="listaComentarios" class="max-h-60 overflow-auto mb-4"></div><form id="formComentario"><textarea id="nuevoComentario" class="w-full border rounded mb-2" rows="2"></textarea><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button></form></div></div>
-
+{{-- MODAL COMENTARIOS --}}
+<div id="modal-comentarios" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarComentarios()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 flex flex-col" style="max-height:85vh">
+        <div class="bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Historial de Comentarios</h2>
+                <p id="mc-ref" class="text-sm text-emerald-700 font-semibold mt-0.5"></p>
+            </div>
+            <button onclick="cerrarComentarios()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        {{-- Lista de comentarios --}}
+        <div id="mc-lista" class="flex-1 overflow-y-auto px-6 py-4 space-y-3 min-h-[100px]">
+            <p class="text-slate-400 text-sm text-center py-6">Cargando...</p>
+        </div>
+        {{-- Nuevo comentario --}}
+        <div class="border-t border-slate-100 px-6 py-4 flex-shrink-0">
+            <div class="flex gap-2">
+                <textarea id="mc-texto" rows="2"
+                          class="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                          placeholder="Escribe un comentario..."></textarea>
+                <button onclick="guardarComentario()"
+                        class="self-end px-4 py-2.5 rounded-xl text-white font-bold text-sm transition shadow-md hover:shadow-lg"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+let registros = JSON.parse(document.getElementById('registros-data').dataset.registros);
+
+// ── Filter ───────────────────────────────────────────────────────────
+function filtrarSeguimiento() {
+    const q = document.getElementById('buscar-seguimiento').value.toLowerCase();
+    document.querySelectorAll('#tbody-seguimiento .seg-row, #tbody-completados .seg-row').forEach(tr => {
+        tr.style.display = (!q || tr.dataset.search.includes(q)) ? '' : 'none';
+    });
+}
+
+function filtrarPorCliente() {
+    const sel = document.getElementById('filtro-mis-clientes');
+    const val = sel ? sel.value : '';
+    document.querySelectorAll('#tbody-seguimiento .seg-row, #tbody-completados .seg-row').forEach(tr => {
+        if (!val) { tr.style.display = ''; return; }
+        const cliente = tr.querySelector('td:nth-child(2)')?.textContent.trim().toLowerCase() ?? '';
+        tr.style.display = cliente.includes(val) ? '' : 'none';
+    });
+}
+
+function toggleCompletados() {
+    const body  = document.getElementById('completados-body');
+    const arrow = document.getElementById('completados-arrow');
+    body.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+
+// ── Modal helpers ────────────────────────────────────────────────────
+// ── Toggle proveedor / cliente ────────────────────────────────────────
+function toggleProveedorCliente(esProveedor) {
+    const chk  = document.getElementById('check-es-proveedor');
+    const sel  = document.getElementById('f-proveedor_cliente');
+    const txt  = document.getElementById('f-proveedor_texto');
+    const activo = esProveedor !== undefined ? esProveedor : chk.checked;
+    chk.checked = activo;
+    if (activo) {
+        sel.classList.add('hidden');
+        txt.classList.remove('hidden');
+    } else {
+        sel.classList.remove('hidden');
+        txt.classList.add('hidden');
+        txt.value = '';
+    }
+}
+
+function getProveedorClienteValue() {
+    const chk = document.getElementById('check-es-proveedor');
+    return chk.checked
+        ? document.getElementById('f-proveedor_texto').value || null
+        : document.getElementById('f-proveedor_cliente').value || null;
+}
+
+function setProveedorClienteValue(valor, esProveedor) {
+    toggleProveedorCliente(esProveedor);
+    if (esProveedor) {
+        document.getElementById('f-proveedor_texto').value = valor ?? '';
+    } else {
+        document.getElementById('f-proveedor_cliente').value = valor ?? '';
+    }
+}
+
+function abrirModal() {
+    document.getElementById('modal-title').textContent = 'Nuevo Registro';
+    document.getElementById('registro-id').value = '';
+    document.getElementById('form-seguimiento').reset();
+    toggleProveedorCliente(false);
+    toggleDetallesMaritimo('');
+    document.getElementById('modal-seguimiento').classList.remove('hidden');
+    document.getElementById('modal-seguimiento').classList.add('flex');
+}
+
+function cerrarModal() {
+    document.getElementById('modal-seguimiento').classList.add('hidden');
+    document.getElementById('modal-seguimiento').classList.remove('flex');
+}
+
+function editarRegistro(id) {
+    const reg = registros.find(r => r.id === id);
+    if (!reg) return;
+
+    document.getElementById('modal-title').textContent = 'Editar Registro';
+    document.getElementById('registro-id').value = id;
+
+    // Detectar si el valor guardado es un cliente propio o un proveedor
+    const misClientes = Array.from(
+        document.getElementById('f-proveedor_cliente').options
+    ).map(o => o.value.toLowerCase()).filter(v => v);
+    const esProveedor = reg.proveedor_cliente
+        ? !misClientes.includes((reg.proveedor_cliente ?? '').toLowerCase())
+        : false;
+    setProveedorClienteValue(reg.proveedor_cliente, esProveedor);
+
+    [
+        'ref_interna','factura','impo_ex','tipo_operacion',
+        'transporte','naviera','buque','carga_tipo','no_contenedor','tipo_contenedor',
+        'aduana','clave','pedimento','bl_guia',
+        'etd','eta','dias_libres','previo','cita_despacho','arribo_planta',
+        'target','comentarios'
+    ].forEach(c => {
+        const el = document.getElementById('f-' + c);
+        if (el) el.value = reg[c] ?? '';
+    });
+
+    toggleDetallesMaritimo(reg.tipo_operacion ?? '');
+    document.getElementById('modal-seguimiento').classList.remove('hidden');
+    document.getElementById('modal-seguimiento').classList.add('flex');
+}
+
+// ── Detalle Transporte ───────────────────────────────────────────────
+function verTransporte(id) {
+    const reg = registros.find(r => r.id === id);
+    if (!reg) return;
+    const set = (elId, val) => { document.getElementById(elId).textContent = val || '—'; };
+    const esAereo = reg.tipo_operacion === 'Aéreo';
+
+    document.getElementById('dt-transporte-nombre').textContent = reg.transporte || '—';
+
+    // Naviera / Aerolínea
+    document.getElementById('dt-lbl-naviera').textContent = esAereo ? 'Aerolínea' : 'Naviera';
+    set('dt-naviera', reg.naviera);
+
+    // Buque: solo marítimo
+    const campoBuque = document.getElementById('dt-campo-buque');
+    if (esAereo) {
+        campoBuque.classList.add('hidden');
+    } else {
+        campoBuque.classList.remove('hidden');
+        set('dt-buque', reg.buque);
+    }
+
+    // Contenedor / Caja
+    document.getElementById('dt-lbl-no-contenedor').textContent = esAereo ? 'No. Caja' : 'No. Contenedor';
+    document.getElementById('dt-lbl-tipo-contenedor').textContent = esAereo ? 'Tipo de Caja' : 'Tipo de Contenedor';
+    set('dt-carga_tipo',     reg.carga_tipo);
+    set('dt-no_contenedor',  reg.no_contenedor);
+    set('dt-tipo_contenedor',reg.tipo_contenedor);
+
+    document.getElementById('modal-transporte').classList.remove('hidden');
+    document.getElementById('modal-transporte').classList.add('flex');
+}
+function cerrarModalTransporte() {
+    document.getElementById('modal-transporte').classList.add('hidden');
+    document.getElementById('modal-transporte').classList.remove('flex');
+}
+
+// ── Comentarios ──────────────────────────────────────────────────────
+let comentariosRegistroId = null;
+
+async function abrirComentarios(id) {
+    const reg = registros.find(r => r.id === id);
+    comentariosRegistroId = id;
+    document.getElementById('mc-ref').textContent = reg?.ref_interna || ('Operación #' + id);
+    document.getElementById('mc-texto').value = '';
+    document.getElementById('mc-lista').innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Cargando...</p>';
+    document.getElementById('modal-comentarios').classList.remove('hidden');
+    document.getElementById('modal-comentarios').classList.add('flex');
+
+    try {
+        const res = await fetch(`/logistica/matriz-seguimiento/${id}/comentarios`, {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF }
+        });
+        const data = await res.json();
+        renderComentarios(data.comentarios);
+    } catch {
+        document.getElementById('mc-lista').innerHTML = '<p class="text-red-400 text-sm text-center py-6">Error al cargar comentarios.</p>';
+    }
+}
+
+function renderComentarios(lista) {
+    const el = document.getElementById('mc-lista');
+    if (!lista.length) {
+        el.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Sin comentarios aún.</p>';
+        return;
+    }
+    el.innerHTML = lista.map(c => `
+        <div class="bg-slate-50 rounded-2xl px-4 py-3 space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-700">${c.usuario}</span>
+                <span class="text-xs text-slate-400">${c.fecha}</span>
+            </div>
+            <p class="text-sm text-slate-700 whitespace-pre-wrap">${c.comentario}</p>
+        </div>
+    `).join('');
+}
+
+async function guardarComentario() {
+    const texto = document.getElementById('mc-texto').value.trim();
+    if (!texto) return;
+
+    try {
+        const res = await fetch(`/logistica/matriz-seguimiento/${comentariosRegistroId}/comentarios`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ comentario: texto }),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        document.getElementById('mc-texto').value = '';
+
+        // Agregar al inicio de la lista
+        const el = document.getElementById('mc-lista');
+        const p = el.querySelector('p');
+        if (p) el.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'bg-slate-50 rounded-2xl px-4 py-3 space-y-1';
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-700">${data.comentario.usuario}</span>
+                <span class="text-xs text-slate-400">${data.comentario.fecha}</span>
+            </div>
+            <p class="text-sm text-slate-700 whitespace-pre-wrap">${data.comentario.comentario}</p>
+        `;
+        el.prepend(div);
+
+        // Actualizar contador en la tabla
+        const span = document.querySelector(`.comentarios-count-${comentariosRegistroId}`);
+        if (span) span.textContent = parseInt(span.textContent || '0') + 1;
+    } catch {
+        alert('Error al guardar el comentario.');
+    }
+}
+
+function cerrarComentarios() {
+    document.getElementById('modal-comentarios').classList.add('hidden');
+    document.getElementById('modal-comentarios').classList.remove('flex');
+    comentariosRegistroId = null;
+}
+
+// ── Submit ───────────────────────────────────────────────────────────
+async function submitForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('registro-id').value;
+    const url = id
+        ? `/logistica/matriz-seguimiento/${id}`
+        : '/logistica/matriz-seguimiento';
+    const method = id ? 'PUT' : 'POST';
+
+    const g = elId => document.getElementById(elId)?.value || null;
+    const body = {
+        ref_interna:       g('f-ref_interna'),
+        proveedor_cliente: getProveedorClienteValue(),
+        factura:           g('f-factura'),
+        impo_ex:           g('f-impo_ex'),
+        tipo_operacion:    g('f-tipo_operacion'),
+        transporte:        g('f-transporte'),
+        naviera:           g('f-naviera'),
+        buque:             g('f-buque'),
+        carga_tipo:        g('f-carga_tipo'),
+        no_contenedor:     g('f-no_contenedor'),
+        tipo_contenedor:   g('f-tipo_contenedor'),
+        aduana:            g('f-aduana'),
+        clave:             g('f-clave'),
+        pedimento:         g('f-pedimento'),
+        bl_guia:           g('f-bl_guia'),
+        etd:               g('f-etd'),
+        eta:               g('f-eta'),
+        dias_libres:       20,
+        previo:            g('f-previo'),
+        cita_despacho:     g('f-cita_despacho'),
+        arribo_planta:     g('f-arribo_planta'),
+        target:            g('f-target'),
+    };
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF
+            },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const msg = err.message || (err.errors ? Object.values(err.errors).flat().join('\n') : 'Error al guardar');
+            throw new Error(msg);
+        }
+        cerrarModal();
+        window.location.reload();
+    } catch (err) {
+        alert('Error al guardar:\n' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Guardar';
+    }
+}
+
+// ── Delete ───────────────────────────────────────────────────────────
+async function completarRegistro(id) {
+    if (!confirm('¿Marcar esta operación como completada? Se registrará el arribo a planta con la fecha de hoy.')) return;
+    try {
+        const res = await fetch(`/logistica/matriz-seguimiento/${id}/completar`, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': CSRF },
+        });
+        if (!res.ok) throw new Error();
+        window.location.reload();
+    } catch {
+        alert('No se pudo completar la operación.');
+    }
+}
+
+async function eliminarRegistro(id) {
+    if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+    try {
+        const res = await fetch(`/logistica/matriz-seguimiento/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF },
+        });
+        if (!res.ok) throw new Error();
+        window.location.reload();
+    } catch {
+        alert('No se pudo eliminar el registro.');
+    }
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { cerrarModal(); cerrarModalTransporte(); cerrarComentarios(); }
+});
+
+// ── Auto-Target por T. Operación ─────────────────────────────────────
+const TARGET_POR_OPERACION = {
+    'Marítimo':   '5-7 días',
+    'Aéreo':      '2-3 días',
+    'Terrestre':  '2-3 días',
+    'Ferroviario':'2-3 días',
+};
+
+function toggleDetallesMaritimo(tipo) {
+    const seccion          = document.getElementById('seccion-detalles-maritimo');
+    const lblNav           = document.getElementById('lbl-naviera');
+    const campoBuque       = document.getElementById('campo-buque');
+    const inputNaviera     = document.getElementById('f-naviera');
+    const lblNoContenedor  = document.getElementById('lbl-no-contenedor');
+    const lblTipoContenedor= document.getElementById('lbl-tipo-contenedor');
+    const inputNoContenedor= document.getElementById('f-no_contenedor');
+    const inputTipoContenedor = document.getElementById('f-tipo_contenedor');
+
+    if (tipo === 'Marítimo') {
+        seccion.classList.remove('hidden');
+        lblNav.textContent = 'Naviera';
+        inputNaviera.placeholder = 'Nombre de la naviera';
+        campoBuque.classList.remove('hidden');
+        lblNoContenedor.textContent = 'No. Contenedor';
+        inputNoContenedor.placeholder = 'Número de contenedor';
+        lblTipoContenedor.textContent = 'Tipo de Contenedor';
+        inputTipoContenedor.placeholder = "Ej. 40' HC, 20' ST...";
+    } else if (tipo === 'Aéreo') {
+        seccion.classList.remove('hidden');
+        lblNav.textContent = 'Aerolínea';
+        inputNaviera.placeholder = 'Nombre de la aerolínea';
+        campoBuque.classList.add('hidden');
+        document.getElementById('f-buque').value = '';
+        lblNoContenedor.textContent = 'No. Caja';
+        inputNoContenedor.placeholder = 'Número de caja';
+        lblTipoContenedor.textContent = 'Tipo de Caja';
+        inputTipoContenedor.placeholder = 'Tipo de caja';
+    } else {
+        seccion.classList.add('hidden');
+    }
+}
+
+document.getElementById('f-tipo_operacion').addEventListener('change', function () {
+    const target = document.getElementById('f-target');
+    if (TARGET_POR_OPERACION[this.value]) {
+        target.value = TARGET_POR_OPERACION[this.value];
+    }
+    toggleDetallesMaritimo(this.value);
+});
+</script>
+@endpush

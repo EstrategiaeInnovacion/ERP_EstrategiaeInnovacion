@@ -20,7 +20,7 @@ class MaintenanceController extends Controller
 {
     /**
      * Horarios predefinidos de mantenimiento (9am - 4pm)
-     * Cada slot es de 1 hora
+     * Cada slot es de 1 hora. 2:00 PM reservado para comida.
      */
     private const TIME_SLOTS = [
         ['start' => '09:00', 'end' => '10:00', 'label' => '09:00 AM'],
@@ -28,7 +28,6 @@ class MaintenanceController extends Controller
         ['start' => '11:00', 'end' => '12:00', 'label' => '11:00 AM'],
         ['start' => '12:00', 'end' => '13:00', 'label' => '12:00 PM'],
         ['start' => '13:00', 'end' => '14:00', 'label' => '01:00 PM'],
-        ['start' => '14:00', 'end' => '15:00', 'label' => '02:00 PM'],
         ['start' => '15:00', 'end' => '16:00', 'label' => '03:00 PM'],
     ];
 

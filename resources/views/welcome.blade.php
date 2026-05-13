@@ -192,7 +192,26 @@
                             </div>
                         </a>
 
-                        {{-- CARD 4: PROYECTOS (solo para RH) --}}
+                        {{-- CARD 4: DIGITALIZAR --}}
+                        <a href="{{ route('digitalizacion.index') }}" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-violet-200 transition-all duration-300 flex items-start gap-5 overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg aria-hidden="true" class="w-40 h-40 text-violet-600" fill="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div class="w-14 h-14 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <svg aria-hidden="true" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v6h6"/></svg>
+                            </div>
+                            <div class="relative z-10 flex-1">
+                                <h3 class="text-xl font-bold text-slate-800 group-hover:text-violet-700 transition-colors">Digitalizar Documentos</h3>
+                                <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+                                    Convertir, comprimir, combinar y validar archivos PDF de forma sencilla.
+                                </p>
+                                <div class="mt-4 flex items-center text-xs font-bold text-violet-600 uppercase tracking-wide">
+                                    Ingresar al Módulo <span class="sr-only">de Digitalización</span><span aria-hidden="true" class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                                </div>
+                            </div>
+                        </a>
+
+                        {{-- CARD 5: PROYECTOS (solo para RH) --}}
                         @if(Auth::user()->isRh())
                         <a href="{{ route('proyectos.index') }}" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-amber-200 transition-all duration-300 flex items-start gap-5 overflow-hidden">
                             <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">

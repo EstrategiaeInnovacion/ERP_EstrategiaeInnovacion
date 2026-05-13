@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Digitalización de Documentos — Área Legal')
+@section('title', 'Digitalización de Documentos')
 
 @section('content')
 <div class="min-h-screen bg-slate-50 pb-16">
@@ -9,7 +9,7 @@
     <div class="bg-white border-b border-slate-200 mb-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
-                <a href="{{ route('legal.dashboard') }}" class="hover:text-sky-600 transition-colors font-medium">Área Legal</a>
+                <a href="{{ route('welcome') }}" class="hover:text-sky-600 transition-colors font-medium">Inicio</a>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 <span class="text-slate-600">Digitalización de documentos</span>
             </div>
@@ -725,7 +725,7 @@ document.getElementById('form-convertir')?.addEventListener('submit', async func
     fd.append('orientation', document.querySelector('input[name="orientation"]:checked')?.value ?? 'auto');
 
     try {
-        const res  = await fetch('{{ route("legal.digitalizacion.convert") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        const res  = await fetch('{{ route("digitalizacion.convert") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const data = await res.json();
 
         if (!data.success) { showResult('convertir', resultError(data.error ?? 'Error al convertir.')); return; }
@@ -784,7 +784,7 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
     fd.append('modo', getModo());
 
     try {
-        const res  = await fetch('{{ route("legal.digitalizacion.validate") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        const res  = await fetch('{{ route("digitalizacion.validate") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const data = await res.json();
 
         if (!data.success) { showResult('validar', resultError(data.error ?? 'Error al validar.')); return; }
@@ -870,7 +870,7 @@ document.getElementById('form-comprimir')?.addEventListener('submit', async func
     fd.append('compressionLevel', document.getElementById('compressionLevel')?.value ?? 'printer');
 
     try {
-        const res  = await fetch('{{ route("legal.digitalizacion.compress") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        const res  = await fetch('{{ route("digitalizacion.compress") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const data = await res.json();
 
         if (!data.success) { showResult('comprimir', resultError(data.error ?? 'Error al comprimir.')); return; }
@@ -909,7 +909,7 @@ document.getElementById('form-combinar')?.addEventListener('submit', async funct
     fd.append('outputName', document.getElementById('outputName')?.value ?? 'documento_combinado');
 
     try {
-        const res  = await fetch('{{ route("legal.digitalizacion.merge") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        const res  = await fetch('{{ route("digitalizacion.merge") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const data = await res.json();
 
         if (!data.success) { showResult('combinar', resultError(data.error ?? 'Error al combinar.')); return; }
@@ -949,7 +949,7 @@ document.getElementById('form-extraer')?.addEventListener('submit', async functi
     fd.append('pdf', fi.files[0]);
 
     try {
-        const res  = await fetch('{{ route("legal.digitalizacion.extract") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        const res  = await fetch('{{ route("digitalizacion.extract") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const data = await res.json();
 
         if (!data.success) { showResult('extraer', resultError(data.error ?? 'Error al extraer.')); return; }

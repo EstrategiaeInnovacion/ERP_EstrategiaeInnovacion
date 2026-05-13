@@ -68,15 +68,6 @@
                         <x-nav-link :href="route('logistica.index')" :active="request()->routeIs('logistica.index')">
                             Dashboard
                         </x-nav-link>
-                        <x-nav-link :href="route('logistica.matriz-seguimiento')" :active="request()->routeIs('logistica.matriz-seguimiento')">
-                            Matriz
-                        </x-nav-link>
-                        <x-nav-link :href="route('logistica.pedimentos.index')" :active="request()->routeIs('logistica.pedimentos.*')">
-                            Pedimentos
-                        </x-nav-link>
-                        <x-nav-link :href="route('logistica.reportes.index')" :active="request()->routeIs('logistica.reportes*')">
-                            Reportes
-                        </x-nav-link>
                     
                     {{-- MENÚ GENERAL --}}
                     @else
@@ -176,9 +167,6 @@
             @elseif($isLogistica)
                 <x-responsive-nav-link :href="route('logistica.index')" :active="request()->routeIs('logistica.index')">
                     Dashboard Logística
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('logistica.matriz-seguimiento')" :active="request()->routeIs('logistica.matriz-seguimiento')">
-                    Matriz
                 </x-responsive-nav-link>
             @else
                 <x-responsive-nav-link :href="route('welcome')">Inicio</x-responsive-nav-link>

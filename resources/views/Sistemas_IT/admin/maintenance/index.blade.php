@@ -604,7 +604,6 @@
         </div>
     </main>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         /* Estilos personalizados para el mini calendario */
         #miniCalendarContainer {
@@ -692,8 +691,6 @@
             height: 10px;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const tabButtons = document.querySelectorAll('.tab-trigger');
@@ -1061,6 +1058,10 @@
             const miniCalEl = document.getElementById('miniCalendar');
             const loadingEl = document.getElementById('miniCalendarLoading');
             if (!miniCalEl) return;
+            if (typeof flatpickr === 'undefined') {
+                console.error('flatpickr no está disponible. Verifique la carga del CDN.');
+                return;
+            }
 
             // Mostrar calendario y ocultar loading
             if (loadingEl) loadingEl.classList.add('hidden');
@@ -1068,7 +1069,7 @@
 
             miniCalendarInstance = flatpickr(miniCalEl, {
                 inline: true,
-                locale: 'es',
+                locale: (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es) ? flatpickr.l10ns.es : 'es',
                 dateFormat: 'Y-m-d',
                 defaultDate: new Date(),
                 disable: [

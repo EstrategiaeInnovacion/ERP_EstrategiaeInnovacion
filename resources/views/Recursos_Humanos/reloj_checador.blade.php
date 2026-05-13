@@ -276,9 +276,10 @@
                                             <span class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">ID: {{ $empleado->id_empleado ?? 'S/N' }}</span>
                                             {{-- Resumen Rápido (Opcional, se puede calcular si se desea mayor detalle) --}}
                                             @php
-                                                // Pequeño cálculo al vuelo para el resumen de este empleado en el rango
-                                                $asistenciasEmp = $empleado->asistencias->whereBetween('fecha', [$fechaInicioDb, $fechaFinDb]);
-                                                $retardosEmp = $asistenciasEmp->where('es_retardo', true)->where('es_justificado', false)->count();
+                                                // La colección ya viene filtrada al rango correcto por el eager load del controlador.
+                                                // No se usa whereBetween aquí porque fecha es Carbon y la comparación string excluye el último día.
+                                                $asistenciasEmp = $empleado->asistencias;
+                                                $retardosEmp = $asistenciasEmp->where('tipo_registro', 'asistencia')->where('es_retardo', true)->where('es_justificado', false)->count();
                                                 $faltasEmp = $asistenciasEmp->where('tipo_registro', 'falta')->where('es_justificado', false)->count();
                                                 
                                                 // Calcular Horas Totales

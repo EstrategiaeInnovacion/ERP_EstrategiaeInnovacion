@@ -149,19 +149,4 @@ class Pedimento extends Model
         }
     }
 
-    /**
-     * Relación con operaciones logísticas
-     */
-    public function operaciones()
-    {
-        return $this->hasMany(OperacionLogistica::class, 'no_pedimento', 'clave');
-    }
-
-    /**
-     * Relación singular con operación logística (primera operación que coincide)
-     */
-    public function operacion()
-    {
-        return $this->hasOne(OperacionLogistica::class, 'no_pedimento', 'clave');
-    }
 }

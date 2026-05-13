@@ -6,7 +6,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Carta Responsiva — {{ $user->name }}</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -303,9 +302,14 @@
             .page {
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                width: 210mm !important;
-                min-height: 297mm !important;
-                padding: 15mm 18mm !important;
+                width: 216mm !important;
+                min-height: 279mm !important;
+                padding: 14mm 17mm !important;
+                overflow: hidden !important;
+            }
+            .page + .page {
+                page-break-before: always;
+                break-before: page;
             }
             @page { size: letter; margin: 0; }
         }
@@ -776,44 +780,52 @@ function cartaFirma() {
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'letter');
                 const pages = document.querySelectorAll('.page');
-                
+
+                // 816px = 216mm × 3.779527559 px/mm (96dpi)
+                const PX_PER_MM = 3.779527559;
+                const PAGE_W_PX = Math.round(216 * PX_PER_MM); // 816
+
                 for (let i = 0; i < pages.length; i++) {
                     const page = pages[i];
                     const clone = page.cloneNode(true);
-                    
-                    clone.style.position = 'absolute';
-                    clone.style.left = '-9999px';
-                    clone.style.top = '0';
-                    clone.style.width = '216mm';
-                    clone.style.padding = '18mm 20mm';
-                    clone.style.background = '#fff';
-                    clone.style.boxShadow = 'none';
-                    clone.style.borderRadius = '0';
-                    clone.style.margin = '0';
-                    
+
+                    // Override ALL CSS that could interfere (includes max-width:800px from @media screen)
+                    clone.style.cssText = [
+                        'position:fixed',
+                        'top:0',
+                        'left:-9999px',
+                        `width:${PAGE_W_PX}px`,
+                        `max-width:${PAGE_W_PX}px`,
+                        'min-height:0',
+                        'padding:68px 76px',  // 18mm × 3.78 ≈ 68px, 20mm × 3.78 ≈ 76px
+                        'background:#fff',
+                        'box-shadow:none',
+                        'border-radius:0',
+                        'margin:0',
+                        'overflow:visible',
+                    ].join(';');
+
                     document.body.appendChild(clone);
-                    
+
                     const canvas = await html2canvas(clone, {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        width: 216 * 3.779527559,
-                        windowWidth: 216 * 3.779527559
+                        width: PAGE_W_PX,
+                        windowWidth: PAGE_W_PX,
                     });
-                    
+
                     document.body.removeChild(clone);
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                    const imgWidth = 215.9;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
-                    if (i > 0) {
-                        pdf.addPage();
-                    }
-                    
-                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+                    const imgWidth  = 215.9;
+                    // Clip to page height so the image never overflows into a phantom 3rd page
+                    const fullH     = (canvas.height * imgWidth) / canvas.width;
+                    const imgHeight = Math.min(fullH, 279.4);
+
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, imgWidth, imgHeight);
                 }
-                
+
                 const pdfBlob = pdf.output('blob');
 
                 const base64 = await new Promise((resolve, reject) => {
@@ -853,43 +865,48 @@ function cartaFirma() {
                 const pdf = new jsPDF('p', 'mm', 'letter');
                 const pages = document.querySelectorAll('.page');
                 
+                const PX_PER_MM = 3.779527559;
+                const PAGE_W_PX = Math.round(216 * PX_PER_MM);
+
                 for (let i = 0; i < pages.length; i++) {
                     const page = pages[i];
                     const clone = page.cloneNode(true);
-                    
-                    clone.style.position = 'absolute';
-                    clone.style.left = '-9999px';
-                    clone.style.top = '0';
-                    clone.style.width = '216mm';
-                    clone.style.padding = '18mm 20mm';
-                    clone.style.background = '#fff';
-                    clone.style.boxShadow = 'none';
-                    clone.style.borderRadius = '0';
-                    clone.style.margin = '0';
-                    
+
+                    clone.style.cssText = [
+                        'position:fixed',
+                        'top:0',
+                        'left:-9999px',
+                        `width:${PAGE_W_PX}px`,
+                        `max-width:${PAGE_W_PX}px`,
+                        'min-height:0',
+                        'padding:68px 76px',
+                        'background:#fff',
+                        'box-shadow:none',
+                        'border-radius:0',
+                        'margin:0',
+                        'overflow:visible',
+                    ].join(';');
+
                     document.body.appendChild(clone);
-                    
+
                     const canvas = await html2canvas(clone, {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        width: 216 * 3.779527559,
-                        windowWidth: 216 * 3.779527559
+                        width: PAGE_W_PX,
+                        windowWidth: PAGE_W_PX,
                     });
-                    
+
                     document.body.removeChild(clone);
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                    const imgWidth = 215.9;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
-                    if (i > 0) {
-                        pdf.addPage();
-                    }
-                    
-                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+                    const imgWidth  = 215.9;
+                    const fullH = (canvas.height * imgWidth) / canvas.width;
+                    const imgHeight = Math.min(fullH, 279.4);
+
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, imgWidth, imgHeight);
                 }
-                
+
                 const pdfBlob = pdf.output('blob');
                 const pdfUrl = URL.createObjectURL(pdfBlob);
                 window.open(pdfUrl, '_blank');

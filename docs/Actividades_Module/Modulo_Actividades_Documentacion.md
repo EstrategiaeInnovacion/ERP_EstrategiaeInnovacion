@@ -1,4 +1,4 @@
-# Módulo de Actividades — Documentación Maestra
+# Módulo de Actividades — Documentación 
 > **ERP Estrategia e Innovación** · Versión documental: Abril 2026  
 > Audiencia: Desarrolladores de mantenimiento, líderes técnicos y arquitectos de software
 

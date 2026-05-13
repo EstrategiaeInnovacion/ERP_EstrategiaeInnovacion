@@ -1,88 +1,109 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Departamento de Logística') }}
-        </h2>
-    </x-slot>
+@extends('layouts.erp')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            @if(session('success'))
-                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-400 text-green-700">
-                    {{ session('success') }}
+@section('title', 'Logística')
+
+@section('content')
+<div class="min-h-screen bg-slate-50 pb-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+
+        {{-- HERO HEADER --}}
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 relative overflow-hidden">
+            <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-blue-50/80 to-transparent pointer-events-none"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider border border-blue-200">
+                        Operaciones
+                    </span>
+                    <span class="text-sm text-slate-400 font-medium">{{ \Carbon\Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY') }}</span>
                 </div>
-            @endif
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                <a href="{{ route('logistica.matriz-seguimiento') }}" class="block group">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-lg transition-shadow duration-300 h-full border-l-4 border-blue-500">
-                        <div class="p-6">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-blue-100 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                </div>
-                                <h3 class="ml-4 text-lg font-bold text-gray-800 group-hover:text-blue-600">Matriz de Seguimiento</h3>
-                            </div>
-                            <p class="mt-4 text-gray-600 text-sm">
-                                Gestión operativa día a día. Control de estatus, fechas críticas y semáforos de cumplimiento.
-                            </p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="{{ route('logistica.pedimentos.index') }}" class="block group">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-lg transition-shadow duration-300 h-full border-l-4 border-indigo-500">
-                        <div class="p-6">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                </div>
-                                <h3 class="ml-4 text-lg font-bold text-gray-800 group-hover:text-indigo-600">Control de Pedimentos</h3>
-                            </div>
-                            <p class="mt-4 text-gray-600 text-sm">
-                                Registro y seguimiento de pagos, estados de cuenta y consolidación por clave.
-                            </p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="{{ route('logistica.reportes.index') }}" class="block group">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-lg transition-shadow duration-300 h-full border-l-4 border-emerald-500">
-                        <div class="p-6">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-emerald-100 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
-                                </div>
-                                <h3 class="ml-4 text-lg font-bold text-gray-800 group-hover:text-emerald-600">Reportes & KPIs</h3>
-                            </div>
-                            <p class="mt-4 text-gray-600 text-sm">
-                                Análisis de eficiencia, exportación a Excel y métricas de desempeño operativo.
-                            </p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="{{ route('logistica.catalogos') }}" class="block group">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-lg transition-shadow duration-300 h-full border-l-4 border-slate-500">
-                        <div class="p-6">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-slate-100 text-slate-500 group-hover:bg-slate-500 group-hover:text-white transition-colors">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                </div>
-                                <h3 class="ml-4 text-lg font-bold text-gray-800 group-hover:text-slate-600">Catálogos</h3>
-                            </div>
-                            <p class="mt-4 text-gray-600 text-sm">
-                                Gestión de Clientes, Agentes Aduanales, Transportes y configuración del sistema.
-                            </p>
-                        </div>
-                    </div>
-                </a>
-
-                {{-- GESTIÓN DE EQUIPO MOVIDA A CATÁLOGOS --}}
-
+                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">Panel de Logística</h3>
+                <p class="mt-2 text-slate-500 max-w-2xl text-lg leading-relaxed">
+                    Control de operaciones de comercio exterior y gestión de reportes.
+                </p>
             </div>
         </div>
+
+        {{-- MÓDULOS --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <a href="{{ route('logistica.clientes.index') }}"
+               class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-indigo-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-indigo-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Administrar Clientes</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Alta, edición y configuración de clientes de comercio exterior.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-indigo-600 font-bold text-sm">
+                    Ir a Clientes <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="{{ route('logistica.matriz-apoyo') }}"
+               class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-amber-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-amber-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition-colors">Directorio de Proveedores</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Registro y seguimiento de actividades de apoyo operativo entre áreas.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-amber-600 font-bold text-sm">
+                    Ir a la Matriz <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="{{ route('logistica.clientes.perfil') }}"
+               class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-sky-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-sky-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-sky-600 transition-colors">Perfil de Clientes</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Consulta el cuestionario de perfil de comercio exterior de los clientes.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-sky-600 font-bold text-sm">
+                    Ver Perfil de Clientes <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="{{ route('logistica.matriz-seguimiento') }}"
+               class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-emerald-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M3 10h18M3 14h18M10 3v18M14 3v18M3 3h18v18H3z"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-emerald-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Matriz de Seguimiento</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Seguimiento y control del estado de operaciones de comercio exterior por cliente.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-emerald-600 font-bold text-sm">
+                    Ir a Seguimiento <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+        </div>
+
     </div>
-</x-app-layout>
+</div>
+@endsection

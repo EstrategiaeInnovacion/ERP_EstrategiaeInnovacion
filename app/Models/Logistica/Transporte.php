@@ -16,12 +16,6 @@ class Transporte extends Model
         'tipo_operacion',
     ];
 
-    public function operaciones()
-    {
-        // La tabla operaciones_logisticas usa el campo 'transporte' (texto) no 'transporte_id' (FK)
-        return $this->hasMany(OperacionLogistica::class, 'transporte', 'transporte');
-    }
-
     public function scopePorTipoOperacion($query, $tipo)
     {
         return $query->where('tipo_operacion', $tipo);

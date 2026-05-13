@@ -77,7 +77,7 @@ class RelojChecadorImportController extends Controller
         $kpis = [
             'total' => $baseQuery->count(),
             'ok' => (clone $baseQuery)->where('es_retardo', false)->count(),
-            'retardos' => (clone $baseQuery)->where('es_retardo', true)->where('es_justificado', false)->count(),
+            'retardos' => (clone $baseQuery)->where('tipo_registro', 'asistencia')->where('es_retardo', true)->where('es_justificado', false)->count(),
             'faltas' => (clone $baseQuery)->where('tipo_registro', 'falta')->count(),
         ];
 
@@ -102,6 +102,7 @@ class RelojChecadorImportController extends Controller
         $porcentajeAsistencia = $kpis['total'] > 0 ? round(($kpis['ok'] / $kpis['total']) * 100, 1) : 0;
 
         $topRetardos = (clone $baseQuery)
+            ->where('tipo_registro', 'asistencia')
             ->where('es_retardo', true)
             ->where('es_justificado', false)
             ->select('nombre', DB::raw('count(*) as total'))
@@ -668,7 +669,7 @@ class RelojChecadorImportController extends Controller
         $kpis = [
             'total' => (clone $baseQuery)->count(),
             'ok' => (clone $baseQuery)->where('es_retardo', false)->count(),
-            'retardos' => (clone $baseQuery)->where('es_retardo', true)->where('es_justificado', false)->count(),
+            'retardos' => (clone $baseQuery)->where('tipo_registro', 'asistencia')->where('es_retardo', true)->where('es_justificado', false)->count(),
             'faltas' => (clone $baseQuery)->where('tipo_registro', 'falta')->count(),
         ];
 

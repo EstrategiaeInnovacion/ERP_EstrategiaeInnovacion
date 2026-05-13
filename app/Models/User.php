@@ -325,7 +325,7 @@ class User extends Authenticatable implements CanResetPasswordContract
             ];
         }
 
-        // Panel IT: solo admins con posición IT/TI/Sistemas
+        // Panel IT: admins con posición IT/TI/Sistemas
         if ($esAdmin && (str_contains($posicion, ' ti') || str_contains($posicion, 'ti ') || $posicion === 'ti' || $posicion === 'it' || str_contains($posicion, 'sistemas'))) {
             $panels[] = [
                 'route' => route('admin.dashboard'),
@@ -333,7 +333,7 @@ class User extends Authenticatable implements CanResetPasswordContract
             ];
         }
 
-        // Panel RH: solo admins con posición administracion rh
+        // Panel RH: admins con posición administracion rh
         if ($esAdmin && str_contains($posicion, 'administracion rh')) {
             $panels[] = [
                 'route' => route('recursos-humanos.index'),
@@ -355,6 +355,40 @@ class User extends Authenticatable implements CanResetPasswordContract
             $panels[] = [
                 'route' => route('legal.dashboard'),
                 'label' => 'Panel Legal',
+            ];
+        }
+
+        // Panel Administración: usuarios con posición Dirección
+        if (str_contains($posicion, 'direcc')) {
+            $panels[] = [
+                'route' => route('administracion.dashboard'),
+                'label' => 'Panel Administración',
+            ];
+        }
+
+        // Panel Anexo 24: usuarios con posición/área Anexo 24
+        if (str_contains($posicion, 'anexo') || str_contains($area, 'anexo') ||
+            str_contains($posicion, 'a24')   || str_contains($area, 'a24')) {
+            $panels[] = [
+                'route' => route('anexo24.dashboard'),
+                'label' => 'Panel Anexo 24',
+            ];
+        }
+
+        // Panel Post-Operaciones: usuarios con posición/área Post-Operaciones
+        if (str_contains($posicion, 'post') || str_contains($area, 'post')) {
+            $panels[] = [
+                'route' => route('postoperaciones.dashboard'),
+                'label' => 'Panel Post-Operaciones',
+            ];
+        }
+
+        // Panel Auditoría: usuarios con posición/área Auditoría
+        if (str_contains($posicion, 'auditoria') || str_contains($area, 'auditoria') ||
+            str_contains($posicion, 'auditor')   || str_contains($area, 'auditor')) {
+            $panels[] = [
+                'route' => route('auditoria.dashboard'),
+                'label' => 'Panel Auditoría',
             ];
         }
 

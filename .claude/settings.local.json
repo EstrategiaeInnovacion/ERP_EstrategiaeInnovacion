@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Sistemas\\\\Downloads\\\\Copia_Proyectos_EI\\\\ERP_EstrategiaeInnovacion\\\\app\\\\Http\\\\Controllers\\\\Logistica\" -File)",
+      "Bash(Select-Object Name, FullName)"
+    ]
+  }
+}
