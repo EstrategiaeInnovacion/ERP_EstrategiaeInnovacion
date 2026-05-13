@@ -533,6 +533,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ── Drop zone helper ──────────────────────────────────────────────────────────
 
+// Almacena los archivos soltados por drag & drop (el input nativo no puede recibirlos)
+const droppedFiles = {};
+
 function setupDropzone(dzId, fiId, infoDivId, fnId, fsId, btnId, multiple) {
     const dz  = document.getElementById(dzId);
     const fi  = document.getElementById(fiId);
@@ -545,7 +548,11 @@ function setupDropzone(dzId, fiId, infoDivId, fnId, fsId, btnId, multiple) {
     dz.addEventListener('dragleave', () => dz.classList.remove('ring-2', 'ring-offset-2'));
     dz.addEventListener('drop', e => {
         dz.classList.remove('ring-2', 'ring-offset-2');
-        handleFileInput(e.dataTransfer.files, fiId, infoDivId, fnId, fsId, btnId, multiple);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            droppedFiles[fiId] = multiple ? Array.from(files) : files[0];
+        }
+        handleFileInput(files, fiId, infoDivId, fnId, fsId, btnId, multiple);
     });
 
     fi.addEventListener('change', () => {
@@ -572,6 +579,7 @@ window.clearFile = function(tool) {
     const info = document.getElementById('file-info-' + tool);
     const btn  = document.getElementById('btn-' + tool);
     if (fi)   fi.value = '';
+    delete droppedFiles['fi-' + tool];
     info?.classList.add('hidden');
     if (btn) btn.disabled = true;
     clearResult(tool);
@@ -710,7 +718,8 @@ document.getElementById('splitEnabled')?.addEventListener('change', function() {
 document.getElementById('form-convertir')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const fi = document.getElementById('fi-convertir');
-    if (!fi?.files[0]) return;
+    const fileToUse = (fi?.files[0]) || droppedFiles['fi-convertir'];
+    if (!fileToUse) return;
 
     const origHtml = document.getElementById('btn-convertir').innerHTML;
     setLoading('btn-convertir', true);
@@ -718,7 +727,7 @@ document.getElementById('form-convertir')?.addEventListener('submit', async func
 
     const fd = new FormData();
     fd.append('_token', CSRF);
-    fd.append('file', fi.files[0]);
+    fd.append('file', fileToUse);
     fd.append('modo', getModo());
     fd.append('splitEnabled', document.getElementById('splitEnabled')?.checked ? '1' : '0');
     fd.append('numberOfParts', document.getElementById('numberOfParts')?.value ?? '2');
@@ -772,7 +781,8 @@ document.getElementById('form-convertir')?.addEventListener('submit', async func
 document.getElementById('form-validar')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const fi = document.getElementById('fi-validar');
-    if (!fi?.files[0]) return;
+    const fileToUse = (fi?.files[0]) || droppedFiles['fi-validar'];
+    if (!fileToUse) return;
 
     const origHtml = document.getElementById('btn-validar').innerHTML;
     setLoading('btn-validar', true);
@@ -780,7 +790,7 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
 
     const fd = new FormData();
     fd.append('_token', CSRF);
-    fd.append('pdf', fi.files[0]);
+    fd.append('pdf', fileToUse);
     fd.append('modo', getModo());
 
     try {
@@ -858,7 +868,8 @@ document.getElementById('form-validar')?.addEventListener('submit', async functi
 document.getElementById('form-comprimir')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const fi = document.getElementById('fi-comprimir');
-    if (!fi?.files[0]) return;
+    const fileToUse = (fi?.files[0]) || droppedFiles['fi-comprimir'];
+    if (!fileToUse) return;
 
     const origHtml = document.getElementById('btn-comprimir').innerHTML;
     setLoading('btn-comprimir', true);
@@ -866,7 +877,7 @@ document.getElementById('form-comprimir')?.addEventListener('submit', async func
 
     const fd = new FormData();
     fd.append('_token', CSRF);
-    fd.append('file', fi.files[0]);
+    fd.append('file', fileToUse);
     fd.append('compressionLevel', document.getElementById('compressionLevel')?.value ?? 'printer');
 
     try {
@@ -938,7 +949,8 @@ document.getElementById('form-combinar')?.addEventListener('submit', async funct
 document.getElementById('form-extraer')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const fi = document.getElementById('fi-extraer');
-    if (!fi?.files[0]) return;
+    const fileToUse = (fi?.files[0]) || droppedFiles['fi-extraer'];
+    if (!fileToUse) return;
 
     const origHtml = document.getElementById('btn-extraer').innerHTML;
     setLoading('btn-extraer', true);
@@ -946,7 +958,7 @@ document.getElementById('form-extraer')?.addEventListener('submit', async functi
 
     const fd = new FormData();
     fd.append('_token', CSRF);
-    fd.append('pdf', fi.files[0]);
+    fd.append('pdf', fileToUse);
 
     try {
         const res  = await fetch('{{ route("digitalizacion.extract") }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });

@@ -4,9 +4,13 @@ import Alpine from 'alpinejs';
 import flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es.js';
 import 'flatpickr/dist/flatpickr.min.css';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 window.flatpickr = flatpickr;
 window.flatpickr.l10ns.es = Spanish;
+window.html2canvas = html2canvas;
+window.jspdf = { jsPDF };
 
 // Import component modules
 import { initNotificationDropdown } from './Sistemas_IT/components/notifications.js';
