@@ -549,23 +549,28 @@ class RelojChecadorImportController extends Controller
 
         // Enviar Correo Electrónico
         try {
-            // Obtener el usuario del empleado para saber su correo
-            $usuarioEmpleado = $aviso->empleado->user;
+            $empleado = $aviso->empleado;
+            $usuarioEmpleado = $empleado->user;
 
             if ($usuarioEmpleado && $usuarioEmpleado->email) {
-                $supervisor = $aviso->empleado->supervisor;
-                $esDireccion = $supervisor && mb_stripos(mb_strtolower($supervisor->posicion ?? ''), 'direcc') !== false;
+                $emailEmpleado = $usuarioEmpleado->email;
+                $esKaren = mb_strtolower($emailEmpleado) === 'karen.cruz@estrategiaeinnovacion.com.mx';
+                $esSupervisor = $empleado->subordinados()->where('es_activo', true)->exists();
 
                 $ccList = ['guillermo.aguilera@estrategiaeinnovacion.com.mx'];
 
-                if (!$esDireccion) {
+                if ($esKaren) {
+                    //
+                } elseif ($esSupervisor) {
                     $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
-                    if ($supervisor?->user?->email) {
-                        $ccList[] = $supervisor->user->email;
+                } else {
+                    $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
+                    if ($empleado->supervisor?->user?->email) {
+                        $ccList[] = $empleado->supervisor->user->email;
                     }
                 }
 
-                Mail::to($usuarioEmpleado->email)
+                Mail::to($emailEmpleado)
                     ->cc($ccList)
                     ->send(new AvisoAsistenciaMailable($aviso));
             }
