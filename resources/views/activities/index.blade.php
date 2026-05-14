@@ -297,6 +297,12 @@
                     <span class="hidden md:inline">Excel</span>
                 </button>
 
+                {{-- Botón Importar --}}
+                <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="bg-blue-600 text-white border border-blue-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2" title="Importar actividades desde Excel o CSV">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span class="hidden md:inline">Importar</span>
+                </button>
+
                 <button onclick="document.getElementById('quickCreateModal').classList.remove('hidden')" class="flex-1 sm:flex-none bg-indigo-600 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 
                     {{ $targetUser->id === Auth::id() ? 'Nueva' : 'Asignar' }}
@@ -602,9 +608,19 @@
                             <h3 class="text-xl font-bold text-slate-800">Detalles</h3>
                             <button type="button" onclick="closeNotes()" class="text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                         </div>
-                        <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
-                            <div><span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wide">Responsable</span><span id="modal-responsable" class="text-sm font-bold text-indigo-600">-</span></div>
-                            <div class="text-right"><span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wide">Supervisor</span><span id="modal-supervisor" class="text-sm font-bold text-slate-700">-</span></div>
+                        <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center mb-3">
+                                <div><span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wide">Responsable</span><span id="modal-responsable" class="text-sm font-bold text-indigo-600">-</span></div>
+                                <div class="text-right"><span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wide">Supervisor</span><span id="modal-supervisor" class="text-sm font-bold text-slate-700">-</span></div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reasignar a</label>
+                                <select name="user_id" id="modal-user-id" class="w-full text-sm rounded-lg border-slate-300 py-2 bg-white focus:ring-indigo-500">
+                                    @foreach($empleadosAsignables as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                         <div id="modal-rejection-alert" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r text-sm shadow-sm"><p class="font-bold text-red-800">⚠️ Rechazado</p><p class="text-red-700 mt-1 text-xs pl-6">Motivo: <span id="modal-rejection-reason" class="font-bold italic">...</span></p></div>
                         <div class="space-y-5">
@@ -621,6 +637,17 @@
                                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Área</label><select name="area" id="modal-area" class="w-full text-sm rounded-lg border-slate-300 py-2.5 bg-white">@foreach($areasDisponibles as $areaOp)<option value="{{ $areaOp }}">{{ $areaOp }}</option>@endforeach</select></div>
                                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Cliente</label><input type="text" name="cliente" id="modal-cliente" class="w-full text-sm rounded-lg border-slate-300 py-2.5"></div>
                             </div>
+                            @if(isset($proyectos) && $proyectos->count() > 0)
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Proyecto (Opcional)</label>
+                                <select name="proyecto_id" id="modal-proyecto" class="w-full text-sm rounded-lg border-slate-300 py-2.5 bg-white focus:ring-indigo-500">
+                                    <option value="">Sin proyecto</option>
+                                    @foreach($proyectos as $proy)
+                                        <option value="{{ $proy->id }}">{{ $proy->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
                             <div id="div-estatus-selector">
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Estatus</label>
                                     <select name="estatus" id="modal-estatus" class="w-full text-sm rounded-lg border-slate-300 py-2.5 font-bold text-slate-700"></select>
@@ -814,6 +841,70 @@ function toggleAllUsersExcel(checkbox) {
 </div>
 @endif
 
+{{-- MODAL IMPORTAR --}}
+<div id="importModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="document.getElementById('importModal').classList.add('hidden')"></div>
+    <div class="fixed inset-0 z-10 flex items-center justify-center p-4">
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transform transition-all">
+            <form id="importForm" onsubmit="return importActivities(event)">
+                @csrf
+                <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                    <h3 class="font-bold text-white">Importar Actividades</h3>
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="text-blue-200 hover:text-white"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Asignar tareas a:</label>
+                        <select name="assigned_to" class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 bg-white shadow-sm text-slate-700 py-2.5" required>
+                            <option value="{{ Auth::id() }}">{{ Auth::user()->name }} (Yo)</option>
+                            @foreach($empleadosAsignables as $u)
+                                @if($u->id !== Auth::id())
+                                    <option value="{{ $u->id }}" {{ $targetUser->id == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1.5">Las tareas importadas se asignarán a este usuario.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Archivo (Excel o CSV)</label>
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded-lg py-1.5 px-3" required>
+                        <p class="text-[10px] text-slate-400 mt-1.5">La primera fila debe contener los encabezados.</p>
+                    </div>
+
+                    @if(isset($proyectos) && $proyectos->count() > 0)
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Proyecto (Opcional)</label>
+                        <select name="proyecto_id" class="w-full rounded-lg border-slate-300 text-sm py-2.5 bg-white focus:ring-blue-500">
+                            <option value="">Sin proyecto</option>
+                            @foreach($proyectos as $proy)
+                                <option value="{{ $proy->id }}">{{ $proy->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Descarga la <a href="{{ route('activities.import_template') }}" class="text-blue-600 font-bold underline hover:text-blue-800">plantilla de ejemplo</a> para ver el formato esperado.</span>
+                    </div>
+
+                    <div id="importResult"></div>
+                </div>
+
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" id="importBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {{-- Modal Historial --}}
 <div id="historyModal" class="fixed inset-0 z-50 hidden" aria-hidden="true" role="dialog">
     <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="document.getElementById('historyModal').classList.add('hidden')"></div>
@@ -848,6 +939,12 @@ function toggleAllUsersExcel(checkbox) {
         document.getElementById('modal-comentarios').value = act.comentarios || '';
         document.getElementById('modal-area').value = act.area || 'General';
         document.getElementById('modal-cliente').value = act.cliente || '';
+        if (document.getElementById('modal-proyecto')) {
+            document.getElementById('modal-proyecto').value = act.proyecto_id || '';
+        }
+        if (document.getElementById('modal-user-id')) {
+            document.getElementById('modal-user-id').value = act.user_id || '';
+        }
         document.getElementById('modal-responsable').innerText = act.user ? act.user.name : '-';
         document.getElementById('modal-supervisor').innerText = (act.user && act.user.empleado && act.user.empleado.supervisor) ? act.user.empleado.supervisor.nombre : 'N/A';
         
@@ -880,6 +977,10 @@ function toggleAllUsersExcel(checkbox) {
             const el = document.getElementById(id);
             if(!canEditAll){ el.readOnly=true; el.classList.add('bg-slate-100'); } else { el.readOnly=false; el.classList.remove('bg-slate-100'); }
         });
+        const userSelect = document.getElementById('modal-user-id');
+        if (userSelect) {
+            if(!canEditAll){ userSelect.disabled=true; userSelect.classList.add('bg-slate-100'); } else { userSelect.disabled=false; userSelect.classList.remove('bg-slate-100'); }
+        }
 
         const divRej = document.getElementById('modal-rejection-alert');
         if(act.estatus === 'Rechazado'){ divRej.classList.remove('hidden'); document.getElementById('modal-rejection-reason').innerText=act.motivo_rechazo; } else { divRej.classList.add('hidden'); }
@@ -887,6 +988,41 @@ function toggleAllUsersExcel(checkbox) {
     }
     function closeNotes(){ document.getElementById('notesModal').classList.add('hidden'); }
     function rejectActivity(id){ document.getElementById('rejectForm').action="/activities/"+id+"/reject"; document.getElementById('rejectModal').classList.remove('hidden'); }
+    function importActivities(e) {
+        e.preventDefault();
+        const form = document.getElementById('importForm');
+        const formData = new FormData(form);
+        const btn = document.getElementById('importBtn');
+        const resultDiv = document.getElementById('importResult');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Importando...';
+        resultDiv.innerHTML = '';
+        
+        fetch('{{ route('activities.import') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="bg-emerald-50 text-emerald-800 p-4 rounded-lg border border-emerald-200 text-sm font-bold flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> ' + data.message + '</div>';
+                setTimeout(() => { document.getElementById('importModal').classList.add('hidden'); location.reload(); }, 2000);
+            } else {
+                resultDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200 text-sm font-bold">' + (data.message || 'Error al importar.') + '</div>';
+            }
+        })
+        .catch(err => {
+            resultDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200 text-sm font-bold">Error de conexión. Verifica el archivo e inténtalo de nuevo.</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Importar';
+        });
+        
+        return false;
+    }
     function openPlanModal(){ document.getElementById('planModal').classList.remove('hidden'); updateWeekLabels(); for(let i=0;i<5;i++){const c=document.getElementById(`container-day-${i}`);if(c && c.children.length===0)addTaskCard(i);} }
     function updateWeekLabels(){ const v=document.getElementById('weekPicker').value; if(!v)return; const l=new Date(v+'T00:00:00'); for(let i=0;i<5;i++){const d=new Date(l);d.setDate(l.getDate()+i); document.getElementById(`label-date-${i}`).innerText=d.toLocaleDateString('es-MX',{day:'numeric',month:'short'}); } }
     function addTaskCard(dayIndex){

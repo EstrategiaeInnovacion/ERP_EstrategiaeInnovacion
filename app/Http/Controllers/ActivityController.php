@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -488,6 +490,7 @@ class ActivityController extends Controller
             'cliente' => 'Cliente',
             'area' => 'Área',
             'proyecto_id' => 'Proyecto',
+            'user_id' => 'Responsable',
         ];
 
         foreach ($activity->getDirty() as $campo => $nuevoValor) {
@@ -566,6 +569,7 @@ class ActivityController extends Controller
         $posicion = strtolower($miEmpleado->posicion ?? '');
         $esDireccion = str_contains($posicion, 'direcc');
         $esSupervisor = Empleado::where('supervisor_id', $miEmpleado->id)->exists();
+        $esCoordinador = $miEmpleado->es_coordinador;
 
         // ¿La tarea es propia?
         $esPropia = $activity->user_id === $user->id;
@@ -577,7 +581,7 @@ class ActivityController extends Controller
         // ¿La delegó él?
         $esDelegada = $activity->asignado_por === $user->id;
 
-        if ($esDireccion && ($esPropia || $esDeSubordinado || $esDelegada)) {
+        if (($esDireccion || $esCoordinador) && ($esPropia || $esDeSubordinado || $esDelegada)) {
             $activity->delete();
             return redirect()->back()->with('success', 'Eliminado.');
         }
@@ -956,5 +960,265 @@ class ActivityController extends Controller
         $response->headers->set('Cache-Control', 'max-age=0');
 
         return $response;
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv,txt',
+            'assigned_to' => 'required|exists:users,id',
+            'proyecto_id' => 'nullable|exists:proyectos,id',
+        ]);
+
+        $file = $request->file('file');
+        $dir = 'temp';
+        if (!Storage::exists($dir)) {
+            Storage::makeDirectory($dir);
+        }
+        $path = $file->storeAs($dir, Str::uuid() . '.' . $file->getClientOriginalExtension());
+        $fullPath = Storage::path($path);
+
+        $currentUser = Auth::user();
+
+        try {
+            $inputFileType = IOFactory::identify($fullPath);
+            $reader = IOFactory::createReader($inputFileType);
+
+            if ($inputFileType === 'Csv') {
+                $reader->setDelimiter(',');
+                $reader->setEnclosure('"');
+                $reader->setInputEncoding('UTF-8');
+            }
+
+            $spreadsheet = $reader->load($fullPath);
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray(null, true, true, false);
+        } catch (\Exception $e) {
+            Storage::delete($path);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al leer el archivo: ' . $e->getMessage(),
+            ], 422);
+        }
+
+        if (empty($rows) || count($rows) < 2) {
+            Storage::delete($path);
+            return response()->json([
+                'success' => false,
+                'message' => 'El archivo está vacío o solo tiene encabezados.',
+            ], 422);
+        }
+
+        $headers = array_shift($rows);
+        $headerMap = [];
+        foreach ($headers as $i => $h) {
+            $normalized = mb_strtolower(trim((string) ($h ?? '')));
+            $normalized = str_replace([' ', '-', '_'], '', $normalized);
+            $headerMap[$normalized] = $i;
+        }
+
+        $campoNombre = $headerMap['nombreactividad'] ?? $headerMap['actividad'] ?? $headerMap['descripcion'] ?? $headerMap['tarea'] ?? null;
+        $campoFecha = $headerMap['fechacompromiso'] ?? $headerMap['fecha'] ?? $headerMap['fechalimite'] ?? $headerMap['deadline'] ?? null;
+        $campoArea = $headerMap['area'] ?? null;
+        $campoCliente = $headerMap['cliente'] ?? null;
+        $campoPrioridad = $headerMap['prioridad'] ?? $headerMap['prioridad'] ?? null;
+        $campoTipo = $headerMap['tipoactividad'] ?? $headerMap['tipo'] ?? null;
+        $campoHoraInicio = $headerMap['horainicio'] ?? $headerMap['horainicio'] ?? $headerMap['inicio'] ?? null;
+        $campoHoraFin = $headerMap['horafin'] ?? $headerMap['horafin'] ?? $headerMap['fin'] ?? null;
+        $campoComentarios = $headerMap['comentarios'] ?? $headerMap['comentario'] ?? $headerMap['notas'] ?? $headerMap['observaciones'] ?? null;
+
+        if ($campoNombre === null) {
+            Storage::delete($path);
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró una columna de actividad. Columnas requeridas: nombre_actividad, fecha_compromiso (opcional). Columnas detectadas: ' . implode(', ', array_map(fn($h) => "'{$h}'", $headers)),
+            ], 422);
+        }
+
+        $imported = 0;
+        $errors = [];
+        $proyectoId = $request->filled('proyecto_id') ? $request->proyecto_id : null;
+
+        DB::beginTransaction();
+        try {
+            foreach ($rows as $rowIndex => $row) {
+                $nombre = trim((string) ($row[$campoNombre] ?? ''));
+                if (empty($nombre)) {
+                    continue;
+                }
+
+                $fechaCompromiso = null;
+                if ($campoFecha !== null && !empty($row[$campoFecha])) {
+                    $fechaCompromiso = $this->parseDate($row[$campoFecha]);
+                }
+                $fechaCompromiso = $fechaCompromiso ?: now();
+
+                $data = [
+                    'user_id' => $request->assigned_to,
+                    'asignado_por' => $currentUser->id,
+                    'nombre_actividad' => $nombre,
+                    'fecha_inicio' => now(),
+                    'fecha_compromiso' => $fechaCompromiso,
+                    'area' => ($campoArea !== null && !empty($row[$campoArea])) ? trim($row[$campoArea]) : 'General',
+                    'cliente' => ($campoCliente !== null && !empty($row[$campoCliente])) ? trim($row[$campoCliente]) : null,
+                    'prioridad' => $this->normalizePriority(($campoPrioridad !== null && !empty($row[$campoPrioridad])) ? $row[$campoPrioridad] : 'Media'),
+                    'tipo_actividad' => ($campoTipo !== null && !empty($row[$campoTipo])) ? trim($row[$campoTipo]) : 'Operativo',
+                    'hora_inicio_programada' => ($campoHoraInicio !== null && !empty($row[$campoHoraInicio])) ? $this->parseTime($row[$campoHoraInicio]) : null,
+                    'hora_fin_programada' => ($campoHoraFin !== null && !empty($row[$campoHoraFin])) ? $this->parseTime($row[$campoHoraFin]) : null,
+                    'comentarios' => ($campoComentarios !== null && !empty($row[$campoComentarios])) ? trim($row[$campoComentarios]) : null,
+                    'estatus' => 'Por Aprobar',
+                    'metrico' => 1,
+                ];
+
+                if ($proyectoId) {
+                    $data['proyecto_id'] = $proyectoId;
+                }
+
+                Activity::create($data);
+                $imported++;
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Storage::delete($path);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error durante la importación: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        Storage::delete($path);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Importación completada: {$imported} actividades creadas.",
+            'imported' => $imported,
+            'errors' => $errors,
+        ]);
+    }
+
+    public function downloadImportTemplate()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = ['nombre_actividad', 'fecha_compromiso', 'area', 'cliente', 'prioridad', 'tipo_actividad', 'hora_inicio', 'hora_fin', 'comentarios'];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $sheet->getStyle($col . '1')->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('4F46E5');
+            $sheet->getStyle($col . '1')->getFont()->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle($col . '1')->getAlignment()->setHorizontal('center');
+            $col++;
+        }
+
+        $sheet->setCellValue('A2', 'Ejemplo de actividad');
+        $sheet->setCellValue('B2', now()->format('Y-m-d'));
+        $sheet->setCellValue('C2', 'General');
+        $sheet->setCellValue('D2', 'Cliente ejemplo');
+        $sheet->setCellValue('E2', 'Media');
+        $sheet->setCellValue('F2', 'Operativo');
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $response = response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        });
+
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="plantilla_importacion_actividades.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
+    }
+
+    private function parseDate($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            try {
+                return ExcelDate::excelToDateTimeObject((int) $value);
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+
+        $value = trim((string) $value);
+
+        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{2,4}$/', $value)) {
+            $parts = explode('/', $value);
+            if (strlen($parts[2]) === 2) {
+                $parts[2] = '20' . $parts[2];
+            }
+            $value = $parts[2] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+        } elseif (preg_match('/^\d{1,2}-\d{1,2}-\d{2,4}$/', $value)) {
+            $parts = explode('-', $value);
+            if (strlen($parts[2]) === 2) {
+                $parts[2] = '20' . $parts[2];
+            }
+            $value = $parts[2] . '-' . str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '-' . str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function parseTime($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            try {
+                $excelDate = ExcelDate::excelToDateTimeObject($value);
+                return $excelDate->format('H:i:s');
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+
+        $value = trim((string) $value);
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $value, $m)) {
+            $h = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+            $i = str_pad($m[2], 2, '0', STR_PAD_LEFT);
+            $s = isset($m[3]) ? str_pad($m[3], 2, '0', STR_PAD_LEFT) : '00';
+            return "{$h}:{$i}:{$s}";
+        }
+
+        try {
+            return Carbon::parse($value)->format('H:i:s');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function normalizePriority($value)
+    {
+        $lower = mb_strtolower(trim((string) $value));
+        return match ($lower) {
+            'alta', 'high', 'alto', 'urgente', 'critica', 'critical' => 'Alta',
+            'baja', 'low', 'bajo', 'opcional' => 'Baja',
+            default => 'Media',
+        };
     }
 }
