@@ -106,7 +106,7 @@
                                 </div>
                                 <div class="flex-1 relative z-10">
                                     <h3 class="text-lg font-bold text-amber-900 flex items-center gap-2">
-                                        {{ $aviso->tipo == 'retardos' ? 'Aviso por Retardos' : ($aviso->tipo == 'faltas' ? 'Aviso por Faltas' : 'Aviso de Asistencia') }}
+                                        {{ $aviso->tipo == 'retardos' ? 'Aviso por Retardos' : ($aviso->tipo == 'faltas' ? 'Aviso por Faltas' : ($aviso->tipo == 'vestimenta' ? 'Aviso por Vestimenta' : 'Aviso de Asistencia')) }}
                                         <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-800 border border-amber-300">{{ $aviso->cantidad_incidencias }} incidencias en {{ $aviso->periodo }}</span>
                                     </h3>
                                     <p class="mt-2 text-sm text-amber-800 bg-white/50 p-3 rounded-lg border border-amber-100 whitespace-pre-line">{{ $aviso->mensaje }}</p>

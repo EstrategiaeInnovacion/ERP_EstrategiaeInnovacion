@@ -531,7 +531,7 @@ class RelojChecadorImportController extends Controller
     {
         $request->validate([
             'empleado_id' => 'required|exists:empleados,id',
-            'tipo' => 'required|in:retardos,faltas,general',
+            'tipo' => 'required|in:retardos,faltas,general,vestimenta',
             'cantidad_incidencias' => 'required|integer|min:0',
             'periodo' => 'required|string|max:255',
             'mensaje' => 'required|string',

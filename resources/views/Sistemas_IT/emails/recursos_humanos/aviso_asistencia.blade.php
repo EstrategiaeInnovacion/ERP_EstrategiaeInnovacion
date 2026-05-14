@@ -1,5 +1,5 @@
 <x-mail::message>
-# Aviso Oficial de {{ $aviso->tipo == 'retardos' ? 'Retardos' : ($aviso->tipo == 'faltas' ? 'Faltas' : 'Asistencia') }}
+# Aviso Oficial de {{ $aviso->tipo == 'retardos' ? 'Retardos' : ($aviso->tipo == 'faltas' ? 'Faltas' : ($aviso->tipo == 'vestimenta' ? 'Vestimenta' : 'Asistencia')) }}
 
 **Estimado/a {{ $aviso->empleado->nombre }},**
 

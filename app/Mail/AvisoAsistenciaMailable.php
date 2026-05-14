@@ -34,6 +34,7 @@ class AvisoAsistenciaMailable extends Mailable
         $tipo = match($this->aviso->tipo) {
             'retardos' => 'Retardos',
             'faltas' => 'Faltas',
+            'vestimenta' => 'Vestimenta',
             default => 'Asistencia'
         };
 

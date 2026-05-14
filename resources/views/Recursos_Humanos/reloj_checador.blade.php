@@ -1312,6 +1312,7 @@
                                         <select name="tipo" id="aviso_tipo" onchange="actualizarMensajeAviso()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                             <option value="retardos">Acumulación de Retardos</option>
                                             <option value="faltas">Acumulación de Faltas</option>
+                                            <option value="vestimenta">Política de Vestimenta</option>
                                             <option value="general">Llamado de Atención General</option>
                                         </select>
                                     </div>
@@ -1431,6 +1432,10 @@
                 cantidadInput.value = currentAvisoFaltas;
                 cantidadDisplay.innerText = currentAvisoFaltas + ' faltas';
                 mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nHemos detectado ${currentAvisoFaltas} faltas sin justificación en el período actual.\n\nLe recordamos la obligación de reportar o justificar sus inasistencias en tiempo y forma con el departamento correspondiente.`;
+            } else if (tipo === 'vestimenta') {
+                cantidadInput.value = 0;
+                cantidadDisplay.innerText = '0 (Vestimenta)';
+                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nSe le recuerda de manera atenta la importancia de cumplir con lo establecido en la Política de Vestimenta la cual establece lo siguiente:\n\nEl uso de uniforme es obligatorio de lunes a jueves; En caso de aun no contar con uniforme, hacer uso de ropa formal de negocios.\nLos viernes se permite vestimenta casual de negocios, salvo que por actividades o entrevistas se requiera uniforme.\nLas faldas deberán ser a la rodilla o más largas.\nNo se permiten modificaciones al diseño, color o modelo del uniforme.\nEstá prohibido ingresar con prendas o accesorios no apropiados, como gorras, lentes oscuros, ropa deportiva, prendas rotas, transparentes o con logos de otras empresas, así como tenis deportivos o chancletas.\nEstá prohibido afeitarse dentro de los baños de la empresa.\nTodos los colaboradores deberán mantener una imagen profesional y corporativa.\nEl uniforme deberá utilizarse durante un año y su cuidado será responsabilidad del colaborador.\n\nLe solicitamos tomar las medidas necesarias para cumplir con lo establecido en el RIT y Códigos Internos E&I (Política de Vestimenta pag. 7)`;
             } else {
                 cantidadInput.value = 0;
                 cantidadDisplay.innerText = '0 (Llamado General)';
@@ -1455,6 +1460,7 @@
                 let tipoBadge = '';
                 if(aviso.tipo === 'retardos') tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Retardos</span>';
                 else if(aviso.tipo === 'faltas') tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Faltas</span>';
+                else if(aviso.tipo === 'vestimenta') tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Vestimenta</span>';
                 else tipoBadge = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">General</span>';
 
                 // Estado de Lectura

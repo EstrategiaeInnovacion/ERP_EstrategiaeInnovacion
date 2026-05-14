@@ -6,7 +6,12 @@ Estimado/a **{{ $aviso->empleado->nombre ?? 'Colaborador' }}**,
 Por medio del presente, el área de **Recursos Humanos** le notifica lo siguiente:
 
 @component('mail::panel')
-**Tipo de aviso:** {{ ucfirst($aviso->tipo) }}
+**Tipo de aviso:** @switch($aviso->tipo)
+    @case('retardos') Retardos @break
+    @case('faltas') Faltas @break
+    @case('vestimenta') Vestimenta @break
+    @default Asistencia
+@endswitch
 
 **Periodo:** {{ $aviso->periodo }}
 
