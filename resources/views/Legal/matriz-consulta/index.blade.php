@@ -54,6 +54,27 @@
     </div>
 @endif
 
+@if(session('error'))
+    <div class="mb-6 flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        <span class="text-sm font-medium">{{ session('error') }}</span>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="mb-6 flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700">
+        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        <div>
+            <p class="text-sm font-bold mb-1">Por favor corrige los siguientes errores:</p>
+            <ul class="text-sm list-disc list-inside space-y-0.5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
 {{-- FILTROS --}}
 <form method="GET" action="{{ route('legal.matriz.index') }}" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
     <div class="flex flex-col sm:flex-row gap-3 items-end">
@@ -355,7 +376,8 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label id="labelNuevoEmpresa" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Nombre de la Empresa</label>
-                        <input type="text" name="empresa" id="nuevoEmpresa" placeholder="Nombre de la empresa"
+                        <input type="text" name="empresa" id="nuevoEmpresa" placeholder="Nombre de la empresa" required
+                            value="{{ old('empresa') }}"
                             class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">
                     </div>
                     <div>
@@ -370,13 +392,13 @@
                 <div>
                     <label id="labelNuevoConsulta" class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Consulta</label>
                     <textarea name="consulta" id="nuevoConsulta" rows="3" placeholder="Descripción detallada de la consulta..."
-                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">{{ old('consulta') }}</textarea>
                 </div>
 
                 <div id="divNuevoResultado">
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Resultado <span class="text-slate-400 font-normal">(opcional)</span></label>
                     <textarea name="resultado" rows="3" placeholder="Resultado o resolución de la consulta..."
-                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5"></textarea>
+                        class="block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-800 focus:border-amber-500 focus:ring-amber-500 sm:text-sm py-2.5">{{ old('resultado') }}</textarea>
                 </div>
 
                 {{-- Sección: Archivos --}}
@@ -915,6 +937,21 @@
 
     // Inicializar filtros según pestaña activa al cargar
     sincronizarFiltros(tabActiva);
+
+    // Auto-reabrir modal de Añadir Proyecto si hubo errores de validación
+    @if($errors->any())
+    (function() {
+        const tipo = '{{ old('tipo', 'consulta') }}';
+        cambiarTipoFormNuevo(tipo);
+        @if(old('categoria_id'))
+        document.addEventListener('DOMContentLoaded', function() {
+            const sel = document.getElementById('nuevaCategoria');
+            if (sel) sel.value = '{{ old('categoria_id') }}';
+        });
+        @endif
+        abrirModal('modalAgregarProyecto');
+    })();
+    @endif
 
     (function autoAbrirNuevaCategoria() {
         const params = new URLSearchParams(window.location.search);
