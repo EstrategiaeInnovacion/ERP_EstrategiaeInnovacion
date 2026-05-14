@@ -3,9 +3,11 @@
 
 **Estimado/a {{ $aviso->empleado->nombre }},**
 
+@if($aviso->tipo !== 'vestimenta')
 El departamento de Recursos Humanos le informa que se han registrado **{{ $aviso->cantidad_incidencias }} incidencias** en su control de asistencia durante el período de **{{ $aviso->periodo }}**.
 
 A continuación, los detalles del aviso:
+@endif
 
 <x-mail::panel>
 {!! nl2br(e($aviso->mensaje)) !!}

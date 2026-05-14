@@ -13,10 +13,12 @@ Por medio del presente, el área de **Recursos Humanos** le notifica lo siguient
     @default Asistencia
 @endswitch
 
+@if($aviso->tipo !== 'vestimenta')
 **Periodo:** {{ $aviso->periodo }}
 
 @if($aviso->cantidad_incidencias > 0)
 **Número de incidencias:** {{ $aviso->cantidad_incidencias }}
+@endif
 @endif
 
 **Mensaje:**
