@@ -224,6 +224,38 @@
                                class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
                     </td>
                 </tr>
+                <tr class="bg-white border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Cuenta con registro de marca</td>
+                    <td class="px-2 py-2 text-center w-16">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-registro-marca" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center w-16">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-registro-marca" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="bg-slate-50 border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Cuenta con póliza de seguro de las mercancías</td>
+                    <td class="px-2 py-2 text-center w-16">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-poliza-seguro" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center w-16">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-poliza-seguro" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
 
                 {{-- ── PERFIL DE LA EMPRESA ───────────────────────── --}}
                 <tr>
@@ -241,10 +273,12 @@
                 {{-- Con fecha --}}
                 @php
                     $conFecha = [
-                        ['id' => 'p-immex',         'label' => 'Cuentan con Programa IMMEX',   'fecha' => 'p-immex-fecha'],
-                        ['id' => 'p-maquiladora',   'label' => 'Maquiladora',                  'fecha' => 'p-maquiladora-fecha'],
-                        ['id' => 'p-maq-servicios', 'label' => 'Maquiladora de Servicios',     'fecha' => 'p-maq-servicios-fecha'],
-                        ['id' => 'p-prosec',        'label' => 'PROSEC',                       'fecha' => 'p-prosec-fecha'],
+                        ['id' => 'p-immex',          'label' => 'Cuenta con Programa IMMEX Industrial',    'fecha' => 'p-immex-fecha'],
+                        ['id' => 'p-immex-servicios', 'label' => 'Cuenta con Programa IMMEX de Servicios', 'fecha' => 'p-immex-servicios-fecha'],
+                        ['id' => 'p-maquiladora',   'label' => 'La empresa está registrada como Maquiladora',           'fecha' => 'p-maquiladora-fecha',   'sin_fecha' => true],
+                        ['id' => 'p-maq-servicios', 'label' => 'La empresa está registrada como Maquiladora de Servicios', 'fecha' => 'p-maq-servicios-fecha', 'sin_fecha' => true],
+                        ['id' => 'p-prosec',        'label' => 'Cuenta con Programa PROSEC',                       'fecha' => 'p-prosec-fecha'],
+                        ['id' => 'p-oea',           'label' => 'Cuenta con Registro como Empresa Certificada OEA', 'fecha' => 'p-oea-fecha'],
                     ];
                 @endphp
                 @foreach($conFecha as $r)
@@ -262,12 +296,15 @@
                             <span class="text-xs text-slate-500">No</span>
                         </label>
                     </td>
-                    <td class="px-4 py-2"><input type="date" id="{{ $r['fecha'] }}" class="text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white w-full"></td>
+                    <td class="px-4 py-2">
+                        @if(empty($r['sin_fecha']))
+                            <input type="date" id="{{ $r['fecha'] }}" class="text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white w-full">
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
 
-                <x-cuestionario-yn-row label="Realiza transferencias con otras IMMEX" id="p-trans-immex"/>
-                <x-cuestionario-yn-row label="Cuenta con Registro como Empresa Certificada OEA" id="p-oea"/>
+                <x-cuestionario-yn-row label="Realiza transferencias de operación virtual" id="p-trans-immex"/>
 
                 {{-- IVA/EPS + modalidad --}}
                 <tr class="bg-white border-b border-slate-100">
@@ -285,20 +322,92 @@
                         </label>
                     </td>
                     <td class="px-4 py-2">
-                        <input type="text" id="p-iva-eps-modalidad" placeholder="Modalidad"
-                               class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                        <div class="flex flex-col gap-1">
+                            <input type="text" id="p-iva-eps-modalidad" placeholder="Modalidad"
+                                   class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                            <input type="date" id="p-iva-eps-fecha"
+                                   class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                        </div>
+                    </td>
+                </tr>
+
+                {{-- CT-PAT + fecha --}}
+                <tr class="bg-slate-50 border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Cuenta con registro de CT-PAT</td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-ctpat" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-ctpat" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Desde:</label>
+                            <input type="date" id="p-ctpat-fecha"
+                                   class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                        </div>
                     </td>
                 </tr>
 
                 <x-cuestionario-yn-row label="Utiliza Regla Octava" id="p-regla-octava"/>
-                <x-cuestionario-yn-row label="Tiene autorización de Ind. Automotriz Terminal (Depósito Fiscal Automotriz)" id="p-automotriz"/>
-                <x-cuestionario-yn-row label="Es Proveedor Nacional o Industria de Autopartes" id="p-autopartes"/>
-                <x-cuestionario-yn-row label="Utilizan Almacén Fiscal" id="p-almacen-fiscal"/>
-                <x-cuestionario-yn-row label="Utilizan la Regla 2ª para la clasificación de mercancías" id="p-regla-2"/>
+
+                {{-- Automotriz + fecha --}}
+                <tr class="bg-white border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Tiene autorización de Ind. Automotriz Terminal (Depósito Fiscal Automotriz)</td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-automotriz" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-automotriz" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Desde:</label>
+                            <input type="date" id="p-automotriz-fecha"
+                                   class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                        </div>
+                    </td>
+                </tr>
+
+                <x-cuestionario-yn-row label="Utiliza el régimen de depósito fiscal / o recinto fiscalizado estratégico" id="p-almacen-fiscal"/>
+                <x-cuestionario-yn-row label="Utiliza regla 2° para la importación de líneas de producción" id="p-regla-2"/>
                 <x-cuestionario-yn-row label="Cuenta con Estudio de Precios de Transferencia" id="p-precios-transf"/>
                 <x-cuestionario-yn-row label="Cuenta con Estudio de Valoración Aduanera" id="p-valoracion"/>
-                <x-cuestionario-yn-row label="Importa Mercancías Sujetas a NOM" id="p-nom"/>
-                <x-cuestionario-yn-row label="Cuenta con proveedores de Sub Maquila" id="p-sub-maquila"/>
+
+                {{-- NOM + tipo --}}
+                <tr class="bg-white border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Importa Mercancías Sujetas a NOM</td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-nom" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-nom" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="text" id="p-nom-tipo" placeholder="Tipo de NOM"
+                               class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                    </td>
+                </tr>
+
+                <x-cuestionario-yn-row label="Cuenta con proveedores de sub maquila y sub manufactura" id="p-sub-maquila"/>
                 <x-cuestionario-yn-row label="Importa Mercancías Sujetas a Precios Estimados" id="p-precios-estimados"/>
                 <x-cuestionario-yn-row label="Importa Mercancías Sujetas a Permisos o Avisos de Importación" id="p-permisos-avisos"/>
 
@@ -309,8 +418,8 @@
                     </td>
                 </tr>
 
-                <x-cuestionario-yn-row label="Utiliza Certificados de Origen TLCAN para Importar mercancías" id="p-tlcan-imp"/>
-                <x-cuestionario-yn-row label="Utiliza Certificados de Origen TLCUE para Importar mercancías" id="p-tlcue-imp"/>
+                <x-cuestionario-yn-row label="Utiliza Certificados de Origen T-MEC para Importar mercancías" id="p-tlcan-imp"/>
+                <x-cuestionario-yn-row label="Utiliza Certificados de Origen TLCUEN para Importar mercancías" id="p-tlcue-imp"/>
                 <x-cuestionario-yn-row label="Exporta a EUA y Canadá mercancías manufacturadas" id="p-exp-eua"/>
                 <x-cuestionario-yn-row label="Exporta a la Unión Europea mercancías manufacturadas" id="p-exp-ue"/>
                 <x-cuestionario-yn-row label="Emite Certificados de Origen a sus clientes en EUA y Canadá" id="p-cert-eua"/>
@@ -327,7 +436,7 @@
                     <td colspan="3" class="px-4 py-2"><input type="text" id="p-erp" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"></td>
                 </tr>
                 <tr class="bg-slate-50 border-b border-slate-100">
-                    <td class="px-4 py-2.5 text-slate-700 font-medium">Nombre de su sistema de Anexo 24 (En su caso)</td>
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Nombre de su sistema de Anexo 24 (en caso de aplicar)</td>
                     <td colspan="3" class="px-4 py-2"><input type="text" id="p-anexo24" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"></td>
                 </tr>
                 <x-cuestionario-yn-row label="Recibe información electrónica de sus Agentes Aduanales" id="p-agentes-electronicos"/>
@@ -338,7 +447,7 @@
                         Manuales
                     </td>
                 </tr>
-                <x-cuestionario-yn-row label="Tienen algún manual de Procedimientos de Comercio Exterior" id="p-manual-ce"/>
+                <x-cuestionario-yn-row label="Cuenta con procedimientos de comercio exterior" id="p-manual-ce"/>
 
                 {{-- ── ANTECEDENTES ────────────────────────────────── --}}
                 <tr>
@@ -388,8 +497,8 @@
                     $volRows = [
                         ['id' => 'p-ped-imp',    'label' => 'Cantidad de Pedimentos Anuales Tramitados de Importación', 'type' => 'number'],
                         ['id' => 'p-ped-exp',    'label' => 'Cantidad de Pedimentos Anuales Tramitados de Exportación', 'type' => 'number'],
-                        ['id' => 'p-aduana-imp', 'label' => 'Principal Aduana de Importación',  'type' => 'text'],
-                        ['id' => 'p-aduana-exp', 'label' => 'Principal Aduana de Exportación',  'type' => 'text'],
+                        ['id' => 'p-aduana-imp', 'label' => 'Principales aduanas de importación',  'type' => 'text'],
+                        ['id' => 'p-aduana-exp', 'label' => 'Principales aduanas de exportación',  'type' => 'text'],
                     ];
                 @endphp
                 @foreach($volRows as $r)
@@ -409,7 +518,7 @@
                     $provRows = [
                         ['id' => 'p-prov-cant',   'label' => 'Cantidad de Proveedores Extranjeros durante el ejercicio', 'type' => 'number'],
                         ['id' => 'p-pais-origen', 'label' => 'País de origen más representativo de las importaciones',   'type' => 'text'],
-                        ['id' => 'p-cli-cant',    'label' => 'Cantidad de Clientes Extranjeros durante el ejercicio',    'type' => 'number'],
+                        ['id' => 'p-cli-cant',    'label' => 'Cantidad de clientes durante un ejercicio fiscal',    'type' => 'number'],
                         ['id' => 'p-pais-dest',   'label' => 'País de Destino más frecuente de sus exportaciones',       'type' => 'text'],
                         ['id' => 'p-insumos',     'label' => 'Insumos de Importación más importantes',                   'type' => 'text'],
                         ['id' => 'p-productos',   'label' => 'Productos de Exportación más representativos',             'type' => 'text'],
@@ -421,7 +530,26 @@
                     <td colspan="3" class="px-4 py-2"><input type="{{ $r['type'] }}" id="{{ $r['id'] }}" min="0" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"></td>
                 </tr>
                 @endforeach
-                <x-cuestionario-yn-row label="Importa materiales de la región fuera del TLCAN y TLCUEM" id="p-fuera-tlcan"/>
+                {{-- Fuera T-MEC + países --}}
+                <tr class="bg-white border-b border-slate-100">
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Importa materiales de la región fuera del T-MEC y TLCUEN</td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-fuera-tlcan" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
+                            <span class="text-xs text-slate-500">Sí</span>
+                        </label>
+                    </td>
+                    <td class="px-2 py-2 text-center">
+                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="p-fuera-tlcan" value="0" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer" checked>
+                            <span class="text-xs text-slate-500">No</span>
+                        </label>
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="text" id="p-fuera-tlcan-paises" placeholder="Países"
+                               class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                    </td>
+                </tr>
 
                 {{-- ── INFORMANTE ──────────────────────────────────── --}}
                 <tr>
@@ -526,21 +654,24 @@ function abrirEditar(c) {
     sv('p-nombre-corporativo', p.nombre_corporativo);
     sv('p-ciudad-corporativo', p.ciudad_estado_pais_corporativo);
     sr('p-partes-relacionadas', p.partes_relacionadas_extranjero);
-    sr('p-immex',              p.tiene_immex);              sv('p-immex-fecha',         (p.immex_fecha ?? '').substring(0,10));
+    sr('p-registro-marca',     p.registro_marca);
+    sr('p-poliza-seguro',      p.poliza_seguro_mercancias);
+    sr('p-immex',              p.tiene_immex);              sv('p-immex-fecha',          (p.immex_fecha ?? '').substring(0,10));
+    sr('p-immex-servicios',    p.tiene_immex_servicios);   sv('p-immex-servicios-fecha', (p.immex_servicios_fecha ?? '').substring(0,10));
     sr('p-maquiladora',        p.es_maquiladora);           sv('p-maquiladora-fecha',   (p.maquiladora_fecha ?? '').substring(0,10));
     sr('p-maq-servicios',      p.maquiladora_servicios);    sv('p-maq-servicios-fecha', (p.maquiladora_servicios_fecha ?? '').substring(0,10));
     sr('p-prosec',             p.tiene_prosec);             sv('p-prosec-fecha',        (p.prosec_fecha ?? '').substring(0,10));
     sr('p-trans-immex',        p.transferencias_otras_immex);
-    sr('p-oea',                p.empresa_certificada_oea);
-    sr('p-iva-eps',            p.empresa_certificada_iva_eps);  sv('p-iva-eps-modalidad', p.iva_eps_modalidad);
+    sr('p-oea',                p.empresa_certificada_oea);        sv('p-oea-fecha',           (p.oea_fecha ?? '').substring(0,10));
+    sr('p-iva-eps',            p.empresa_certificada_iva_eps);  sv('p-iva-eps-modalidad', p.iva_eps_modalidad);  sv('p-iva-eps-fecha', (p.iva_eps_fecha ?? '').substring(0,10));
+    sr('p-ctpat',              p.tiene_ctpat);                  sv('p-ctpat-fecha',        (p.ctpat_fecha ?? '').substring(0,10));
     sr('p-regla-octava',       p.utiliza_regla_octava);
-    sr('p-automotriz',         p.automotriz_deposito_fiscal);
-    sr('p-autopartes',         p.proveedor_autopartes);
+    sr('p-automotriz',         p.automotriz_deposito_fiscal);   sv('p-automotriz-fecha', (p.automotriz_fecha ?? '').substring(0,10));
     sr('p-almacen-fiscal',     p.utiliza_almacen_fiscal);
     sr('p-regla-2',            p.utiliza_regla_2);
     sr('p-precios-transf',     p.estudio_precios_transferencia);
     sr('p-valoracion',         p.estudio_valoracion_aduanera);
-    sr('p-nom',                p.importa_mercancias_nom);
+    sr('p-nom',                p.importa_mercancias_nom);        sv('p-nom-tipo',           p.nom_tipo);
     sr('p-sub-maquila',        p.proveedores_sub_maquila);
     sr('p-precios-estimados',  p.importa_precios_estimados);
     sr('p-permisos-avisos',    p.importa_permisos_avisos);
@@ -566,7 +697,7 @@ function abrirEditar(c) {
     sv('p-aduana-exp',         p.aduana_principal_exportacion);
     sv('p-prov-cant',          p.proveedores_extranjeros_cantidad);
     sv('p-pais-origen',        p.pais_origen_importaciones);
-    sr('p-fuera-tlcan',        p.importa_fuera_tlcan);
+    sr('p-fuera-tlcan',        p.importa_fuera_tlcan);  sv('p-fuera-tlcan-paises', p.importa_fuera_tlcan_paises);
     sv('p-cli-cant',           p.clientes_extranjeros_cantidad);
     sv('p-pais-dest',          p.pais_destino_exportaciones);
     sv('p-insumos',            p.insumos_importacion_importantes);
@@ -600,8 +731,12 @@ function guardar() {
         nombre_corporativo:                 gv('p-nombre-corporativo'),
         ciudad_estado_pais_corporativo:     gv('p-ciudad-corporativo'),
         partes_relacionadas_extranjero:     gr('p-partes-relacionadas'),
+        registro_marca:                     gr('p-registro-marca'),
+        poliza_seguro_mercancias:           gr('p-poliza-seguro'),
         tiene_immex:                        gr('p-immex'),
         immex_fecha:                        gv('p-immex-fecha'),
+        tiene_immex_servicios:              gr('p-immex-servicios'),
+        immex_servicios_fecha:              gv('p-immex-servicios-fecha'),
         es_maquiladora:                     gr('p-maquiladora'),
         maquiladora_fecha:                  gv('p-maquiladora-fecha'),
         maquiladora_servicios:              gr('p-maq-servicios'),
@@ -610,16 +745,21 @@ function guardar() {
         prosec_fecha:                       gv('p-prosec-fecha'),
         transferencias_otras_immex:         gr('p-trans-immex'),
         empresa_certificada_oea:            gr('p-oea'),
+        oea_fecha:                          gv('p-oea-fecha'),
         empresa_certificada_iva_eps:        gr('p-iva-eps'),
         iva_eps_modalidad:                  gv('p-iva-eps-modalidad'),
+        iva_eps_fecha:                      gv('p-iva-eps-fecha'),
+        tiene_ctpat:                        gr('p-ctpat'),
+        ctpat_fecha:                        gv('p-ctpat-fecha'),
         utiliza_regla_octava:               gr('p-regla-octava'),
         automotriz_deposito_fiscal:         gr('p-automotriz'),
-        proveedor_autopartes:               gr('p-autopartes'),
+        automotriz_fecha:                   gv('p-automotriz-fecha'),
         utiliza_almacen_fiscal:             gr('p-almacen-fiscal'),
         utiliza_regla_2:                    gr('p-regla-2'),
         estudio_precios_transferencia:      gr('p-precios-transf'),
         estudio_valoracion_aduanera:        gr('p-valoracion'),
         importa_mercancias_nom:             gr('p-nom'),
+        nom_tipo:                           gv('p-nom-tipo'),
         proveedores_sub_maquila:            gr('p-sub-maquila'),
         importa_precios_estimados:          gr('p-precios-estimados'),
         importa_permisos_avisos:            gr('p-permisos-avisos'),
@@ -647,6 +787,7 @@ function guardar() {
         proveedores_extranjeros_cantidad:   gv('p-prov-cant'),
         pais_origen_importaciones:          gv('p-pais-origen'),
         importa_fuera_tlcan:                gr('p-fuera-tlcan'),
+        importa_fuera_tlcan_paises:         gv('p-fuera-tlcan-paises'),
         clientes_extranjeros_cantidad:      gv('p-cli-cant'),
         pais_destino_exportaciones:         gv('p-pais-dest'),
         insumos_importacion_importantes:    gv('p-insumos'),
@@ -720,6 +861,8 @@ function verCliente(c) {
             row('Partes Relacionadas en Extranjero', bool(p.partes_relacionadas_extranjero)),
             row('Nombre del Corporativo', txt(p.nombre_corporativo)),
             row('Ciudad / Estado / País del Corporativo', txt(p.ciudad_estado_pais_corporativo)),
+            row('Registro de Marca', bool(p.registro_marca)),
+            row('Póliza de Seguro de las Mercancías', bool(p.poliza_seguro_mercancias)),
         ]),
         section('Perfil de la Empresa', [
             row('Programa IMMEX', boolFecha(p.tiene_immex, p.immex_fecha)),
@@ -729,20 +872,20 @@ function verCliente(c) {
             row('Transferencias otras IMMEX', bool(p.transferencias_otras_immex)),
             row('Empresa Certificada OEA', bool(p.empresa_certificada_oea)),
             row('Empresa Certificada IVA/EPS', bool(p.empresa_certificada_iva_eps) + (p.iva_eps_modalidad ? ' <span class="text-xs text-slate-500">(' + p.iva_eps_modalidad + ')</span>' : '')),
+            row('CT-PAT', bool(p.tiene_ctpat) + (p.ctpat_fecha ? ' <span class="text-xs text-slate-500">desde ' + p.ctpat_fecha.substring(0,10) + '</span>' : '')),
             row('Utiliza Regla Octava', bool(p.utiliza_regla_octava)),
-            row('Automotriz Depósito Fiscal', bool(p.automotriz_deposito_fiscal)),
-            row('Proveedor Autopartes', bool(p.proveedor_autopartes)),
-            row('Almacén Fiscal', bool(p.utiliza_almacen_fiscal)),
-            row('Regla 2ª Clasificación', bool(p.utiliza_regla_2)),
+            row('Automotriz Depósito Fiscal', bool(p.automotriz_deposito_fiscal) + (p.automotriz_fecha ? ' <span class="text-xs text-slate-500">desde ' + p.automotriz_fecha.substring(0,10) + '</span>' : '')),
+            row('Depósito Fiscal / Recinto Fiscalizado Estratégico', bool(p.utiliza_almacen_fiscal)),
+            row('Regla 2° Importación Líneas de Producción', bool(p.utiliza_regla_2)),
             row('Estudio Precios de Transferencia', bool(p.estudio_precios_transferencia)),
             row('Estudio Valoración Aduanera', bool(p.estudio_valoracion_aduanera)),
-            row('Importa Mercancías NOM', bool(p.importa_mercancias_nom)),
-            row('Proveedores Sub Maquila', bool(p.proveedores_sub_maquila)),
+            row('Importa Mercancías NOM', bool(p.importa_mercancias_nom) + (p.nom_tipo ? ' <span class="text-xs text-slate-500">(' + p.nom_tipo + ')</span>' : '')),
+            row('Proveedores Sub Maquila / Sub Manufactura / T-MEC', bool(p.proveedores_sub_maquila)),
             row('Importa Precios Estimados', bool(p.importa_precios_estimados)),
             row('Importa con Permisos / Avisos', bool(p.importa_permisos_avisos)),
             row('Destino de Desperdicios', txt(p.destino_desperdicios)),
-            row('Cert. Origen TLCAN (Importar)', bool(p.certificados_origen_tlcan)),
-            row('Cert. Origen TLCUE (Importar)', bool(p.certificados_origen_tlcue)),
+            row('Cert. Origen T-MEC (Importar)', bool(p.certificados_origen_tlcan)),
+            row('Cert. Origen TLCUEN (Importar)', bool(p.certificados_origen_tlcue)),
             row('Exporta a EUA / Canadá', bool(p.exporta_eua_canada)),
             row('Exporta a Unión Europea', bool(p.exporta_union_europea)),
             row('Emite Cert. Origen EUA / Canadá', bool(p.emite_certificados_eua_canada)),
@@ -776,7 +919,7 @@ function verCliente(c) {
             row('País Destino más Frecuente (Exportación)', txt(p.pais_destino_exportaciones)),
             row('Insumos de Importación más Importantes', txt(p.insumos_importacion_importantes)),
             row('Productos de Exportación más Representativos', txt(p.productos_exportacion_representativos)),
-            row('Importa Fuera de TLCAN / TLCUEM', bool(p.importa_fuera_tlcan)),
+            row('Importa Fuera de T-MEC / TLCUEN', bool(p.importa_fuera_tlcan) + (p.importa_fuera_tlcan_paises ? ' <span class="text-xs text-slate-500">(' + p.importa_fuera_tlcan_paises + ')</span>' : '')),
         ]),
         section('Información del Informante', [
             row('Nombre', txt(p.informante_nombre)),

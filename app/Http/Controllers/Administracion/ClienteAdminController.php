@@ -61,9 +61,10 @@ class ClienteAdminController extends Controller
     private function guardarPerfil(Cliente $cliente, Request $request): void
     {
         $booleans = [
-            'partes_relacionadas_extranjero','tiene_immex','es_maquiladora',
+            'partes_relacionadas_extranjero','registro_marca','poliza_seguro_mercancias',
+            'tiene_immex','tiene_immex_servicios','es_maquiladora',
             'maquiladora_servicios','tiene_prosec','transferencias_otras_immex',
-            'empresa_certificada_oea','empresa_certificada_iva_eps','utiliza_regla_octava',
+            'empresa_certificada_oea','empresa_certificada_iva_eps','tiene_ctpat','utiliza_regla_octava',
             'automotriz_deposito_fiscal','proveedor_autopartes','utiliza_almacen_fiscal',
             'utiliza_regla_2','estudio_precios_transferencia','estudio_valoracion_aduanera',
             'importa_mercancias_nom','proveedores_sub_maquila','importa_precios_estimados',
@@ -82,14 +83,16 @@ class ClienteAdminController extends Controller
         $fields = [
             'nombre_legal','sectores_productivos','fecha_inicio_operaciones',
             'nombre_corporativo','ciudad_estado_pais_corporativo',
-            'immex_fecha','maquiladora_fecha','maquiladora_servicios_fecha','prosec_fecha',
-            'iva_eps_modalidad','destino_desperdicios','sistema_manufactura_erp','sistema_anexo_24',
+            'immex_fecha','immex_servicios_fecha','maquiladora_fecha','maquiladora_servicios_fecha',
+            'prosec_fecha','oea_fecha','iva_eps_modalidad','iva_eps_fecha','ctpat_fecha',
+            'automotriz_fecha','nom_tipo','destino_desperdicios',
+            'sistema_manufactura_erp','sistema_anexo_24',
             'ultima_auditoria_interna','ultima_auditoria_externa','principales_hallazgos',
             'auditado_shcp_se_fecha','observaciones_multas',
             'pedimentos_anuales_importacion','pedimentos_anuales_exportacion',
             'aduana_principal_importacion','aduana_principal_exportacion',
             'proveedores_extranjeros_cantidad','pais_origen_importaciones',
-            'clientes_extranjeros_cantidad','pais_destino_exportaciones',
+            'importa_fuera_tlcan_paises','clientes_extranjeros_cantidad','pais_destino_exportaciones',
             'insumos_importacion_importantes','productos_exportacion_representativos',
             'informante_nombre','informante_puesto','informante_fecha',
         ];

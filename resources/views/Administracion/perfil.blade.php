@@ -60,6 +60,8 @@
                 <x-perfil-yn    label="Realiza operaciones con partes relacionadas en el extranjero" name="partes_relacionadas_extranjero" :checked="$chk('partes_relacionadas_extranjero')"/>
                 <x-perfil-field label="Nombre del Corporativo" name="nombre_corporativo" :value="$old('nombre_corporativo')"/>
                 <x-perfil-field label="Ciudad, Estado y País del Corporativo" name="ciudad_estado_pais_corporativo" :value="$old('ciudad_estado_pais_corporativo')"/>
+                <x-perfil-yn label="Cuenta con registro de marca" name="registro_marca" :checked="$chk('registro_marca')"/>
+                <x-perfil-yn label="Cuenta con póliza de seguro de las mercancías" name="poliza_seguro_mercancias" :checked="$chk('poliza_seguro_mercancias')"/>
             </div>
         </section>
 
@@ -72,32 +74,33 @@
             <div class="p-6 space-y-4">
                 @php
                     $programas = [
-                        ['yn' => 'tiene_immex',          'label' => 'Cuentan con Programa IMMEX',           'fecha' => 'immex_fecha'],
-                        ['yn' => 'es_maquiladora',       'label' => 'Maquiladora',                          'fecha' => 'maquiladora_fecha'],
-                        ['yn' => 'maquiladora_servicios','label' => 'Maquiladora de Servicios',             'fecha' => 'maquiladora_servicios_fecha'],
-                        ['yn' => 'tiene_prosec',         'label' => 'PROSEC',                               'fecha' => 'prosec_fecha'],
+                        ['yn' => 'tiene_immex',          'label' => 'Cuenta con Programa IMMEX Industrial',     'fecha' => 'immex_fecha'],
+                        ['yn' => 'tiene_immex_servicios','label' => 'Cuenta con Programa IMMEX de Servicios', 'fecha' => 'immex_servicios_fecha'],
+                        ['yn' => 'es_maquiladora',       'label' => 'La empresa está registrada como Maquiladora',           'fecha' => 'maquiladora_fecha',          'sin_fecha' => true],
+                        ['yn' => 'maquiladora_servicios','label' => 'La empresa está registrada como Maquiladora de Servicios', 'fecha' => 'maquiladora_servicios_fecha','sin_fecha' => true],
+                        ['yn' => 'tiene_prosec',         'label' => 'Cuenta con Programa PROSEC',               'fecha' => 'prosec_fecha'],
+                        ['yn' => 'empresa_certificada_oea','label' => 'Cuenta con Registro como Empresa Certificada OEA', 'fecha' => 'oea_fecha'],
                     ];
                 @endphp
                 @foreach($programas as $p)
                     <div class="flex flex-wrap items-center gap-4 py-3 border-b border-slate-100 last:border-0">
                         <span class="text-sm text-slate-700 w-64 flex-shrink-0">{{ $p['label'] }}</span>
                         <x-perfil-yn-inline name="{{ $p['yn'] }}" :checked="$chk($p['yn'])"/>
+                        @if(empty($p['sin_fecha']))
                         <div class="flex items-center gap-2 ml-auto">
                             <label class="text-xs text-slate-500 font-medium">Desde:</label>
                             <input type="date" name="{{ $p['fecha'] }}" value="{{ $date($p['fecha']) }}"
                                    class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                         </div>
+                        @endif
                     </div>
                 @endforeach
 
                 {{-- Sin fecha --}}
                 @php
                     $sinFecha = [
-                        ['yn' => 'transferencias_otras_immex', 'label' => 'Realiza transferencias con otras IMMEX'],
-                        ['yn' => 'empresa_certificada_oea',    'label' => 'Empresa Certificada OEA'],
+                        ['yn' => 'transferencias_otras_immex', 'label' => 'Realiza transferencias de operación virtual'],
                         ['yn' => 'utiliza_regla_octava',       'label' => 'Utiliza Regla Octava'],
-                        ['yn' => 'automotriz_deposito_fiscal', 'label' => 'Autorización Ind. Automotriz Terminal (Depósito Fiscal Automotriz)'],
-                        ['yn' => 'proveedor_autopartes',       'label' => 'Es Proveedor Nacional o Industria de Autopartes'],
                     ];
                 @endphp
                 @foreach($sinFecha as $s)
@@ -107,6 +110,17 @@
                     </div>
                 @endforeach
 
+                {{-- Automotriz con fecha --}}
+                <div class="flex flex-wrap items-center gap-4 py-3 border-b border-slate-100">
+                    <span class="text-sm text-slate-700 flex-1">Tiene autorización de Ind. Automotriz Terminal (Depósito Fiscal Automotriz)</span>
+                    <x-perfil-yn-inline name="automotriz_deposito_fiscal" :checked="$chk('automotriz_deposito_fiscal')"/>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs text-slate-500 font-medium">Desde:</label>
+                        <input type="date" name="automotriz_fecha" value="{{ $date('automotriz_fecha') }}"
+                               class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    </div>
+                </div>
+
                 {{-- IVA/EPS con modalidad --}}
                 <div class="flex flex-wrap items-center gap-4 py-3 border-b border-slate-100">
                     <span class="text-sm text-slate-700 flex-1">Empresa Certificada IVA/EPS</span>
@@ -115,6 +129,22 @@
                         <label class="text-xs text-slate-500 font-medium">Modalidad:</label>
                         <input type="text" name="iva_eps_modalidad" value="{{ $old('iva_eps_modalidad') }}" placeholder="Modalidad"
                                class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 w-40">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-slate-500 font-medium">Desde:</label>
+                        <input type="date" name="iva_eps_fecha" value="{{ $date('iva_eps_fecha') }}"
+                               class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    </div>
+                </div>
+
+                {{-- CT-PAT --}}
+                <div class="flex flex-wrap items-center gap-4 py-3 border-b border-slate-100">
+                    <span class="text-sm text-slate-700 flex-1">Cuenta con registro de CT-PAT</span>
+                    <x-perfil-yn-inline name="tiene_ctpat" :checked="$chk('tiene_ctpat')"/>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs text-slate-500 font-medium">Desde:</label>
+                        <input type="date" name="ctpat_fecha" value="{{ $date('ctpat_fecha') }}"
+                               class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     </div>
                 </div>
             </div>
@@ -129,16 +159,15 @@
             <div class="p-6 space-y-3">
                 @php
                     $perfilRows = [
-                        ['yn' => 'utiliza_almacen_fiscal',          'label' => 'Utilizan Almacén Fiscal'],
-                        ['yn' => 'utiliza_regla_2',                 'label' => 'Utilizan la Regla 2ª para la clasificación de mercancías'],
+                        ['yn' => 'utiliza_almacen_fiscal',          'label' => 'Utiliza el régimen de depósito fiscal / o recinto fiscalizado estratégico'],
+                        ['yn' => 'utiliza_regla_2',                 'label' => 'Utiliza regla 2° para la importación de líneas de producción'],
                         ['yn' => 'estudio_precios_transferencia',   'label' => 'Cuenta con Estudio de Precios de Transferencia'],
                         ['yn' => 'estudio_valoracion_aduanera',     'label' => 'Cuenta con Estudio de Valoración Aduanera'],
-                        ['yn' => 'importa_mercancias_nom',          'label' => 'Importa Mercancías Sujetas a NOM'],
-                        ['yn' => 'proveedores_sub_maquila',         'label' => 'Cuenta con proveedores de Sub Maquila'],
+                        ['yn' => 'proveedores_sub_maquila',         'label' => 'Cuenta con proveedores de sub maquila y sub manufactura'],
                         ['yn' => 'importa_precios_estimados',       'label' => 'Importa Mercancías Sujetas a Precios Estimados'],
                         ['yn' => 'importa_permisos_avisos',         'label' => 'Importa Mercancías Sujetas a Permisos o Avisos de Importación'],
-                        ['yn' => 'certificados_origen_tlcan',       'label' => 'Utiliza Certificados de Origen TLCAN para Importar mercancías'],
-                        ['yn' => 'certificados_origen_tlcue',       'label' => 'Utiliza Certificados de Origen TLCUE para Importar mercancías'],
+                        ['yn' => 'certificados_origen_tlcan',       'label' => 'Utiliza Certificados de Origen T-MEC para Importar mercancías'],
+                        ['yn' => 'certificados_origen_tlcue',       'label' => 'Utiliza Certificados de Origen TLCUEN para Importar mercancías'],
                         ['yn' => 'exporta_eua_canada',              'label' => 'Exporta a EUA y Canadá mercancías manufacturadas'],
                         ['yn' => 'exporta_union_europea',           'label' => 'Exporta a la Unión Europea mercancías manufacturadas'],
                         ['yn' => 'emite_certificados_eua_canada',   'label' => 'Emite Certificados de Origen a sus clientes en EUA y Canadá'],
@@ -151,6 +180,17 @@
                         <x-perfil-yn-inline name="{{ $r['yn'] }}" :checked="$chk($r['yn'])"/>
                     </div>
                 @endforeach
+
+                {{-- NOM con tipo --}}
+                <div class="flex flex-wrap items-center gap-4 py-3 border-b border-slate-100">
+                    <span class="text-sm text-slate-700 flex-1">Importa Mercancías Sujetas a NOM</span>
+                    <x-perfil-yn-inline name="importa_mercancias_nom" :checked="$chk('importa_mercancias_nom')"/>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Tipo de NOM:</label>
+                        <input type="text" name="nom_tipo" value="{{ $old('nom_tipo') }}" placeholder="Tipo"
+                               class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 w-48">
+                    </div>
+                </div>
 
                 <div class="pt-2">
                     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
@@ -170,7 +210,7 @@
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <x-perfil-field label="Nombre de su sistema de Manufactura (ERP)" name="sistema_manufactura_erp" :value="$old('sistema_manufactura_erp')"/>
-                <x-perfil-field label="Nombre de su sistema de Anexo 24" name="sistema_anexo_24" :value="$old('sistema_anexo_24')"/>
+                <x-perfil-field label="Nombre de su sistema de Anexo 24 (en caso de aplicar)" name="sistema_anexo_24" :value="$old('sistema_anexo_24')"/>
                 <div class="flex items-center gap-4 py-2 md:col-span-2">
                     <span class="text-sm text-slate-700 flex-1">Recibe información electrónica de sus Agentes Aduanales</span>
                     <x-perfil-yn-inline name="recibe_info_agentes_aduanales" :checked="$chk('recibe_info_agentes_aduanales')"/>
@@ -186,7 +226,7 @@
             </div>
             <div class="p-6">
                 <div class="flex items-center gap-4">
-                    <span class="text-sm text-slate-700 flex-1">Tienen algún manual de Procedimientos de Comercio Exterior</span>
+                    <span class="text-sm text-slate-700 flex-1">Cuenta con procedimientos de comercio exterior</span>
                     <x-perfil-yn-inline name="manual_procedimientos_ce" :checked="$chk('manual_procedimientos_ce')"/>
                 </div>
             </div>
@@ -224,8 +264,8 @@
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <x-perfil-field label="Cantidad de Pedimentos Anuales de Importación" name="pedimentos_anuales_importacion" type="number" :value="$old('pedimentos_anuales_importacion')"/>
                 <x-perfil-field label="Cantidad de Pedimentos Anuales de Exportación" name="pedimentos_anuales_exportacion" type="number" :value="$old('pedimentos_anuales_exportacion')"/>
-                <x-perfil-field label="Principal Aduana de Importación" name="aduana_principal_importacion" :value="$old('aduana_principal_importacion')"/>
-                <x-perfil-field label="Principal Aduana de Exportación" name="aduana_principal_exportacion" :value="$old('aduana_principal_exportacion')"/>
+                <x-perfil-field label="Principales aduanas de importación" name="aduana_principal_importacion" :value="$old('aduana_principal_importacion')"/>
+                <x-perfil-field label="Principales aduanas de exportación" name="aduana_principal_exportacion" :value="$old('aduana_principal_exportacion')"/>
             </div>
         </section>
 
@@ -239,12 +279,17 @@
                 <x-perfil-field label="Cantidad de Proveedores Extranjeros durante el ejercicio" name="proveedores_extranjeros_cantidad" type="number" :value="$old('proveedores_extranjeros_cantidad')"/>
                 <x-perfil-field label="País de origen más representativo de las importaciones" name="pais_origen_importaciones" :value="$old('pais_origen_importaciones')"/>
 
-                <div class="flex items-center gap-4 py-2 md:col-span-2 border-t border-slate-100">
-                    <span class="text-sm text-slate-700 flex-1">Importa materiales de la región fuera del TLCAN y TLCUEM</span>
+                <div class="flex flex-wrap items-center gap-4 py-2 md:col-span-2 border-t border-slate-100">
+                    <span class="text-sm text-slate-700 flex-1">Importa materiales de la región fuera del T-MEC y TLCUEN</span>
                     <x-perfil-yn-inline name="importa_fuera_tlcan" :checked="$chk('importa_fuera_tlcan')"/>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Países:</label>
+                        <input type="text" name="importa_fuera_tlcan_paises" value="{{ $old('importa_fuera_tlcan_paises') }}" placeholder="Países"
+                               class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 w-56">
+                    </div>
                 </div>
 
-                <x-perfil-field label="Cantidad de Clientes Extranjeros durante el ejercicio" name="clientes_extranjeros_cantidad" type="number" :value="$old('clientes_extranjeros_cantidad')"/>
+                <x-perfil-field label="Cantidad de clientes durante un ejercicio fiscal" name="clientes_extranjeros_cantidad" type="number" :value="$old('clientes_extranjeros_cantidad')"/>
                 <x-perfil-field label="País de Destino más frecuente de sus exportaciones" name="pais_destino_exportaciones" :value="$old('pais_destino_exportaciones')"/>
                 <x-perfil-textarea label="Insumos de Importación más importantes" name="insumos_importacion_importantes" :value="$old('insumos_importacion_importantes')"/>
                 <x-perfil-textarea label="Productos de Exportación más representativos" name="productos_exportacion_representativos" :value="$old('productos_exportacion_representativos')"/>
