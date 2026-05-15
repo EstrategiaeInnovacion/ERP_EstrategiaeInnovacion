@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -274,7 +275,8 @@ class ActivityController extends Controller
         ];
 
         $startOfWeek = now()->startOfWeek();
-        $puedeGestionarPlaneacion = $miEmpleado && $miEmpleado->es_coordinador;
+        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
+        $puedeGestionarPlaneacion = $esCoordinador;
 
         // Cargar proyectos disponibles para el usuario
         $esRh = $user->isRh();
@@ -290,16 +292,43 @@ class ActivityController extends Controller
             }
         $proyectos = $proyectosQuery->orderBy('nombre')->get();
 
+        // Tareas eliminadas: solo cuando se activa el filtro ver_eliminadas
+        $verEliminadas = $request->get('ver_eliminadas') == '1';
+        $deletedActivities = collect();
+        if ($verEliminadas) {
+            if ($esDireccion) {
+                // Dirección: ve las tareas borradas por coordinadores
+                $coordinadorUserIds = Empleado::where('es_coordinador', true)
+                    ->whereNotNull('user_id')->pluck('user_id')->toArray();
+                if (! empty($coordinadorUserIds)) {
+                    $deletedActivities = Activity::onlyTrashed()
+                        ->with(['user', 'deletedByUser'])
+                        ->whereIn('deleted_by', $coordinadorUserIds)
+                        ->orderBy('deleted_at', 'desc')
+                        ->limit(100)
+                        ->get();
+                }
+            } elseif (($esCoordinador || $esSupervisor) && $targetUserId !== $user->id) {
+                // Coordinador/Supervisor viendo a un miembro de su equipo
+                $deletedActivities = Activity::onlyTrashed()
+                    ->with(['user', 'deletedByUser'])
+                    ->where('user_id', $targetUserId)
+                    ->orderBy('deleted_at', 'desc')
+                    ->limit(50)
+                    ->get();
+            }
+        }
+
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis',
-            'esDireccion', 'esSupervisor',
+            'esDireccion', 'esSupervisor', 'esCoordinador',
             'puedePlanificar', 'esPuestoPlanificador', 'esHorarioPermitido',
             'globalPendingCount', 'misRechazos',
             'isHistoryView', 'verTodo',
             'areasSistema', 'empleadosAsignables',
             'usersWithPending', 'filterOrigin',
             'startDate', 'endDate', 'periodLabel', 'rangeType', 'prevDateRef', 'nextDateRef', 'startOfWeek',
-            'puedeGestionarPlaneacion', 'proyectos', 'esRh'
+            'puedeGestionarPlaneacion', 'proyectos', 'esRh', 'deletedActivities'
         ));
     }
 
@@ -310,6 +339,16 @@ class ActivityController extends Controller
             'fecha_compromiso' => 'required|date',
             'area' => 'required|string',
         ]);
+
+        // Evitar duplicados por doble envío o reintentos de red
+        $formToken = $request->input('form_token');
+        if ($formToken) {
+            $cacheKey = 'act_submit_' . Auth::id() . '_' . $formToken;
+            if (Cache::has($cacheKey)) {
+                return redirect()->back()->with('success', 'Actividad registrada correctamente.');
+            }
+            Cache::put($cacheKey, true, now()->addMinutes(5));
+        }
 
         $data = $request->all();
         $currentUser = Auth::user();
@@ -566,32 +605,32 @@ class ActivityController extends Controller
             abort(403, 'No tienes permiso para eliminar esta actividad.');
         }
 
-        $posicion = strtolower($miEmpleado->posicion ?? '');
-        $esDireccion = str_contains($posicion, 'direcc');
-        $esSupervisor = Empleado::where('supervisor_id', $miEmpleado->id)->exists();
-        $esCoordinador = $miEmpleado->es_coordinador;
-
-        // ¿La tarea es propia?
+        // Reglas de eliminación:
+        // 1. Puedes borrar tu propia tarea si NO fue delegada por alguien más (asignado_por es null o eres tú mismo)
+        // 2. Puedes borrar cualquier tarea que tú hayas asignado a otro (eres el asignado_por)
         $esPropia = $activity->user_id === $user->id;
+        $esSelfCreated = is_null($activity->asignado_por) || $activity->asignado_por === $user->id;
+        $esAsignador = $activity->asignado_por === $user->id;
 
-        // ¿La tarea pertenece a un subordinado directo?
-        $actividadEmpleado = optional($activity->user)->empleado;
-        $esDeSubordinado = $actividadEmpleado && $actividadEmpleado->supervisor_id === $miEmpleado->id;
+        $puedeEliminar = ($esPropia && $esSelfCreated) || $esAsignador;
 
-        // ¿La delegó él?
-        $esDelegada = $activity->asignado_por === $user->id;
-
-        if (($esDireccion || $esCoordinador) && ($esPropia || $esDeSubordinado || $esDelegada)) {
-            $activity->delete();
-            return redirect()->back()->with('success', 'Eliminado.');
+        if (! $puedeEliminar) {
+            abort(403, 'Solo el responsable original puede eliminar esta actividad.');
         }
 
-        if ($esSupervisor && ($esPropia || $esDeSubordinado || $esDelegada)) {
-            $activity->delete();
-            return redirect()->back()->with('success', 'Eliminado.');
-        }
+        ActivityHistory::create([
+            'activity_id' => $activity->id,
+            'user_id'     => $user->id,
+            'action'      => 'deleted',
+            'details'     => 'Eliminó la actividad: ' . $activity->nombre_actividad,
+        ]);
 
-        abort(403, 'No tienes permiso para eliminar esta actividad.');
+        // Registrar quién eliminó sin disparar el hook de saving
+        DB::table('activities')->where('id', $activity->id)->update(['deleted_by' => $user->id]);
+
+        $activity->delete();
+
+        return redirect()->back()->with('success', 'Actividad eliminada.');
     }
 
     public function approve(Request $request, $id)

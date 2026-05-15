@@ -12,7 +12,8 @@ class Activity extends Model
 
     protected $fillable = [
         'user_id',
-        'asignado_por',     // <--- NUEVO CAMPO AGREGADO
+        'asignado_por',
+        'deleted_by',
         'area',
         'cliente',
         'tipo_actividad',
@@ -63,6 +64,11 @@ class Activity extends Model
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class);
+    }
+
+    public function deletedByUser()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     // --- LÓGICA AUTOMÁTICA (Calculadora de Fechas) ---

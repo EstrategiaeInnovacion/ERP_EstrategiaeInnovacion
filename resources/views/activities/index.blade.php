@@ -259,6 +259,17 @@
                         <span class="text-xs font-bold text-slate-600">Ver Terminados</span>
                     </label>
                 </form>
+
+                {{-- Checkbox Ver Eliminadas (solo coordinadores / dirección) --}}
+                @if($esDireccion || (($esCoordinador ?? false) || $esSupervisor) && $targetUser->id !== Auth::id())
+                <form method="GET" id="filterEliminadas" class="flex items-center h-full">
+                    @foreach(request()->except(['ver_eliminadas']) as $k=>$v) <input type="hidden" name="{{ $k }}" value="{{ $v }}"> @endforeach
+                    <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-xl border border-red-200 shadow-sm hover:border-red-300 transition select-none h-full">
+                        <input type="checkbox" name="ver_eliminadas" value="1" onchange="document.getElementById('filterEliminadas').submit()" class="rounded border-red-300 text-red-500 focus:ring-red-400 w-4 h-4" {{ request('ver_eliminadas') ? 'checked' : '' }}>
+                        <span class="text-xs font-bold text-red-500">Ver Eliminadas</span>
+                    </label>
+                </form>
+                @endif
             </div>
 
             {{-- DERECHA: Botones de Acción --}}
@@ -510,13 +521,15 @@
                                         {{-- CASO 3: FLUJO NORMAL --}}
                                         @elseif($act->estatus == 'Planeado' && !$isHistoryView && $act->user_id == Auth::id())
                                             <form action="{{ route('activities.start', $act->id) }}" method="POST">@csrf @method('PUT')<button class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[9px] font-bold hover:bg-indigo-700">INICIAR</button></form>
-                                            @if($esSupervisor || $esDireccion)
-                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar?')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
+                                            @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
+                                            @if($puedeEliminar)
+                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @else
                                             <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }})' class="text-slate-400 hover:text-indigo-600 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                                            @if($esSupervisor || $esDireccion)
-                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar?')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
+                                            @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
+                                            @if($puedeEliminar)
+                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @endif
 
@@ -533,6 +546,70 @@
             </div>
         </div>
     </div>
+
+    {{-- ======================================================= --}}
+    {{-- 5B. TAREAS BORRADAS (COORDINADOR / DIRECCIÓN)           --}}
+    {{-- ======================================================= --}}
+    @if(isset($deletedActivities) && $deletedActivities->count() > 0)
+    <div class="max-w-[98%] mx-auto mt-4 pb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-red-100 bg-red-50">
+            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <div>
+                <h3 class="text-sm font-bold text-red-700 uppercase tracking-wide">
+                    @if($esDireccion)
+                        Tareas eliminadas por coordinadores
+                    @else
+                        Tareas eliminadas de {{ $targetUser->name }}
+                    @endif
+                </h3>
+                <p class="text-[10px] text-red-400">Registro de auditoría — solo visible para {{ $esDireccion ? 'dirección' : 'coordinadores' }}</p>
+            </div>
+            <span class="ml-auto bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ $deletedActivities->count() }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="bg-red-50/50 border-b border-red-100">
+                        <th class="px-4 py-2 text-left text-[10px] font-bold text-red-500 uppercase tracking-wider">Tarea eliminada</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Asignada a</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Eliminada por</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Fecha de eliminación</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Estatus previo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-red-50">
+                    @foreach($deletedActivities as $del)
+                        <tr class="hover:bg-red-50/40 transition-colors">
+                            <td class="px-4 py-3">
+                                <span class="font-semibold text-slate-600 line-through decoration-red-300">{{ $del->nombre_actividad }}</span>
+                                @if($del->cliente)
+                                    <span class="ml-1 text-[9px] text-slate-400">({{ $del->cliente }})</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="text-slate-500">{{ $del->user->name ?? '—' }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="font-semibold text-red-600">{{ $del->deletedByUser->name ?? '—' }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="text-slate-500">{{ \Carbon\Carbon::parse($del->deleted_at)->format('d M Y H:i') }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                @php
+                                    $delBadge = ['Por Aprobar'=>'bg-orange-100 text-orange-700','Por Validar'=>'bg-purple-100 text-purple-700','Planeado'=>'bg-indigo-100 text-indigo-700','En proceso'=>'bg-blue-100 text-blue-700','Completado'=>'bg-emerald-100 text-emerald-700','Completado con retardo'=>'bg-orange-100 text-orange-700','Retardo'=>'bg-red-100 text-red-700','Rechazado'=>'bg-red-200 text-red-800'];
+                                @endphp
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {{ $delBadge[$del->estatus] ?? 'bg-gray-100 text-gray-600' }}">{{ $del->estatus }}</span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+    @endif
 </div>
 
 {{-- ======================================================= --}}
@@ -545,8 +622,9 @@
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-center justify-center p-4">
             <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-lg border border-slate-200">
-                <form action="{{ route('activities.store') }}" method="POST">
+                <form action="{{ route('activities.store') }}" method="POST" id="activityCreateForm" onsubmit="return submitActivityForm(this)">
                     @csrf
+                    <input type="hidden" name="form_token" id="activityFormToken" value="{{ \Illuminate\Support\Str::uuid() }}">
                     <div class="bg-white px-8 py-8">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-bold text-slate-800">Nueva Actividad</h3>
@@ -587,7 +665,10 @@
                         </div>
                     </div>
                     <div class="bg-slate-50 px-8 py-5 flex flex-row-reverse gap-3 border-t border-slate-200">
-                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">Guardar</button>
+                        <button type="submit" id="activitySubmitBtn" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition flex items-center gap-2">
+                            <span id="activitySubmitText">Guardar</span>
+                            <svg id="activitySubmitSpinner" class="hidden animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -789,6 +870,18 @@
 </div>
 
 <script>
+function submitActivityForm(form) {
+    const btn = document.getElementById('activitySubmitBtn');
+    const text = document.getElementById('activitySubmitText');
+    const spinner = document.getElementById('activitySubmitSpinner');
+    if (btn.disabled) return false; // ya se envió
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+    text.textContent = 'Guardando...';
+    spinner.classList.remove('hidden');
+    return true;
+}
+
 function toggleAllUsersExcel(checkbox) {
     const checkboxes = document.querySelectorAll('.user-checkbox-excel');
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
