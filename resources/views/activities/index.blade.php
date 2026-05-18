@@ -632,10 +632,22 @@
                         </div>
                         <div class="mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                             <label class="block text-xs font-bold text-indigo-800 uppercase mb-2 tracking-wide">Asignar tarea a:</label>
-                            <select name="assigned_to" class="w-full rounded-lg border-indigo-200 text-sm focus:ring-indigo-500 bg-white shadow-sm text-slate-700 py-2.5">
-                                <option value="{{ Auth::id() }}">Mí mismo ({{ Auth::user()->name }})</option>
-                                @foreach($usersList as $u) @if($u->id !== Auth::id()) <option value="{{ $u->id }}" {{ $targetUser->id == $u->id ? 'selected' : '' }}>{{ $u->name }}</option> @endif @endforeach
+                            <select name="assigned_to" id="create-assigned-to" class="w-full rounded-lg border-indigo-200 text-sm focus:ring-indigo-500 bg-white shadow-sm text-slate-700 py-2.5">
+                                <option value="{{ Auth::id() }}" data-supervisor="">Mí mismo ({{ Auth::user()->name }})</option>
+                                @foreach($usersList as $u)
+                                    @if($u->id !== Auth::id())
+                                        @php $supName = $u->empleado?->supervisor?->user?->name ?? ($u->empleado?->supervisor?->nombre ?? ''); @endphp
+                                        <option value="{{ $u->id }}" {{ $targetUser->id == $u->id ? 'selected' : '' }} data-supervisor="{{ $supName }}">{{ $u->name }}</option>
+                                    @endif
+                                @endforeach
                             </select>
+                            <div id="create-supervisor-info" class="mt-2 text-[10px] {{ $targetUser->id != Auth::id() && $usersList->where('id', $targetUser->id)->first()?->empleado?->supervisor ? 'text-slate-500' : 'text-slate-400' }}">
+                                @php
+                                    $targetUserObj = $usersList->where('id', $targetUser->id)->first();
+                                    $targetSupName = $targetUserObj?->empleado?->supervisor?->user?->name ?? ($targetUserObj?->empleado?->supervisor?->nombre ?? '');
+                                @endphp
+                                <span id="create-supervisor-label">@if($targetUser->id != Auth::id() && $targetSupName) Supervisor: <strong>{{ $targetSupName }}</strong> @else Sin supervisor asignado @endif</span>
+                            </div>
                         </div>
                         <div class="space-y-5">
                             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Descripción</label><input type="text" name="nombre_actividad" class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 py-2.5" placeholder="¿Qué se debe hacer?" required></div>
@@ -1080,6 +1092,18 @@ function toggleAllUsersExcel(checkbox) {
         document.getElementById('notesModal').classList.remove('hidden');
     }
     function closeNotes(){ document.getElementById('notesModal').classList.add('hidden'); }
+    document.addEventListener('DOMContentLoaded', function () {
+        var sel = document.getElementById('create-assigned-to');
+        var info = document.getElementById('create-supervisor-info');
+        var label = document.getElementById('create-supervisor-label');
+        if (sel && info && label) {
+            sel.addEventListener('change', function () {
+                var opt = sel.options[sel.selectedIndex];
+                var sup = opt ? opt.getAttribute('data-supervisor') : '';
+                label.innerHTML = sup ? 'Supervisor: <strong>' + sup + '</strong>' : 'Sin supervisor asignado';
+            });
+        }
+    });
     function rejectActivity(id){ document.getElementById('rejectForm').action="/activities/"+id+"/reject"; document.getElementById('rejectModal').classList.remove('hidden'); }
     function importActivities(e) {
         e.preventDefault();
