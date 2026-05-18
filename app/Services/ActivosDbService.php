@@ -26,6 +26,16 @@ use Illuminate\Support\Facades\Log;
  */
 class ActivosDbService
 {
+    private function normalizeDeviceType(?string $type): string
+    {
+        $normalized = mb_strtolower(trim((string) $type), 'UTF-8');
+
+        return match ($normalized) {
+            'computer', 'peripheral', 'printer', 'mobiliario', 'other' => $normalized,
+            default => 'other',
+        };
+    }
+
     private function conn()
     {
         return DB::connection('activos');
@@ -414,7 +424,7 @@ class ActivosDbService
                 ->select('type')
                 ->first();
 
-            return $device?->type;
+            return $device ? $this->normalizeDeviceType($device->type) : null;
 
         } catch (\Exception $e) {
             Log::error("ActivosDb: getDeviceTypeByUuid [{$uuid}] — " . $e->getMessage());
@@ -459,7 +469,7 @@ class ActivosDbService
             'serial_number' => $row->serial_number ?? '',
             // Preservar el tipo real del dispositivo (computer|peripheral|printer|mobiliario|other)
             // para que el filtro del controlador funcione correctamente.
-            'type'          => $row->type ?? 'other',
+            'type'          => $this->normalizeDeviceType($row->type ?? 'other'),
             'assignment'    => $row->employee_name ?? $row->assigned_to ?? null,
             'photos'        => $photos,
         ];
@@ -486,7 +496,9 @@ class ActivosDbService
 
             $grouped = [];
             foreach ($rows as $d) {
-                $grouped[$d->type][] = [
+                $normalizedType = $this->normalizeDeviceType($d->type ?? 'other');
+
+                $grouped[$normalizedType][] = [
                     'uuid'  => $d->uuid,
                     'nombre' => $d->name,
                     'serie'  => $d->serial_number ?? '',
@@ -512,6 +524,8 @@ class ActivosDbService
         int $perPage    = 15
     ): \Illuminate\Pagination\LengthAwarePaginator {
         try {
+            $type = $type ? $this->normalizeDeviceType($type) : null;
+
             $query = $this->conn()
                 ->table('devices as d')
                 ->leftJoin('device_photos as dp', function ($join) {
@@ -545,7 +559,7 @@ class ActivosDbService
             }
 
             if ($type) {
-                $query->where('d.type', $type);
+                $query->whereRaw('LOWER(TRIM(d.type)) = ?', [$type]);
             }
 
             if ($status) {
@@ -592,6 +606,12 @@ class ActivosDbService
                 ->pluck('total', 'type')
                 ->toArray();
 
+            $normalizedByType = [];
+            foreach ($byType as $rawType => $total) {
+                $normalizedType = $this->normalizeDeviceType((string) $rawType);
+                $normalizedByType[$normalizedType] = ($normalizedByType[$normalizedType] ?? 0) + (int) $total;
+            }
+
             return [
                 'total'     => array_sum($byStatus),
                 'by_status' => [
@@ -601,11 +621,11 @@ class ActivosDbService
                     'broken'      => (int) ($byStatus['broken']      ?? 0),
                 ],
                 'by_type'   => [
-                    'computer'   => (int) ($byType['computer']   ?? 0),
-                    'peripheral' => (int) ($byType['peripheral'] ?? 0),
-                    'printer'    => (int) ($byType['printer']    ?? 0),
-                    'mobiliario' => (int) ($byType['mobiliario'] ?? 0),
-                    'other'      => (int) ($byType['other']      ?? 0),
+                    'computer'   => (int) ($normalizedByType['computer']   ?? 0),
+                    'peripheral' => (int) ($normalizedByType['peripheral'] ?? 0),
+                    'printer'    => (int) ($normalizedByType['printer']    ?? 0),
+                    'mobiliario' => (int) ($normalizedByType['mobiliario'] ?? 0),
+                    'other'      => (int) ($normalizedByType['other']      ?? 0),
                 ],
             ];
 
@@ -626,7 +646,7 @@ class ActivosDbService
     public function getDeviceByUuid(string $uuid): ?object
     {
         try {
-            return $this->conn()
+            $device = $this->conn()
                 ->table('devices as d')
                 ->leftJoin('assignments as a', function ($join) {
                     $join->on('a.device_id', '=', 'd.id')
@@ -644,6 +664,12 @@ class ActivosDbService
                 )
                 ->where('d.uuid', $uuid)
                 ->first();
+
+            if ($device) {
+                $device->type = $this->normalizeDeviceType($device->type ?? 'other');
+            }
+
+            return $device;
 
         } catch (\Exception $e) {
             Log::error("ActivosDb: getDeviceByUuid [{$uuid}] — " . $e->getMessage());
@@ -742,7 +768,7 @@ class ActivosDbService
                 'brand'               => $data['brand'] ?? null,
                 'model'               => $data['model'] ?? null,
                 'serial_number'       => $data['serial_number'],
-                'type'                => $data['type'],
+                'type'                => $this->normalizeDeviceType($data['type']),
                 'status'              => $data['status'] ?? 'available',
                 'purchase_date'       => $data['purchase_date'] ?? null,
                 'warranty_expiration' => $data['warranty_expiration'] ?? null,
@@ -799,7 +825,7 @@ class ActivosDbService
                 'brand'               => $data['brand'] ?? null,
                 'model'               => $data['model'] ?? null,
                 'serial_number'       => $data['serial_number'],
-                'type'                => $data['type'],
+                'type'                => $this->normalizeDeviceType($data['type']),
                 'status'              => $data['status'],
                 'purchase_date'       => $data['purchase_date'] ?? null,
                 'warranty_expiration' => $data['warranty_expiration'] ?? null,
