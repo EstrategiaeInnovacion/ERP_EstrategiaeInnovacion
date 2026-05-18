@@ -6,11 +6,18 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
+     * The database connection that should be used by the migration.
+     *
+     * @var string
+     */
+    protected $connection = 'activos';
+
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL");
+        DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL");
     }
 
     /**
@@ -18,7 +25,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("UPDATE devices SET type = 'other' WHERE type = 'mobiliario'");
-        DB::statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL");
+        DB::connection($this->connection)->statement("UPDATE devices SET type = 'other' WHERE type = 'mobiliario'");
+        DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL");
     }
 };
