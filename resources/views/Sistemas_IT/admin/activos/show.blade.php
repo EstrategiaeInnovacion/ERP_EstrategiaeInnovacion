@@ -437,13 +437,14 @@
 @endunless
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="{{ asset('vendor/qrcode.min.js') }}"></script>
 <script>
 (function () {
     const QR_URL    = '{{ url('/admin/activos/' . $dispositivo->uuid) }}';
     const QR_NAME   = '{{ addslashes($dispositivo->name) }}';
     const QR_SERIAL = '{{ addslashes($dispositivo->serial_number ?? '') }}';
     const QR_TYPE   = '{{ $dispositivo->type ?? 'computer' }}';
+    const hasQRCode = typeof window.QRCode !== 'undefined';
     let qrInstance = null;
 
     const QR_SIZES = {
@@ -455,6 +456,10 @@
     };
 
     function generarQR() {
+        if (!hasQRCode) {
+            return;
+        }
+
         const container = document.getElementById('qr-canvas-show');
         if (container && !qrInstance) {
             const sizeInfo = QR_SIZES[QR_TYPE] || QR_SIZES.other;
@@ -479,6 +484,11 @@
     }
 
     window.descargarQR = function () {
+        if (!hasQRCode) {
+            alert('No se pudo cargar el generador de QR.');
+            return;
+        }
+
         const src = qrSrc();
         if (!src) return;
         const a = document.createElement('a');
@@ -488,6 +498,11 @@
     };
 
     window.imprimirQR = function () {
+        if (!hasQRCode) {
+            alert('No se pudo cargar el generador de QR.');
+            return;
+        }
+
         const src = qrSrc();
         if (!src) return;
         const printSize = (QR_SIZES[QR_TYPE] || QR_SIZES.other).cm;

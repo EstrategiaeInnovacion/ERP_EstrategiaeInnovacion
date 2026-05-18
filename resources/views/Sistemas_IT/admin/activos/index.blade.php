@@ -386,12 +386,13 @@
 </div>
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="{{ asset('vendor/qrcode.min.js') }}"></script>
 <script>
 (function () {
     const BASE_URL   = '{{ url('/admin/activos') }}';
     const modal      = document.getElementById('modal-qr-idx');
     const container  = document.getElementById('qr-idx-canvas');
+    const hasQRCode  = typeof window.QRCode !== 'undefined';
     let currentUuid   = null;
     let currentNombre = null;
     let currentSerie  = null;
@@ -407,6 +408,11 @@
     };
 
     window.abrirQR = function(uuid, nombre, serie, tipo = 'computer') {
+        if (!hasQRCode) {
+            alert('No se pudo cargar el generador de QR. Recarga la página e inténtalo de nuevo.');
+            return;
+        }
+
         currentUuid   = uuid;
         currentNombre = nombre;
         currentSerie  = serie || '';
@@ -542,6 +548,11 @@ const ETIQUETAS_BASE_URL = '{{ url('/admin/activos') }}';
 const ETIQUETAS_SECCION  = '{{ addslashes($labelSeccion) }}';
 
 window.imprimirEtiquetas = function () {
+    if (typeof window.QRCode === 'undefined') {
+        alert('No se pudo cargar el generador de QR.');
+        return;
+    }
+
     if (!ETIQUETAS_DATA || ETIQUETAS_DATA.length === 0) {
         alert('No hay dispositivos en la vista actual para imprimir.');
         return;
@@ -673,6 +684,11 @@ const CAT_LABELS = {
 };
 
 window.imprimirCategoria = function(tipo) {
+    if (typeof window.QRCode === 'undefined') {
+        alert('No se pudo cargar el generador de QR.');
+        return;
+    }
+
     // Construir lista de dispositivos según categoría
     let lista = [];
     if (tipo === 'all') {
