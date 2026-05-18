@@ -202,7 +202,6 @@ class ActivityController extends Controller
 
         if (! $verTodo && ! $isHistoryView) {
             $query->whereNotIn('estatus', ['Completado', 'Rechazado']);
-            $query->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()]);
         } elseif ($verTodo) {
             $query->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()])
