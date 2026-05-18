@@ -78,6 +78,10 @@ class Activity extends Model
 
         static::saving(function ($activity) {
 
+            if (in_array($activity->estatus, ['Completado', 'Completado con retardo', 'Rechazado'])) {
+                return;
+            }
+
             $inicio = $activity->fecha_inicio ? Carbon::parse($activity->fecha_inicio)->startOfDay() : null;
             $compromiso = $activity->fecha_compromiso ? Carbon::parse($activity->fecha_compromiso)->startOfDay() : null;
             $final = $activity->fecha_final ? Carbon::parse($activity->fecha_final)->startOfDay() : null;

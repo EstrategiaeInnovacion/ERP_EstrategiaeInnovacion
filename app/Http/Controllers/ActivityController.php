@@ -488,6 +488,12 @@ class ActivityController extends Controller
 
         $original = $activity->toArray();
 
+        if (in_array($activity->estatus, ['Completado', 'Completado con retardo', 'Rechazado'])) {
+            $activity->comentarios = $request->comentarios;
+            $activity->save();
+            return redirect()->back()->with('success', 'Comentarios actualizados.');
+        }
+
         if ($puedeEditarTodo) {
             $activity->fill($request->except(['evidencia']));
         } else {
