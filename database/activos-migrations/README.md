@@ -37,6 +37,7 @@ del proyecto **AuditoriaActivos** y se aplican ahí.
 | 8 | `2026_03_19_142516_create_audit_logs_table.php` | `audit_logs` |
 | 9 | `2026_03_23_173400_create_employees_table.php` | `employees` |
 | 10 | `2026_03_23_173538_add_employee_id_to_assignments_table.php` | `assignments` → add `employee_id` FK |
+| 11 | `2026_05_18_180000_add_mobiliario_to_devices_type_enum.php` | `devices` → add `mobiliario` to `type` |
 
 ---
 
@@ -44,7 +45,7 @@ del proyecto **AuditoriaActivos** y se aplican ahí.
 
 - **`devices.uuid`** — identificador único usado en QR codes y URLs
 - **`devices.status`** — `available | assigned | maintenance | broken`
-- **`devices.type`** — `computer | peripheral | printer | other`
+- **`devices.type`** — `computer | peripheral | printer | mobiliario | other`
 - **`assignments.notes`** — Préstamos temporales guardan la fecha de devolución como prefijo:
   `[Préstamo temporal — Devolución: dd/mm/yyyy HH:mm] <notas del usuario>`
 - **`employees`** — tabla sincronizada / usada como referencia de empleados en el módulo de activos;
