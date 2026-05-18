@@ -58,6 +58,9 @@
                             <x-nav-link :href="route('rh.reloj.index')" :active="request()->routeIs('rh.reloj.*')">
                                 Reloj Checador
                             </x-nav-link>
+                            <x-nav-link :href="route('rh.inventario.index')" :active="request()->routeIs('rh.inventario.*')">
+                                Activos IT
+                            </x-nav-link>
                         @endif
                         <x-nav-link :href="route('rh.evaluacion.index')" :active="request()->routeIs('rh.evaluacion.*')">
                             Evaluaciones

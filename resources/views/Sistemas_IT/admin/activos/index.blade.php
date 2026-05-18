@@ -133,6 +133,7 @@
                     <option value="computer"   @selected($type === 'computer')>Computadora</option>
                     <option value="peripheral" @selected($type === 'peripheral')>Periférico</option>
                     <option value="printer"    @selected($type === 'printer')>Impresora</option>
+                    <option value="mobiliario" @selected($type === 'mobiliario')>Mobiliario</option>
                     <option value="other"      @selected($type === 'other')>Otro</option>
                 </select>
                 <select name="status"
@@ -191,6 +192,7 @@
                                 'computer'   => 'Computadora',
                                 'peripheral' => 'Periférico',
                                 'printer'    => 'Impresora',
+                                'mobiliario' => 'Mobiliario',
                                 default      => 'Otro',
                             };
 
@@ -352,6 +354,7 @@
                     'computer'   => ['label' => 'Computadoras',  'icon' => '🖥️',  'color' => 'indigo'],
                     'peripheral' => ['label' => 'Periféricos',   'icon' => '🖱️',  'color' => 'violet'],
                     'printer'    => ['label' => 'Impresoras',    'icon' => '🖨️',  'color' => 'sky'],
+                    'mobiliario' => ['label' => 'Mobiliario',    'icon' => '🪑',  'color' => 'amber'],
                     'other'      => ['label' => 'Otro',          'icon' => '📦',  'color' => 'slate'],
                 ];
             @endphp
@@ -399,6 +402,7 @@
         computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
         peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
         printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+        mobiliario:{ px: 260, cm: '3.4cm', modal: 180, labelWidth: '3.9cm' },
         other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
     };
 
@@ -507,6 +511,7 @@
             'computer'   => 'Computadoras',
             'peripheral' => 'Periféricos',
             'printer'    => 'Impresoras',
+            'mobiliario' => 'Mobiliario',
             default      => 'Otro',
         };
     } elseif (!empty($status)) {
@@ -528,6 +533,7 @@ window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
     peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
     printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+    mobiliario:{ px: 260, cm: '3.4cm', modal: 180, labelWidth: '3.9cm' },
     other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
 
@@ -651,6 +657,7 @@ window.QR_SIZES = window.QR_SIZES || {
     computer:  { px: 360, cm: '4.5cm', modal: 220, labelWidth: '5.0cm' },
     peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
     printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
+    mobiliario:{ px: 260, cm: '3.4cm', modal: 180, labelWidth: '3.9cm' },
     other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
 
@@ -660,6 +667,7 @@ const CAT_LABELS = {
     computer:   'Computadoras',
     peripheral: 'Periféricos',
     printer:    'Impresoras',
+    mobiliario: 'Mobiliario',
     other:      'Otro',
     all:        'Todos los activos',
 };

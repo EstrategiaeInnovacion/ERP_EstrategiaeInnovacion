@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Esquema real de AuditoriaActivos:
  *   devices       → id, uuid, name, brand, model, serial_number,
- *                    type (enum: computer|peripheral|printer|other),
+ *                    type (enum: computer|peripheral|printer|mobiliario|other),
  *                    status (enum: available|assigned|maintenance|broken)
  *   assignments   → device_id, employee_id (nullable), user_id (nullable),
  *                    assigned_to (texto libre, nullable),
@@ -457,7 +457,7 @@ class ActivosDbService
             'brand'         => $row->brand ?? '',
             'model'         => $row->model ?? '',
             'serial_number' => $row->serial_number ?? '',
-            // Preservar el tipo real del dispositivo (computer|peripheral|printer|other)
+            // Preservar el tipo real del dispositivo (computer|peripheral|printer|mobiliario|other)
             // para que el filtro del controlador funcione correctamente.
             'type'          => $row->type ?? 'other',
             'assignment'    => $row->employee_name ?? $row->assigned_to ?? null,
@@ -604,6 +604,7 @@ class ActivosDbService
                     'computer'   => (int) ($byType['computer']   ?? 0),
                     'peripheral' => (int) ($byType['peripheral'] ?? 0),
                     'printer'    => (int) ($byType['printer']    ?? 0),
+                    'mobiliario' => (int) ($byType['mobiliario'] ?? 0),
                     'other'      => (int) ($byType['other']      ?? 0),
                 ],
             ];
@@ -613,7 +614,7 @@ class ActivosDbService
             return [
                 'total'     => 0,
                 'by_status' => ['available' => 0, 'assigned' => 0, 'maintenance' => 0, 'broken' => 0],
-                'by_type'   => ['computer' => 0, 'peripheral' => 0, 'printer' => 0, 'other' => 0],
+                'by_type'   => ['computer' => 0, 'peripheral' => 0, 'printer' => 0, 'mobiliario' => 0, 'other' => 0],
             ];
         }
     }

@@ -16,6 +16,7 @@
         'computer'   => 'Computadora',
         'peripheral' => 'Periférico',
         'printer'    => 'Impresora',
+        'mobiliario' => 'Mobiliario',
         default      => 'Otro',
     };
 
@@ -449,6 +450,7 @@
         computer:  { px: 360, cm: '4.5cm', modal: 220 },
         peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
         printer:   { px: 300, cm: '3.8cm', modal: 200 },
+        mobiliario:{ px: 260, cm: '3.4cm', modal: 180 },
         other:     { px: 260, cm: '3.2cm', modal: 180 },
     };
 

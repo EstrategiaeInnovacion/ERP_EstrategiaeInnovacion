@@ -98,6 +98,7 @@
                             <option value="computer"   @selected(old('type', $dispositivo->type) === 'computer')>Computadora</option>
                             <option value="peripheral" @selected(old('type', $dispositivo->type) === 'peripheral')>Periférico</option>
                             <option value="printer"    @selected(old('type', $dispositivo->type) === 'printer')>Impresora</option>
+                            <option value="mobiliario" @selected(old('type', $dispositivo->type) === 'mobiliario')>Mobiliario</option>
                             <option value="other"      @selected(old('type', $dispositivo->type) === 'other')>Otro</option>
                         </select>
                     </div>
