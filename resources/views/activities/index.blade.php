@@ -308,11 +308,13 @@
                     <span class="hidden md:inline">Excel</span>
                 </button>
 
-                {{-- Botón Importar --}}
-                <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="bg-blue-600 text-white border border-blue-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2" title="Importar actividades desde Excel o CSV">
+                {{-- Botón Importar: solo coordinadores/supervisores con analistas a cargo --}}
+                @if($esCoordinador || $esSupervisor)
+                <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="bg-blue-600 text-white border border-blue-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2" title="Delegar tareas a analistas desde Excel">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    <span class="hidden md:inline">Importar</span>
+                    <span class="hidden md:inline">Delegar</span>
                 </button>
+                @endif
 
                 <button onclick="document.getElementById('quickCreateModal').classList.remove('hidden')" class="flex-1 sm:flex-none bg-indigo-600 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 
@@ -339,6 +341,11 @@
                 <table class="min-w-full text-xs text-left border-collapse">
                     <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                         <tr>
+                            <th class="px-3 py-3 text-center w-8">
+                                <input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this)"
+                                    class="rounded border-slate-400 text-red-500 focus:ring-red-400 cursor-pointer"
+                                    title="Seleccionar todas las eliminables">
+                            </th>
                             <th class="px-4 py-3 text-center">#</th>
                             <th class="px-4 py-3 text-center w-20">Origen</th>
                             <th class="px-4 py-3 text-center">Prio</th>
@@ -379,9 +386,19 @@
                                 if ($act->estatus == 'Completado') $rowClass .= ' opacity-60 bg-slate-50/50';
                                 if ($act->estatus == 'Por Aprobar') $rowClass .= ' bg-orange-50/30';
                                 if ($act->estatus == 'Por Validar') $rowClass .= ' bg-purple-50/20'; // Fondo tenue para validación
+
+                                $puedeEliminarBulk = $act->estatus !== 'Por Aprobar'
+                                    && (($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id()))
+                                        || $act->asignado_por == Auth::id());
                             @endphp
 
-                            <tr class="transition-colors group {{ $rowClass }}">
+                            <tr class="transition-colors group {{ $rowClass }}" data-activity-id="{{ $act->id }}">
+                                <td class="px-3 py-3 text-center">
+                                    @if($puedeEliminarBulk)
+                                        <input type="checkbox" class="bulk-cb rounded border-slate-300 text-red-500 focus:ring-red-400 cursor-pointer"
+                                            data-id="{{ $act->id }}" onchange="updateBulkBar()">
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-center text-slate-400 font-mono">{{ $index + 1 }}</td>
                                 
                                 <td class="px-4 py-3 text-center">
@@ -504,10 +521,10 @@
                                                 <svg class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Esperando autorización de nivel superior"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                                             @endif
 
-                                        {{-- CASO 2: VALIDACIÓN DE CIERRE (NUEVO) --}}
+                                        {{-- CASO 2: VALIDACIÓN DE CIERRE --}}
                                         @elseif($act->estatus == 'Por Validar')
+                                            @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
                                             @if($esSupervisor || $esDireccion)
-                                                {{-- Botón validar cierre --}}
                                                 <form action="{{ route('activities.validate', $act->id) }}" method="POST">@csrf @method('PUT')
                                                     <button class="bg-purple-600 text-white px-2 py-0.5 rounded text-[9px] font-bold hover:bg-purple-700 shadow-sm flex items-center gap-1" title="Validar Cierre">
                                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> VALIDAR
@@ -516,6 +533,9 @@
                                                 <button onclick="rejectActivity({{ $act->id }})" class="text-red-400 hover:text-red-600 p-1" title="Rechazar entrega"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                                             @else
                                                 <span class="text-[9px] text-purple-400 italic font-medium flex items-center gap-1"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Revisión</span>
+                                            @endif
+                                            @if($puedeEliminar)
+                                                <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
 
                                         {{-- CASO 3: FLUJO NORMAL --}}
@@ -539,13 +559,15 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="11" class="py-12 text-center text-slate-400">Sin actividades en este rango.</td></tr>
+                            <tr><td colspan="14" class="py-12 text-center text-slate-400">Sin actividades en este rango.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    {{-- BARRA FLOTANTE DE SELECCIÓN MASIVA (creada por JS, ver script) --}}
 
     {{-- ======================================================= --}}
     {{-- 5B. TAREAS BORRADAS (COORDINADOR / DIRECCIÓN)           --}}
@@ -946,69 +968,114 @@ function toggleAllUsersExcel(checkbox) {
 </div>
 @endif
 
-{{-- MODAL IMPORTAR --}}
+{{-- MODAL DELEGACIÓN DE TAREAS (Solo coordinadores/supervisores) --}}
+@if($esCoordinador || $esSupervisor)
 <div id="importModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="document.getElementById('importModal').classList.add('hidden')"></div>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeImportModal()"></div>
     <div class="fixed inset-0 z-10 flex items-center justify-center p-4">
-        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transform transition-all">
-            <form id="importForm" onsubmit="return importActivities(event)">
-                @csrf
-                <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
-                    <h3 class="font-bold text-white">Importar Actividades</h3>
-                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="text-blue-200 hover:text-white"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                </div>
-                
-                <div class="p-6 space-y-4">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Asignar tareas a:</label>
-                        <select name="assigned_to" class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 bg-white shadow-sm text-slate-700 py-2.5" required>
-                            <option value="{{ Auth::id() }}">{{ Auth::user()->name }} (Yo)</option>
-                            @foreach($empleadosAsignables as $u)
-                                @if($u->id !== Auth::id())
-                                    <option value="{{ $u->id }}" {{ $targetUser->id == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
-                                @endif
-                            @endforeach
-                        </select>
-                        <p class="text-[10px] text-slate-400 mt-1.5">Las tareas importadas se asignarán a este usuario.</p>
-                    </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Archivo (Excel o CSV)</label>
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded-lg py-1.5 px-3" required>
-                        <p class="text-[10px] text-slate-400 mt-1.5">La primera fila debe contener los encabezados.</p>
-                    </div>
-
-                    @if(isset($proyectos) && $proyectos->count() > 0)
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Proyecto (Opcional)</label>
-                        <select name="proyecto_id" class="w-full rounded-lg border-slate-300 text-sm py-2.5 bg-white focus:ring-blue-500">
-                            <option value="">Sin proyecto</option>
-                            @foreach($proyectos as $proy)
-                                <option value="{{ $proy->id }}">{{ $proy->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-
-                    <div class="flex items-center gap-2 text-xs text-slate-500">
-                        <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Descarga la <a href="{{ route('activities.import_template') }}" class="text-blue-600 font-bold underline hover:text-blue-800">plantilla de ejemplo</a> para ver el formato esperado.</span>
-                    </div>
-
-                    <div id="importResult"></div>
+        {{-- PASO 1: Subir archivo --}}
+        <div id="importStep1" class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20H7a2 2 0 01-2-2V6a2 2 0 012-2h6l4 4v10a2 2 0 01-2 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4"/></svg>
+                    Delegar Tareas desde Excel
+                </h3>
+                <button type="button" onclick="closeImportModal()" class="text-blue-200 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 flex gap-2">
+                    <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Las tareas delegadas a tus analistas se crean en estado <strong>Planeado</strong> directamente, sin pasar por aprobación de Dirección.</span>
                 </div>
 
-                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50">Cancelar</button>
-                    <button type="submit" id="importBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        Importar
-                    </button>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Archivo Excel o CSV</label>
+                    <input type="file" id="importFile" accept=".xlsx,.xls,.csv"
+                        class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded-lg py-1.5 px-3">
+                    <p class="text-[10px] text-slate-400 mt-1.5">La primera fila debe contener los encabezados. <a href="{{ route('activities.import_template') }}" class="text-blue-600 font-bold underline hover:text-blue-800">Descargar plantilla</a></p>
                 </div>
-            </form>
+
+                @if(isset($proyectos) && $proyectos->count() > 0)
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Proyecto (Opcional)</label>
+                    <select id="importProjectId" class="w-full rounded-lg border-slate-300 text-sm py-2.5 bg-white focus:ring-blue-500">
+                        <option value="">Sin proyecto</option>
+                        @foreach($proyectos as $proy)
+                            <option value="{{ $proy->id }}">{{ $proy->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
+
+                <div id="importStep1Error"></div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="closeImportModal()" class="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50">Cancelar</button>
+                <button type="button" id="importPreviewBtn" onclick="loadImportPreview()" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    Ver Tareas
+                </button>
+            </div>
         </div>
+
+        {{-- PASO 2: Asignar por tarea --}}
+        <div id="importStep2" class="hidden relative w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Asignar Tareas — <span id="importTaskCount" class="ml-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+                </h3>
+                <button type="button" onclick="closeImportModal()" class="text-blue-200 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+                    <label class="text-xs font-bold text-indigo-800 whitespace-nowrap">Asignar todas a:</label>
+                    <select id="importDefaultAnalista" onchange="setAllAnalistas(this.value)" class="flex-1 min-w-[160px] rounded-lg border-indigo-300 text-sm py-2 bg-white focus:ring-indigo-500 text-slate-700">
+                        <option value="">— Seleccionar para todas —</option>
+                        @foreach($teamUsers as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}{{ $u->id === Auth::id() ? ' (Yo)' : '' }}</option>
+                        @endforeach
+                    </select>
+                    <span class="text-[10px] text-indigo-600">Aplicar a toda la lista</span>
+                </div>
+
+                <div class="overflow-y-auto max-h-72 rounded-xl border border-slate-200">
+                    <table class="w-full text-xs">
+                        <thead class="sticky top-0 bg-slate-800 text-white">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-bold w-8">#</th>
+                                <th class="px-3 py-2 text-left font-bold">Tarea</th>
+                                <th class="px-3 py-2 text-center font-bold w-24">Fecha</th>
+                                <th class="px-3 py-2 text-center font-bold w-20">Prioridad</th>
+                                <th class="px-3 py-2 text-left font-bold w-44">Asignar a</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importTasksBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+
+                <div id="importStep2Error"></div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between gap-2">
+                <button type="button" onclick="backToImportStep1()" class="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Volver
+                </button>
+                <button type="button" id="importSendBtn" onclick="sendImportTasks()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-emerald-700 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Enviar Tareas
+                </button>
+            </div>
+        </div>
+
     </div>
 </div>
+@endif
 
 {{-- Modal Historial --}}
 <div id="historyModal" class="fixed inset-0 z-50 hidden" aria-hidden="true" role="dialog">
@@ -1105,41 +1172,224 @@ function toggleAllUsersExcel(checkbox) {
         }
     });
     function rejectActivity(id){ document.getElementById('rejectForm').action="/activities/"+id+"/reject"; document.getElementById('rejectModal').classList.remove('hidden'); }
-    function importActivities(e) {
-        e.preventDefault();
-        const form = document.getElementById('importForm');
-        const formData = new FormData(form);
-        const btn = document.getElementById('importBtn');
-        const resultDiv = document.getElementById('importResult');
-        
+
+    // ── Selección masiva ─────────────────────────────────────────────────────
+    // Crear la barra flotante directamente en <body> para evitar problemas de
+    // contenedores con overflow/transform que rompen position:fixed
+    (function () {
+        var bar = document.createElement('div');
+        bar.id = 'bulkBar';
+        bar.style.cssText = 'display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;';
+        bar.innerHTML = [
+            '<div style="background:#0f172a;color:#fff;padding:10px 20px;border-radius:16px;',
+            'box-shadow:0 20px 40px rgba(0,0,0,.4);border:1px solid #334155;',
+            'display:flex;align-items:center;gap:16px;white-space:nowrap;">',
+            '<span style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;">',
+            '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">',
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ',
+            'd="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>',
+            '<span id="bulkCount">0</span> seleccionadas</span>',
+            '<button onclick="bulkDeleteSelected()" style="background:#ef4444;color:#fff;padding:7px 16px;',
+            'border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;',
+            'display:flex;align-items:center;gap:6px;transition:background .15s;">',
+            '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">',
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ',
+            'd="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>',
+            'Eliminar seleccionadas</button>',
+            '<button onclick="clearBulkSelection()" title="Cancelar selección" ',
+            'style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 2px;">&#x2715;</button>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(bar);
+    })();
+
+    function toggleSelectAll(masterCb) {
+        document.querySelectorAll('.bulk-cb').forEach(function(cb) { cb.checked = masterCb.checked; });
+        updateBulkBar();
+    }
+
+    function updateBulkBar() {
+        var checked = document.querySelectorAll('.bulk-cb:checked');
+        var total   = document.querySelectorAll('.bulk-cb').length;
+        var bar     = document.getElementById('bulkBar');
+        var master  = document.getElementById('selectAllCb');
+        var countEl = document.getElementById('bulkCount');
+        if (countEl) countEl.textContent = checked.length;
+        if (bar) bar.style.display = checked.length > 0 ? 'block' : 'none';
+        if (master) {
+            master.checked       = total > 0 && checked.length === total;
+            master.indeterminate = checked.length > 0 && checked.length < total;
+        }
+    }
+
+    function clearBulkSelection() {
+        document.querySelectorAll('.bulk-cb').forEach(function(cb) { cb.checked = false; });
+        var master = document.getElementById('selectAllCb');
+        if (master) { master.checked = false; master.indeterminate = false; }
+        updateBulkBar();
+    }
+
+    function bulkDeleteSelected() {
+        var ids = Array.from(document.querySelectorAll('.bulk-cb:checked')).map(function(cb) { return cb.getAttribute('data-id'); });
+        if (!ids.length) return;
+        if (!confirm('¿Eliminar ' + ids.length + ' ' + (ids.length === 1 ? 'tarea' : 'tareas') + '? Esta acción no se puede deshacer.')) return;
+
+        fetch('{{ route("activities.bulk_destroy") }}', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                ids.forEach(function(id) {
+                    var cb  = document.querySelector('.bulk-cb[data-id="' + id + '"]');
+                    var row = cb ? cb.closest('tr') : document.querySelector('tr[data-activity-id="' + id + '"]');
+                    if (row) row.remove();
+                });
+                clearBulkSelection();
+                var toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#059669;color:#fff;padding:12px 20px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.2);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;';
+                toast.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' + data.message;
+                document.body.appendChild(toast);
+                setTimeout(function() { toast.remove(); }, 3500);
+            } else {
+                alert(data.message || 'Error al eliminar.');
+            }
+        })
+        .catch(function() { alert('Error de conexión. Intenta de nuevo.'); });
+    }
+    // ── Delegación de Tareas (2 pasos) ──────────────────────────────────────
+    let _importTasksData = [];
+
+    function closeImportModal() {
+        document.getElementById('importModal').classList.add('hidden');
+        document.getElementById('importStep1').classList.remove('hidden');
+        document.getElementById('importStep2').classList.add('hidden');
+        const fi = document.getElementById('importFile'); if (fi) fi.value = '';
+        document.getElementById('importStep1Error').innerHTML = '';
+        document.getElementById('importStep2Error').innerHTML = '';
+        _importTasksData = [];
+    }
+
+    function backToImportStep1() {
+        document.getElementById('importStep2').classList.add('hidden');
+        document.getElementById('importStep1').classList.remove('hidden');
+        document.getElementById('importStep1Error').innerHTML = '';
+    }
+
+    function loadImportPreview() {
+        const fileInput = document.getElementById('importFile');
+        const errDiv = document.getElementById('importStep1Error');
+        errDiv.innerHTML = '';
+        if (!fileInput || !fileInput.files.length) {
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Selecciona un archivo Excel o CSV.</div>';
+            return;
+        }
+        const btn = document.getElementById('importPreviewBtn');
         btn.disabled = true;
-        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Importando...';
-        resultDiv.innerHTML = '';
-        
-        fetch('{{ route('activities.import') }}', {
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Leyendo...';
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('_token', '{{ csrf_token() }}');
+        fetch('{{ route("activities.import_preview") }}', {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            headers: { 'Accept': 'application/json' },
             body: formData
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                resultDiv.innerHTML = '<div class="bg-emerald-50 text-emerald-800 p-4 rounded-lg border border-emerald-200 text-sm font-bold flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> ' + data.message + '</div>';
-                setTimeout(() => { document.getElementById('importModal').classList.add('hidden'); location.reload(); }, 2000);
+                _importTasksData = data.tasks;
+                _renderImportStep2(data.tasks);
             } else {
-                resultDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200 text-sm font-bold">' + (data.message || 'Error al importar.') + '</div>';
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">' + (data.message || 'Error al leer el archivo.') + '</div>';
             }
         })
-        .catch(err => {
-            resultDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200 text-sm font-bold">Error de conexión. Verifica el archivo e inténtalo de nuevo.</div>';
+        .catch(() => {
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Error de conexión. Intenta de nuevo.</div>';
         })
         .finally(() => {
             btn.disabled = false;
-            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Importar';
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg> Ver Tareas';
         });
-        
-        return false;
     }
+
+    function _renderImportStep2(tasks) {
+        document.getElementById('importTaskCount').textContent = tasks.length;
+        document.getElementById('importDefaultAnalista').value = '';
+        const priorityColors = { Alta: 'bg-red-100 text-red-700', Media: 'bg-yellow-100 text-yellow-700', Baja: 'bg-blue-100 text-blue-700' };
+        const analistas = @json($teamUsers->map(fn($u) => ['id' => $u->id, 'name' => $u->name . ($u->id === Auth::id() ? ' (Yo)' : '')]));
+        let options = '<option value="">— Asignar a —</option>';
+        analistas.forEach(a => { options += `<option value="${a.id}">${_esc(a.name)}</option>`; });
+        const tbody = document.getElementById('importTasksBody');
+        tbody.innerHTML = '';
+        tasks.forEach((task, i) => {
+            const pc = priorityColors[task.prioridad] || 'bg-slate-100 text-slate-600';
+            const tr = document.createElement('tr');
+            tr.className = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+            tr.innerHTML = `
+                <td class="px-3 py-2 text-slate-400 font-mono">${i + 1}</td>
+                <td class="px-3 py-2 text-slate-800 font-medium max-w-xs"><span class="line-clamp-2 block" title="${_esc(task.nombre_actividad)}">${_esc(task.nombre_actividad)}</span></td>
+                <td class="px-3 py-2 text-center text-slate-500 whitespace-nowrap">${task.fecha_compromiso || '—'}</td>
+                <td class="px-3 py-2 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${pc}">${task.prioridad}</span></td>
+                <td class="px-3 py-2"><select class="analista-select w-full rounded-lg border-slate-300 text-xs py-1.5 bg-white focus:ring-blue-500" data-index="${i}" required>${options}</select></td>`;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('importStep1').classList.add('hidden');
+        document.getElementById('importStep2').classList.remove('hidden');
+    }
+
+    function setAllAnalistas(userId) {
+        document.querySelectorAll('.analista-select').forEach(sel => {
+            if (userId) sel.value = userId;
+        });
+    }
+
+    function sendImportTasks() {
+        const selects = document.querySelectorAll('.analista-select');
+        const errDiv = document.getElementById('importStep2Error');
+        errDiv.innerHTML = '';
+        let hasUnassigned = false;
+        const tasks = [];
+        selects.forEach((sel, i) => {
+            if (!sel.value) { hasUnassigned = true; sel.classList.add('border-red-400', 'ring-1', 'ring-red-400'); }
+            else { sel.classList.remove('border-red-400', 'ring-1', 'ring-red-400'); tasks.push(Object.assign({}, _importTasksData[i], { assigned_to: sel.value })); }
+        });
+        if (hasUnassigned) {
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">Asigna un responsable a cada tarea antes de continuar.</div>';
+            return;
+        }
+        const projectIdEl = document.getElementById('importProjectId');
+        const payload = { tasks, _token: '{{ csrf_token() }}' };
+        if (projectIdEl && projectIdEl.value) payload.proyecto_id = projectIdEl.value;
+        const btn = document.getElementById('importSendBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Enviando...';
+        fetch('{{ route("activities.import") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                errDiv.innerHTML = '<div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 text-xs font-bold flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' + data.message + '</div>';
+                setTimeout(() => { closeImportModal(); location.reload(); }, 2000);
+            } else {
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">' + (data.message || 'Error al importar.') + '</div>';
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
+            }
+        })
+        .catch(() => {
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">Error de conexión. Intenta de nuevo.</div>';
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
+        });
+    }
+
+    function _esc(str) { const d = document.createElement('div'); d.appendChild(document.createTextNode(str || '')); return d.innerHTML; }
     function openPlanModal(){ document.getElementById('planModal').classList.remove('hidden'); updateWeekLabels(); for(let i=0;i<5;i++){const c=document.getElementById(`container-day-${i}`);if(c && c.children.length===0)addTaskCard(i);} }
     function updateWeekLabels(){ const v=document.getElementById('weekPicker').value; if(!v)return; const l=new Date(v+'T00:00:00'); for(let i=0;i<5;i++){const d=new Date(l);d.setDate(l.getDate()+i); document.getElementById(`label-date-${i}`).innerText=d.toLocaleDateString('es-MX',{day:'numeric',month:'short'}); } }
     function addTaskCard(dayIndex){

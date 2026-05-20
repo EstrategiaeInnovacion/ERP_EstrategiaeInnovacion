@@ -639,6 +639,43 @@ class ActivityController extends Controller
         return redirect()->back()->with('success', 'Actividad eliminada.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer']);
+
+        $user        = Auth::user();
+        $deleted     = 0;
+        $skipped     = 0;
+
+        DB::transaction(function () use ($request, $user, &$deleted, &$skipped) {
+            foreach ($request->ids as $id) {
+                $activity = Activity::find((int) $id);
+                if (! $activity) { $skipped++; continue; }
+
+                $esPropia       = $activity->user_id === $user->id;
+                $esSelfCreated  = is_null($activity->asignado_por) || $activity->asignado_por === $user->id;
+                $esAsignador    = $activity->asignado_por === $user->id;
+
+                if (! (($esPropia && $esSelfCreated) || $esAsignador)) { $skipped++; continue; }
+
+                ActivityHistory::create([
+                    'activity_id' => $activity->id,
+                    'user_id'     => $user->id,
+                    'action'      => 'deleted',
+                    'details'     => 'Eliminó la actividad (masivo): ' . $activity->nombre_actividad,
+                ]);
+                DB::table('activities')->where('id', $activity->id)->update(['deleted_by' => $user->id]);
+                $activity->delete();
+                $deleted++;
+            }
+        });
+
+        $msg = $deleted . ' ' . ($deleted === 1 ? 'tarea eliminada.' : 'tareas eliminadas.');
+        if ($skipped > 0) $msg .= " {$skipped} omitida(s) por permisos.";
+
+        return response()->json(['success' => true, 'deleted' => $deleted, 'skipped' => $skipped, 'message' => $msg]);
+    }
+
     public function approve(Request $request, $id)
     {
         $act = Activity::with(['user.empleado', 'asignador.empleado'])->findOrFail($id);
@@ -1007,51 +1044,45 @@ class ActivityController extends Controller
         return $response;
     }
 
-    public function import(Request $request)
+    public function previewImport(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv,txt',
-            'assigned_to' => 'required|exists:users,id',
-            'proyecto_id' => 'nullable|exists:proyectos,id',
-        ]);
-
-        $file = $request->file('file');
-        $dir = 'temp';
-        if (!Storage::exists($dir)) {
-            Storage::makeDirectory($dir);
-        }
-        $path = $file->storeAs($dir, Str::uuid() . '.' . $file->getClientOriginalExtension());
-        $fullPath = Storage::path($path);
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv,txt']);
 
         $currentUser = Auth::user();
+        $miEmpleado = $currentUser->empleado;
+
+        if (!$miEmpleado || !$miEmpleado->es_coordinador) {
+            $esSupervisor = $miEmpleado && Empleado::where('supervisor_id', $miEmpleado->id)->exists();
+            $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+            if (!$esSupervisor && !$esDireccion) {
+                return response()->json(['success' => false, 'message' => 'Sin permisos para importar tareas.'], 403);
+            }
+        }
+
+        $file = $request->file('file');
+        $path = $file->storeAs('temp', Str::uuid() . '.' . $file->getClientOriginalExtension());
+        $fullPath = Storage::path($path);
 
         try {
             $inputFileType = IOFactory::identify($fullPath);
             $reader = IOFactory::createReader($inputFileType);
-
             if ($inputFileType === 'Csv') {
                 $reader->setDelimiter(',');
                 $reader->setEnclosure('"');
                 $reader->setInputEncoding('UTF-8');
             }
-
             $spreadsheet = $reader->load($fullPath);
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray(null, true, true, false);
         } catch (\Exception $e) {
             Storage::delete($path);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al leer el archivo: ' . $e->getMessage(),
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Error al leer el archivo: ' . $e->getMessage()], 422);
         }
 
+        Storage::delete($path);
+
         if (empty($rows) || count($rows) < 2) {
-            Storage::delete($path);
-            return response()->json([
-                'success' => false,
-                'message' => 'El archivo está vacío o solo tiene encabezados.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'El archivo está vacío o solo tiene encabezados.'], 422);
         }
 
         $headers = array_shift($rows);
@@ -1063,56 +1094,101 @@ class ActivityController extends Controller
         }
 
         $campoNombre = $headerMap['nombreactividad'] ?? $headerMap['actividad'] ?? $headerMap['descripcion'] ?? $headerMap['tarea'] ?? null;
-        $campoFecha = $headerMap['fechacompromiso'] ?? $headerMap['fecha'] ?? $headerMap['fechalimite'] ?? $headerMap['deadline'] ?? null;
-        $campoArea = $headerMap['area'] ?? null;
-        $campoCliente = $headerMap['cliente'] ?? null;
-        $campoPrioridad = $headerMap['prioridad'] ?? $headerMap['prioridad'] ?? null;
-        $campoTipo = $headerMap['tipoactividad'] ?? $headerMap['tipo'] ?? null;
-        $campoHoraInicio = $headerMap['horainicio'] ?? $headerMap['horainicio'] ?? $headerMap['inicio'] ?? null;
-        $campoHoraFin = $headerMap['horafin'] ?? $headerMap['horafin'] ?? $headerMap['fin'] ?? null;
-        $campoComentarios = $headerMap['comentarios'] ?? $headerMap['comentario'] ?? $headerMap['notas'] ?? $headerMap['observaciones'] ?? null;
-
         if ($campoNombre === null) {
-            Storage::delete($path);
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró una columna de actividad. Columnas requeridas: nombre_actividad, fecha_compromiso (opcional). Columnas detectadas: ' . implode(', ', array_map(fn($h) => "'{$h}'", $headers)),
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'No se encontró columna de actividad. Use: nombre_actividad, actividad, descripcion o tarea.'], 422);
         }
 
-        $imported = 0;
-        $errors = [];
+        $campoFecha      = $headerMap['fechacompromiso'] ?? $headerMap['fecha'] ?? $headerMap['fechalimite'] ?? $headerMap['deadline'] ?? null;
+        $campoArea       = $headerMap['area'] ?? null;
+        $campoCliente    = $headerMap['cliente'] ?? null;
+        $campoPrioridad  = $headerMap['prioridad'] ?? null;
+        $campoTipo       = $headerMap['tipoactividad'] ?? $headerMap['tipo'] ?? null;
+        $campoHoraInicio = $headerMap['horainicio'] ?? $headerMap['inicio'] ?? null;
+        $campoHoraFin    = $headerMap['horafin'] ?? $headerMap['fin'] ?? null;
+        $campoComent     = $headerMap['comentarios'] ?? $headerMap['comentario'] ?? $headerMap['notas'] ?? $headerMap['observaciones'] ?? null;
+
+        $tasks = [];
+        foreach ($rows as $row) {
+            $nombre = trim((string) ($row[$campoNombre] ?? ''));
+            if (empty($nombre)) continue;
+
+            $fecha = null;
+            if ($campoFecha !== null && !empty($row[$campoFecha])) {
+                $fecha = $this->parseDate($row[$campoFecha]);
+            }
+
+            $tasks[] = [
+                'nombre_actividad'    => $nombre,
+                'fecha_compromiso'    => $fecha ? $fecha->format('Y-m-d') : now()->format('Y-m-d'),
+                'area'                => ($campoArea !== null && !empty($row[$campoArea])) ? trim($row[$campoArea]) : 'General',
+                'cliente'             => ($campoCliente !== null && !empty($row[$campoCliente])) ? trim($row[$campoCliente]) : null,
+                'prioridad'           => $this->normalizePriority(($campoPrioridad !== null && !empty($row[$campoPrioridad])) ? $row[$campoPrioridad] : 'Media'),
+                'tipo_actividad'      => ($campoTipo !== null && !empty($row[$campoTipo])) ? trim($row[$campoTipo]) : 'Operativo',
+                'hora_inicio_programada' => ($campoHoraInicio !== null && !empty($row[$campoHoraInicio])) ? $this->parseTime($row[$campoHoraInicio]) : null,
+                'hora_fin_programada' => ($campoHoraFin !== null && !empty($row[$campoHoraFin])) ? $this->parseTime($row[$campoHoraFin]) : null,
+                'comentarios'         => ($campoComent !== null && !empty($row[$campoComent])) ? trim($row[$campoComent]) : null,
+            ];
+        }
+
+        if (empty($tasks)) {
+            return response()->json(['success' => false, 'message' => 'No se encontraron tareas válidas en el archivo.'], 422);
+        }
+
+        return response()->json(['success' => true, 'tasks' => $tasks, 'total' => count($tasks)]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'tasks'      => 'required|array|min:1',
+            'tasks.*.nombre_actividad' => 'required|string|max:500',
+            'tasks.*.assigned_to'      => 'required|exists:users,id',
+            'tasks.*.fecha_compromiso' => 'nullable|date',
+            'proyecto_id' => 'nullable|exists:proyectos,id',
+        ]);
+
+        $currentUser = Auth::user();
+        $miEmpleado  = $currentUser->empleado;
+
+        $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $subordinadosIds = $miEmpleado
+            ? Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->values()->toArray()
+            : [];
+
         $proyectoId = $request->filled('proyecto_id') ? $request->proyecto_id : null;
+        $imported   = 0;
 
         DB::beginTransaction();
         try {
-            foreach ($rows as $rowIndex => $row) {
-                $nombre = trim((string) ($row[$campoNombre] ?? ''));
-                if (empty($nombre)) {
-                    continue;
-                }
+            foreach ($request->tasks as $taskData) {
+                $targetUserId = (int) $taskData['assigned_to'];
 
-                $fechaCompromiso = null;
-                if ($campoFecha !== null && !empty($row[$campoFecha])) {
-                    $fechaCompromiso = $this->parseDate($row[$campoFecha]);
+                // Determinar estatus según jerarquía
+                if ($targetUserId === $currentUser->id) {
+                    $estatus = 'En proceso';
+                } elseif ($esDireccion) {
+                    $estatus = 'Planeado';
+                } elseif (in_array($targetUserId, $subordinadosIds)) {
+                    $estatus = 'Planeado';
+                } else {
+                    $estatus = 'Por Aprobar';
                 }
-                $fechaCompromiso = $fechaCompromiso ?: now();
 
                 $data = [
-                    'user_id' => $request->assigned_to,
-                    'asignado_por' => $currentUser->id,
-                    'nombre_actividad' => $nombre,
-                    'fecha_inicio' => now(),
-                    'fecha_compromiso' => $fechaCompromiso,
-                    'area' => ($campoArea !== null && !empty($row[$campoArea])) ? trim($row[$campoArea]) : 'General',
-                    'cliente' => ($campoCliente !== null && !empty($row[$campoCliente])) ? trim($row[$campoCliente]) : null,
-                    'prioridad' => $this->normalizePriority(($campoPrioridad !== null && !empty($row[$campoPrioridad])) ? $row[$campoPrioridad] : 'Media'),
-                    'tipo_actividad' => ($campoTipo !== null && !empty($row[$campoTipo])) ? trim($row[$campoTipo]) : 'Operativo',
-                    'hora_inicio_programada' => ($campoHoraInicio !== null && !empty($row[$campoHoraInicio])) ? $this->parseTime($row[$campoHoraInicio]) : null,
-                    'hora_fin_programada' => ($campoHoraFin !== null && !empty($row[$campoHoraFin])) ? $this->parseTime($row[$campoHoraFin]) : null,
-                    'comentarios' => ($campoComentarios !== null && !empty($row[$campoComentarios])) ? trim($row[$campoComentarios]) : null,
-                    'estatus' => 'Por Aprobar',
-                    'metrico' => 1,
+                    'user_id'                 => $targetUserId,
+                    'asignado_por'            => $currentUser->id,
+                    'nombre_actividad'        => trim($taskData['nombre_actividad']),
+                    'fecha_inicio'            => now(),
+                    'fecha_compromiso'        => !empty($taskData['fecha_compromiso']) ? $taskData['fecha_compromiso'] : now(),
+                    'area'                    => !empty($taskData['area']) ? $taskData['area'] : 'General',
+                    'cliente'                 => $taskData['cliente'] ?? null,
+                    'prioridad'               => $this->normalizePriority($taskData['prioridad'] ?? 'Media'),
+                    'tipo_actividad'          => !empty($taskData['tipo_actividad']) ? $taskData['tipo_actividad'] : 'Operativo',
+                    'hora_inicio_programada'  => $taskData['hora_inicio_programada'] ?? null,
+                    'hora_fin_programada'     => $taskData['hora_fin_programada'] ?? null,
+                    'comentarios'             => $taskData['comentarios'] ?? null,
+                    'estatus'                 => $estatus,
+                    'metrico'                 => 1,
                 ];
 
                 if ($proyectoId) {
@@ -1126,20 +1202,16 @@ class ActivityController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Storage::delete($path);
             return response()->json([
                 'success' => false,
                 'message' => 'Error durante la importación: ' . $e->getMessage(),
             ], 500);
         }
 
-        Storage::delete($path);
-
         return response()->json([
-            'success' => true,
-            'message' => "Importación completada: {$imported} actividades creadas.",
+            'success'  => true,
+            'message'  => "Importación completada: {$imported} " . ($imported === 1 ? 'tarea creada.' : 'tareas creadas.'),
             'imported' => $imported,
-            'errors' => $errors,
         ]);
     }
 
