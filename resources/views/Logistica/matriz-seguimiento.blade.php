@@ -104,7 +104,7 @@
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMPO / EX</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EX</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Transporte</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Aduana</th>
@@ -493,7 +493,7 @@
             {{-- Row 2 --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5">IMPO / EX</label>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">IMP / EX</label>
                     <select id="f-impo_ex" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
                         <option value="">— Seleccionar —</option>
                         <option value="IMP">IMP</option>
