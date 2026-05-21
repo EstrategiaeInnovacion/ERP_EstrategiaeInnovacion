@@ -46,7 +46,6 @@ class MatrizSeguimientoController extends Controller
                                 ->whereIn('status', $statusCompletados);
 
         if ($esCoordinador) {
-            // Coordinador: ve TODAS las operaciones; el filtro acota los resultados
             if ($filtroCliente) {
                 $queryActivos->where('proveedor_cliente', 'like', '%' . $filtroCliente . '%');
                 $queryCompletados->where('proveedor_cliente', 'like', '%' . $filtroCliente . '%');
@@ -54,6 +53,11 @@ class MatrizSeguimientoController extends Controller
             if ($filtroEjecutivo) {
                 $queryActivos->where('user_id', $filtroEjecutivo);
                 $queryCompletados->where('user_id', $filtroEjecutivo);
+            }
+            // Sin filtros: solo muestra las operaciones propias del coordinador
+            if (!$filtroCliente && !$filtroEjecutivo && $user) {
+                $queryActivos->where('user_id', $user->id);
+                $queryCompletados->where('user_id', $user->id);
             }
         } else {
             // Ejecutivo: solo ve sus propias operaciones
@@ -66,15 +70,28 @@ class MatrizSeguimientoController extends Controller
         $registros   = $queryActivos->orderByDesc('created_at')->get();
         $completados = $queryCompletados->orderByDesc('created_at')->get();
 
-        // ── Clientes ──────────────────────────────────────────────────────────
+        // ── Clientes del catálogo asignados al ejecutivo (para el SELECT del formulario) ──
         $misClientes = $empleadoActual
             ? Cliente::where('ejecutivo_asignado_id', $empleadoActual->id)
                 ->orderBy('cliente')
                 ->pluck('cliente')
             : collect();
 
+        // ── Valores únicos de proveedor_cliente para el filtro ────────────────
         $todosClientes = $esCoordinador
-            ? Cliente::orderBy('cliente')->pluck('cliente')
+            ? MatrizSeguimiento::whereNotNull('proveedor_cliente')
+                ->distinct()
+                ->orderBy('proveedor_cliente')
+                ->pluck('proveedor_cliente')
+            : collect();
+
+        // ── Valores únicos de proveedor_cliente del ejecutivo (para su filtro) ─
+        $misClientesFiltro = $user
+            ? MatrizSeguimiento::where('user_id', $user->id)
+                ->whereNotNull('proveedor_cliente')
+                ->distinct()
+                ->orderBy('proveedor_cliente')
+                ->pluck('proveedor_cliente')
             : collect();
 
         // ── Ejecutivos para el filtro del coordinador ─────────────────────────
@@ -96,8 +113,124 @@ class MatrizSeguimientoController extends Controller
         return view('Logistica.matriz-seguimiento', compact(
             'registros', 'completados', 'tiposOperacion',
             'aduanas', 'claves', 'cargaTipos', 'tiposContenedor',
-            'misClientes', 'esCoordinador', 'ejecutivos', 'todosClientes',
+            'misClientes', 'misClientesFiltro', 'esCoordinador', 'ejecutivos', 'todosClientes',
             'filtroCliente', 'filtroEjecutivo', 'miUserId'
+        ));
+    }
+
+    public function reportes(Request $request)
+    {
+        $user           = auth()->user();
+        $empleadoActual = $user ? Empleado::where('correo', $user->email)->first() : null;
+
+        $esCoordinador = false;
+        if ($empleadoActual && $empleadoActual->es_coordinador) {
+            $area     = mb_strtolower($empleadoActual->area     ?? '', 'UTF-8');
+            $posicion = mb_strtolower($empleadoActual->posicion ?? '', 'UTF-8');
+            foreach (['logística', 'logistica', 'sistemas', 'dirección', 'direccion'] as $p) {
+                if (str_contains($area, $p) || str_contains($posicion, $p)) {
+                    $esCoordinador = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$esCoordinador) {
+            abort(403, 'Acceso solo para coordinadores.');
+        }
+
+        $filtroAplicado = $request->has('aplicar');
+        $periodo        = $request->input('periodo', 'semana');
+        $filtroDesde    = $request->input('desde');
+        $filtroHasta    = $request->input('hasta');
+
+        // ── Semana actual (siempre visible) ───────────────────────────────────
+        $semanaActual = MatrizSeguimiento::with('user')
+            ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+            ->orderByDesc('created_at')
+            ->get();
+
+        // ── Ranking últimos 7 días ─────────────────────────────────────────────
+        $ultimosSieteDias = MatrizSeguimiento::with('user')
+            ->where('updated_at', '>=', now()->subDays(7))
+            ->orderByDesc('updated_at')
+            ->limit(15)
+            ->get();
+
+        // ── Todas las ops para resumen y gráficas ─────────────────────────────
+        $allOps = MatrizSeguimiento::with('user')->get();
+
+        // ── Operaciones filtradas (solo cuando se aplica filtro) ──────────────
+        $operacionesFiltradas = collect();
+        if ($filtroAplicado) {
+            $q = MatrizSeguimiento::with('user');
+            if ($periodo === 'semana') {
+                $q->where('created_at', '>=', now()->subWeek());
+            } elseif ($periodo === 'mes') {
+                $q->where('created_at', '>=', now()->subMonth());
+            } elseif ($periodo === 'año') {
+                $q->where('created_at', '>=', now()->subYear());
+            } elseif ($filtroDesde && $filtroHasta) {
+                $q->whereBetween('created_at', [$filtroDesde, $filtroHasta . ' 23:59:59']);
+            }
+            $operacionesFiltradas = $q->orderByDesc('created_at')->get();
+        }
+
+        // ── Distribución por status ────────────────────────────────────────────
+        $statusList    = ['Pendiente', 'En Tránsito', 'En Aduana', 'Previo Programado', 'Cita Programada', 'Despachado', 'Entregado', 'Cancelado'];
+        $statsByStatus = [];
+        foreach ($statusList as $s) {
+            $cnt = $allOps->where('status', $s)->count();
+            if ($cnt > 0) $statsByStatus[$s] = $cnt;
+        }
+
+        // ── Por tipo de operación ──────────────────────────────────────────────
+        $statsByTipo = $allOps->whereNotNull('tipo_operacion')
+            ->groupBy('tipo_operacion')
+            ->map->count()
+            ->sortDesc()
+            ->toArray();
+
+        // ── Línea: últimos 30 días ─────────────────────────────────────────────
+        $rawByDay = MatrizSeguimiento::selectRaw('DATE(created_at) as dia, COUNT(*) as total')
+            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->groupBy('dia')
+            ->orderBy('dia')
+            ->pluck('total', 'dia')
+            ->toArray();
+
+        $lineLabels = [];
+        $lineData   = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $day          = now()->subDays($i)->format('Y-m-d');
+            $lineLabels[] = now()->subDays($i)->format('d/m');
+            $lineData[]   = $rawByDay[$day] ?? 0;
+        }
+
+        // ── Top clientes (bar) ────────────────────────────────────────────────
+        $topClientes = $allOps->whereNotNull('proveedor_cliente')
+            ->groupBy('proveedor_cliente')
+            ->map->count()
+            ->sortDesc()
+            ->take(8)
+            ->toArray();
+
+        // ── Eficiencia ────────────────────────────────────────────────────────
+        $totalOps    = $allOps->count();
+        $exitosas    = $allOps->where('resultado', 'Exitoso')->count();
+        $demoradas   = $allOps->where('resultado', 'Demorado')->count();
+        $enProceso   = $allOps->where('resultado', 'En Proceso')->count();
+        $canceladas  = $allOps->where('resultado', 'Cancelado')->count();
+        $completadas = $exitosas + $demoradas + $canceladas;
+        $eficiencia  = $completadas > 0 ? round(($exitosas / $completadas) * 100, 1) : 0;
+
+        return view('Logistica.reportes', compact(
+            'semanaActual', 'ultimosSieteDias', 'operacionesFiltradas',
+            'statsByStatus', 'statsByTipo', 'lineLabels', 'lineData',
+            'totalOps', 'exitosas', 'demoradas', 'enProceso', 'canceladas',
+            'eficiencia', 'completadas',
+            'filtroAplicado', 'periodo', 'filtroDesde', 'filtroHasta',
+            'topClientes'
         ));
     }
 
@@ -189,10 +322,11 @@ class MatrizSeguimientoController extends Controller
     private function validar(Request $request): array
     {
         return $request->validate([
-            'ref_interna'      => 'nullable|string|max:100',
-            'proveedor_cliente'=> 'nullable|string|max:255',
-            'factura'          => 'nullable|string|max:100',
-            'impo_ex'          => 'nullable|in:IMPO,EX',
+            'ref_interna'        => 'nullable|string|max:100',
+            'proveedor_cliente'  => 'nullable|string|max:255',
+            'cliente_operacion'  => 'nullable|string|max:255',
+            'factura'            => 'nullable|string|max:100',
+            'impo_ex'          => 'nullable|in:IMP,EX',
             'tipo_operacion'   => 'nullable|string|max:100',
             'transporte'       => 'nullable|string|max:255',
             'naviera'          => 'nullable|string|max:255',

@@ -1234,7 +1234,7 @@ function toggleAllUsersExcel(checkbox) {
         if (!ids.length) return;
         if (!confirm('¿Eliminar ' + ids.length + ' ' + (ids.length === 1 ? 'tarea' : 'tareas') + '? Esta acción no se puede deshacer.')) return;
 
-        fetch('{{ route("activities.bulk_destroy") }}', {
+        fetch('{{ url("activities/bulk-destroy") }}', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             body: JSON.stringify({ ids: ids })

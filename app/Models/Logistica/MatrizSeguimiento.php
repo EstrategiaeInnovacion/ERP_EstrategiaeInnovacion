@@ -11,7 +11,7 @@ class MatrizSeguimiento extends Model
 
     protected $fillable = [
         'user_id',
-        'ref_interna', 'proveedor_cliente', 'factura', 'impo_ex',
+        'ref_interna', 'proveedor_cliente', 'cliente_operacion', 'factura', 'impo_ex',
         'tipo_operacion', 'transporte', 'naviera', 'buque', 'carga_tipo',
         'no_contenedor', 'tipo_contenedor', 'aduana', 'clave',
         'pedimento', 'bl_guia', 'etd', 'eta', 'dias_libres', 'previo',

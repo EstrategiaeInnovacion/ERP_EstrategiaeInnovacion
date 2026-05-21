@@ -202,6 +202,9 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
     Route::get('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'getComentarios'])->name('matriz-seguimiento.comentarios');
     Route::post('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'storeComentario'])->name('matriz-seguimiento.comentarios.store');
 
+    // Reportes
+    Route::get('/reportes', [MatrizSeguimientoController::class, 'reportes'])->name('reportes');
+
     // Matriz de Apoyo Operativo
     Route::get('/matriz-apoyo', [MatrizApoyoController::class, 'index'])->name('matriz-apoyo');
     Route::get('/matriz-apoyo/calificaciones', [MatrizApoyoController::class, 'calificaciones'])->name('matriz-apoyo.calificaciones');

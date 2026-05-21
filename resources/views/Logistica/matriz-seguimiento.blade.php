@@ -40,7 +40,7 @@
             {{-- Coordinador: filtro server-side por cliente o ejecutivo --}}
             <form method="GET" action="{{ route('logistica.matriz-seguimiento') }}" class="flex flex-wrap items-end gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Filtrar por cliente</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Filtrar por cliente operación</label>
                     <select name="filtro_cliente"
                             class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-[180px]">
                         <option value="">— Todos los clientes —</option>
@@ -76,11 +76,11 @@
             {{-- Ejecutivo: filtro client-side por mis clientes --}}
             <div class="flex flex-wrap items-end gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Mis Clientes</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Cliente Operación</label>
                     <select id="filtro-mis-clientes" onchange="filtrarPorCliente()"
                             class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white min-w-[200px]">
-                        <option value="">— Todos mis clientes —</option>
-                        @foreach($misClientes as $c)
+                        <option value="">— Todos —</option>
+                        @foreach($misClientesFiltro as $c)
                             <option value="{{ mb_strtolower($c, 'UTF-8') }}">{{ $c }}</option>
                         @endforeach
                     </select>
@@ -113,17 +113,14 @@
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">BL / Guía</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETD</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETA</th>
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Previo</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cita de Previo</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cita de Despacho</th>
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Arribo a Planta</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha de Arribo a Planta</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Resultado</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
                             <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Comentarios</th>
                             <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Indicadores</th>
-                            @if($esCoordinador)
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ejecutivo</th>
-                            @endif
                             <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
                         </tr>
                     </thead>
@@ -131,7 +128,7 @@
                         @forelse($registros as $reg)
                         @php
                             $searchStr = mb_strtolower(implode(' ', array_filter([
-                                $reg->ref_interna, $reg->proveedor_cliente, $reg->factura,
+                                $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
                                 $reg->impo_ex, $reg->tipo_operacion, $reg->transporte,
                                 $reg->aduana, $reg->clave, $reg->pedimento, $reg->bl_guia,
                                 $reg->status, $reg->resultado, $reg->target, $reg->comentarios,
@@ -152,11 +149,11 @@
                                     {{ $reg->ref_interna ?? '—' }}
                                 </div>
                             </td>
-                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->proveedor_cliente ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->cliente_operacion ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
                             <td class="px-3 py-3 whitespace-nowrap">
-                                @if($reg->impo_ex === 'IMPO')
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">IMPO</span>
+                                @if($reg->impo_ex === 'IMP')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">IMP</span>
                                 @elseif($reg->impo_ex === 'EX')
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">EX</span>
                                 @else
@@ -293,18 +290,6 @@
                                     @endif
                                 </div>
                             </td>
-                            @if($esCoordinador)
-                            <td class="px-3 py-3 whitespace-nowrap text-sm">
-                                @if($esMia)
-                                    <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
-                                        Yo
-                                    </span>
-                                @else
-                                    <span class="text-slate-600">{{ $reg->user?->name ?? '—' }}</span>
-                                @endif
-                            </td>
-                            @endif
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     @if($reg->status !== 'Entregado')
@@ -335,7 +320,7 @@
                         </tr>
                         @empty
                         <tr id="empty-row">
-                            <td colspan="{{ $esCoordinador ? 22 : 21 }}" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="21" class="px-6 py-12 text-center text-slate-400">
                                 <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
@@ -370,13 +355,10 @@
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETA</th>
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Arribo a Planta</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha de Arribo a Planta</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Resultado</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
-                            @if($esCoordinador)
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ejecutivo</th>
-                            @endif
                             <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
                         </tr>
                     </thead>
@@ -384,7 +366,7 @@
                         @forelse($completados as $reg)
                         @php
                             $searchStrC = mb_strtolower(implode(' ', array_filter([
-                                $reg->ref_interna, $reg->proveedor_cliente, $reg->factura,
+                                $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
                                 $reg->tipo_operacion, $reg->status, $reg->resultado, $reg->target,
                                 $reg->user?->name,
                             ])));
@@ -404,7 +386,7 @@
                             data-row-id="{{ $reg->id }}"
                             data-search="{{ $searchStrC }}">
                             <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">{{ $reg->ref_interna ?? '—' }}</td>
-                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->proveedor_cliente ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->cliente_operacion ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->tipo_operacion ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->eta ? $reg->eta->format('d/m/Y') : '—' }}</td>
@@ -424,18 +406,6 @@
                                 @endif
                             </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
-                            @if($esCoordinador)
-                            <td class="px-3 py-3 whitespace-nowrap text-sm">
-                                @if($esMiaC)
-                                    <span class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
-                                        Yo
-                                    </span>
-                                @else
-                                    <span class="text-slate-600">{{ $reg->user?->name ?? '—' }}</span>
-                                @endif
-                            </td>
-                            @endif
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button data-id="{{ $reg->id }}" onclick="editarRegistro(Number(this.dataset.id))"
@@ -457,7 +427,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ $esCoordinador ? 11 : 10 }}" class="px-6 py-8 text-center text-slate-400 text-sm">
+                            <td colspan="10" class="px-6 py-8 text-center text-slate-400 text-sm">
                                 Sin operaciones completadas.
                             </td>
                         </tr>
@@ -486,6 +456,18 @@
         <form id="form-seguimiento" class="px-8 py-6 space-y-6" onsubmit="submitForm(event)">
             <input type="hidden" id="registro-id" value="">
 
+            {{-- Selector de cliente (uso interno para filtros) --}}
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 px-4 py-3">
+                <label class="block text-xs font-bold text-slate-500 mb-1.5">Cliente <span class="font-normal text-slate-400">(uso interno — para filtrar operaciones)</span></label>
+                <select id="f-proveedor_cliente"
+                        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                    <option value="">— Seleccionar cliente —</option>
+                    @foreach($misClientes as $cliente)
+                        <option value="{{ $cliente }}">{{ $cliente }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Row 1 --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
@@ -495,27 +477,10 @@
                            placeholder="REF-001">
                 </div>
                 <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="text-xs font-bold text-slate-600">Proveedor / Cliente</label>
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" id="check-es-proveedor" onchange="toggleProveedorCliente()"
-                                   class="w-3.5 h-3.5 rounded accent-emerald-600">
-                            <span class="text-xs text-slate-500 font-medium">Es proveedor</span>
-                        </label>
-                    </div>
-                    <select id="f-proveedor_cliente"
-                            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
-                        <option value="">— Seleccionar cliente —</option>
-                        @foreach($misClientes as $cliente)
-                            <option value="{{ $cliente }}">{{ $cliente }}</option>
-                        @endforeach
-                    </select>
-                    <input type="text" id="f-proveedor_texto" maxlength="255"
-                           class="hidden w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                           placeholder="Nombre del proveedor">
-                    @if($misClientes->isEmpty())
-                        <p class="text-xs text-amber-600 mt-1">No tienes clientes asignados.</p>
-                    @endif
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Cliente / Proveedor</label>
+                    <input type="text" id="f-cliente_operacion" maxlength="255"
+                           class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                           placeholder="Nombre del cliente o proveedor">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Factura</label>
@@ -531,7 +496,7 @@
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">IMPO / EX</label>
                     <select id="f-impo_ex" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
                         <option value="">— Seleccionar —</option>
-                        <option value="IMPO">IMPO</option>
+                        <option value="IMP">IMP</option>
                         <option value="EX">EX</option>
                     </select>
                 </div>
@@ -645,7 +610,7 @@
                                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Previo</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Cita de Previo</label>
                         <input type="date" id="f-previo"
                                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
@@ -655,7 +620,7 @@
                                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Arribo a Planta</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Fecha de Arribo a Planta</label>
                         <input type="date" id="f-arribo_planta"
                                class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
@@ -684,10 +649,11 @@
 @php
 $mapReg = function ($r) {
     return [
-        'id'               => $r->id,
-        'ref_interna'      => $r->ref_interna,
-        'proveedor_cliente'=> $r->proveedor_cliente,
-        'factura'          => $r->factura,
+        'id'                => $r->id,
+        'ref_interna'       => $r->ref_interna,
+        'proveedor_cliente' => $r->proveedor_cliente,
+        'cliente_operacion' => $r->cliente_operacion,
+        'factura'           => $r->factura,
         'impo_ex'          => $r->impo_ex,
         'tipo_operacion'   => $r->tipo_operacion,
         'transporte'       => $r->transporte,
@@ -828,44 +794,14 @@ function toggleCompletados() {
 }
 
 // ── Modal helpers ────────────────────────────────────────────────────
-// ── Toggle proveedor / cliente ────────────────────────────────────────
-function toggleProveedorCliente(esProveedor) {
-    const chk  = document.getElementById('check-es-proveedor');
-    const sel  = document.getElementById('f-proveedor_cliente');
-    const txt  = document.getElementById('f-proveedor_texto');
-    const activo = esProveedor !== undefined ? esProveedor : chk.checked;
-    chk.checked = activo;
-    if (activo) {
-        sel.classList.add('hidden');
-        txt.classList.remove('hidden');
-    } else {
-        sel.classList.remove('hidden');
-        txt.classList.add('hidden');
-        txt.value = '';
-    }
-}
-
-function getProveedorClienteValue() {
-    const chk = document.getElementById('check-es-proveedor');
-    return chk.checked
-        ? document.getElementById('f-proveedor_texto').value || null
-        : document.getElementById('f-proveedor_cliente').value || null;
-}
-
-function setProveedorClienteValue(valor, esProveedor) {
-    toggleProveedorCliente(esProveedor);
-    if (esProveedor) {
-        document.getElementById('f-proveedor_texto').value = valor ?? '';
-    } else {
-        document.getElementById('f-proveedor_cliente').value = valor ?? '';
-    }
+function setProveedorClienteValue(valor) {
+    document.getElementById('f-proveedor_cliente').value = valor ?? '';
 }
 
 function abrirModal() {
     document.getElementById('modal-title').textContent = 'Nuevo Registro';
     document.getElementById('registro-id').value = '';
     document.getElementById('form-seguimiento').reset();
-    toggleProveedorCliente(false);
     toggleDetallesMaritimo('');
     document.getElementById('modal-seguimiento').classList.remove('hidden');
     document.getElementById('modal-seguimiento').classList.add('flex');
@@ -883,14 +819,9 @@ function editarRegistro(id) {
     document.getElementById('modal-title').textContent = 'Editar Registro';
     document.getElementById('registro-id').value = id;
 
-    // Detectar si el valor guardado es un cliente propio o un proveedor
-    const misClientes = Array.from(
-        document.getElementById('f-proveedor_cliente').options
-    ).map(o => o.value.toLowerCase()).filter(v => v);
-    const esProveedor = reg.proveedor_cliente
-        ? !misClientes.includes((reg.proveedor_cliente ?? '').toLowerCase())
-        : false;
-    setProveedorClienteValue(reg.proveedor_cliente, esProveedor);
+    setProveedorClienteValue(reg.proveedor_cliente);
+    const elClienteOp = document.getElementById('f-cliente_operacion');
+    if (elClienteOp) elClienteOp.value = reg.cliente_operacion ?? '';
 
     [
         'ref_interna','factura','impo_ex','tipo_operacion',
@@ -1039,9 +970,10 @@ async function submitForm(e) {
 
     const g = elId => document.getElementById(elId)?.value || null;
     const body = {
-        ref_interna:       g('f-ref_interna'),
-        proveedor_cliente: getProveedorClienteValue(),
-        factura:           g('f-factura'),
+        ref_interna:        g('f-ref_interna'),
+        proveedor_cliente:  document.getElementById('f-proveedor_cliente')?.value || null,
+        cliente_operacion:  g('f-cliente_operacion'),
+        factura:            g('f-factura'),
         impo_ex:           g('f-impo_ex'),
         tipo_operacion:    g('f-tipo_operacion'),
         transporte:        g('f-transporte'),
