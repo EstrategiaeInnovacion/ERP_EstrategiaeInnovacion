@@ -46,6 +46,7 @@ class ActivityController extends Controller
         // 2. PERMISOS
         $esDireccion = false;
         $esSupervisor = false;
+        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
         $esPuestoPlanificador = false;
         $esHorarioPermitido = false;
         $puedePlanificar = false;
@@ -276,7 +277,6 @@ class ActivityController extends Controller
         ];
 
         $startOfWeek = now()->startOfWeek();
-        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
         $puedeGestionarPlaneacion = $esCoordinador;
 
         // Cargar proyectos disponibles para el usuario
