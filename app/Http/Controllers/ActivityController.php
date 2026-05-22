@@ -228,10 +228,11 @@ class ActivityController extends Controller
             ->get();
 
         // 5. VARIABLES DE EQUIPO
+        $puedeAsignarAOtros = $esSupervisor || $esDireccion || $esCoordinador;
         $teamUsers = collect();
         if ($esDireccion) {
             $teamUsers = User::orderBy('name')->get();
-        } elseif ($esSupervisor) {
+        } elseif ($esSupervisor || $esCoordinador) {
             $teamUsers = User::whereIn('id', $idsVisibles)->orderBy('name')->get();
         }
 
@@ -321,7 +322,7 @@ class ActivityController extends Controller
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis',
-            'esDireccion', 'esSupervisor', 'esCoordinador',
+            'esDireccion', 'esSupervisor', 'esCoordinador', 'puedeAsignarAOtros',
             'puedePlanificar', 'esPuestoPlanificador', 'esHorarioPermitido',
             'globalPendingCount', 'misRechazos',
             'isHistoryView', 'verTodo',
@@ -1049,15 +1050,7 @@ class ActivityController extends Controller
         $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv,txt']);
 
         $currentUser = Auth::user();
-        $miEmpleado = $currentUser->empleado;
-
-        if (!$miEmpleado || !$miEmpleado->es_coordinador) {
-            $esSupervisor = $miEmpleado && Empleado::where('supervisor_id', $miEmpleado->id)->exists();
-            $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
-            if (!$esSupervisor && !$esDireccion) {
-                return response()->json(['success' => false, 'message' => 'Sin permisos para importar tareas.'], 403);
-            }
-        }
+        $miEmpleado  = $currentUser->empleado;
 
         $file = $request->file('file');
         $path = $file->storeAs('temp', Str::uuid() . '.' . $file->getClientOriginalExtension());
@@ -1150,7 +1143,11 @@ class ActivityController extends Controller
         $currentUser = Auth::user();
         $miEmpleado  = $currentUser->empleado;
 
-        $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $esDireccion     = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $esCoordinadorImp = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
+        $esSupervisorImp  = $miEmpleado && Empleado::where('supervisor_id', $miEmpleado->id)->exists();
+        $puedeAsignarImp  = $esDireccion || $esCoordinadorImp || $esSupervisorImp;
+
         $subordinadosIds = $miEmpleado
             ? Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->values()->toArray()
             : [];
@@ -1161,7 +1158,10 @@ class ActivityController extends Controller
         DB::beginTransaction();
         try {
             foreach ($request->tasks as $taskData) {
-                $targetUserId = (int) $taskData['assigned_to'];
+                // Usuarios normales solo pueden asignarse a sí mismos
+                $targetUserId = $puedeAsignarImp
+                    ? (int) $taskData['assigned_to']
+                    : $currentUser->id;
 
                 // Determinar estatus según jerarquía
                 if ($targetUserId === $currentUser->id) {

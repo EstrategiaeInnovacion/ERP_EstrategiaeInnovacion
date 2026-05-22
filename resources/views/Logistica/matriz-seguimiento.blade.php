@@ -135,12 +135,29 @@
                                 $reg->user?->name,
                             ])));
                             $esMia = $esCoordinador && ($reg->user_id === $miUserId);
+
+                            // Indicador de días libres (demurrage) para mostrar en la fila
+                            $demurrageDotColor = null;
+                            $demurrageDotTitle = null;
+                            $diasLibresPre = $reg->dias_libres ?? 20;
+                            if ($reg->eta) {
+                                $drPre = \Carbon\Carbon::today()->diffInDays($reg->eta->copy()->addDays($diasLibresPre), false);
+                                $demurrageDotTitle = $drPre < 0 ? 'Días libres: Vencido' : 'Días libres restantes: ' . $drPre . 'd';
+                                if ($drPre < 0)       $demurrageDotColor = 'bg-red-900';
+                                elseif ($drPre < 5)   $demurrageDotColor = 'bg-red-500';
+                                elseif ($drPre < 10)  $demurrageDotColor = 'bg-orange-500';
+                                elseif ($drPre < 15)  $demurrageDotColor = 'bg-yellow-400';
+                                else                   $demurrageDotColor = 'bg-emerald-500';
+                            }
                         @endphp
                         <tr class="seg-row transition-colors {{ $esMia ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
                             data-row-id="{{ $reg->id }}"
                             data-search="{{ $searchStr }}">
                             <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">
                                 <div class="flex items-center gap-1.5">
+                                    @if($demurrageDotColor)
+                                        <span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 {{ $demurrageDotColor }}" title="{{ $demurrageDotTitle }}"></span>
+                                    @endif
                                     @if($esMia)
                                         <span title="Mi operación" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 flex-shrink-0">
                                             <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
@@ -261,11 +278,14 @@
                                     if ($diasRestantes < 0) {
                                         $demurrageColor = 'bg-red-900 text-white';
                                         $demurrageLabel = 'Vencido';
-                                    } elseif ($diasRestantes < 10) {
+                                    } elseif ($diasRestantes < 5) {
                                         $demurrageColor = 'bg-red-100 text-red-700';
                                         $demurrageLabel = $diasRestantes . 'd restantes';
-                                    } elseif ($diasRestantes < 15) {
+                                    } elseif ($diasRestantes < 10) {
                                         $demurrageColor = 'bg-orange-100 text-orange-700';
+                                        $demurrageLabel = $diasRestantes . 'd restantes';
+                                    } elseif ($diasRestantes < 15) {
+                                        $demurrageColor = 'bg-yellow-100 text-yellow-700';
                                         $demurrageLabel = $diasRestantes . 'd restantes';
                                     } else {
                                         $demurrageColor = 'bg-emerald-100 text-emerald-700';
@@ -627,9 +647,22 @@
                 </div>
             </div>
 
-            {{-- Campos ocultos con valores fijos --}}
+            {{-- Días libres --}}
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center gap-4">
+                <div class="flex-shrink-0">
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">
+                        Días Libres
+                        <span class="font-normal text-slate-400 ml-1">(la cuenta inicia desde ETA)</span>
+                    </label>
+                    <input type="number" id="f-dias_libres" min="0" max="99" value="20"
+                           class="w-24 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white text-center font-bold">
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Número de días sin cargo de demurrage a partir de la fecha ETA. Varía según el embarque y la línea naviera.
+                </p>
+            </div>
+
             <input type="hidden" id="f-target" maxlength="100">
-            <input type="hidden" id="f-dias_libres" value="20">
 
             {{-- Footer --}}
             <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
@@ -988,7 +1021,7 @@ async function submitForm(e) {
         bl_guia:           g('f-bl_guia'),
         etd:               g('f-etd'),
         eta:               g('f-eta'),
-        dias_libres:       20,
+        dias_libres:       parseInt(document.getElementById('f-dias_libres')?.value) || 20,
         previo:            g('f-previo'),
         cita_despacho:     g('f-cita_despacho'),
         arribo_planta:     g('f-arribo_planta'),
