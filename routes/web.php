@@ -367,6 +367,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('administracion')->name
         Route::put('/{cliente}', [ClienteAdminController::class, 'update'])->name('update');
         Route::delete('/{cliente}', [ClienteAdminController::class, 'destroy'])->name('destroy');
 
+        // Plantilla e importación Excel
+        Route::get('/plantilla', [ClienteAdminController::class, 'exportarPlantilla'])->name('plantilla');
+        Route::post('/importar', [ClienteAdminController::class, 'importarExcel'])->name('importar');
+        Route::get('/reporte-errores', [ClienteAdminController::class, 'descargarReporteErrores'])->name('reporte-errores');
+
         // Perfil / cuestionario
         Route::get('/{cliente}/perfil', [PerfilClienteController::class, 'show'])->name('perfil');
         Route::post('/{cliente}/perfil', [PerfilClienteController::class, 'upsert'])->name('perfil.guardar');
