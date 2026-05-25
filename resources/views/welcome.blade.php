@@ -28,21 +28,22 @@
                 {{-- VISTA INVITADO: LOGIN LIMPIO --}}
                 <div class="flex flex-col items-center justify-center min-h-[70vh]">
                     <div class="text-center mb-10">
-                        <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-400 shadow-sm">Acceso Corporativo</span>
-                        <h1 class="mt-4 text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                            ERP <span class="text-indigo-600">Estrategia e Innovación</span>
+                        <span class="px-3 py-1 rounded-full bg-slate-50 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Acceso Corporativo</span>
+                        <h1 class="mt-5 text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+                            <span class="text-indigo-600">ERP</span>
+                            <span class="text-slate-900">Estrategia e Innovación</span>
                         </h1>
                         <p class="mt-3 text-lg text-slate-500 max-w-lg mx-auto">
                             Plataforma integral de gestión de recursos, capital humano y servicios tecnológicos.
                         </p>
                     </div>
 
-                    <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden transform transition-all hover:scale-[1.01] duration-300">
+                    <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all hover:scale-[1.01] duration-300">
                         <div class="h-1.5 bg-gradient-to-r from-indigo-500 via-emerald-500 to-indigo-500"></div>
                         <div class="p-8">
                             <div class="flex justify-center mb-6">
                                 <div class="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                                 </div>
                             </div>
                             <h2 class="text-center text-xl font-bold text-slate-800 mb-6">Bienvenido al Sistema</h2>
@@ -53,7 +54,7 @@
                             </div>
                         </div>
                         <div class="bg-slate-50 px-8 py-3 border-t border-slate-100 text-center">
-                            <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Solo Personal Autorizado</p>
+                            <p class="text-[10px] text-slate-300 uppercase tracking-[0.25em] font-semibold">Solo Personal Autorizado</p>
                         </div>
                     </div>
                 </div>
