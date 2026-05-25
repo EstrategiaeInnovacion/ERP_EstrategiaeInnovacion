@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        <link rel="icon" type="image/png" href="{{ asset('images/isotipo-erp.png') }}">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
         <title>{{ config('app.name', 'Estrategia e Innovación') }}</title>
 
         <!-- Fonts -->
