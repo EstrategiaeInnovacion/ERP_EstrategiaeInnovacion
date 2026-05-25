@@ -9,6 +9,9 @@
     <meta property="og:description" content="Plataforma de gestión de recursos, capital humano y servicios tecnológicos.">
     <meta property="og:type" content="website">
 
+    <link rel="icon" type="image/png" href="{{ asset('images/isotipo-erp.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
     <title>@yield('title', 'ERP Corporativo') | Estrategia e Innovación</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
