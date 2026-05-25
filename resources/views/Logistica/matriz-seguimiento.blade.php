@@ -428,6 +428,14 @@
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <div class="flex items-center justify-center gap-1">
+                                    <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Ver comentarios">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                                        </svg>
+                                        <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
+                                    </button>
                                     <button data-id="{{ $reg->id }}" onclick="editarRegistro(Number(this.dataset.id))"
                                             class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
                                             title="Editar">
