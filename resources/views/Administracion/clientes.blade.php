@@ -16,13 +16,29 @@
                     <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Perfil de Clientes</h1>
                     <p class="text-slate-500 mt-1">{{ $clientes->count() }} cliente{{ $clientes->count() !== 1 ? 's' : '' }} registrado{{ $clientes->count() !== 1 ? 's' : '' }}</p>
                 </div>
-                <button onclick="abrirModal()"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:-translate-y-0.5">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Nuevo Cliente
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="abrirModalImportar()"
+                            class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 hover:-translate-y-0.5">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        Importar Excel
+                    </button>
+                    <a href="{{ route('administracion.clientes.plantilla') }}"
+                       class="inline-flex items-center px-4 py-2 bg-white text-slate-700 font-semibold text-sm rounded-xl border border-slate-200 hover:bg-slate-50 transition shadow-sm hover:-translate-y-0.5">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Plantilla
+                    </a>
+                    <button onclick="abrirModal()"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:-translate-y-0.5">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Nuevo Cliente
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -381,6 +397,7 @@
                     </td>
                 </tr>
 
+                <x-cuestionario-yn-row label="Es Proveedor de la Industria Automotriz (Autopartes)" id="p-proveedor-autopartes"/>
                 <x-cuestionario-yn-row label="Utiliza el régimen de depósito fiscal / o recinto fiscalizado estratégico" id="p-almacen-fiscal"/>
                 <x-cuestionario-yn-row label="Utiliza regla 2° para la importación de líneas de producción" id="p-regla-2"/>
                 <x-cuestionario-yn-row label="Cuenta con Estudio de Precios de Transferencia" id="p-precios-transf"/>
@@ -614,6 +631,52 @@
     </div>
 </div>
 
+{{-- ═══════════════════════════════════════════════════════════
+     MODAL — IMPORTAR EXCEL
+══════════════════════════════════════════════════════════════ --}}
+<div id="modal-importar" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-modal="true">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="cerrarModalImportar()"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">
+            <div class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Importar Clientes desde Excel</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Selecciona el archivo .xlsx con la plantilla llena</p>
+                </div>
+                <button onclick="cerrarModalImportar()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="px-6 py-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Archivo Excel</label>
+                    <input type="file" id="input-excel" accept=".xlsx,.xls"
+                           class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+                <div id="import-progress" class="hidden">
+                    <div class="flex items-center gap-3 text-sm text-slate-600">
+                        <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Procesando archivo…</span>
+                    </div>
+                </div>
+                <div id="import-result" class="hidden"></div>
+            </div>
+            <div class="bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+                <button onclick="cerrarModalImportar()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cerrar</button>
+                <button onclick="importarExcel()" id="btn-importar"
+                        class="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-lg shadow-emerald-200">
+                    Importar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 const modal     = document.getElementById('modal');
 const formError = document.getElementById('form-error');
@@ -667,6 +730,7 @@ function abrirEditar(c) {
     sr('p-ctpat',              p.tiene_ctpat);                  sv('p-ctpat-fecha',        (p.ctpat_fecha ?? '').substring(0,10));
     sr('p-regla-octava',       p.utiliza_regla_octava);
     sr('p-automotriz',         p.automotriz_deposito_fiscal);   sv('p-automotriz-fecha', (p.automotriz_fecha ?? '').substring(0,10));
+    sr('p-proveedor-autopartes', p.proveedor_autopartes);
     sr('p-almacen-fiscal',     p.utiliza_almacen_fiscal);
     sr('p-regla-2',            p.utiliza_regla_2);
     sr('p-precios-transf',     p.estudio_precios_transferencia);
@@ -754,6 +818,7 @@ function guardar() {
         utiliza_regla_octava:               gr('p-regla-octava'),
         automotriz_deposito_fiscal:         gr('p-automotriz'),
         automotriz_fecha:                   gv('p-automotriz-fecha'),
+        proveedor_autopartes:               gr('p-proveedor-autopartes'),
         utiliza_almacen_fiscal:             gr('p-almacen-fiscal'),
         utiliza_regla_2:                    gr('p-regla-2'),
         estudio_precios_transferencia:      gr('p-precios-transf'),
@@ -795,14 +860,13 @@ function guardar() {
         informante_nombre:                  gv('p-inf-nombre'),
         informante_puesto:                  gv('p-inf-puesto'),
         informante_fecha:                   gv('p-inf-fecha'),
-        _token: '{{ csrf_token() }}',
     };
 
     const url    = editandoId ? '/administracion/clientes/' + editandoId : '/administracion/clientes';
     const method = editandoId ? 'PUT' : 'POST';
     const btn    = document.getElementById('btn-guardar');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Guardando…';
 
     fetch(url, {
         method,
@@ -818,7 +882,7 @@ function guardar() {
         }
     })
     .catch(() => { formError.textContent = 'Error de conexión.'; formError.classList.remove('hidden'); })
-    .finally(() => { btn.disabled = false; btn.textContent = 'Guardar Cliente'; });
+    .finally(() => { btn.disabled = false; btn.innerHTML = 'Guardar Cliente'; });
 }
 
 function eliminar(id, nombre) {
@@ -935,6 +999,79 @@ function verCliente(c) {
 function cerrarVerModal() {
     document.getElementById('modal-ver').classList.add('hidden');
     document.body.style.overflow = '';
+}
+
+// ── Importar Excel ──
+const modalImportar = document.getElementById('modal-importar');
+
+function abrirModalImportar() {
+    document.getElementById('input-excel').value = '';
+    document.getElementById('import-result').classList.add('hidden');
+    document.getElementById('import-result').innerHTML = '';
+    document.getElementById('import-progress').classList.add('hidden');
+    modalImportar.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function cerrarModalImportar() {
+    modalImportar.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function importarExcel() {
+    const input = document.getElementById('input-excel');
+    const file = input.files[0];
+    if (!file) {
+        mostrarResultado('error', 'Selecciona un archivo Excel primero.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', file);
+    formData.append('_token', '{{ csrf_token() }}');
+
+    document.getElementById('import-progress').classList.remove('hidden');
+    document.getElementById('import-result').classList.add('hidden');
+    document.getElementById('btn-importar').disabled = true;
+
+    fetch('{{ route("administracion.clientes.importar") }}', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            let html = '<div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">';
+            html += '<svg class="w-5 h-5 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+            html += data.message + '</div>';
+            if (data.errores && data.errores.length) {
+                html += '<div class="mt-3 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm"><ul class="list-disc pl-4 space-y-1">';
+                data.errores.forEach(e => { html += '<li>' + e + '</li>'; });
+                html += '</ul></div>';
+            }
+            if (data.resultados && data.resultados.length) {
+                html += '<div class="mt-3 max-h-40 overflow-y-auto text-xs text-slate-600 space-y-0.5">';
+                data.resultados.forEach(r => { html += '<div>' + r + '</div>'; });
+                html += '</div>';
+            }
+            mostrarResultado('success', html);
+            setTimeout(() => { cerrarModalImportar(); location.reload(); }, data.errores?.length ? 4000 : 2000);
+        } else {
+            mostrarResultado('error', data.message ?? 'Error al importar.');
+        }
+    })
+    .catch(() => { mostrarResultado('error', 'Error de conexión al importar.'); })
+    .finally(() => {
+        document.getElementById('import-progress').classList.add('hidden');
+        document.getElementById('btn-importar').disabled = false;
+    });
+}
+
+function mostrarResultado(tipo, contenido) {
+    const el = document.getElementById('import-result');
+    el.className = 'mt-2 ' + (tipo === 'error' ? 'text-red-600' : '');
+    el.innerHTML = contenido;
+    el.classList.remove('hidden');
 }
 
 document.addEventListener('click', function (e) {
