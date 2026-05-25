@@ -1301,7 +1301,10 @@ function toggleAllUsersExcel(checkbox) {
             headers: { 'Accept': 'application/json' },
             body: formData
         })
-        .then(r => r.json())
+        .then(async r => {
+            const text = await r.text();
+            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+        })
         .then(data => {
             if (data.success) {
                 _importTasksData = data.tasks;
@@ -1310,8 +1313,12 @@ function toggleAllUsersExcel(checkbox) {
                 errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">' + (data.message || 'Error al leer el archivo.') + '</div>';
             }
         })
-        .catch(() => {
-            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Error de conexión. Intenta de nuevo.</div>';
+        .catch(e => {
+            if (e.message && e.message.includes('<!DOCTYPE')) {
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Error del servidor. Revisa la consola o contacta al administrador.</div>';
+            } else {
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">' + (e.message || 'Error de conexión. Intenta de nuevo.') + '</div>';
+            }
         })
         .finally(() => {
             btn.disabled = false;
@@ -1321,7 +1328,8 @@ function toggleAllUsersExcel(checkbox) {
 
     function _renderImportStep2(tasks) {
         document.getElementById('importTaskCount').textContent = tasks.length;
-        document.getElementById('importDefaultAnalista').value = '';
+        const defaultAnalista = document.getElementById('importDefaultAnalista');
+        if (defaultAnalista) defaultAnalista.value = '';
         const PUEDE_ASIGNAR = @json($puedeAsignarAOtros);
         const MI_USER_ID   = @json(Auth::id());
         const MI_USER_NAME = @json(Auth::user()->name);
@@ -1381,7 +1389,10 @@ function toggleAllUsersExcel(checkbox) {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(r => r.json())
+        .then(async r => {
+            const text = await r.text();
+            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+        })
         .then(data => {
             if (data.success) {
                 errDiv.innerHTML = '<div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 text-xs font-bold flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' + data.message + '</div>';
@@ -1392,8 +1403,9 @@ function toggleAllUsersExcel(checkbox) {
                 btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
             }
         })
-        .catch(() => {
-            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">Error de conexión. Intenta de nuevo.</div>';
+        .catch(e => {
+            const msg = (e.message && !e.message.includes('<!DOCTYPE')) ? e.message : 'Error del servidor. Revisa la consola o contacta al administrador.';
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">' + msg + '</div>';
             btn.disabled = false;
             btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
         });
