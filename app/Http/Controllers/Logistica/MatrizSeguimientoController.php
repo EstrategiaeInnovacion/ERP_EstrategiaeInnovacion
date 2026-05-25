@@ -67,7 +67,10 @@ class MatrizSeguimientoController extends Controller
             }
         }
 
-        $registros   = $queryActivos->orderByDesc('created_at')->get();
+        $registros = $queryActivos
+            ->orderByRaw("CASE WHEN eta IS NULL THEN 9999 ELSE DATEDIFF(DATE_ADD(eta, INTERVAL COALESCE(dias_libres, 20) DAY), CURDATE()) END ASC")
+            ->orderByDesc('created_at')
+            ->get();
         $completados = $queryCompletados->orderByDesc('created_at')->get();
 
         // ── Clientes del catálogo asignados al ejecutivo (para el SELECT del formulario) ──
