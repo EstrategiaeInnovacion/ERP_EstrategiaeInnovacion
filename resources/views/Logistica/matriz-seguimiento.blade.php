@@ -104,7 +104,7 @@
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EX</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EXP</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Transporte</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Aduana</th>
@@ -154,8 +154,8 @@
                             <td class="px-3 py-3 whitespace-nowrap">
                                 @if($reg->impo_ex === 'IMP')
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">IMP</span>
-                                @elseif($reg->impo_ex === 'EX')
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">EX</span>
+                                @elseif($reg->impo_ex === 'EXP')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">EXP</span>
                                 @else
                                     <span class="text-slate-400">—</span>
                                 @endif
@@ -501,11 +501,11 @@
             {{-- Row 2 --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5">IMP / EX</label>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">IMP / EXP</label>
                     <select id="f-impo_ex" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
                         <option value="">— Seleccionar —</option>
                         <option value="IMP">IMP</option>
-                        <option value="EX">EX</option>
+                        <option value="EXP">EXP</option>
                     </select>
                 </div>
                 <div>

@@ -436,7 +436,7 @@
                 </tr>
 
                 <x-cuestionario-yn-row label="Utiliza Certificados de Origen T-MEC para Importar mercancías" id="p-tlcan-imp"/>
-                <x-cuestionario-yn-row label="Utiliza Certificados de Origen TLCUEN para Importar mercancías" id="p-tlcue-imp"/>
+                <x-cuestionario-yn-row label="Utiliza Certificados de Origen TLCUEM para Importar mercancías" id="p-tlcue-imp"/>
                 <x-cuestionario-yn-row label="Exporta a EUA y Canadá mercancías manufacturadas" id="p-exp-eua"/>
                 <x-cuestionario-yn-row label="Exporta a la Unión Europea mercancías manufacturadas" id="p-exp-ue"/>
                 <x-cuestionario-yn-row label="Emite Certificados de Origen a sus clientes en EUA y Canadá" id="p-cert-eua"/>
@@ -549,7 +549,7 @@
                 @endforeach
                 {{-- Fuera T-MEC + países --}}
                 <tr class="bg-white border-b border-slate-100">
-                    <td class="px-4 py-2.5 text-slate-700 font-medium">Importa materiales de la región fuera del T-MEC y TLCUEN</td>
+                    <td class="px-4 py-2.5 text-slate-700 font-medium">Importa materiales de la región fuera del T-MEC y TLCUEM</td>
                     <td class="px-2 py-2 text-center">
                         <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
                             <input type="radio" name="p-fuera-tlcan" value="1" class="w-4 h-4 text-indigo-600 border-slate-300 cursor-pointer">
@@ -949,7 +949,7 @@ function verCliente(c) {
             row('Importa con Permisos / Avisos', bool(p.importa_permisos_avisos)),
             row('Destino de Desperdicios', txt(p.destino_desperdicios)),
             row('Cert. Origen T-MEC (Importar)', bool(p.certificados_origen_tlcan)),
-            row('Cert. Origen TLCUEN (Importar)', bool(p.certificados_origen_tlcue)),
+            row('Cert. Origen TLCUEM (Importar)', bool(p.certificados_origen_tlcue)),
             row('Exporta a EUA / Canadá', bool(p.exporta_eua_canada)),
             row('Exporta a Unión Europea', bool(p.exporta_union_europea)),
             row('Emite Cert. Origen EUA / Canadá', bool(p.emite_certificados_eua_canada)),
@@ -983,7 +983,7 @@ function verCliente(c) {
             row('País Destino más Frecuente (Exportación)', txt(p.pais_destino_exportaciones)),
             row('Insumos de Importación más Importantes', txt(p.insumos_importacion_importantes)),
             row('Productos de Exportación más Representativos', txt(p.productos_exportacion_representativos)),
-            row('Importa Fuera de T-MEC / TLCUEN', bool(p.importa_fuera_tlcan) + (p.importa_fuera_tlcan_paises ? ' <span class="text-xs text-slate-500">(' + p.importa_fuera_tlcan_paises + ')</span>' : '')),
+            row('Importa Fuera de T-MEC / TLCUEM', bool(p.importa_fuera_tlcan) + (p.importa_fuera_tlcan_paises ? ' <span class="text-xs text-slate-500">(' + p.importa_fuera_tlcan_paises + ')</span>' : '')),
         ]),
         section('Información del Informante', [
             row('Nombre', txt(p.informante_nombre)),

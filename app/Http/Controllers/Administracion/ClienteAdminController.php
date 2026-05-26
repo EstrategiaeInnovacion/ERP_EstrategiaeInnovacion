@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Administracion\Cliente;
 use App\Models\Administracion\PerfilCliente;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -227,7 +229,8 @@ class ClienteAdminController extends Controller
 
     private function guardarPerfilDesdeExcel(Cliente $cliente, array $data): void
     {
-        $booleans = $this->getBooleanFields();
+        $booleans  = $this->getBooleanFields();
+        $dateFields = $this->getDateFields();
 
         $perfil = ['cliente_id' => $cliente->id];
 
@@ -247,8 +250,27 @@ class ClienteAdminController extends Controller
         $fields = $this->getTextFieldDefinitions();
 
         foreach ($fields as $f) {
-            $val = $data[$f] ?? '';
-            $perfil[$f] = ($val === '' || $val === null) ? null : $val;
+            $raw = $data[$f] ?? '';
+
+            if ($raw === '' || $raw === null) {
+                $perfil[$f] = null;
+                continue;
+            }
+
+            if (in_array($f, $dateFields, true)) {
+                // Excel puede devolver el serial numérico de fecha o un string
+                try {
+                    if (is_numeric($raw)) {
+                        $perfil[$f] = ExcelDate::excelToDateTimeObject((float) $raw)->format('Y-m-d');
+                    } else {
+                        $perfil[$f] = Carbon::parse((string) $raw)->format('Y-m-d');
+                    }
+                } catch (\Exception $e) {
+                    $perfil[$f] = null;
+                }
+            } else {
+                $perfil[$f] = $raw;
+            }
         }
 
         PerfilCliente::updateOrCreate(['cliente_id' => $cliente->id], $perfil);
@@ -353,7 +375,7 @@ class ClienteAdminController extends Controller
             'importa_permisos_avisos'           => 'Importa con Permisos o Avisos de Importación',
             'destino_desperdicios'              => 'Destino de los desperdicios',
             'certificados_origen_tlcan'         => 'Certificados de Origen T-MEC (Importación)',
-            'certificados_origen_tlcue'         => 'Certificados de Origen TLCUEN (Importación)',
+            'certificados_origen_tlcue'         => 'Certificados de Origen TLCUEM (Importación)',
             'exporta_eua_canada'                => 'Exporta a EUA y Canadá',
             'exporta_union_europea'             => 'Exporta a la Unión Europea',
             'emite_certificados_eua_canada'     => 'Emite Certificados de Origen a EUA/Canadá',
@@ -374,7 +396,7 @@ class ClienteAdminController extends Controller
             'aduana_principal_exportacion'      => 'Aduanas principales de exportación',
             'proveedores_extranjeros_cantidad'  => 'Cantidad de proveedores extranjeros',
             'pais_origen_importaciones'         => 'País de origen más representativo',
-            'importa_fuera_tlcan'               => 'Importa materiales fuera de T-MEC / TLCUEN',
+            'importa_fuera_tlcan'               => 'Importa materiales fuera de T-MEC / TLCUEM',
             'importa_fuera_tlcan_paises'        => '  └ Países',
             'clientes_extranjeros_cantidad'     => 'Cantidad de clientes extranjeros',
             'pais_destino_exportaciones'        => 'País de destino más frecuente',
@@ -391,6 +413,23 @@ class ClienteAdminController extends Controller
     private function isBooleanField(string $field): bool
     {
         return in_array($field, $this->getBooleanFields(), true);
+    }
+
+    private function getDateFields(): array
+    {
+        return [
+            'fecha_inicio_operaciones',
+            'immex_fecha', 'immex_servicios_fecha',
+            'maquiladora_fecha', 'maquiladora_servicios_fecha',
+            'prosec_fecha', 'oea_fecha',
+            'iva_eps_fecha', 'ctpat_fecha', 'automotriz_fecha',
+            'auditado_shcp_se_fecha', 'informante_fecha',
+        ];
+    }
+
+    private function isDateField(string $field): bool
+    {
+        return in_array($field, $this->getDateFields(), true);
     }
 
     // ── Secciones del formulario ──
@@ -492,7 +531,7 @@ class ClienteAdminController extends Controller
     private function applySubtitleStyle(Worksheet $sheet, int $row): void
     {
         $sheet->mergeCells("A{$row}:B{$row}");
-        $sheet->setCellValue("A{$row}", 'Llena los campos en la columna B (celdas amarillas). Para Sí/No usa la lista desplegable.');
+        $sheet->setCellValue("A{$row}", 'Columna B: amarillo = texto libre o Sí/No (lista), verde = fecha (AAAA-MM-DD). Campo con * es obligatorio.');
         $sheet->getStyle("A{$row}")->getFont()->setName('Calibri')->setSize(9)->setItalic(true)->getColor()->setARGB('FF64748B');
         $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
         $sheet->getRowDimension($row)->setRowHeight(18);
@@ -540,24 +579,39 @@ class ClienteAdminController extends Controller
         $sheet->getRowDimension($row)->setRowHeight(20);
     }
 
-    private function applyAnswerStyle(Worksheet $sheet, int $row, bool $esBooleano): void
+    private function applyAnswerStyle(Worksheet $sheet, int $row, bool $esBooleano, bool $esFecha = false): void
     {
         $sheet->setCellValue("B{$row}", '');
         $sheet->getStyle("B{$row}")->getFont()->setName('Calibri')->setSize(10);
-        $sheet->getStyle("B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFEF9C3');
         $sheet->getStyle("B{$row}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $sheet->getStyle("B{$row}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setIndent(1);
 
         if ($esBooleano) {
+            // Celda amarilla con lista desplegable Sí/No
+            $sheet->getStyle("B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFEF9C3');
+
             $validation = $sheet->getCell("B{$row}")->getDataValidation();
             $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
             $validation->setFormula1('"Sí,No"');
             $validation->setAllowBlank(true);
             $validation->setShowDropDown(true);
+            $validation->setShowInputMessage(true);
+            $validation->setPromptTitle('Sí / No');
+            $validation->setPrompt('Selecciona Sí o No de la lista desplegable.');
+        } elseif ($esFecha) {
+            // Celda verde-claro con formato de fecha YYYY-MM-DD
+            $sheet->getStyle("B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD1FAE5');
+            $sheet->getStyle("B{$row}")->getNumberFormat()->setFormatCode('YYYY-MM-DD');
 
-            $rt = new RichText();
-            $rt->createText('Selecciona Sí o No de la lista.');
-            $sheet->getComment("B{$row}", '')->setText($rt);
+            $validation = $sheet->getCell("B{$row}")->getDataValidation();
+            $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_DATE);
+            $validation->setAllowBlank(true);
+            $validation->setShowInputMessage(true);
+            $validation->setPromptTitle('Fecha');
+            $validation->setPrompt('Ingresa la fecha en formato AAAA-MM-DD (ej. 2026-05-25).');
+        } else {
+            // Celda amarilla para texto libre
+            $sheet->getStyle("B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFEF9C3');
         }
     }
 
@@ -586,11 +640,11 @@ class ClienteAdminController extends Controller
             ['Paso', 'Acción', 'Detalle'],
             ['1', 'Ve a la hoja "Cuestionario"', 'Está en la parte inferior del archivo.'],
             ['2', 'Lee la pregunta', 'En la columna A encontrarás cada pregunta.'],
-            ['3', 'Responde en la celda amarilla', 'Columna B → Escribe o selecciona tu respuesta.'],
-            ['4', 'Sí / No', 'Usa la lista desplegable que aparece en la celda.'],
-            ['5', 'Fechas', 'Usa formato YYYY-MM-DD (ej. 2026-05-25).'],
-            ['6', 'Campo obligatorio', 'El campo "Nombre Legal de la Empresa" es obligatorio.'],
-            ['7', 'Guarda el archivo', 'Guarda en tu computadora y súbelo a la plataforma.'],
+            ['3', 'Celda AMARILLA — Texto libre', 'Escribe tu respuesta directamente en la celda.'],
+            ['4', 'Celda AMARILLA — Sí / No', 'Haz clic en la celda y selecciona de la lista desplegable.'],
+            ['5', 'Celda VERDE — Fecha', 'Escribe la fecha en formato AAAA-MM-DD (ej. 2026-05-25).'],
+            ['6', 'Campo obligatorio (*)', 'El campo "Nombre Legal de la Empresa *" es requerido.'],
+            ['7', 'Guarda el archivo', 'Guarda en tu computadora (.xlsx) y súbelo a la plataforma.'],
         ];
 
         $headerStyle = $sheet->getStyle('A4:C4');
@@ -637,9 +691,10 @@ class ClienteAdminController extends Controller
             foreach ($campos as $campo) {
                 $label = $this->label($campo);
                 $esBooleano = $this->isBooleanField($campo);
+                $esFecha    = $this->isDateField($campo);
 
                 $this->applyFieldStyle($sheet, $row, $label);
-                $this->applyAnswerStyle($sheet, $row, $esBooleano);
+                $this->applyAnswerStyle($sheet, $row, $esBooleano, $esFecha);
 
                 $row++;
             }
