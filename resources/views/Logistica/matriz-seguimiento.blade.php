@@ -358,7 +358,7 @@
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between cursor-pointer select-none"
                  onclick="toggleCompletados()">
                 <div class="flex items-center gap-3">
-                    <h3 class="font-bold text-slate-800 text-lg">Completados</h3>
+                    <h3 class="font-bold text-slate-800 text-lg">Operaciones Completadas</h3>
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">{{ $completados->count() }}</span>
                 </div>
                 <svg id="completados-arrow" class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
