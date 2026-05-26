@@ -308,13 +308,11 @@
                     <span class="hidden md:inline">Excel</span>
                 </button>
 
-                {{-- Botón Importar: solo coordinadores/supervisores con analistas a cargo --}}
-                @if($esCoordinador || $esSupervisor)
-                <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="bg-blue-600 text-white border border-blue-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2" title="Delegar tareas a analistas desde Excel">
+                {{-- Botón Importar: disponible para todos --}}
+                <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="bg-blue-600 text-white border border-blue-700 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2" title="Cargar tareas desde Excel">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    <span class="hidden md:inline">Delegar</span>
+                    <span class="hidden md:inline">Importar</span>
                 </button>
-                @endif
 
                 <button onclick="document.getElementById('quickCreateModal').classList.remove('hidden')" class="flex-1 sm:flex-none bg-indigo-600 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 
@@ -968,8 +966,7 @@ function toggleAllUsersExcel(checkbox) {
 </div>
 @endif
 
-{{-- MODAL DELEGACIÓN DE TAREAS (Solo coordinadores/supervisores) --}}
-@if($esCoordinador || $esSupervisor)
+{{-- MODAL IMPORTAR TAREAS --}}
 <div id="importModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeImportModal()"></div>
     <div class="fixed inset-0 z-10 flex items-center justify-center p-4">
@@ -1033,6 +1030,7 @@ function toggleAllUsersExcel(checkbox) {
                 </button>
             </div>
             <div class="p-5 space-y-4">
+                @if($puedeAsignarAOtros)
                 <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
                     <label class="text-xs font-bold text-indigo-800 whitespace-nowrap">Asignar todas a:</label>
                     <select id="importDefaultAnalista" onchange="setAllAnalistas(this.value)" class="flex-1 min-w-[160px] rounded-lg border-indigo-300 text-sm py-2 bg-white focus:ring-indigo-500 text-slate-700">
@@ -1043,6 +1041,11 @@ function toggleAllUsersExcel(checkbox) {
                     </select>
                     <span class="text-[10px] text-indigo-600">Aplicar a toda la lista</span>
                 </div>
+                @else
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-500">
+                    Las tareas se asignarán a <strong class="text-slate-700">{{ Auth::user()->name }}</strong> (tú mismo).
+                </div>
+                @endif
 
                 <div class="overflow-y-auto max-h-72 rounded-xl border border-slate-200">
                     <table class="w-full text-xs">
@@ -1052,7 +1055,9 @@ function toggleAllUsersExcel(checkbox) {
                                 <th class="px-3 py-2 text-left font-bold">Tarea</th>
                                 <th class="px-3 py-2 text-center font-bold w-24">Fecha</th>
                                 <th class="px-3 py-2 text-center font-bold w-20">Prioridad</th>
+                                @if($puedeAsignarAOtros)
                                 <th class="px-3 py-2 text-left font-bold w-44">Asignar a</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody id="importTasksBody" class="divide-y divide-slate-100"></tbody>
@@ -1075,7 +1080,6 @@ function toggleAllUsersExcel(checkbox) {
 
     </div>
 </div>
-@endif
 
 {{-- Modal Historial --}}
 <div id="historyModal" class="fixed inset-0 z-50 hidden" aria-hidden="true" role="dialog">
@@ -1297,7 +1301,10 @@ function toggleAllUsersExcel(checkbox) {
             headers: { 'Accept': 'application/json' },
             body: formData
         })
-        .then(r => r.json())
+        .then(async r => {
+            const text = await r.text();
+            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+        })
         .then(data => {
             if (data.success) {
                 _importTasksData = data.tasks;
@@ -1306,8 +1313,12 @@ function toggleAllUsersExcel(checkbox) {
                 errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">' + (data.message || 'Error al leer el archivo.') + '</div>';
             }
         })
-        .catch(() => {
-            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Error de conexión. Intenta de nuevo.</div>';
+        .catch(e => {
+            if (e.message && e.message.includes('<!DOCTYPE')) {
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">Error del servidor. Revisa la consola o contacta al administrador.</div>';
+            } else {
+                errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold mt-2">' + (e.message || 'Error de conexión. Intenta de nuevo.') + '</div>';
+            }
         })
         .finally(() => {
             btn.disabled = false;
@@ -1317,7 +1328,11 @@ function toggleAllUsersExcel(checkbox) {
 
     function _renderImportStep2(tasks) {
         document.getElementById('importTaskCount').textContent = tasks.length;
-        document.getElementById('importDefaultAnalista').value = '';
+        const defaultAnalista = document.getElementById('importDefaultAnalista');
+        if (defaultAnalista) defaultAnalista.value = '';
+        const PUEDE_ASIGNAR = @json($puedeAsignarAOtros);
+        const MI_USER_ID   = @json(Auth::id());
+        const MI_USER_NAME = @json(Auth::user()->name);
         const priorityColors = { Alta: 'bg-red-100 text-red-700', Media: 'bg-yellow-100 text-yellow-700', Baja: 'bg-blue-100 text-blue-700' };
         const analistas = @json($teamUsers->map(fn($u) => ['id' => $u->id, 'name' => $u->name . ($u->id === Auth::id() ? ' (Yo)' : '')]));
         let options = '<option value="">— Asignar a —</option>';
@@ -1328,12 +1343,15 @@ function toggleAllUsersExcel(checkbox) {
             const pc = priorityColors[task.prioridad] || 'bg-slate-100 text-slate-600';
             const tr = document.createElement('tr');
             tr.className = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+            const asignarCell = PUEDE_ASIGNAR
+                ? `<td class="px-3 py-2"><select class="analista-select w-full rounded-lg border-slate-300 text-xs py-1.5 bg-white focus:ring-blue-500" data-index="${i}" required>${options}</select></td>`
+                : `<td class="px-3 py-2"><select class="analista-select" data-index="${i}" style="display:none"><option value="${MI_USER_ID}" selected>${_esc(MI_USER_NAME)}</option></select></td>`;
             tr.innerHTML = `
                 <td class="px-3 py-2 text-slate-400 font-mono">${i + 1}</td>
                 <td class="px-3 py-2 text-slate-800 font-medium max-w-xs"><span class="line-clamp-2 block" title="${_esc(task.nombre_actividad)}">${_esc(task.nombre_actividad)}</span></td>
                 <td class="px-3 py-2 text-center text-slate-500 whitespace-nowrap">${task.fecha_compromiso || '—'}</td>
                 <td class="px-3 py-2 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${pc}">${task.prioridad}</span></td>
-                <td class="px-3 py-2"><select class="analista-select w-full rounded-lg border-slate-300 text-xs py-1.5 bg-white focus:ring-blue-500" data-index="${i}" required>${options}</select></td>`;
+                ${asignarCell}`;
             tbody.appendChild(tr);
         });
         document.getElementById('importStep1').classList.add('hidden');
@@ -1371,7 +1389,10 @@ function toggleAllUsersExcel(checkbox) {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(r => r.json())
+        .then(async r => {
+            const text = await r.text();
+            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+        })
         .then(data => {
             if (data.success) {
                 errDiv.innerHTML = '<div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 text-xs font-bold flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' + data.message + '</div>';
@@ -1382,8 +1403,9 @@ function toggleAllUsersExcel(checkbox) {
                 btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
             }
         })
-        .catch(() => {
-            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">Error de conexión. Intenta de nuevo.</div>';
+        .catch(e => {
+            const msg = (e.message && !e.message.includes('<!DOCTYPE')) ? e.message : 'Error del servidor. Revisa la consola o contacta al administrador.';
+            errDiv.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-xs font-bold">' + msg + '</div>';
             btn.disabled = false;
             btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Tareas';
         });

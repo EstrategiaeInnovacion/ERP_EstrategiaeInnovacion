@@ -198,7 +198,7 @@
                                 <div>
                                     <label class="block text-xs font-bold text-blue-800 mb-1">Filtrar por empleado(s) <span class="font-normal text-blue-600">(opcional — dejar vacío para importar todos)</span></label>
                                     <select id="empleadosFiltro" multiple class="w-full text-xs rounded-lg border-blue-200 focus:ring-blue-500 bg-white py-1.5" style="min-height: 60px;">
-                                        @foreach(\App\Models\Empleado::where('es_activo', true)->orderBy('nombre')->get() as $emp)
+                                        @foreach($empleadosActivos as $emp)
                                             <option value="{{ $emp->id_empleado }}">{{ $emp->nombre }} ({{ $emp->id_empleado ?? 'S/N' }})</option>
                                         @endforeach
                                     </select>
@@ -485,7 +485,9 @@
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalEdicion()"></div>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form id="formEdicion" method="POST">
+                <form id="formEdicion" method="POST"
+                      data-update-url="{{ route('rh.reloj.update', ['id' => '__ID__']) }}"
+                      data-revert-url="{{ route('rh.reloj.revertir', ['id' => '__ID__']) }}">
                     @csrf @method('PUT')
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Editar Registro Individual</h3>
@@ -552,7 +554,7 @@
                                     </option>
                                     <option disabled>──────────────────────────</option>
 
-                                    @foreach(\App\Models\Empleado::where('es_activo', true)->orderBy('nombre')->get() as $emp)
+                                    @foreach($empleadosActivos as $emp)
                                         <option value="{{ $emp->id }}">{{ $emp->nombre }} ({{ $emp->id_empleado }})</option>
                                     @endforeach
                                 </select>
@@ -908,12 +910,12 @@
         }
 
         // Modales
-        var currentRecordId = null;
-        var currentEmpleadoId = null;
+        let currentRecordId = null;
+        let currentEmpleadoId = null;
 
         function abrirModalEdicion(asistencia) {
             const form = document.getElementById('formEdicion');
-            form.action = `/recursos-humanos/reloj/update/${asistencia.id}`;
+            form.action = form.dataset.updateUrl.replace('__ID__', asistencia.id);
             form.querySelector('[name="tipo_registro"]').value = asistencia.tipo_registro;
             form.querySelector('[name="comentarios"]').value = asistencia.comentarios || '';
             form.querySelector('[name="es_justificado"]').checked = asistencia.es_justificado;
@@ -968,7 +970,8 @@
             if (!currentRecordId) return;
             if (!confirm('¿Deshacer los cambios de este registro?\n\n• Si tiene horario: volverá a su estado original (retardo/asistencia).\n• Si fue creado manualmente: se eliminará por completo.')) return;
 
-            fetch('/recursos-humanos/reloj/revertir/' + currentRecordId, {
+            const form = document.getElementById('formEdicion');
+            fetch(form.dataset.revertUrl.replace('__ID__', currentRecordId), {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1427,7 +1430,7 @@
             if (tipo === 'retardos') {
                 cantidadInput.value = currentAvisoRetardos;
                 cantidadDisplay.innerText = currentAvisoRetardos + ' retardos';
-                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nSe le recuerda de manera atenta la importancia de cumplir con su horario de entrada. Actualmente, en este período se han registrado ${currentAvisoRetardos} retardos injustificados en su asistencia.\n\nLe solicitamos tomar las medidas necesarias.`;
+                mensaje.value = `Estimado(a) ${currentAvisoNombre},\n\nSe le recuerda de manera atenta la importancia de cumplir con su horario de entrada. Actualmente, en este período se han registrado ${currentAvisoRetardos} retardos injustificados en su asistencia.\n\nLe solicitamos tomar las medidas necesarias acorde al artículo décimo del Reglamento Interior de Trabajo.`;
             } else if (tipo === 'faltas') {
                 cantidadInput.value = currentAvisoFaltas;
                 cantidadDisplay.innerText = currentAvisoFaltas + ' faltas';

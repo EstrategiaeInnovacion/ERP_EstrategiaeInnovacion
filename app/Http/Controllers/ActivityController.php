@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -46,6 +47,7 @@ class ActivityController extends Controller
         // 2. PERMISOS
         $esDireccion = false;
         $esSupervisor = false;
+        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
         $esPuestoPlanificador = false;
         $esHorarioPermitido = false;
         $puedePlanificar = false;
@@ -228,10 +230,11 @@ class ActivityController extends Controller
             ->get();
 
         // 5. VARIABLES DE EQUIPO
+        $puedeAsignarAOtros = $esSupervisor || $esDireccion || $esCoordinador;
         $teamUsers = collect();
         if ($esDireccion) {
             $teamUsers = User::orderBy('name')->get();
-        } elseif ($esSupervisor) {
+        } elseif ($esSupervisor || $esCoordinador) {
             $teamUsers = User::whereIn('id', $idsVisibles)->orderBy('name')->get();
         }
 
@@ -275,7 +278,6 @@ class ActivityController extends Controller
         ];
 
         $startOfWeek = now()->startOfWeek();
-        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
         $puedeGestionarPlaneacion = $esCoordinador;
 
         // Cargar proyectos disponibles para el usuario
@@ -321,7 +323,7 @@ class ActivityController extends Controller
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis',
-            'esDireccion', 'esSupervisor', 'esCoordinador',
+            'esDireccion', 'esSupervisor', 'esCoordinador', 'puedeAsignarAOtros',
             'puedePlanificar', 'esPuestoPlanificador', 'esHorarioPermitido',
             'globalPendingCount', 'misRechazos',
             'isHistoryView', 'verTodo',
@@ -1046,24 +1048,16 @@ class ActivityController extends Controller
 
     public function previewImport(Request $request)
     {
-        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv,txt']);
-
-        $currentUser = Auth::user();
-        $miEmpleado = $currentUser->empleado;
-
-        if (!$miEmpleado || !$miEmpleado->es_coordinador) {
-            $esSupervisor = $miEmpleado && Empleado::where('supervisor_id', $miEmpleado->id)->exists();
-            $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
-            if (!$esSupervisor && !$esDireccion) {
-                return response()->json(['success' => false, 'message' => 'Sin permisos para importar tareas.'], 403);
-            }
-        }
-
-        $file = $request->file('file');
-        $path = $file->storeAs('temp', Str::uuid() . '.' . $file->getClientOriginalExtension());
-        $fullPath = Storage::path($path);
-
         try {
+            $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv,txt']);
+
+            $currentUser = Auth::user();
+            $miEmpleado  = $currentUser->empleado;
+
+            $file = $request->file('file');
+            $path = $file->storeAs('temp', Str::uuid() . '.' . $file->getClientOriginalExtension());
+            $fullPath = Storage::path($path);
+
             $inputFileType = IOFactory::identify($fullPath);
             $reader = IOFactory::createReader($inputFileType);
             if ($inputFileType === 'Csv') {
@@ -1074,67 +1068,73 @@ class ActivityController extends Controller
             $spreadsheet = $reader->load($fullPath);
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray(null, true, true, false);
-        } catch (\Exception $e) {
+
             Storage::delete($path);
-            return response()->json(['success' => false, 'message' => 'Error al leer el archivo: ' . $e->getMessage()], 422);
-        }
 
-        Storage::delete($path);
-
-        if (empty($rows) || count($rows) < 2) {
-            return response()->json(['success' => false, 'message' => 'El archivo está vacío o solo tiene encabezados.'], 422);
-        }
-
-        $headers = array_shift($rows);
-        $headerMap = [];
-        foreach ($headers as $i => $h) {
-            $normalized = mb_strtolower(trim((string) ($h ?? '')));
-            $normalized = str_replace([' ', '-', '_'], '', $normalized);
-            $headerMap[$normalized] = $i;
-        }
-
-        $campoNombre = $headerMap['nombreactividad'] ?? $headerMap['actividad'] ?? $headerMap['descripcion'] ?? $headerMap['tarea'] ?? null;
-        if ($campoNombre === null) {
-            return response()->json(['success' => false, 'message' => 'No se encontró columna de actividad. Use: nombre_actividad, actividad, descripcion o tarea.'], 422);
-        }
-
-        $campoFecha      = $headerMap['fechacompromiso'] ?? $headerMap['fecha'] ?? $headerMap['fechalimite'] ?? $headerMap['deadline'] ?? null;
-        $campoArea       = $headerMap['area'] ?? null;
-        $campoCliente    = $headerMap['cliente'] ?? null;
-        $campoPrioridad  = $headerMap['prioridad'] ?? null;
-        $campoTipo       = $headerMap['tipoactividad'] ?? $headerMap['tipo'] ?? null;
-        $campoHoraInicio = $headerMap['horainicio'] ?? $headerMap['inicio'] ?? null;
-        $campoHoraFin    = $headerMap['horafin'] ?? $headerMap['fin'] ?? null;
-        $campoComent     = $headerMap['comentarios'] ?? $headerMap['comentario'] ?? $headerMap['notas'] ?? $headerMap['observaciones'] ?? null;
-
-        $tasks = [];
-        foreach ($rows as $row) {
-            $nombre = trim((string) ($row[$campoNombre] ?? ''));
-            if (empty($nombre)) continue;
-
-            $fecha = null;
-            if ($campoFecha !== null && !empty($row[$campoFecha])) {
-                $fecha = $this->parseDate($row[$campoFecha]);
+            if (empty($rows) || count($rows) < 2) {
+                return response()->json(['success' => false, 'message' => 'El archivo está vacío o solo tiene encabezados.'], 422);
             }
 
-            $tasks[] = [
-                'nombre_actividad'    => $nombre,
-                'fecha_compromiso'    => $fecha ? $fecha->format('Y-m-d') : now()->format('Y-m-d'),
-                'area'                => ($campoArea !== null && !empty($row[$campoArea])) ? trim($row[$campoArea]) : 'General',
-                'cliente'             => ($campoCliente !== null && !empty($row[$campoCliente])) ? trim($row[$campoCliente]) : null,
-                'prioridad'           => $this->normalizePriority(($campoPrioridad !== null && !empty($row[$campoPrioridad])) ? $row[$campoPrioridad] : 'Media'),
-                'tipo_actividad'      => ($campoTipo !== null && !empty($row[$campoTipo])) ? trim($row[$campoTipo]) : 'Operativo',
-                'hora_inicio_programada' => ($campoHoraInicio !== null && !empty($row[$campoHoraInicio])) ? $this->parseTime($row[$campoHoraInicio]) : null,
-                'hora_fin_programada' => ($campoHoraFin !== null && !empty($row[$campoHoraFin])) ? $this->parseTime($row[$campoHoraFin]) : null,
-                'comentarios'         => ($campoComent !== null && !empty($row[$campoComent])) ? trim($row[$campoComent]) : null,
-            ];
-        }
+            $headers = array_shift($rows);
+            $headerMap = [];
+            foreach ($headers as $i => $h) {
+                $normalized = mb_strtolower(trim((string) ($h ?? '')));
+                $normalized = str_replace([' ', '-', '_'], '', $normalized);
+                $headerMap[$normalized] = $i;
+            }
 
-        if (empty($tasks)) {
-            return response()->json(['success' => false, 'message' => 'No se encontraron tareas válidas en el archivo.'], 422);
-        }
+            $campoNombre = $headerMap['nombreactividad'] ?? $headerMap['actividad'] ?? $headerMap['descripcion'] ?? $headerMap['tarea'] ?? null;
+            if ($campoNombre === null) {
+                return response()->json(['success' => false, 'message' => 'No se encontró columna de actividad. Use: nombre_actividad, actividad, descripcion o tarea.'], 422);
+            }
 
-        return response()->json(['success' => true, 'tasks' => $tasks, 'total' => count($tasks)]);
+            $campoFecha      = $headerMap['fechacompromiso'] ?? $headerMap['fecha'] ?? $headerMap['fechalimite'] ?? $headerMap['deadline'] ?? null;
+            $campoArea       = $headerMap['area'] ?? null;
+            $campoCliente    = $headerMap['cliente'] ?? null;
+            $campoPrioridad  = $headerMap['prioridad'] ?? null;
+            $campoTipo       = $headerMap['tipoactividad'] ?? $headerMap['tipo'] ?? null;
+            $campoHoraInicio = $headerMap['horainicio'] ?? $headerMap['inicio'] ?? null;
+            $campoHoraFin    = $headerMap['horafin'] ?? $headerMap['fin'] ?? null;
+            $campoComent     = $headerMap['comentarios'] ?? $headerMap['comentario'] ?? $headerMap['notas'] ?? $headerMap['observaciones'] ?? null;
+
+            $tasks = [];
+            foreach ($rows as $row) {
+                $nombre = trim((string) ($row[$campoNombre] ?? ''));
+                if (empty($nombre)) continue;
+
+                $fecha = null;
+                if ($campoFecha !== null && !empty($row[$campoFecha])) {
+                    $fecha = $this->parseDate($row[$campoFecha]);
+                }
+
+                $tasks[] = [
+                    'nombre_actividad'    => $nombre,
+                    'fecha_compromiso'    => $fecha ? $fecha->format('Y-m-d') : now()->format('Y-m-d'),
+                    'area'                => ($campoArea !== null && !empty($row[$campoArea])) ? trim($row[$campoArea]) : 'General',
+                    'cliente'             => ($campoCliente !== null && !empty($row[$campoCliente])) ? trim($row[$campoCliente]) : null,
+                    'prioridad'           => $this->normalizePriority(($campoPrioridad !== null && !empty($row[$campoPrioridad])) ? $row[$campoPrioridad] : 'Media'),
+                    'tipo_actividad'      => ($campoTipo !== null && !empty($row[$campoTipo])) ? trim($row[$campoTipo]) : 'Operativo',
+                    'hora_inicio_programada' => ($campoHoraInicio !== null && !empty($row[$campoHoraInicio])) ? $this->parseTime($row[$campoHoraInicio]) : null,
+                    'hora_fin_programada' => ($campoHoraFin !== null && !empty($row[$campoHoraFin])) ? $this->parseTime($row[$campoHoraFin]) : null,
+                    'comentarios'         => ($campoComent !== null && !empty($row[$campoComent])) ? trim($row[$campoComent]) : null,
+                ];
+            }
+
+            if (empty($tasks)) {
+                return response()->json(['success' => false, 'message' => 'No se encontraron tareas válidas en el archivo.'], 422);
+            }
+
+            return response()->json(['success' => true, 'tasks' => $tasks, 'total' => count($tasks)]);
+        } catch (\Throwable $e) {
+            if (isset($path) && Storage::exists($path)) {
+                Storage::delete($path);
+            }
+            Log::error('previewImport: ' . $e->getMessage(), [
+                'file' => $request->file('file')?->getClientOriginalName(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Error al procesar el archivo: ' . $e->getMessage()], 422);
+        }
     }
 
     public function import(Request $request)
@@ -1150,7 +1150,11 @@ class ActivityController extends Controller
         $currentUser = Auth::user();
         $miEmpleado  = $currentUser->empleado;
 
-        $esDireccion = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $esDireccion     = $miEmpleado && Str::contains(mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8'), 'direcc');
+        $esCoordinadorImp = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
+        $esSupervisorImp  = $miEmpleado && Empleado::where('supervisor_id', $miEmpleado->id)->exists();
+        $puedeAsignarImp  = $esDireccion || $esCoordinadorImp || $esSupervisorImp;
+
         $subordinadosIds = $miEmpleado
             ? Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->values()->toArray()
             : [];
@@ -1161,7 +1165,10 @@ class ActivityController extends Controller
         DB::beginTransaction();
         try {
             foreach ($request->tasks as $taskData) {
-                $targetUserId = (int) $taskData['assigned_to'];
+                // Usuarios normales solo pueden asignarse a sí mismos
+                $targetUserId = $puedeAsignarImp
+                    ? (int) $taskData['assigned_to']
+                    : $currentUser->id;
 
                 // Determinar estatus según jerarquía
                 if ($targetUserId === $currentUser->id) {
@@ -1200,8 +1207,9 @@ class ActivityController extends Controller
             }
 
             DB::commit();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('activities.import: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error durante la importación: ' . $e->getMessage(),
