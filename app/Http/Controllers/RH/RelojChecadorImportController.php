@@ -75,10 +75,10 @@ class RelojChecadorImportController extends Controller
             ->where('fecha', '<', $dbFechaFin);
 
         $kpis = [
-            'total' => $baseQuery->count(),
-            'ok' => (clone $baseQuery)->where('es_retardo', false)->count(),
-            'retardos' => (clone $baseQuery)->where('tipo_registro', 'asistencia')->where('es_retardo', true)->where('es_justificado', false)->count(),
-            'faltas' => (clone $baseQuery)->where('tipo_registro', 'falta')->count(),
+            'total' => (clone $baseQuery)->laborales()->count(),
+            'ok' => (clone $baseQuery)->asistenciasOk()->count(),
+            'retardos' => (clone $baseQuery)->retardosInjustificados()->count(),
+            'faltas' => (clone $baseQuery)->soloFaltas()->count(),
         ];
 
         // Cálculo de Horas
@@ -119,10 +119,12 @@ class RelojChecadorImportController extends Controller
         $sinResultados = $search && $empleados->isEmpty();
 
         $todosEmpleados = Empleado::orderBy('nombre')->get(['id', 'nombre']);
+        $empleadosActivos = Empleado::where('es_activo', true)->orderBy('nombre')->get(['id', 'nombre', 'id_empleado']);
 
         return view('Recursos_Humanos.reloj_checador', compact(
             'empleados',
             'todosEmpleados',
+            'empleadosActivos',
             'fechas',
             'porcentajeAsistencia',
             'topRetardos',
@@ -131,13 +133,9 @@ class RelojChecadorImportController extends Controller
             'fechaFinFormato',
             'sinResultados'
         ) + [
-            'totalRegistros' => $kpis['total'],
-            'asistenciasOk' => $kpis['ok'],
             'retardos' => $kpis['retardos'],
             'faltas' => $kpis['faltas'],
             'busqueda' => $search,
-            'fechaInicioDb' => $inicio,
-            'fechaFinDb' => $fin,
         ]);
     }
 
@@ -554,17 +552,18 @@ class RelojChecadorImportController extends Controller
 
             if ($usuarioEmpleado && $usuarioEmpleado->email) {
                 $emailEmpleado = $usuarioEmpleado->email;
-                $esKaren = mb_strtolower($emailEmpleado) === 'karen.cruz@estrategiaeinnovacion.com.mx';
+                $emailRRHH = config('rh.asistencia.user_rrhh_email');
+                $esRRHH = mb_strtolower($emailEmpleado) === mb_strtolower($emailRRHH);
                 $esSupervisor = $empleado->subordinados()->where('es_activo', true)->exists();
 
-                $ccList = ['guillermo.aguilera@estrategiaeinnovacion.com.mx'];
+                $ccList = [config('rh.asistencia.cc_default')];
 
-                if ($esKaren) {
+                if ($esRRHH) {
                     //
                 } elseif ($esSupervisor) {
-                    $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
+                    $ccList[] = config('rh.asistencia.cc_rrhh');
                 } else {
-                    $ccList[] = 'karen.cruz@estrategiaeinnovacion.com.mx';
+                    $ccList[] = config('rh.asistencia.cc_rrhh');
                     if ($empleado->supervisor?->user?->email) {
                         $ccList[] = $empleado->supervisor->user->email;
                     }
@@ -617,11 +616,17 @@ class RelojChecadorImportController extends Controller
                 'empleados' => collect([]),
                 'sinResultados' => false,
                 'busqueda' => null,
-                'fechaInicio' => $request->input('fecha_inicio', now()->startOfMonth()->toDateString()),
-                'fechaFin' => $request->input('fecha_inicio', now()->endOfMonth()->toDateString()),
-                'kpis' => ['total' => 0, 'ok' => 0, 'retardos' => 0, 'faltas' => 0],
                 'horasTotales' => 0,
                 'esSoloLectura' => true,
+                'fechas' => collect([]),
+                'porcentajeAsistencia' => 0,
+                'topRetardos' => collect([]),
+                'fechaInicioFormato' => now()->translatedFormat('d M'),
+                'fechaFinFormato' => now()->translatedFormat('d M'),
+                'retardos' => 0,
+                'faltas' => 0,
+                'todosEmpleados' => collect([]),
+                'empleadosActivos' => collect([]),
             ]);
         }
 
@@ -672,10 +677,10 @@ class RelojChecadorImportController extends Controller
             ->where('fecha', '<', $dbFechaFin);
 
         $kpis = [
-            'total' => (clone $baseQuery)->count(),
-            'ok' => (clone $baseQuery)->where('es_retardo', false)->count(),
-            'retardos' => (clone $baseQuery)->where('tipo_registro', 'asistencia')->where('es_retardo', true)->where('es_justificado', false)->count(),
-            'faltas' => (clone $baseQuery)->where('tipo_registro', 'falta')->count(),
+            'total' => (clone $baseQuery)->laborales()->count(),
+            'ok' => (clone $baseQuery)->asistenciasOk()->count(),
+            'retardos' => (clone $baseQuery)->retardosInjustificados()->count(),
+            'faltas' => (clone $baseQuery)->soloFaltas()->count(),
         ];
 
         $registrosTiempos = (clone $baseQuery)
@@ -692,19 +697,16 @@ class RelojChecadorImportController extends Controller
                 $totalMinutos += $minutos;
             }
         }
-        $horasTotales = round($totalMinutos / 60, 1);
+        $horas = floor($totalMinutos / 60);
+        $minutosRestantes = $totalMinutos % 60;
+        $horasTotales = sprintf('%d:%02d', $horas, $minutosRestantes);
 
-        $totalDias = $empleados->total() * count($fechas);
-        $asistenciasOk = $kpis['ok'];
-        $porcentajeAsistencia = $totalDias > 0 ? round(($asistenciasOk / $totalDias) * 100, 1) : 0;
+        $porcentajeAsistencia = $kpis['total'] > 0 ? round(($kpis['ok'] / $kpis['total']) * 100, 1) : 0;
 
         return view('Recursos_Humanos.reloj_checador', [
             'empleados' => $empleados,
             'sinResultados' => false,
             'busqueda' => $search,
-            'fechaInicio' => $inicio,
-            'fechaFin' => $fin,
-            'kpis' => $kpis,
             'horasTotales' => $horasTotales,
             'esSoloLectura' => true,
             'fechas' => $fechas,
@@ -714,11 +716,8 @@ class RelojChecadorImportController extends Controller
             'fechaFinFormato' => $end->translatedFormat('d M'),
             'retardos' => $kpis['retardos'],
             'faltas' => $kpis['faltas'],
-            'totalRegistros' => $kpis['total'],
-            'asistenciasOk' => $kpis['ok'],
-            'fechaInicioDb' => $inicio,
-            'fechaFinDb' => $fin,
-            'todosEmpleados' => $empleados,
+            'todosEmpleados' => Empleado::orderBy('nombre')->get(['id', 'nombre']),
+            'empleadosActivos' => Empleado::where('es_activo', true)->orderBy('nombre')->get(['id', 'nombre', 'id_empleado']),
         ]);
     }
 }

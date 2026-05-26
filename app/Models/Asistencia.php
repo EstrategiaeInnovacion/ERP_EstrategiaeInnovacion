@@ -66,27 +66,41 @@ class Asistencia extends Model
     }
 
     /**
-     * Filtra retardos que NO han sido justificados.
+     * Filtra retardos que NO han sido justificados (solo asistencias).
      */
     public function scopeRetardosInjustificados(Builder $query)
     {
-        return $query->where('es_retardo', true)
+        return $query->where('tipo_registro', 'asistencia')
+                     ->where('es_retardo', true)
                      ->where('es_justificado', false);
     }
 
     /**
-     * Filtra faltas o registros vacíos.
+     * Filtra solo faltas (tipo_registro = 'falta').
      */
-    public function scopeFaltas(Builder $query)
+    public function scopeSoloFaltas(Builder $query)
     {
-        return $query->where(function ($q) {
-            $q->where('tipo_registro', 'falta')
-              ->orWhere(function ($sub) {
-                  $sub->whereNull('entrada')->whereNull('salida')
-                      ->where('tipo_registro', '!=', 'vacaciones') // Excluir vacaciones
-                      ->where('tipo_registro', '!=', 'incapacidad');
-              });
-        });
+        return $query->where('tipo_registro', 'falta');
+    }
+
+    /**
+     * Filtra registros de asistencia en buen estado (sin retardo injustificado).
+     */
+    public function scopeAsistenciasOk(Builder $query)
+    {
+        return $query->where('tipo_registro', 'asistencia')
+                     ->where(function ($q) {
+                         $q->where('es_retardo', false)
+                           ->orWhere('es_justificado', true);
+                     });
+    }
+
+    /**
+     * Filtra registros laborales (excluye vacaciones, incapacidades, permisos, descansos).
+     */
+    public function scopeLaborales(Builder $query)
+    {
+        return $query->whereIn('tipo_registro', ['asistencia', 'falta', 'incompleto']);
     }
 
     /**
