@@ -195,6 +195,7 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
 
     // Matriz de Seguimiento
     Route::get('/matriz-seguimiento', [MatrizSeguimientoController::class, 'index'])->name('matriz-seguimiento');
+    Route::get('/matriz-seguimiento/exportar', [MatrizSeguimientoController::class, 'exportar'])->name('matriz-seguimiento.exportar');
     Route::post('/matriz-seguimiento', [MatrizSeguimientoController::class, 'store'])->name('matriz-seguimiento.store');
     Route::put('/matriz-seguimiento/{seguimiento}', [MatrizSeguimientoController::class, 'update'])->name('matriz-seguimiento.update');
     Route::patch('/matriz-seguimiento/{seguimiento}/completar', [MatrizSeguimientoController::class, 'completar'])->name('matriz-seguimiento.completar');

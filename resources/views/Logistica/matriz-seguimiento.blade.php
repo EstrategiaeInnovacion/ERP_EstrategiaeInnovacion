@@ -22,6 +22,13 @@
                            placeholder="Buscar en la tabla..."
                            oninput="filtrarSeguimiento()"
                            class="text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-56">
+                    <button onclick="abrirModalExportar()"
+                            class="flex items-center gap-1.5 px-4 py-2 font-bold text-sm rounded-xl transition shadow-sm hover:shadow-md border border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                        </svg>
+                        Exportar Excel
+                    </button>
                     <button onclick="abrirModal()"
                             class="flex items-center gap-1.5 px-4 py-2 text-white font-bold text-sm rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
                             style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
@@ -347,18 +354,29 @@
                 </svg>
             </div>
             <div id="completados-body" class="hidden overflow-x-auto">
-                <table class="w-full text-sm" style="min-width: 1100px;">
+                <table class="w-full text-sm" style="min-width: 1800px;">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EXP</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">T. Operación</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Transporte</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Aduana</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Clave</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Pedimento</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">BL / Guía</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETD</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">ETA</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cita de Previo</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Cita de Despacho</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha de Arribo a Planta</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Resultado</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Comentarios</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Indicadores</th>
                             <th class="px-3 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
                         </tr>
                     </thead>
@@ -367,20 +385,42 @@
                         @php
                             $searchStrC = mb_strtolower(implode(' ', array_filter([
                                 $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
-                                $reg->tipo_operacion, $reg->status, $reg->resultado, $reg->target,
+                                $reg->impo_ex, $reg->tipo_operacion, $reg->transporte,
+                                $reg->aduana, $reg->clave, $reg->pedimento, $reg->bl_guia,
+                                $reg->status, $reg->resultado, $reg->target,
                                 $reg->user?->name,
                             ])));
-                            $statusColors = [
+                            $statusColorsC = [
                                 'Entregado' => 'bg-emerald-100 text-emerald-700',
                                 'Cancelado' => 'bg-red-100 text-red-600',
                             ];
-                            $resColors = [
+                            $resColorsC = [
                                 'En Proceso' => 'bg-blue-100 text-blue-700',
                                 'Exitoso'    => 'bg-emerald-100 text-emerald-700',
                                 'Demorado'   => 'bg-amber-100 text-amber-700',
                                 'Cancelado'  => 'bg-red-100 text-red-600',
                             ];
                             $esMiaC = $esCoordinador && ($reg->user_id === $miUserId);
+
+                            // Indicadores para completadas
+                            $hoyC = \Carbon\Carbon::today();
+                            $metricaColorC = null; $metricaLabelC = null; $diasEnAduanaC = null;
+                            if ($reg->eta) {
+                                $targetDiasC = $reg->tipo_operacion === 'Marítimo' ? 7 : 3;
+                                $diasEnAduanaC = $reg->eta->diffInDays($hoyC, false);
+                                $metricaColorC = 'bg-emerald-100 text-emerald-700';
+                                $metricaLabelC = 'Completado';
+                            }
+                            $demurrageColorC = null; $demurrageLabelC = null;
+                            $diasLibresC = $reg->dias_libres ?? 20;
+                            if ($reg->eta) {
+                                $drC = $hoyC->diffInDays($reg->eta->copy()->addDays($diasLibresC), false);
+                                if ($drC < 0)       { $demurrageColorC = 'bg-red-900 text-white';         $demurrageLabelC = 'Vencido'; }
+                                elseif ($drC < 5)   { $demurrageColorC = 'bg-red-100 text-red-700';       $demurrageLabelC = $drC . 'd restantes'; }
+                                elseif ($drC < 10)  { $demurrageColorC = 'bg-orange-100 text-orange-700'; $demurrageLabelC = $drC . 'd restantes'; }
+                                elseif ($drC < 15)  { $demurrageColorC = 'bg-yellow-100 text-yellow-700'; $demurrageLabelC = $drC . 'd restantes'; }
+                                else                { $demurrageColorC = 'bg-emerald-100 text-emerald-700'; $demurrageLabelC = $drC . 'd restantes'; }
+                            }
                         @endphp
                         <tr class="seg-row transition-colors {{ $esMiaC ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
                             data-row-id="{{ $reg->id }}"
@@ -388,24 +428,64 @@
                             <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">{{ $reg->ref_interna ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->cliente_operacion ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->impo_ex === 'IMP')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">IMP</span>
+                                @elseif($reg->impo_ex === 'EXP')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">EXP</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->tipo_operacion ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->transporte ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->aduana ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->clave ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->pedimento ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->bl_guia ?? '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->etd ? $reg->etd->format('d/m/Y') : '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->eta ? $reg->eta->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->previo ? $reg->previo->format('d/m/Y') : '—' }}</td>
+                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->cita_despacho ? $reg->cita_despacho->format('d/m/Y') : '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap text-xs">{{ $reg->arribo_planta ? $reg->arribo_planta->format('d/m/Y') : '—' }}</td>
                             <td class="px-3 py-3 whitespace-nowrap">
                                 @if($reg->status)
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $statusColors[$reg->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->status }}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $statusColorsC[$reg->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->status }}</span>
                                 @else
                                     <span class="text-slate-400">—</span>
                                 @endif
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap">
                                 @if($reg->resultado)
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $resColors[$reg->resultado] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->resultado }}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $resColorsC[$reg->resultado] ?? 'bg-slate-100 text-slate-600' }}">{{ $reg->resultado }}</span>
                                 @else
                                     <span class="text-slate-400">—</span>
                                 @endif
                             </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
+                            <td class="px-3 py-3 text-center whitespace-nowrap">
+                                <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                        title="Ver / agregar comentarios">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                                    </svg>
+                                    <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
+                                </button>
+                            </td>
+                            <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <div class="flex flex-col items-center gap-1">
+                                    @if($metricaLabelC)
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $metricaColorC }}">{{ $metricaLabelC }}</span>
+                                    @endif
+                                    @if($demurrageLabelC)
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $demurrageColorC }}" title="Días libres: {{ $diasLibresC }}">{{ $demurrageLabelC }}</span>
+                                    @endif
+                                    @if(!$metricaLabelC && !$demurrageLabelC)
+                                        <span class="text-slate-300 text-xs">—</span>
+                                    @endif
+                                </div>
+                            </td>
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
@@ -768,6 +848,69 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
         </div>
     </div>
 </div>
+{{-- MODAL EXPORTAR EXCEL --}}
+<div id="modal-exportar" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalExportar()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4">
+        <div class="bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg,#10b981 0%,#059669 100%);">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-slate-800">Exportar a Excel</h2>
+            </div>
+            <button onclick="cerrarModalExportar()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="form-exportar" method="GET" action="{{ route('logistica.matriz-seguimiento.exportar') }}"
+              class="px-6 py-5 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-2">Selecciona el cliente a exportar</label>
+                <select name="cliente" id="export-cliente"
+                        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                    <option value="">— Todos los clientes —</option>
+                    @if($esCoordinador)
+                        @foreach($todosClientes as $c)
+                            <option value="{{ $c }}">{{ $c }}</option>
+                        @endforeach
+                    @else
+                        @foreach($misClientesFiltro as $c)
+                            <option value="{{ $c }}">{{ $c }}</option>
+                        @endforeach
+                    @endif
+                </select>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500 space-y-1">
+                <p class="font-semibold text-slate-600">El archivo incluye:</p>
+                <p>• Hoja <strong>Operaciones</strong> — todos los campos (activas y completadas)</p>
+                <p>• Hoja <strong>Transporte</strong> — naviera, buque, contenedor, etc.</p>
+                <p class="text-slate-400 mt-1">Referencia cruzada por columna <strong>Ref. Interna</strong></p>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-1">
+                <button type="button" onclick="cerrarModalExportar()"
+                        class="px-5 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="flex items-center gap-2 px-5 py-2 rounded-xl text-white font-bold text-sm transition shadow-md hover:shadow-lg"
+                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -1062,8 +1205,18 @@ async function eliminarRegistro(id) {
 }
 
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { cerrarModal(); cerrarModalTransporte(); cerrarComentarios(); }
+    if (e.key === 'Escape') { cerrarModal(); cerrarModalTransporte(); cerrarComentarios(); cerrarModalExportar(); }
 });
+
+// ── Exportar Excel ───────────────────────────────────────────────
+function abrirModalExportar() {
+    document.getElementById('modal-exportar').classList.remove('hidden');
+    document.getElementById('modal-exportar').classList.add('flex');
+}
+function cerrarModalExportar() {
+    document.getElementById('modal-exportar').classList.add('hidden');
+    document.getElementById('modal-exportar').classList.remove('flex');
+}
 
 // ── Auto-Target por T. Operación ─────────────────────────────────────
 const TARGET_POR_OPERACION = {

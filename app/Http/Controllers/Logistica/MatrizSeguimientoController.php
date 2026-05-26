@@ -11,6 +11,13 @@ use App\Models\Logistica\Pedimento;
 use App\Models\Empleado;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class MatrizSeguimientoController extends Controller
 {
@@ -317,6 +324,238 @@ class MatrizSeguimientoController extends Controller
                 'usuario'    => auth()->user()?->name ?? 'Sistema',
                 'fecha'      => $comentario->created_at->format('d/m/Y H:i'),
             ],
+        ]);
+    }
+
+    // ── Exportar Excel ───────────────────────────────────────────────
+    public function exportar(Request $request)
+    {
+        $user           = auth()->user();
+        $empleadoActual = $user ? Empleado::where('correo', $user->email)->first() : null;
+
+        $esCoordinador = false;
+        if ($empleadoActual && $empleadoActual->es_coordinador) {
+            $area     = mb_strtolower($empleadoActual->area     ?? '', 'UTF-8');
+            $posicion = mb_strtolower($empleadoActual->posicion ?? '', 'UTF-8');
+            foreach (['logística', 'logistica', 'sistemas', 'dirección', 'direccion'] as $p) {
+                if (str_contains($area, $p) || str_contains($posicion, $p)) {
+                    $esCoordinador = true;
+                    break;
+                }
+            }
+        }
+
+        $cliente = $request->input('cliente');
+
+        $query = MatrizSeguimiento::with(['historial', 'user']);
+
+        if (!$esCoordinador && $user) {
+            $query->where('user_id', $user->id);
+        }
+        if ($cliente) {
+            $query->where('proveedor_cliente', $cliente);
+        }
+
+        $registros = $query
+            ->orderByRaw("CASE WHEN status IN ('Entregado','Cancelado') THEN 1 ELSE 0 END ASC")
+            ->orderByRaw("CASE WHEN eta IS NULL THEN 9999 ELSE DATEDIFF(DATE_ADD(eta, INTERVAL COALESCE(dias_libres,20) DAY), CURDATE()) END ASC")
+            ->orderByDesc('created_at')
+            ->get();
+
+        // ── Estilos compartidos ───────────────────────────────────────
+        $headerStyle = [
+            'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF064E3B']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            'borders'   => ['bottom' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FF10B981']]],
+        ];
+        $cellBorders = [
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_HAIR, 'color' => ['argb' => 'FFE2E8F0']]],
+        ];
+
+        $spreadsheet = new Spreadsheet();
+
+        // ════════════════════════════════════════════════════════════
+        // HOJA 1 — Operaciones
+        // ════════════════════════════════════════════════════════════
+        $sh1 = $spreadsheet->getActiveSheet();
+        $sh1->setTitle('Operaciones');
+
+        // Hoja 1: TODOS los campos. Detalles de transporte incluidos tras "Transporte".
+        // Hoja 2: Solo detalles de transporte (referencia cruzada por Ref. Interna).
+        $cols1 = [
+            'Ref. Interna',           // 1
+            'Cliente (Filtro)',        // 2
+            'Cliente / Proveedor',     // 3
+            'Factura',                 // 4
+            'IMP / EXP',              // 5
+            'T. Operación',           // 6
+            'Transporte',             // 7
+            'Naviera / Aerolínea',    // 8
+            'Buque',                  // 9
+            'FCL / LCL',             // 10
+            'No. Contenedor / Caja',  // 11
+            'Tipo Contenedor / Caja', // 12
+            'Aduana',                 // 13
+            'Clave',                  // 14
+            'Pedimento',              // 15
+            'BL / Guía',             // 16
+            'ETD',                    // 17 ← fecha
+            'ETA',                    // 18 ← fecha
+            'Días Libres',            // 19
+            'Cita de Previo',         // 20 ← fecha
+            'Cita de Despacho',       // 21 ← fecha
+            'Fecha Arribo a Planta',  // 22 ← fecha
+            'Status',                 // 23
+            'Resultado',              // 24
+            'Target',                 // 25
+            'Último Comentario',      // 26
+            'Ejecutivo',              // 27
+            'Fecha Creación',         // 28 ← fecha
+        ];
+        $lastLetter1 = Coordinate::stringFromColumnIndex(count($cols1));
+
+        foreach ($cols1 as $ci => $hdr) {
+            $sh1->setCellValueByColumnAndRow($ci + 1, 1, $hdr);
+        }
+        $sh1->getStyle("A1:{$lastLetter1}1")->applyFromArray($headerStyle);
+        $sh1->getRowDimension(1)->setRowHeight(28);
+        $sh1->freezePane('A2');
+        $sh1->setAutoFilter("A1:{$lastLetter1}1");
+
+        $widths1 = [14, 22, 26, 14, 10, 14, 24, 24, 20, 12, 24, 22, 16, 10, 16, 16, 12, 12, 11, 16, 17, 20, 15, 12, 15, 40, 22, 16];
+        foreach ($widths1 as $ci => $w) {
+            $sh1->getColumnDimensionByColumn($ci + 1)->setWidth($w);
+        }
+
+        $dateCols1 = [17, 18, 20, 21, 22, 28];
+
+        foreach ($registros as $i => $reg) {
+            $row = $i + 2;
+            $bg  = $i % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+
+            $ultimoComentario = $reg->historial->first()?->comentario ?? $reg->comentarios ?? '';
+
+            $values = [
+                $reg->ref_interna,
+                $reg->proveedor_cliente,
+                $reg->cliente_operacion,
+                $reg->factura,
+                $reg->impo_ex,
+                $reg->tipo_operacion,
+                $reg->transporte,
+                $reg->naviera,
+                $reg->buque,
+                $reg->carga_tipo,
+                $reg->no_contenedor,
+                $reg->tipo_contenedor,
+                $reg->aduana,
+                $reg->clave,
+                $reg->pedimento,
+                $reg->bl_guia,
+                $reg->etd           ? ExcelDate::PHPToExcel($reg->etd->toDateTime())           : null,
+                $reg->eta           ? ExcelDate::PHPToExcel($reg->eta->toDateTime())           : null,
+                $reg->dias_libres   ?? 20,
+                $reg->previo        ? ExcelDate::PHPToExcel($reg->previo->toDateTime())        : null,
+                $reg->cita_despacho ? ExcelDate::PHPToExcel($reg->cita_despacho->toDateTime()) : null,
+                $reg->arribo_planta ? ExcelDate::PHPToExcel($reg->arribo_planta->toDateTime()) : null,
+                $reg->status,
+                $reg->resultado,
+                $reg->target,
+                $ultimoComentario,
+                $reg->user?->name,
+                $reg->created_at    ? ExcelDate::PHPToExcel($reg->created_at->toDateTime())    : null,
+            ];
+
+            foreach ($values as $ci => $val) {
+                $sh1->setCellValueByColumnAndRow($ci + 1, $row, $val ?? '');
+            }
+
+            foreach ($dateCols1 as $dc) {
+                $sh1->getStyleByColumnAndRow($dc, $row)->getNumberFormat()->setFormatCode('DD/MM/YYYY');
+            }
+
+            $sh1->getStyle("A{$row}:{$lastLetter1}{$row}")
+                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($bg);
+            $sh1->getStyle("A{$row}:{$lastLetter1}{$row}")->applyFromArray($cellBorders);
+            // Col 26 = Z = Último Comentario
+            $sh1->getStyleByColumnAndRow(26, $row)->getAlignment()->setWrapText(true);
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // HOJA 2 — Transporte
+        // ════════════════════════════════════════════════════════════
+        $sh2 = $spreadsheet->createSheet();
+        $sh2->setTitle('Transporte');
+
+        $cols2 = [
+            'Ref. Interna', 'T. Operación', 'Transportista',
+            'Naviera / Aerolínea', 'Buque',
+            'FCL / LCL', 'No. Contenedor / Caja', 'Tipo Contenedor / Caja',
+        ];
+        $lastLetter2 = Coordinate::stringFromColumnIndex(count($cols2));
+
+        foreach ($cols2 as $ci => $hdr) {
+            $sh2->setCellValueByColumnAndRow($ci + 1, 1, $hdr);
+        }
+        $sh2->getStyle("A1:{$lastLetter2}1")->applyFromArray($headerStyle);
+        $sh2->getRowDimension(1)->setRowHeight(28);
+        $sh2->freezePane('A2');
+        $sh2->setAutoFilter("A1:{$lastLetter2}1");
+
+        // Nota de referencia en celda J1
+        $sh2->setCellValue('J1', 'ℹ Ref. Interna corresponde a columna A de la hoja "Operaciones"');
+        $sh2->getStyle('J1')->getFont()->setItalic(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF6B7280'));
+        $sh2->getColumnDimension('J')->setWidth(55);
+
+        $widths2 = [14, 15, 26, 26, 22, 12, 24, 24];
+        foreach ($widths2 as $ci => $w) {
+            $sh2->getColumnDimensionByColumn($ci + 1)->setWidth($w);
+        }
+
+        $row2 = 2;
+        foreach ($registros as $reg) {
+            // Solo filas que tienen al menos algún dato de transporte
+            if (!$reg->transporte && !$reg->naviera && !$reg->buque && !$reg->no_contenedor && !$reg->tipo_contenedor && !$reg->carga_tipo) {
+                continue;
+            }
+            $bg2 = ($row2 - 2) % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+
+            $values2 = [
+                $reg->ref_interna,
+                $reg->tipo_operacion,
+                $reg->transporte,
+                $reg->naviera,
+                $reg->buque,
+                $reg->carga_tipo,
+                $reg->no_contenedor,
+                $reg->tipo_contenedor,
+            ];
+
+            foreach ($values2 as $ci => $val) {
+                $sh2->setCellValueByColumnAndRow($ci + 1, $row2, $val ?? '');
+            }
+
+            $sh2->getStyle("A{$row2}:{$lastLetter2}{$row2}")
+                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($bg2);
+            $sh2->getStyle("A{$row2}:{$lastLetter2}{$row2}")->applyFromArray($cellBorders);
+            $row2++;
+        }
+
+        // ── Descarga ──────────────────────────────────────────────────
+        $spreadsheet->setActiveSheetIndex(0);
+        $clienteLabel = $cliente
+            ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', $cliente)
+            : 'Todos';
+        $filename = 'MatrizSeguimiento_' . $clienteLabel . '_' . now()->format('Ymd_His') . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control'       => 'max-age=0',
         ]);
     }
 
