@@ -329,7 +329,7 @@ class MatrizSeguimientoController extends Controller
             'proveedor_cliente'  => 'nullable|string|max:255',
             'cliente_operacion'  => 'nullable|string|max:255',
             'factura'            => 'nullable|string|max:100',
-            'impo_ex'          => 'nullable|in:IMP,EX',
+            'impo_ex'          => 'nullable|in:IMP,EXP',
             'tipo_operacion'   => 'nullable|string|max:100',
             'transporte'       => 'nullable|string|max:255',
             'naviera'          => 'nullable|string|max:255',

@@ -167,7 +167,7 @@
                         ['yn' => 'importa_precios_estimados',       'label' => 'Importa Mercancías Sujetas a Precios Estimados'],
                         ['yn' => 'importa_permisos_avisos',         'label' => 'Importa Mercancías Sujetas a Permisos o Avisos de Importación'],
                         ['yn' => 'certificados_origen_tlcan',       'label' => 'Utiliza Certificados de Origen T-MEC para Importar mercancías'],
-                        ['yn' => 'certificados_origen_tlcue',       'label' => 'Utiliza Certificados de Origen TLCUEN para Importar mercancías'],
+                        ['yn' => 'certificados_origen_tlcue',       'label' => 'Utiliza Certificados de Origen TLCUEM para Importar mercancías'],
                         ['yn' => 'exporta_eua_canada',              'label' => 'Exporta a EUA y Canadá mercancías manufacturadas'],
                         ['yn' => 'exporta_union_europea',           'label' => 'Exporta a la Unión Europea mercancías manufacturadas'],
                         ['yn' => 'emite_certificados_eua_canada',   'label' => 'Emite Certificados de Origen a sus clientes en EUA y Canadá'],
@@ -280,7 +280,7 @@
                 <x-perfil-field label="País de origen más representativo de las importaciones" name="pais_origen_importaciones" :value="$old('pais_origen_importaciones')"/>
 
                 <div class="flex flex-wrap items-center gap-4 py-2 md:col-span-2 border-t border-slate-100">
-                    <span class="text-sm text-slate-700 flex-1">Importa materiales de la región fuera del T-MEC y TLCUEN</span>
+                    <span class="text-sm text-slate-700 flex-1">Importa materiales de la región fuera del T-MEC y TLCUEM</span>
                     <x-perfil-yn-inline name="importa_fuera_tlcan" :checked="$chk('importa_fuera_tlcan')"/>
                     <div class="flex items-center gap-2 ml-auto">
                         <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Países:</label>

@@ -359,7 +359,7 @@
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Cliente / Proveedor</th>
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Analista</th>
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo</th>
-                            <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">IMP / EX</th>
+                            <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">IMP / EXP</th>
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">ETA</th>
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                             <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Resultado</th>
