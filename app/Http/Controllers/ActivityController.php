@@ -203,7 +203,7 @@ class ActivityController extends Controller
         }
 
         if (! $verTodo && ! $isHistoryView) {
-            $query->whereNotIn('estatus', ['Completado', 'Rechazado']);
+            $query->whereNotIn('estatus', ['Completado', 'Completado con retardo', 'Rechazado']);
         } elseif ($verTodo) {
             $query->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('fecha_compromiso', [$startDate->toDateString(), $endDate->toDateString()])
@@ -222,7 +222,7 @@ class ActivityController extends Controller
         $mainActivities = $query
             ->with(['user.empleado.supervisor.user'])
             ->orderByRaw("CASE WHEN user_id = {$user->id} THEN 0 ELSE 1 END")
-            ->orderByRaw("CASE estatus WHEN 'Completado' THEN 2 ELSE 1 END")
+            ->orderByRaw("CASE WHEN estatus IN ('Completado', 'Completado con retardo') THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
             ->orderBy('fecha_compromiso', 'asc')
             ->orderBy('created_at', 'desc')
@@ -271,7 +271,7 @@ class ActivityController extends Controller
 
         $kpis = [
             'total' => $mainActivities->count(),
-            'completadas' => $mainActivities->where('estatus', 'Completado')->count(),
+            'completadas' => $mainActivities->whereIn('estatus', ['Completado', 'Completado con retardo'])->count(),
             'proceso' => $mainActivities->where('estatus', 'En proceso')->count(),
             'planeadas' => $mainActivities->where('estatus', 'Planeado')->count(),
             'retardos' => $mainActivities->where('estatus', 'Retardo')->count(),
@@ -574,10 +574,10 @@ class ActivityController extends Controller
         }
 
         // Lógica automática de fechas (aunque el modelo ya tiene observer, reforzamos aquí por si acaso)
-        if ($activity->estatus == 'Completado' && $original['estatus'] != 'Completado') {
+        if (in_array($activity->estatus, ['Completado', 'Completado con retardo']) && !in_array($original['estatus'], ['Completado', 'Completado con retardo'])) {
             $activity->fecha_final = now();
         }
-        if ($original['estatus'] == 'Completado' && $activity->estatus != 'Completado') {
+        if (in_array($original['estatus'], ['Completado', 'Completado con retardo']) && !in_array($activity->estatus, ['Completado', 'Completado con retardo'])) {
             $activity->fecha_final = null;
             $activity->resultado_dias = null;
             $activity->porcentaje = null;
@@ -805,7 +805,7 @@ class ActivityController extends Controller
 
         $stats = [
             'total' => $actividades->count(),
-            'completadas' => $actividades->where('estatus', 'Completado')->count(),
+            'completadas' => $actividades->whereIn('estatus', ['Completado', 'Completado con retardo'])->count(),
             'en_proceso' => $actividades->whereIn('estatus', ['En proceso', 'Planeado', 'Por Validar', 'Por Aprobar'])->count(),
             'efectividad' => 0,
         ];

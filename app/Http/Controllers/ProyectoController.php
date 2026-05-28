@@ -53,7 +53,7 @@ class ProyectoController extends Controller
 
         $proyectosConActividades = $proyectos->map(function ($p) {
             $p->total_actividades = $p->actividades()->count();
-            $p->actividades_pendientes = $p->actividades()->whereNotIn('estatus', ['Completado', 'Rechazado'])->count();
+            $p->actividades_pendientes = $p->actividades()->whereNotIn('estatus', ['Completado', 'Completado con retardo', 'Rechazado'])->count();
 
             return $p;
         });
@@ -380,7 +380,7 @@ class ProyectoController extends Controller
 
         $kpis = [
             'total' => $actividades->count(),
-            'completadas' => $actividades->where('estatus', 'Completado')->count(),
+            'completadas' => $actividades->whereIn('estatus', ['Completado', 'Completado con retardo'])->count(),
             'enProceso' => $actividades->whereIn('estatus', ['En proceso', 'Planeado'])->count(),
             'pendientes' => $actividades->whereIn('estatus', ['Por Aprobar', 'Por Validar'])->count(),
         ];
@@ -451,7 +451,7 @@ class ProyectoController extends Controller
 
         $actividad->fill($data);
 
-        if ($request->estatus === 'Completado' && ! $actividad->fecha_final) {
+        if (in_array($request->estatus, ['Completado', 'Completado con retardo']) && ! $actividad->fecha_final) {
             $actividad->fecha_final = now();
         }
 

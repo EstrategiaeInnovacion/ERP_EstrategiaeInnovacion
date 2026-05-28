@@ -91,7 +91,7 @@
                     <td class="py-3 text-slate-600 text-xs align-top">{{ strtok($act->user->name ?? 'N/A', ' ') }}</td>
                     <td class="py-3 text-center align-top">
                         <span class="px-2 py-1 rounded text-[10px] font-bold uppercase block w-fit mx-auto
-                            {{ $act->estatus == 'Completado' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                            {{ $act->estatus == 'Completado' ? 'bg-emerald-100 text-emerald-700' : ($act->estatus == 'Completado con retardo' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600') }}">
                             {{ $act->estatus }}
                         </span>
                     </td>
