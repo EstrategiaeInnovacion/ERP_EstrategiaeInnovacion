@@ -22,10 +22,20 @@ export default defineConfig({
         }),
     ],
     build: {
+        chunkSizeWarningLimit: 600,
         rollupOptions: {
             output: {
                 manualChunks(id) {
                     if (id.includes('node_modules')) {
+                        if (id.includes('alpinejs') || id.includes('@alpinejs')) {
+                            return 'vendor-alpine';
+                        }
+                        if (id.includes('flatpickr')) {
+                            return 'vendor-flatpickr';
+                        }
+                        if (id.includes('jspdf') || id.includes('html2canvas')) {
+                            return 'vendor-pdf';
+                        }
                         return 'vendor';
                     }
                 }
