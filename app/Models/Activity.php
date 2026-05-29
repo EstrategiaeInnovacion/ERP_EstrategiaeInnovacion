@@ -78,10 +78,6 @@ class Activity extends Model
 
         static::saving(function ($activity) {
 
-            if (in_array($activity->estatus, ['Completado', 'Completado con retardo', 'Rechazado'])) {
-                return;
-            }
-
             $inicio = $activity->fecha_inicio ? Carbon::parse($activity->fecha_inicio)->startOfDay() : null;
             $compromiso = $activity->fecha_compromiso ? Carbon::parse($activity->fecha_compromiso)->startOfDay() : null;
             $final = $activity->fecha_final ? Carbon::parse($activity->fecha_final)->startOfDay() : null;
@@ -116,8 +112,7 @@ class Activity extends Model
             }
 
             // 4. Estatus Automático
-            // IMPORTANTE: Solo cambiar estatus si la actividad no está ya completada/aprobada/bloqueada
-            $estatusBloqueados = ['Completado', 'Completado con retardo', 'Por Aprobar', 'Por Validar', 'Planeado', 'Rechazado'];
+            $estatusBloqueados = ['Por Aprobar', 'Por Validar', 'Planeado', 'Rechazado'];
 
             if (! in_array($activity->estatus, $estatusBloqueados)) {
                 if ($activity->fecha_final) {

@@ -381,7 +381,7 @@
                                 }
 
                                 // Estilos extra
-                                if ($act->estatus == 'Completado') $rowClass .= ' opacity-60 bg-slate-50/50';
+                                if (in_array($act->estatus, ['Completado', 'Completado con retardo'])) $rowClass .= ' opacity-60 bg-slate-50/50';
                                 if ($act->estatus == 'Por Aprobar') $rowClass .= ' bg-orange-50/30';
                                 if ($act->estatus == 'Por Validar') $rowClass .= ' bg-purple-50/20'; // Fondo tenue para validación
 
@@ -420,7 +420,7 @@
 
                                 <td class="px-4 py-3">
                                     <div class="flex flex-col">
-                                        <span class="{{ $act->estatus == 'Completado' ? 'line-through text-slate-400' : 'text-slate-800 font-semibold' }} text-xs leading-snug">
+                                        <span class="{{ in_array($act->estatus, ['Completado', 'Completado con retardo']) ? 'line-through text-slate-400' : 'text-slate-800 font-semibold' }} text-xs leading-snug">
                                             {{ $act->nombre_actividad }}
                                         </span>
                                         <div class="flex flex-wrap items-center gap-1 mt-0.5">
@@ -484,7 +484,7 @@
                                             'Planeado'=>'bg-indigo-100 text-indigo-700', 
                                             'En proceso'=>'bg-blue-100 text-blue-700', 
                                             'Completado'=>'bg-emerald-100 text-emerald-700', 
-                                            'Completado con retardo'=>'bg-orange-100 text-orange-700',
+                                            'Completado con retardo'=>'bg-amber-100 text-amber-700',
                                             'Retardo'=>'bg-red-100 text-red-700', 
                                             'Rechazado'=>'bg-red-200 text-red-800'
                                         ];
@@ -618,7 +618,7 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 @php
-                                    $delBadge = ['Por Aprobar'=>'bg-orange-100 text-orange-700','Por Validar'=>'bg-purple-100 text-purple-700','Planeado'=>'bg-indigo-100 text-indigo-700','En proceso'=>'bg-blue-100 text-blue-700','Completado'=>'bg-emerald-100 text-emerald-700','Completado con retardo'=>'bg-orange-100 text-orange-700','Retardo'=>'bg-red-100 text-red-700','Rechazado'=>'bg-red-200 text-red-800'];
+                                    $delBadge = ['Por Aprobar'=>'bg-orange-100 text-orange-700','Por Validar'=>'bg-purple-100 text-purple-700','Planeado'=>'bg-indigo-100 text-indigo-700','En proceso'=>'bg-blue-100 text-blue-700','Completado'=>'bg-emerald-100 text-emerald-700','Completado con retardo'=>'bg-amber-100 text-amber-700','Retardo'=>'bg-red-100 text-red-700','Rechazado'=>'bg-red-200 text-red-800'];
                                 @endphp
                                 <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {{ $delBadge[$del->estatus] ?? 'bg-gray-100 text-gray-600' }}">{{ $del->estatus }}</span>
                             </td>
@@ -1303,7 +1303,8 @@ function toggleAllUsersExcel(checkbox) {
         })
         .then(async r => {
             const text = await r.text();
-            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+            try { return JSON.parse(text); }
+            catch (e) { throw new Error('Respuesta no JSON. Status ' + r.status + ': ' + text.substring(0, 200)); }
         })
         .then(data => {
             if (data.success) {
@@ -1391,7 +1392,8 @@ function toggleAllUsersExcel(checkbox) {
         })
         .then(async r => {
             const text = await r.text();
-            try { return JSON.parse(text); } catch(e) { throw new Error(text.substring(0, 200)); }
+            try { return JSON.parse(text); }
+            catch (e) { throw new Error('Respuesta no JSON. Status ' + r.status + ': ' + text.substring(0, 200)); }
         })
         .then(data => {
             if (data.success) {
