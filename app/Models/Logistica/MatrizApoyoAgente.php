@@ -25,8 +25,8 @@ class MatrizApoyoAgente extends Model
     public const RESPONSABILIDADES = [
         'Gerente de operaciones',
         'Ejecutivo de operaciones - Tramitador Operativo',
-        'Cita de Previa',
-        'Clarificación de mercancías',
+        'Cita de Previo',
+        'Clasificación de mercancías',
         'Cita de despacho',
         'Cita de vacío',
     ];
