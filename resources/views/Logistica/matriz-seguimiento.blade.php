@@ -458,7 +458,19 @@
                                 @endif
                             </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->tipo_operacion ?? '—' }}</td>
-                            <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->transporte ?? '—' }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                @if($reg->transporte)
+                                    <button data-id="{{ $reg->id }}" onclick="verTransporte(Number(this.dataset.id))"
+                                            class="inline-flex items-center gap-1.5 text-sm text-emerald-700 font-semibold hover:underline focus:outline-none">
+                                        {{ $reg->transporte }}
+                                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </button>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->aduana ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->clave ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">{{ $reg->pedimento ?? '—' }}</td>
