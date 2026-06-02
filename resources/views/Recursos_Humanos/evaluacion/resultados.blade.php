@@ -73,9 +73,9 @@
                                     <th class="px-6 py-4 text-center w-24">Detalle</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
                                 @foreach($desglose as $eval)
-                                    <tr x-data="{ open: false }" class="hover:bg-slate-50 transition">
+                                <tbody x-data="{ open: false }" class="divide-y divide-slate-100">
+                                    <tr class="hover:bg-slate-50 transition">
                                         <td class="px-6 py-4 font-bold text-slate-800">
                                             {{ $eval->nombre_evaluador }}
                                         </td>
@@ -176,8 +176,8 @@
                                             </div>
                                         </td>
                                     </tr>
+                                </tbody>
                                 @endforeach
-                            </tbody>
                         </table>
                     </div>
                 </div>
