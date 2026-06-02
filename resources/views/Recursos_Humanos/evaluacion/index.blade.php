@@ -245,8 +245,15 @@
                                                                 @if($empleado->evaluacion_actual->edit_count >= 1)
                                                                     <div class="flex gap-2">
                                                                         <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                            Ver Resultados
+                                                                            Ver Evaluación
                                                                         </a>
+                                                                        @if(isset($hasFullVisibility) && $hasFullVisibility)
+                                                                            <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
+                                                                            class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition" 
+                                                                            title="Ver Resultados Consolidados">
+                                                                            Ver Porcentajes
+                                                                            </a>
+                                                                        @endif
                                                                         @if(!empty($puedeGestionarVentanas))
                                                                             <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
                                                                                 @csrf @method('DELETE')
