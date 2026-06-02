@@ -38,6 +38,15 @@
                         </svg>
                         Gestionar Periodo
                     </button>
+                    @if(!empty($ventanaActiva))
+                        <button onclick="cerrarPeriodo({{ $ventanaActiva->id }})"
+                            class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg shadow-sm transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Cerrar Periodo
+                        </button>
+                    @endif
                 @endif
             </div>
         </div>
@@ -516,6 +525,23 @@
 
         // Auto-cargar si el modal ya está visible al abrir la página (por si acaso)
         if (!modal.classList.contains('hidden')) cargarVentanas();
+
+        window.cerrarPeriodo = function(id) {
+            if (!confirm('¿Estás seguro de cerrar el periodo de evaluación? Los evaluadores ya no podrán crear ni editar evaluaciones.')) return;
+            const btn = event.target;
+            btn.disabled = true;
+            fetch(`{{ url('capital-humano/evaluacion-ventanas') }}/${id}/toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(() => location.reload())
+            .catch(() => { btn.disabled = false; alert('Error al cerrar el periodo.'); });
+        };
     })();
     </script>
     @endif
