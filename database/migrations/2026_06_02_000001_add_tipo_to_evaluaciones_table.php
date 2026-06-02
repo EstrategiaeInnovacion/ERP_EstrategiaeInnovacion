@@ -27,6 +27,10 @@ return new class extends Migration
             });
         }
 
+        Schema::table('evaluaciones', function (Blueprint $table) {
+            $table->index('ventana_id', 'eval_ventana_id_idx');
+        });
+
         $oldIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_ventana'"));
         if ($oldIndex->isNotEmpty()) {
             Schema::table('evaluaciones', function (Blueprint $table) {
@@ -59,6 +63,10 @@ return new class extends Migration
                 $table->dropForeign($fk->CONSTRAINT_NAME);
             });
         }
+
+        Schema::table('evaluaciones', function (Blueprint $table) {
+            $table->dropIndex('eval_ventana_id_idx');
+        });
 
         $newIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_vt'"));
         if ($newIndex->isNotEmpty()) {
