@@ -487,8 +487,17 @@ class EvaluacionController extends Controller
         if (!$this->hasFullVisibility($user))
             return redirect()->route('rh.evaluacion.index');
 
+        $currentYear = Carbon::now()->year;
+        $periodos = [
+            ($currentYear + 1) . " | Enero - Junio",
+            "$currentYear | Julio - Diciembre",
+            "$currentYear | Enero - Junio",
+            ($currentYear - 1) . " | Julio - Diciembre",
+            ($currentYear - 1) . " | Enero - Junio",
+        ];
+
         $empleado = Empleado::findOrFail($id);
-        $periodo = $request->query('periodo');
+        $periodo = $request->query('periodo', $periodos[2] ?? "$currentYear | Enero - Junio");
 
         $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
             ->where('empleado_id', $id)
@@ -519,6 +528,6 @@ class EvaluacionController extends Controller
             return $eval;
         });
 
-        return view('Recursos_Humanos.evaluacion.resultados', compact('empleado', 'periodo', 'promedioGeneral', 'desglose'));
+        return view('Recursos_Humanos.evaluacion.resultados', compact('empleado', 'periodo', 'promedioGeneral', 'desglose', 'periodos'));
     }
 }

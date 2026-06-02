@@ -15,12 +15,19 @@ return new class extends Migration
             });
         }
 
+        // Drop ventana_id FK if it exists (from earlier partial states)
         $createSql = DB::select("SHOW CREATE TABLE evaluaciones")[0]->{'Create Table'};
         preg_match('/CONSTRAINT `([^`]+)` FOREIGN KEY \(`ventana_id`\)/', $createSql, $m);
-        $fkName = $m[1] ?? null;
+        $fkVentana = $m[1] ?? null;
+        if ($fkVentana) {
+            DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkVentana}`");
+        }
 
-        if ($fkName) {
-            DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkName}`");
+        // Ensure a standalone index on empleado_id exists BEFORE dropping the unique index
+        // Otherwise MySQL 1553: the FK evaluaciones_empleado_id_foreign depends on the unique index
+        $hasEmpleadoIdx = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Column_name = 'empleado_id' AND Key_name != 'PRIMARY'"));
+        if ($hasEmpleadoIdx->isEmpty()) {
+            DB::statement("ALTER TABLE `evaluaciones` ADD INDEX `eval_empleado_id_idx` (`empleado_id`)");
         }
 
         DB::statement("ALTER TABLE `evaluaciones` DROP INDEX `eval_unica_ventana`");
@@ -38,7 +45,6 @@ return new class extends Migration
         $createSql = DB::select("SHOW CREATE TABLE evaluaciones")[0]->{'Create Table'};
         preg_match('/CONSTRAINT `([^`]+)` FOREIGN KEY \(`ventana_id`\)/', $createSql, $m);
         $fkName = $m[1] ?? null;
-
         if ($fkName) {
             DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkName}`");
         }

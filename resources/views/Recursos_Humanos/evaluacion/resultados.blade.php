@@ -17,9 +17,15 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Volver al Tablero
             </a>
-            <div class="px-4 py-2 bg-white rounded-full shadow-sm border border-slate-200 text-sm font-bold text-slate-600">
-                Periodo: {{ $periodo }}
-            </div>
+            <form method="GET" class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-500 uppercase">Periodo:</span>
+                <select name="periodo" onchange="this.form.submit()"
+                    class="text-sm bg-white border border-slate-200 rounded-full px-4 py-2 text-slate-700 font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                    @foreach($periodos as $p)
+                        <option value="{{ $p }}" {{ $periodo == $p ? 'selected' : '' }}>{{ $p }}</option>
+                    @endforeach
+                </select>
+            </form>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
