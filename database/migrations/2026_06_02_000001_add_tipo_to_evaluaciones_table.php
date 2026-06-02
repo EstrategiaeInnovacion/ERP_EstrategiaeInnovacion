@@ -15,12 +15,15 @@ return new class extends Migration
             });
         }
 
-        $fkName = 'evaluaciones_ventana_id_foreign';
-        $fks = collect(DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones' AND CONSTRAINT_NAME = ?", [$fkName]));
+        $fks = collect(DB::select(
+            "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones'
+             AND COLUMN_NAME = 'ventana_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
+        ));
 
-        if ($fks->isNotEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) use ($fkName) {
-                $table->dropForeign($fkName);
+        foreach ($fks as $fk) {
+            Schema::table('evaluaciones', function (Blueprint $table) use ($fk) {
+                $table->dropForeign($fk->CONSTRAINT_NAME);
             });
         }
 
@@ -38,22 +41,22 @@ return new class extends Migration
             });
         }
 
-        $fkRestored = collect(DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones' AND CONSTRAINT_NAME = ?", [$fkName]));
-        if ($fkRestored->isEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
-            });
-        }
+        Schema::table('evaluaciones', function (Blueprint $table) {
+            $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
+        });
     }
 
     public function down(): void
     {
-        $fkName = 'evaluaciones_ventana_id_foreign';
-        $fks = collect(DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones' AND CONSTRAINT_NAME = ?", [$fkName]));
+        $fks = collect(DB::select(
+            "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones'
+             AND COLUMN_NAME = 'ventana_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
+        ));
 
-        if ($fks->isNotEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) use ($fkName) {
-                $table->dropForeign($fkName);
+        foreach ($fks as $fk) {
+            Schema::table('evaluaciones', function (Blueprint $table) use ($fk) {
+                $table->dropForeign($fk->CONSTRAINT_NAME);
             });
         }
 
@@ -71,12 +74,9 @@ return new class extends Migration
             });
         }
 
-        $fkRestored = collect(DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones' AND CONSTRAINT_NAME = ?", [$fkName]));
-        if ($fkRestored->isEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
-            });
-        }
+        Schema::table('evaluaciones', function (Blueprint $table) {
+            $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
+        });
 
         if (Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function (Blueprint $table) {
