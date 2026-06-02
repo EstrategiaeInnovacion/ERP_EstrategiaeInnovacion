@@ -16,6 +16,7 @@ class Evaluacion extends Model
         'evaluador_id',
         'periodo',
         'ventana_id',
+        'tipo',
         'promedio_final',
         'comentarios_generales',
         'edit_count',

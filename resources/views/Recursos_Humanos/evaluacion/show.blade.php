@@ -38,8 +38,27 @@
                     </div>
                 </div>
                 <div class="text-right">
-                    <div class="inline-block px-4 py-1.5 rounded-full bg-indigo-600 border border-indigo-500 text-sm font-bold shadow-sm">
-                        {{ $periodo }}
+                    <div class="flex items-center gap-2 justify-end">
+                        <div class="inline-block px-4 py-1.5 rounded-full bg-indigo-600 border border-indigo-500 text-sm font-bold shadow-sm">
+                            {{ $periodo }}
+                        </div>
+                        @php
+                            $tipoLabel = match($tipo ?? 'supervisor') {
+                                'admin_rh' => 'Admin RH',
+                                'subordinado' => 'Subordinado',
+                                'autoevaluacion' => 'Autoevaluación',
+                                default => 'Supervisor',
+                            };
+                            $tipoColor = match($tipo ?? 'supervisor') {
+                                'admin_rh' => 'bg-purple-600 border-purple-500',
+                                'subordinado' => 'bg-teal-600 border-teal-500',
+                                'autoevaluacion' => 'bg-amber-600 border-amber-500',
+                                default => 'bg-slate-600 border-slate-500',
+                            };
+                        @endphp
+                        <div class="inline-block px-4 py-1.5 rounded-full {{ $tipoColor }} text-sm font-bold shadow-sm">
+                            {{ $tipoLabel }}
+                        </div>
                     </div>
                     <p class="text-xs text-slate-400 mt-2 text-center md:text-right">Evaluación Confidencial</p>
                 </div>
@@ -56,6 +75,7 @@
                     
                     <input type="hidden" name="empleado_id" value="{{ $empleado->id }}">
                     <input type="hidden" name="periodo" value="{{ $periodo }}">
+                    <input type="hidden" name="tipo" value="{{ $tipo ?? 'supervisor' }}">
 
                     @if(isset($is_locked) && $is_locked)
                         <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r">
@@ -137,9 +157,13 @@
                                                 </div>
                                                 
                                                 <div class="mt-2">
-                                                    <textarea name="observaciones[{{ $criterio->id }}]" rows="1"
+                                                    <div class="flex items-center gap-1 mb-1">
+                                                        <span class="text-xs text-red-500 font-bold">*</span>
+                                                        <span class="text-xs text-slate-500">Comentario obligatorio</span>
+                                                    </div>
+                                                    <textarea name="observaciones[{{ $criterio->id }}]" rows="1" required
                                                         class="w-full text-xs rounded-md border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder-slate-400 resize-none transition-all" 
-                                                        placeholder="Nota opcional..." {{ $is_locked ? 'disabled' : '' }}>{{ $obsPrevia }}</textarea>
+                                                        placeholder="Escribe tu comentario..." {{ $is_locked ? 'disabled' : '' }}>{{ $obsPrevia }}</textarea>
                                                 </div>
                                             </div>
                                         @endforeach
@@ -150,8 +174,14 @@
                         </div>
 
                         <div class="mt-10 pt-8 border-t border-slate-200">
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Comentarios Generales y Feedback</label>
-                            <textarea name="comentarios_generales" rows="4" class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-sm shadow-sm" placeholder="Escribe aquí tus conclusiones generales..." {{ $is_locked ? 'disabled' : '' }}>{{ $evaluacion->comentarios_generales ?? '' }}</textarea>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">
+                                Comentarios Generales y Feedback
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="comentarios_generales" rows="4" required
+                                class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-sm shadow-sm" 
+                                placeholder="Escribe aquí tus conclusiones generales (obligatorio)..." 
+                                {{ $is_locked ? 'disabled' : '' }}>{{ $evaluacion->comentarios_generales ?? '' }}</textarea>
                         </div>
 
                         @if(!$is_locked)

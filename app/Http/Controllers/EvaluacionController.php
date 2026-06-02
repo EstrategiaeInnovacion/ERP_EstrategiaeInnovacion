@@ -215,15 +215,28 @@ class EvaluacionController extends Controller
             $query->where('id', 0);
         }
 
-        $empleados = $query->get()->map(function ($target) use ($selectedPeriod, $user, $ventanaActiva) {
-            $q = Evaluacion::where('empleado_id', $target->id)
-                ->where('evaluador_id', $user->id);
-            if ($ventanaActiva) {
-                $q->where('ventana_id', $ventanaActiva->id);
-            } else {
-                $q->where('periodo', $selectedPeriod);
+        $empleados = $query->get()->map(function ($target) use ($selectedPeriod, $user, $ventanaActiva, $me, $isAdminRH) {
+            $baseEvalQuery = function ($tipo) use ($target, $user, $ventanaActiva, $selectedPeriod) {
+                $q = Evaluacion::where('empleado_id', $target->id)
+                    ->where('evaluador_id', $user->id)
+                    ->where('tipo', $tipo);
+                if ($ventanaActiva) {
+                    $q->where('ventana_id', $ventanaActiva->id);
+                } else {
+                    $q->where('periodo', $selectedPeriod);
+                }
+                return $q;
+            };
+
+            $isDirectSupervisor = $me && $target->supervisor_id == $me->id;
+            $target->dual_role = $isAdminRH && $isDirectSupervisor;
+
+            $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
+
+            if ($target->dual_role) {
+                $target->evaluacion_adminrh = $baseEvalQuery('admin_rh')->first();
             }
-            $target->evaluacion_actual = $q->first();
+
             return $target;
         });
 
@@ -238,6 +251,7 @@ class EvaluacionController extends Controller
         $user = Auth::user();
         $me = Empleado::where('correo', $user->email)->first();
         $periodo = $request->query('periodo');
+        $tipo = $request->query('tipo', 'supervisor');
 
         if (!$periodo)
             return back()->with('error', 'Periodo requerido');
@@ -245,39 +259,26 @@ class EvaluacionController extends Controller
         $isAdminRH = $this->isAdminRH($me);
         $hasFullVisibility = $this->hasFullVisibility($user);
 
-        // 1. Validar auto-evaluación
-        if ($me && $me->id == $target->id && !$hasFullVisibility) {
-            return redirect()->route('rh.evaluacion.index')->with('error', 'No puedes evaluarte a ti mismo.');
+        $isDirectSupervisor = $me && $target->supervisor_id == $me->id;
+        $isBoss = $me && $me->supervisor_id == $target->id;
+        $isSelf = $me && $me->id == $target->id;
+
+        $tiposPermitidos = [];
+        if ($isAdminRH || $hasFullVisibility) $tiposPermitidos[] = 'admin_rh';
+        if ($isDirectSupervisor || $hasFullVisibility) $tiposPermitidos[] = 'supervisor';
+        if ($isBoss || $hasFullVisibility) $tiposPermitidos[] = 'subordinado';
+        if ($isSelf || $hasFullVisibility) $tiposPermitidos[] = 'autoevaluacion';
+        $tiposPermitidos = array_unique($tiposPermitidos);
+
+        if (!in_array($tipo, $tiposPermitidos)) {
+            return redirect()->route('rh.evaluacion.index')->with('error', 'No autorizado para este tipo de evaluación.');
         }
 
-        // 2. Permisos
-        $canEvaluate = false;
-        $isDirectSupervisor = false;
-        $isBoss = false;
-        $isSelf = false;
-
-        if ($me) {
-            $isDirectSupervisor = ($target->supervisor_id == $me->id);
-            $isBoss = ($me->supervisor_id == $target->id);
-            $isSelf = ($me->id == $target->id);
-            if ($isDirectSupervisor || $isBoss || $isSelf)
-                $canEvaluate = true;
-        }
-
-        if ($isAdminRH) {
-            $canEvaluate = true;
-            $criterios = CriterioEvaluacion::where('area', 'Administracion RH')->get();
-        }
-
-        if (!$canEvaluate && !$hasFullVisibility) {
-            return redirect()->route('rh.evaluacion.index')->with('error', 'No autorizado.');
-        }
-
-        // Cargar evaluación existente (por ventana activa o por periodo para histórico)
         $ventanaActualShow = EvaluacionVentana::ventanaActual();
         $qEval = Evaluacion::with('detalles')
             ->where('empleado_id', $id)
-            ->where('evaluador_id', $user->id);
+            ->where('evaluador_id', $user->id)
+            ->where('tipo', $tipo);
         if ($ventanaActualShow) {
             $qEval->where('ventana_id', $ventanaActualShow->id);
         } else {
@@ -294,44 +295,32 @@ class EvaluacionController extends Controller
             }
         }
 
-        // --- SELECCIÓN DE CRITERIOS (LOGICA CORREGIDA) ---
-        $queryCriterios = CriterioEvaluacion::query();
-        $areaDisplay = '';
-
-        // CASO A: Evaluación Hacia Arriba (Analista -> Jefe)
-        if ($isBoss) {
-            // CORRECCIÓN: Sin acento, así está en el Seeder
-            $queryCriterios->where('area', 'Evaluacion Supervisor');
-            $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
+        switch ($tipo) {
+            case 'admin_rh':
+                $criterios = CriterioEvaluacion::where('area', 'Administracion RH')->get();
+                $areaDisplay = 'Evaluación de Habilidades Blandas y Valores (RH)';
+                break;
+            case 'supervisor':
+                $areaTecnica = $this->getTechnicalArea($target->posicion);
+                $criterios = CriterioEvaluacion::where(function ($q) use ($areaTecnica) {
+                    $q->where('area', $areaTecnica)->orWhere('area', 'Recursos Humanos');
+                })->get();
+                $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Soft Skills)";
+                break;
+            case 'subordinado':
+                $criterios = CriterioEvaluacion::where('area', 'Evaluacion Supervisor')->get();
+                $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
+                break;
+            case 'autoevaluacion':
+                $areaTecnica = $this->getTechnicalArea($target->posicion);
+                $criterios = CriterioEvaluacion::where(function ($q) use ($areaTecnica) {
+                    $q->where('area', $areaTecnica)->orWhere('area', 'Recursos Humanos');
+                })->get();
+                $areaDisplay = "Autoevaluación ($areaTecnica + Soft Skills)";
+                break;
+            default:
+                return redirect()->route('rh.evaluacion.index')->with('error', 'Tipo de evaluación inválido.');
         }
-        // CASO B: Evaluación Hacia Abajo (Jefe -> Subordinado) O Autoevaluación
-        elseif ($isDirectSupervisor || $isSelf) { // <-- AGREGAR || $isSelf
-            // Detectamos el área técnica basada en el PUESTO del evaluado
-            $areaTecnica = $this->getTechnicalArea($target->posicion);
-
-            $queryCriterios->where(function ($q) use ($areaTecnica) {
-                $q->where('area', $areaTecnica)
-                    ->orWhere('area', 'Recursos Humanos');
-            });
-
-            // Un pequeño detalle para que el título cambie si es él mismo
-            $tipoEvaluacion = $isSelf ? 'Autoevaluación' : 'Evaluación de Desempeño';
-            $areaDisplay = "$tipoEvaluacion ($areaTecnica + Soft Skills)";
-        }
-        // CASO C: Admin RH que no es jefe directo (Solo ve Soft Skills)
-        elseif ($isAdminRH) {
-            // CORRECCIÓN: Busca exactamente el bloque de 12.5% que creamos para RH
-            $queryCriterios->where('area', 'Administracion RH');
-            $areaDisplay = 'Evaluación de Habilidades Blandas y Valores (RH)';
-        }
-        // CASO D: Default
-        else {
-            // CORRECCIÓN: Fallback a las soft skills generales
-            $queryCriterios->where('area', 'Recursos Humanos');
-            $areaDisplay = 'Evaluación General';
-        }
-
-        $criterios = $queryCriterios->get();
 
         $isWindowOpen = $this->isEvaluationWindowOpen();
         $isFinalized = ($evaluacion && $evaluacion->edit_count >= 1);
@@ -347,7 +336,8 @@ class EvaluacionController extends Controller
             'observaciones' => $observaciones,
             'is_locked' => !$canEdit,
             'isWindowOpen' => $isWindowOpen,
-            'isMe' => ($me && $me->id == $target->id)
+            'isMe' => ($me && $me->id == $target->id),
+            'tipo' => $tipo,
         ]);
     }
 
@@ -360,12 +350,23 @@ class EvaluacionController extends Controller
         if (!$ventanaActiva)
             return back()->with('error', 'No hay una ventana de evaluación activa.');
 
+        $request->validate([
+            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado,autoevaluacion',
+            'observaciones' => 'required|array',
+            'observaciones.*' => 'required|string|min:1',
+            'comentarios_generales' => 'required|string|min:1',
+        ], [
+            'observaciones.*.required' => 'El comentario para cada criterio es obligatorio.',
+            'comentarios_generales.required' => 'Los comentarios generales son obligatorios.',
+        ]);
+
         $existe = Evaluacion::where('empleado_id', $request->empleado_id)
             ->where('evaluador_id', Auth::id())
             ->where('ventana_id', $ventanaActiva->id)
+            ->where('tipo', $request->tipo)
             ->exists();
         if ($existe)
-            return back()->with('error', 'Ya evaluaste a esta persona en este periodo.');
+            return back()->with('error', 'Ya evaluaste a esta persona como ' . $request->tipo . ' en este periodo.');
 
         $target = Empleado::find($request->empleado_id);
         $me = Empleado::where('correo', Auth::user()->email)->first();
@@ -389,6 +390,7 @@ class EvaluacionController extends Controller
                 'evaluador_id' => Auth::id(),
                 'periodo' => $request->periodo,
                 'ventana_id' => $ventanaActiva->id,
+                'tipo' => $request->tipo,
                 'promedio_final' => $promedio,
                 'comentarios_generales' => $request->comentarios_generales,
                 'edit_count' => 1
@@ -416,6 +418,16 @@ class EvaluacionController extends Controller
         $evaluacion = Evaluacion::findOrFail($id);
         if ($evaluacion->evaluador_id != Auth::id())
             return abort(403);
+
+        $request->validate([
+            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado,autoevaluacion',
+            'observaciones' => 'required|array',
+            'observaciones.*' => 'required|string|min:1',
+            'comentarios_generales' => 'required|string|min:1',
+        ], [
+            'observaciones.*.required' => 'El comentario para cada criterio es obligatorio.',
+            'comentarios_generales.required' => 'Los comentarios generales son obligatorios.',
+        ]);
 
         try {
             DB::beginTransaction();
@@ -478,7 +490,7 @@ class EvaluacionController extends Controller
         $empleado = Empleado::findOrFail($id);
         $periodo = $request->query('periodo');
 
-        $evaluaciones = Evaluacion::with(['evaluador.empleado'])
+        $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
             ->where('empleado_id', $id)
             ->where('periodo', $periodo)
             ->get();

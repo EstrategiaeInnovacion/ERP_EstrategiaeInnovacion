@@ -143,32 +143,79 @@
                                                 </div>
 
                                                 <div class="mt-5 pt-4 border-t border-slate-100">
-                                                    @if(!$isWindowOpen)
-                                                        @if(isset($empleado->evaluacion_actual))
-                                                            <div class="flex gap-2">
-                                                                <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                    Ver Evaluación (Cerrado)
+                                                    @if($empleado->dual_role ?? false)
+                                                        @php
+                                                            $tipos = [
+                                                                ['key' => 'supervisor', 'label' => 'Supervisor', 'eval' => $empleado->evaluacion_actual],
+                                                                ['key' => 'admin_rh', 'label' => 'Admin RH', 'eval' => $empleado->evaluacion_adminrh],
+                                                            ];
+                                                        @endphp
+                                                        <div class="flex flex-col gap-1.5">
+                                                            @foreach($tipos as $t)
+                                                                @php $evalT = $t['eval']; @endphp
+                                                                <div class="flex gap-2 items-center">
+                                                                    @if(!$isWindowOpen)
+                                                                        @if($evalT)
+                                                                            <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $t['key']]) }}"
+                                                                               class="flex-1 flex items-center justify-center px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                                Ver como {{ $t['label'] }}
+                                                                            </a>
+                                                                            @if(!empty($puedeGestionarVentanas))
+                                                                                <form method="POST" action="{{ route('rh.evaluacion.destroy', $evalT->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                    @csrf @method('DELETE')
+                                                                                    <button type="submit" class="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                                    </button>
+                                                                                </form>
+                                                                            @endif
+                                                                        @else
+                                                                            <span class="flex-1 text-center px-4 py-1.5 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
+                                                                                Sin eval. {{ $t['label'] }}
+                                                                            </span>
+                                                                        @endif
+                                                                    @else
+                                                                        @if($evalT && $evalT->edit_count >= 1)
+                                                                            <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $t['key']]) }}"
+                                                                               class="flex-1 flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                                Ver ({{ $t['label'] }})
+                                                                            </a>
+                                                                        @elseif($evalT)
+                                                                            <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $t['key']]) }}"
+                                                                               class="flex-1 flex items-center justify-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                                Editar ({{ $t['label'] }})
+                                                                            </a>
+                                                                        @else
+                                                                            <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $t['key']]) }}"
+                                                                               class="flex-1 text-center px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition">
+                                                                                Evaluar ({{ $t['label'] }})
+                                                                            </a>
+                                                                        @endif
+                                                                        @if(!empty($puedeGestionarVentanas) && $evalT)
+                                                                            <form method="POST" action="{{ route('rh.evaluacion.destroy', $evalT->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                @csrf @method('DELETE')
+                                                                                <button type="submit" class="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                                </button>
+                                                                            </form>
+                                                                        @endif
+                                                                    @endif
+                                                                </div>
+                                                            @endforeach
+                                                            @if(isset($hasFullVisibility) && $hasFullVisibility)
+                                                                <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}"
+                                                                   class="flex items-center justify-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-50 transition"
+                                                                   title="Ver Resultados Consolidados">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                                                    Resultados
                                                                 </a>
-                                                                @if(!empty($puedeGestionarVentanas))
-                                                                    <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
-                                                                        @csrf @method('DELETE')
-                                                                        <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
-                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                                        </button>
-                                                                    </form>
-                                                                @endif
-                                                            </div>
-                                                        @else
-                                                            <button disabled class="flex items-center justify-center w-full px-4 py-2 bg-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
-                                                                Fuera de Fecha
-                                                            </button>
-                                                        @endif
+                                                            @endif
+                                                        </div>
                                                     @else
-                                                        @if(isset($empleado->evaluacion_actual))
-                                                            @if($empleado->evaluacion_actual->edit_count >= 1)
+                                                        @if(!$isWindowOpen)
+                                                            @if(isset($empleado->evaluacion_actual))
                                                                 <div class="flex gap-2">
-                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                        Ver Resultados
+                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                        Ver Evaluación (Cerrado)
                                                                     </a>
                                                                     @if(!empty($puedeGestionarVentanas))
                                                                         <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
@@ -180,15 +227,36 @@
                                                                     @endif
                                                                 </div>
                                                             @else
-                                                                <div class="flex gap-2">
-                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                        Editar Evaluación
-                                                                    </a>
-                                                                    @if(!empty($puedeGestionarVentanas))
-                                                                        <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
-                                                                            @csrf @method('DELETE')
-                                                                            <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
-                                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                <button disabled class="flex items-center justify-center w-full px-4 py-2 bg-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
+                                                                    Fuera de Fecha
+                                                                </button>
+                                                            @endif
+                                                        @else
+                                                            @if(isset($empleado->evaluacion_actual))
+                                                                @if($empleado->evaluacion_actual->edit_count >= 1)
+                                                                    <div class="flex gap-2">
+                                                                        <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                            Ver Resultados
+                                                                        </a>
+                                                                        @if(!empty($puedeGestionarVentanas))
+                                                                            <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                @csrf @method('DELETE')
+                                                                                <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                                </button>
+                                                                            </form>
+                                                                        @endif
+                                                                    </div>
+                                                                @else
+                                                                    <div class="flex gap-2">
+                                                                        <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                            Editar Evaluación
+                                                                        </a>
+                                                                        @if(!empty($puedeGestionarVentanas))
+                                                                            <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                @csrf @method('DELETE')
+                                                                                <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                                             </button>
                                                                         </form>
                                                                     @endif
@@ -211,7 +279,8 @@
                                                             </div>
                                                         @endif
                                                     @endif
-                                                </div>
+                                                @endif
+                                            </div>
                                             </div>
                                         </div>
                                     @endforeach

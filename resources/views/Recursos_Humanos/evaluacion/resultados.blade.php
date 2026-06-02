@@ -2,6 +2,12 @@
 
 @section('title', 'Resultados de Evaluación')
 
+@push('styles')
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen bg-slate-50 py-8">
     <div class="container mx-auto px-4 max-w-6xl">
@@ -55,13 +61,15 @@
                                 <tr>
                                     <th class="px-6 py-4">Evaluador</th>
                                     <th class="px-6 py-4">Relación</th>
+                                    <th class="px-6 py-4 text-center">Tipo</th>
                                     <th class="px-6 py-4 text-center">Nota</th>
                                     <th class="px-6 py-4">Comentarios</th>
+                                    <th class="px-6 py-4 text-center w-24">Detalle</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($desglose as $eval)
-                                    <tr class="hover:bg-slate-50 transition">
+                                    <tr x-data="{ open: false }" class="hover:bg-slate-50 transition">
                                         <td class="px-6 py-4 font-bold text-slate-800">
                                             {{ $eval->nombre_evaluador }}
                                         </td>
@@ -73,12 +81,83 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-center">
+                                            @php
+                                                $tipoLabel = match($eval->tipo ?? 'supervisor') {
+                                                    'admin_rh' => 'Admin RH',
+                                                    'subordinado' => 'Subordinado',
+                                                    'autoevaluacion' => 'Autoevaluación',
+                                                    default => 'Supervisor',
+                                                };
+                                                $tipoColor = match($eval->tipo ?? 'supervisor') {
+                                                    'admin_rh' => 'bg-purple-50 text-purple-700 border-purple-200',
+                                                    'subordinado' => 'bg-teal-50 text-teal-700 border-teal-200',
+                                                    'autoevaluacion' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                    default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                                };
+                                            @endphp
+                                            <span class="px-2 py-1 rounded text-[10px] font-bold border {{ $tipoColor }}">
+                                                {{ $tipoLabel }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
                                             <span class="font-bold {{ $eval->promedio_final >= 80 ? 'text-emerald-600' : 'text-amber-600' }}">
                                                 {{ number_format($eval->promedio_final, 1) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-xs italic text-slate-500 max-w-xs truncate">
                                             {{ $eval->comentarios_generales ?? 'Sin comentarios' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <button @click="open = !open" type="button"
+                                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition whitespace-nowrap">
+                                                <span x-show="!open">Ver detalle</span>
+                                                <span x-show="open" x-cloak>Ocultar</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr x-show="open" x-cloak>
+                                        <td colspan="6" class="px-6 py-4 bg-slate-50/80 border-b border-slate-200">
+                                            <div class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                                Desglose de preguntas
+                                            </div>
+                                            <table class="w-full text-xs">
+                                                <thead>
+                                                    <tr class="text-slate-500 uppercase font-bold border-b border-slate-200">
+                                                        <th class="px-3 py-2 text-left w-1/2">Pregunta</th>
+                                                        <th class="px-3 py-2 text-center w-[10%]">Peso</th>
+                                                        <th class="px-3 py-2 text-center w-[10%]">Nota</th>
+                                                        <th class="px-3 py-2 text-left">Comentario</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($eval->detalles as $detalle)
+                                                        <tr class="border-b border-slate-100 hover:bg-white transition">
+                                                            <td class="px-3 py-2.5 text-slate-700 font-medium">
+                                                                {{ $detalle->criterio->descripcion ?? 'Criterio #'.$detalle->criterio_id }}
+                                                            </td>
+                                                            <td class="px-3 py-2.5 text-center text-slate-400">
+                                                                {{ $detalle->criterio->peso ?? '-' }}%
+                                                            </td>
+                                                            <td class="px-3 py-2.5 text-center font-bold {{ $detalle->calificacion >= 80 ? 'text-emerald-600' : ($detalle->calificacion >= 50 ? 'text-amber-600' : 'text-red-500') }}">
+                                                                {{ number_format($detalle->calificacion, 0) }}
+                                                            </td>
+                                                            <td class="px-3 py-2.5 text-slate-500 italic max-w-xs truncate">
+                                                                {{ $detalle->observaciones ?? 'Sin comentario' }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="bg-slate-100 font-bold text-slate-700">
+                                                        <td class="px-3 py-2.5 text-right" colspan="2">Promedio ponderado:</td>
+                                                        <td class="px-3 py-2.5 text-center {{ $eval->promedio_final >= 80 ? 'text-emerald-600' : 'text-amber-600' }}">
+                                                            {{ number_format($eval->promedio_final, 1) }}
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -87,7 +166,6 @@
                     </div>
                 </div>
 
-                {{-- DETALLE TÉCNICO (Opcional: Mostrar preguntas si quieres profundizar más) --}}
                 <div class="mt-6 text-center">
                     <p class="text-xs text-slate-400">
                         * El promedio final es el promedio simple de todas las evaluaciones recibidas.
