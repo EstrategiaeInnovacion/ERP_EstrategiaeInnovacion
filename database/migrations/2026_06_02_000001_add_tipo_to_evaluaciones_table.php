@@ -15,76 +15,45 @@ return new class extends Migration
             });
         }
 
-        $fks = collect(DB::select(
-            "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones'
-             AND COLUMN_NAME = 'ventana_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
-        ));
+        $createSql = DB::select("SHOW CREATE TABLE evaluaciones")[0]->{'Create Table'};
+        preg_match('/CONSTRAINT `([^`]+)` FOREIGN KEY \(`ventana_id`\)/', $createSql, $m);
+        $fkName = $m[1] ?? null;
 
-        foreach ($fks as $fk) {
-            Schema::table('evaluaciones', function (Blueprint $table) use ($fk) {
-                $table->dropForeign($fk->CONSTRAINT_NAME);
-            });
+        if ($fkName) {
+            DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkName}`");
         }
 
-        Schema::table('evaluaciones', function (Blueprint $table) {
-            $table->index('ventana_id', 'eval_ventana_id_idx');
-        });
-
-        $oldIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_ventana'"));
-        if ($oldIndex->isNotEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->dropUnique('eval_unica_ventana');
-            });
-        }
+        DB::statement("ALTER TABLE `evaluaciones` DROP INDEX `eval_unica_ventana`");
 
         $newIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_vt'"));
         if ($newIndex->isEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->unique(['empleado_id', 'evaluador_id', 'ventana_id', 'tipo'], 'eval_unica_vt');
-            });
+            DB::statement("ALTER TABLE `evaluaciones` ADD UNIQUE INDEX `eval_unica_vt` (`empleado_id`, `evaluador_id`, `ventana_id`, `tipo`)");
         }
 
-        Schema::table('evaluaciones', function (Blueprint $table) {
-            $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
-        });
+        DB::statement("ALTER TABLE `evaluaciones` ADD CONSTRAINT `evaluaciones_ventana_id_foreign` FOREIGN KEY (`ventana_id`) REFERENCES `evaluacion_ventanas` (`id`) ON DELETE SET NULL");
     }
 
     public function down(): void
     {
-        $fks = collect(DB::select(
-            "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluaciones'
-             AND COLUMN_NAME = 'ventana_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
-        ));
+        $createSql = DB::select("SHOW CREATE TABLE evaluaciones")[0]->{'Create Table'};
+        preg_match('/CONSTRAINT `([^`]+)` FOREIGN KEY \(`ventana_id`\)/', $createSql, $m);
+        $fkName = $m[1] ?? null;
 
-        foreach ($fks as $fk) {
-            Schema::table('evaluaciones', function (Blueprint $table) use ($fk) {
-                $table->dropForeign($fk->CONSTRAINT_NAME);
-            });
+        if ($fkName) {
+            DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkName}`");
         }
-
-        Schema::table('evaluaciones', function (Blueprint $table) {
-            $table->dropIndex('eval_ventana_id_idx');
-        });
 
         $newIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_vt'"));
         if ($newIndex->isNotEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->dropUnique('eval_unica_vt');
-            });
+            DB::statement("ALTER TABLE `evaluaciones` DROP INDEX `eval_unica_vt`");
         }
 
         $restoreIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_ventana'"));
         if ($restoreIndex->isEmpty()) {
-            Schema::table('evaluaciones', function (Blueprint $table) {
-                $table->unique(['empleado_id', 'evaluador_id', 'ventana_id'], 'eval_unica_ventana');
-            });
+            DB::statement("ALTER TABLE `evaluaciones` ADD UNIQUE INDEX `eval_unica_ventana` (`empleado_id`, `evaluador_id`, `ventana_id`)");
         }
 
-        Schema::table('evaluaciones', function (Blueprint $table) {
-            $table->foreign('ventana_id')->references('id')->on('evaluacion_ventanas')->onDelete('set null');
-        });
+        DB::statement("ALTER TABLE `evaluaciones` ADD CONSTRAINT `evaluaciones_ventana_id_foreign` FOREIGN KEY (`ventana_id`) REFERENCES `evaluacion_ventanas` (`id`) ON DELETE SET NULL");
 
         if (Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function (Blueprint $table) {
