@@ -45,11 +45,7 @@ class LogisticaEvaluacionSeeder extends Seeder
                 ['criterio' => 'Reporte de Descargos', 'descripcion' => 'Generación correcta de reportes mensuales.', 'peso' => 20],
                 ['criterio' => 'Conciliación de Saldos', 'descripcion' => 'Validación de datos contra glosa (DataStage).', 'peso' => 20],
             ],
-            'Post-Operacion' => [
-                ['criterio' => 'Integración de Expedientes', 'descripcion' => 'Expedientes digitales y físicos completos.', 'peso' => 20],
-                ['criterio' => 'Auditoría Preventiva', 'descripcion' => 'Revisión de pedimentos post-despacho.', 'peso' => 20],
-                ['criterio' => 'Atención al Cliente', 'descripcion' => 'Resolución de dudas sobre operaciones cerradas.', 'peso' => 20],
-            ],
+            'Post-Operacion' => [], // Movido a PostOperacionEvaluacionSeeder
             'TI' => [
                 ['criterio' => 'Soporte a Usuarios', 'descripcion' => 'Atención rápida y efectiva a tickets.', 'peso' => 20],
                 ['criterio' => 'Mantenimiento de Redes', 'descripcion' => 'Estabilidad y seguridad de la infraestructura.', 'peso' => 20],
