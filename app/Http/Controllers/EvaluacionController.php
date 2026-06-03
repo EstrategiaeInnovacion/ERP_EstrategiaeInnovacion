@@ -530,4 +530,155 @@ class EvaluacionController extends Controller
 
         return view('Recursos_Humanos.evaluacion.resultados', compact('empleado', 'periodo', 'promedioGeneral', 'desglose', 'periodos'));
     }
+
+    public function resultadosExcel(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$this->hasFullVisibility($user))
+            return redirect()->route('rh.evaluacion.index');
+
+        $empleado = Empleado::findOrFail($id);
+
+        $currentYear = Carbon::now()->year;
+        $periodos = [
+            ($currentYear + 1) . " | Enero - Junio",
+            "$currentYear | Julio - Diciembre",
+            "$currentYear | Enero - Junio",
+            ($currentYear - 1) . " | Julio - Diciembre",
+            ($currentYear - 1) . " | Enero - Junio",
+        ];
+        $periodo = $request->query('periodo', $periodos[2] ?? "$currentYear | Enero - Junio");
+
+        $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
+            ->where('empleado_id', $id)
+            ->where('periodo', $periodo)
+            ->get();
+
+        if ($evaluaciones->isEmpty())
+            return back()->with('error', 'Sin datos.');
+
+        $promedioGeneral = $evaluaciones->avg('promedio_final');
+
+        $desglose = $evaluaciones->map(function ($eval) use ($empleado) {
+            $evaluador = $eval->evaluador->empleado;
+            $rol = 'Colaborador';
+            if ($evaluador) {
+                $pos = mb_strtolower($evaluador->posicion ?? '', 'UTF-8');
+                $esAdminRH = str_contains($pos, 'administración rh') || str_contains($pos, 'administracion rh');
+
+                if ($empleado->supervisor_id == $evaluador->id)
+                    $rol = 'Supervisor Directo';
+                elseif ($evaluador->supervisor_id == $empleado->id)
+                    $rol = 'Subordinado';
+                elseif ($esAdminRH)
+                    $rol = 'Administración RH';
+            }
+            $eval->rol_evaluador = $rol;
+            $eval->nombre_evaluador = $evaluador ? ($evaluador->nombre . ' ' . $evaluador->apellido_paterno) : $eval->evaluador->name;
+            return $eval;
+        });
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        // Sheet 1: Resumen
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Resumen');
+
+        $sheet->setCellValue('A1', 'RESULTADOS DE EVALUACIÓN');
+        $sheet->mergeCells('A1:E1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
+
+        $sheet->setCellValue('A3', 'Empleado:');
+        $sheet->setCellValue('B3', $empleado->nombre . ' ' . $empleado->apellido_paterno);
+        $sheet->setCellValue('A4', 'Puesto:');
+        $sheet->setCellValue('B4', $empleado->posicion ?? '-');
+        $sheet->setCellValue('A5', 'Periodo:');
+        $sheet->setCellValue('B5', $periodo);
+        $sheet->setCellValue('A6', 'Calificación Final:');
+        $sheet->setCellValue('B6', number_format($promedioGeneral, 1) . ' / 100');
+
+        $sheet->setCellValue('A8', 'Evaluador');
+        $sheet->setCellValue('B8', 'Relación');
+        $sheet->setCellValue('C8', 'Tipo');
+        $sheet->setCellValue('D8', 'Nota');
+        $sheet->setCellValue('E8', 'Comentarios');
+
+        $headerStyle = $sheet->getStyle('A8:E8');
+        $headerStyle->getFont()->setBold(true)->setSize(10);
+        $headerStyle->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $headerStyle->getFill()->getStartColor()->setARGB('FF334155');
+        $headerStyle->getFont()->getColor()->setARGB('FFFFFFFF');
+
+        $cols = ['A', 'B', 'C', 'D', 'E'];
+        foreach ($cols as $c) $sheet->getColumnDimension($c)->setAutoSize(true);
+
+        $row = 9;
+        foreach ($desglose as $eval) {
+            $sheet->setCellValue("A$row", $eval->nombre_evaluador);
+            $sheet->setCellValue("B$row", $eval->rol_evaluador);
+            $sheet->setCellValue("C$row", match ($eval->tipo ?? 'supervisor') {
+                'admin_rh' => 'Admin RH',
+                'subordinado' => 'Subordinado',
+                'autoevaluacion' => 'Autoevaluación',
+                default => 'Supervisor',
+            });
+            $sheet->setCellValue("D$row", number_format($eval->promedio_final, 1));
+            $sheet->setCellValue("E$row", $eval->comentarios_generales ?? '');
+            $row++;
+        }
+
+        // Sheet 2: Detalle
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('Detalle');
+
+        $sheet2->setCellValue('A1', 'DETALLE DE EVALUACIÓN');
+        $sheet2->mergeCells('A1:F1');
+        $sheet2->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet2->getStyle('A1')->getAlignment()->setHorizontal('center');
+
+        $sheet2->setCellValue('A3', 'Empleado:');
+        $sheet2->setCellValue('B3', $empleado->nombre . ' ' . $empleado->apellido_paterno);
+        $sheet2->setCellValue('A4', 'Periodo:');
+        $sheet2->setCellValue('B4', $periodo);
+
+        $sheet2->setCellValue('A6', 'Evaluador');
+        $sheet2->setCellValue('B6', 'Pregunta');
+        $sheet2->setCellValue('C6', 'Peso');
+        $sheet2->setCellValue('D6', 'Nota');
+        $sheet2->setCellValue('E6', 'Comentario');
+
+        $hdr2 = $sheet2->getStyle('A6:E6');
+        $hdr2->getFont()->setBold(true)->setSize(10);
+        $hdr2->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $hdr2->getFill()->getStartColor()->setARGB('FF334155');
+        $hdr2->getFont()->getColor()->setARGB('FFFFFFFF');
+
+        foreach (['A', 'B', 'C', 'D', 'E'] as $c) $sheet2->getColumnDimension($c)->setAutoSize(true);
+
+        $row = 7;
+        foreach ($desglose as $eval) {
+            $evaluatorName = $eval->nombre_evaluador;
+            foreach ($eval->detalles as $detalle) {
+                $sheet2->setCellValue("A$row", $evaluatorName);
+                $sheet2->setCellValue("B$row", $detalle->criterio->descripcion ?? 'Criterio #' . $detalle->criterio_id);
+                $sheet2->setCellValue("C$row", ($detalle->criterio->peso ?? '-') . '%');
+                $sheet2->setCellValue("D$row", number_format($detalle->calificacion, 0));
+                $sheet2->setCellValue("E$row", $detalle->observaciones ?? '');
+                $row++;
+            }
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = "evaluacion_{$empleado->id}_{$periodo}.xlsx";
+
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ]);
+    }
 }

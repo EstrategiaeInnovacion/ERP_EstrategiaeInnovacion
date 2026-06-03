@@ -17,15 +17,22 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Volver al Tablero
             </a>
-            <form method="GET" class="flex items-center gap-2">
-                <span class="text-xs font-bold text-slate-500 uppercase">Periodo:</span>
-                <select name="periodo" onchange="this.form.submit()"
-                    class="text-sm bg-white border border-slate-200 rounded-full px-4 py-2 text-slate-700 font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
-                    @foreach($periodos as $p)
-                        <option value="{{ $p }}" {{ $periodo == $p ? 'selected' : '' }}>{{ $p }}</option>
-                    @endforeach
-                </select>
-            </form>
+            <div class="flex items-center gap-3">
+                <form method="GET" class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Periodo:</span>
+                    <select name="periodo" onchange="this.form.submit()"
+                        class="text-sm bg-white border border-slate-200 rounded-full px-4 py-2 text-slate-700 font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                        @foreach($periodos as $p)
+                            <option value="{{ $p }}" {{ $periodo == $p ? 'selected' : '' }}>{{ $p }}</option>
+                        @endforeach
+                    </select>
+                </form>
+                <a href="{{ route('rh.evaluacion.resultados.excel', ['id' => $empleado->id, 'periodo' => $periodo]) }}"
+                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Descargar Excel
+                </a>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
