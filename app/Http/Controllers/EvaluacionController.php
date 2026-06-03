@@ -304,7 +304,7 @@ class EvaluacionController extends Controller
                 $areaTecnica = $this->getTechnicalArea($target->posicion);
                 $criterios = CriterioEvaluacion::where(function ($q) use ($areaTecnica) {
                     $q->where('area', $areaTecnica)->orWhere('area', 'Recursos Humanos');
-                })->get();
+                })->where('criterio', '!=', 'Puntualidad y Asistencia')->get();
                 $areaDisplay = "Evaluación de Desempeño ($areaTecnica + Soft Skills)";
                 break;
             case 'subordinado':

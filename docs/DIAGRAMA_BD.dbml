@@ -1,0 +1,1148 @@
+// ============================================================
+// DIAGRAMA BD — ERP Estrategia e Innovación
+// Formato: DBML (Database Markup Language)
+// Compatible con: dbdiagram.io, VSCode (extensión DBML)
+// ============================================================
+
+// ========================
+// CORE
+// ========================
+Table users {
+  id bigint [pk]
+  name varchar(255)
+  email varchar(255) [unique]
+  role varchar(255) [default: 'user', note: 'user | admin']
+  status varchar(255) [default: 'pending', note: 'pending | approved | rejected']
+  approved_at datetime [null]
+  rejected_at datetime [null]
+  email_verified_at datetime [null]
+  password varchar(255)
+  remember_token varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO RH
+// ========================
+Table subdepartamentos {
+  id bigint [pk]
+  area varchar(255)
+  nombre varchar(255)
+  activo boolean [default: true]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (area, nombre) [unique]
+  }
+}
+
+Table empleados {
+  id bigint [pk]
+  user_id bigint [unique]
+  nombre varchar(255)
+  correo varchar(255)
+  area varchar(255) [null]
+  es_activo boolean [default: true]
+  id_empleado varchar(30) [null]
+  subdepartamento_id bigint [null]
+  posicion varchar(255) [null]
+  telefono varchar(255) [null]
+  correo_personal varchar(255) [null]
+  foto_path varchar(255) [null]
+  direccion text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table asistencias {
+  id bigint [pk]
+  empleado_no varchar(255) [null]
+  nombre varchar(255)
+  fecha date
+  entrada time [null]
+  salida time [null]
+  checadas text
+  empleado_id bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table aviso_asistencias {
+  id bigint [pk]
+  empleado_id bigint
+  enviado_por bigint
+  tipo varchar(255)
+  mensaje text [null]
+  periodo varchar(255) [null]
+  cantidad_incidencias integer [default: 0]
+  leido boolean [default: false]
+  leido_at timestamp [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table empleado_documentos {
+  id bigint [pk]
+  empleado_id bigint
+  tipo varchar(255)
+  nombre varchar(255)
+  ruta varchar(255)
+  observaciones text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table empleados_baja {
+  id bigint [pk]
+  empleado_id bigint
+  fecha_baja date
+  motivo varchar(255)
+  observaciones text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table dias_festivos {
+  id bigint [pk]
+  nombre varchar(255)
+  fecha date
+  tipo varchar(255) [default: 'festivo', note: 'festivo | inhabil']
+  es_anual boolean [default: false]
+  descripcion text [null]
+  activo boolean [default: true]
+  notificacion_enviada boolean [default: false]
+  notificacion_enviada_at timestamp [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table recordatorios {
+  id bigint [pk]
+  tipo varchar(255)
+  titulo varchar(255)
+  descripcion text [null]
+  fecha_evento date
+  dias_anticipacion integer [default: 7]
+  tabla_relacionada varchar(255) [null]
+  registro_id bigint [null]
+  empleado_id bigint [null]
+  creado_por bigint [null]
+  leido boolean [default: false]
+  leido_at datetime [null]
+  activo boolean [default: true]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO CAPACITACIÓN
+// ========================
+Table capacitaciones {
+  id bigint [pk]
+  titulo varchar(255)
+  descripcion text [null]
+  archivo_path varchar(255)
+  thumbnail_path varchar(255) [null]
+  subido_por bigint
+  activo boolean [default: true]
+  youtube_url varchar(255) [null]
+  categoria varchar(255) [null]
+  puestos json [null]
+  usuarios_permitidos json [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table capacitacion_adjuntos {
+  id bigint [pk]
+  capacitacion_id bigint
+  nombre varchar(255)
+  ruta varchar(255)
+  tipo varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO EVALUACIÓN
+// ========================
+Table criterios_evaluacion {
+  id bigint [pk]
+  area varchar(255)
+  criterio varchar(255)
+  descripcion text [null]
+  peso integer
+  created_at datetime
+  updated_at datetime
+}
+
+Table evaluaciones {
+  id bigint [pk]
+  empleado_id bigint
+  evaluador_id bigint
+  periodo varchar(255)
+  promedio_final decimal(5,2) [null]
+  comentarios_generales text [null]
+  edit_count integer [default: 0]
+  ventana_id bigint [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (empleado_id, evaluador_id, periodo) [unique]
+  }
+}
+
+Table evaluacion_detalles {
+  id bigint [pk]
+  evaluacion_id bigint
+  criterio_id bigint
+  calificacion decimal(5,2)
+  observaciones text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table evaluacion_ventanas {
+  id bigint [pk]
+  nombre varchar(255)
+  fecha_apertura date
+  fecha_cierre date
+  activo boolean [default: true]
+  creado_por bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table planeacion_ventanas {
+  id bigint [pk]
+  nombre varchar(255)
+  fecha_inicio date
+  fecha_fin date
+  activo boolean [default: true]
+  creado_por bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO ACTIVIDADES / PROYECTOS
+// ========================
+Table activities {
+  id bigint [pk]
+  user_id bigint
+  nombre_actividad varchar(255)
+  area varchar(255) [null]
+  tipo_actividad varchar(255) [null]
+  prioridad varchar(255) [default: 'Media']
+  fecha_inicio date
+  fecha_compromiso date
+  fecha_final date [null]
+  metrico integer [default: 1]
+  resultado_dias integer [null]
+  porcentaje decimal(10,2) [null]
+  estatus varchar(255) [default: 'En blanco']
+  comentarios text [null]
+  evidencia_path varchar(255) [null]
+  proyecto_id bigint [null]
+  cliente_id bigint [null]
+  motivo_rechazo text [null]
+  planned_start_date date [null]
+  planned_end_date date [null]
+  asignado_por bigint [null]
+  deleted_by bigint [null]
+  deleted_at datetime [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activity_histories {
+  id bigint [pk]
+  activity_id bigint
+  user_id bigint
+  action varchar(255) [null]
+  field varchar(255) [null]
+  old_value text [null]
+  new_value text [null]
+  details text [null]
+  comentario text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table proyectos {
+  id bigint [pk]
+  nombre varchar(255)
+  descripcion text [null]
+  usuario_id bigint
+  fecha_inicio date
+  fecha_fin date
+  recurrencia varchar(255) [default: 'mensual', note: 'semanal | quincenal | mensual']
+  notas text [null]
+  archivado boolean [default: false]
+  finalizado boolean [null]
+  responsable_ti_id bigint [null]
+  deleted_at datetime [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table proyecto_usuarios {
+  proyecto_id bigint
+  usuario_id bigint
+
+  indexes {
+    (proyecto_id, usuario_id) [pk]
+  }
+}
+
+Table proyecto_responsable_ti {
+  proyecto_id bigint [pk]
+  user_id bigint [pk]
+}
+
+// ========================
+// MÓDULO SISTEMAS IT
+// ========================
+Table tickets {
+  id bigint [pk]
+  folio varchar(255) [unique]
+  nombre_solicitante varchar(255)
+  correo_solicitante varchar(255)
+  nombre_programa varchar(255) [null]
+  descripcion_problema text
+  imagenes text [null]
+  estado varchar(255) [default: 'abierto', note: 'abierto | en_proceso | cerrado']
+  closed_by_user boolean [default: false]
+  is_read boolean [default: false]
+  user_has_updates boolean [default: false]
+  user_notified_at timestamp [null]
+  user_last_read_at timestamp [null]
+  user_notification_summary text [null]
+  notified_at timestamp [null]
+  read_at timestamp [null]
+  fecha_apertura timestamp
+  fecha_cierre timestamp [null]
+  closed_by_user_at timestamp [null]
+  observaciones text [null]
+  tipo_problema varchar(255) [note: 'software | hardware | mantenimiento']
+  prioridad varchar(255) [null, note: 'baja | media | alta | critica']
+  user_id bigint [null]
+  maintenance_slot_id bigint [null]
+  computer_profile_id bigint [null]
+  equipment_password varchar(255) [null]
+  imagenes_admin text [null]
+  maintenance_scheduled_at datetime [null]
+  maintenance_details text [null]
+  equipment_identifier varchar(255) [null]
+  equipment_brand varchar(255) [null]
+  equipment_model varchar(255) [null]
+  disk_type varchar(255) [null]
+  ram_capacity varchar(255) [null]
+  battery_status varchar(255) [null]
+  aesthetic_observations text [null]
+  replacement_components text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table computer_profiles {
+  id bigint [pk]
+  identifier varchar(255) [null]
+  brand varchar(255) [null]
+  model varchar(255) [null]
+  disk_type varchar(255) [null]
+  ram_capacity varchar(255) [null]
+  battery_status varchar(255) [null]
+  aesthetic_observations text [null]
+  replacement_components text [null]
+  last_maintenance_at datetime [null]
+  is_loaned boolean [default: false]
+  loaned_to_name varchar(255) [null]
+  loaned_to_email varchar(255) [null]
+  last_ticket_id bigint [null]
+  equipo_asignado_id bigint [null]
+  warranty_expiration date [null]
+  next_maintenance_date date [null]
+  maintenance_frequency varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table maintenance_slots {
+  id bigint [pk]
+  date date
+  start_time time
+  end_time time
+  capacity integer [default: 1]
+  booked_count integer [default: 0]
+  is_active boolean [default: true]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (date, start_time, end_time) [unique]
+  }
+}
+
+Table maintenance_bookings {
+  id bigint [pk]
+  maintenance_slot_id bigint
+  ticket_id bigint
+  additional_details text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table maintenance_blocked_slots {
+  id bigint [pk]
+  slot_id bigint
+  reason varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table inventory_items {
+  id bigint [pk]
+  codigo_producto varchar(255)
+  identificador varchar(255) [null]
+  nombre varchar(255)
+  categoria varchar(255)
+  marca varchar(255) [null]
+  modelo varchar(255) [null]
+  numero_serie varchar(255) [null]
+  estado varchar(255) [default: 'disponible', note: 'disponible | prestado | mantenimiento | reservado | dañado']
+  es_funcional boolean [default: true]
+  ubicacion varchar(255) [null]
+  descripcion_general text [null]
+  notas text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table help_sections {
+  id bigint [pk]
+  title varchar(255)
+  content text
+  section_order integer [default: 0]
+  is_active boolean [default: true]
+  images text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table blocked_emails {
+  id bigint [pk]
+  email varchar(255) [unique]
+  reason varchar(255) [null]
+  blocked_by bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table it_equipos_asignados {
+  id bigint [pk]
+  user_id bigint
+  uuid_activos varchar(255)
+  nombre_equipo varchar(255)
+  modelo varchar(255) [null]
+  numero_serie varchar(255) [null]
+  photo_id integer [null]
+  nombre_usuario_pc varchar(255)
+  contrasena_equipo text
+  notas text [null]
+  es_principal boolean [default: false]
+  created_at datetime
+  updated_at datetime
+}
+
+Table it_equipos_correos {
+  id bigint [pk]
+  equipo_asignado_id bigint
+  correo varchar(255)
+  contrasena_correo text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table it_equipos_perifericos {
+  id bigint [pk]
+  equipo_asignado_id bigint
+  uuid_activos varchar(255)
+  nombre varchar(255)
+  tipo varchar(255) [null]
+  numero_serie varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO LOGÍSTICA — CATÁLOGOS
+// ========================
+Table aduanas {
+  id bigint [pk]
+  aduana varchar(2)
+  seccion varchar(1) [default: '0']
+  denominacion text
+  patente varchar(255) [null]
+  pais varchar(255) [default: 'MX']
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (aduana, seccion)
+  }
+}
+
+Table agentes_aduanales {
+  id bigint [pk]
+  agente_aduanal varchar(255)
+  created_at datetime
+  updated_at datetime
+}
+
+Table transportes {
+  id bigint [pk]
+  transporte varchar(255)
+  tipo_operacion varchar(255) [note: 'Aerea | Terrestre | Maritima | Ferrocarril']
+  created_at datetime
+  updated_at datetime
+}
+
+Table clientes_logistica {
+  id bigint [pk]
+  cliente varchar(255)
+  correos text [null]
+  periodicidad_reporte varchar(255) [null]
+  fecha_carga_excel timestamp [null]
+  ejecutivo_asignado_id bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table logistica_correos_cc {
+  id bigint [pk]
+  nombre varchar(255)
+  email varchar(255) [unique]
+  tipo varchar(255) [default: 'notificacion', note: 'administrador | supervisor | notificacion']
+  descripcion text [null]
+  activo boolean [default: true]
+  created_at datetime
+  updated_at datetime
+}
+
+Table pedimentos_catalogo {
+  id bigint [pk]
+  categoria varchar(255) [null]
+  clave varchar(50) [unique]
+  descripcion text
+  created_at datetime
+  updated_at datetime
+}
+
+Table incoterms {
+  id bigint [pk]
+  codigo varchar(10) [unique]
+  nombre varchar(100)
+  descripcion text [null]
+  grupo varchar(1) [note: 'E | F | C | D']
+  aplicable_importacion boolean [default: true]
+  aplicable_exportacion boolean [default: true]
+  activo boolean [default: true]
+  orden integer [default: 0]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO LOGÍSTICA — CAMPOS PERSONALIZADOS
+// ========================
+Table campos_personalizados_matriz {
+  id bigint [pk]
+  nombre varchar(100)
+  tipo varchar(30) [default: 'texto']
+  opciones json [null]
+  configuracion json [null]
+  requerido boolean [default: false]
+  activo boolean [default: true]
+  orden integer [default: 0]
+  mostrar_despues_de varchar(50) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table campo_personalizado_ejecutivo {
+  id bigint [pk]
+  campo_personalizado_id bigint
+  empleado_id bigint
+  orden integer [default: 0]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (campo_personalizado_id, empleado_id) [unique]
+  }
+}
+
+Table columnas_visibles_ejecutivo {
+  id bigint [pk]
+  empleado_id bigint
+  columna varchar(50)
+  visible boolean [default: false]
+  orden integer [default: 0]
+  idioma_nombres varchar(2) [default: 'es', note: 'es | en']
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (empleado_id, columna) [unique]
+  }
+}
+
+// ========================
+// MÓDULO LOGÍSTICA — OPERACIONES
+// ========================
+Table operaciones_logisticas {
+  id bigint [pk]
+  folio varchar(255) [null]
+  ejecutivo varchar(255) [null]
+  operacion varchar(255) [null]
+  cliente varchar(255) [null]
+  proveedor_o_cliente varchar(255) [null]
+  no_factura varchar(255) [null]
+  tipo_carga varchar(100) [null]
+  tipo_incoterm varchar(50) [null]
+  tipo_operacion_enum varchar(255) [null, note: 'Aerea | Terrestre | Maritima | Ferrocarril']
+  clave varchar(255) [null]
+  referencia_interna varchar(255) [null]
+  aduana varchar(255) [null]
+  agente_aduanal varchar(255) [null]
+  referencia_aa varchar(255) [null]
+  no_pedimento varchar(255) [null]
+  transporte varchar(255) [null]
+  guia_bl varchar(255) [null]
+  puerto_salida varchar(150) [null]
+  in_charge varchar(255) [null]
+  proveedor varchar(255) [null]
+  tipo_previo varchar(255) [null]
+  fecha_etd date [null]
+  fecha_zarpe date [null]
+  pedimento_en_carpeta boolean [null]
+  referencia_cliente varchar(255) [null]
+  mail_subject text [null]
+  status_calculado varchar(255) [default: 'In Process', note: 'In Process | Done | Out of Metric']
+  status_manual varchar(255) [default: 'In Process', note: 'In Process | Done | Out of Metric']
+  fecha_status_manual timestamp [null]
+  color_status varchar(255) [default: 'sin_fecha', note: 'verde | amarillo | rojo | sin_fecha']
+  dias_transcurridos_calculados integer [null]
+  fecha_ultimo_calculo timestamp [null]
+  comentarios text [null]
+  fecha_embarque date [null]
+  fecha_arribo_aduana date [null]
+  fecha_modulacion date [null]
+  fecha_arribo_planta date [null]
+  resultado integer [null]
+  target integer [null]
+  dias_transito integer [null]
+  post_operacion_id bigint [null]
+  post_operacion_status varchar(255) [default: 'In Process', note: 'In Process | Done | Out of Metric']
+  created_at datetime
+  updated_at datetime
+}
+
+Table post_operaciones {
+  id bigint [pk]
+  nombre varchar(255) [null]
+  descripcion text [null]
+  operacion_logistica_id bigint [null]
+  no_pedimento varchar(255) [null]
+  post_operacion varchar(255) [null]
+  status varchar(255) [default: 'Pendiente']
+  fecha_creacion timestamp [null]
+  fecha_completado timestamp [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table post_operacion_operacion {
+  id bigint [pk]
+  post_operacion_id bigint
+  operacion_logistica_id bigint
+  status varchar(255) [default: 'Pendiente', note: 'Pendiente | Completado | No Aplica']
+  fecha_asignacion timestamp
+  fecha_completado timestamp [null]
+  notas_especificas text [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (post_operacion_id, operacion_logistica_id) [unique]
+  }
+}
+
+Table operacion_comentarios {
+  id bigint [pk]
+  operacion_logistica_id bigint
+  comentario text
+  status_en_momento varchar(255) [null]
+  tipo_accion varchar(255) [default: 'comentario']
+  usuario_nombre varchar(255) [null]
+  usuario_id integer [null]
+  contexto_operacion text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table historico_matriz_sgm {
+  id bigint [pk]
+  operacion_logistica_id bigint
+  fecha_arribo_aduana date [null]
+  fecha_registro date
+  dias_transcurridos integer
+  target_dias integer
+  color_status varchar(255) [note: 'verde | amarillo | rojo']
+  operacion_status varchar(255) [note: 'In Process | Done | Out of Metric']
+  observaciones text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table pedimentos_operaciones {
+  id bigint [pk]
+  no_pedimento varchar(255)
+  clave varchar(10)
+  operacion_logistica_id bigint
+  estado_pago varchar(255) [default: 'pendiente', note: 'pendiente | pagado']
+  fecha_pago date [null]
+  monto decimal(10,2) [null]
+  moneda varchar(10) [default: 'MXN']
+  observaciones text [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (no_pedimento, operacion_logistica_id) [unique]
+  }
+}
+
+Table valores_campos_personalizados {
+  id bigint [pk]
+  operacion_logistica_id bigint
+  campo_personalizado_id bigint
+  valor text [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (operacion_logistica_id, campo_personalizado_id) [unique]
+  }
+}
+
+// ========================
+// MÓDULO LOGÍSTICA — MATRIZ SEGUIMIENTO
+// ========================
+Table matriz_seguimiento {
+  id bigint [pk]
+  ref_interna varchar(255) [null]
+  proveedor_cliente varchar(255) [null]
+  factura varchar(255) [null]
+  impo_ex varchar(255) [null, note: 'IMPO | EX']
+  tipo_operacion varchar(255) [null]
+  transporte varchar(255) [null]
+  aduana varchar(255) [null]
+  clave varchar(255) [null]
+  pedimento varchar(255) [null]
+  bl_guia varchar(255) [null]
+  etd date [null]
+  eta date [null]
+  previo date [null]
+  cita_despacho date [null]
+  arribo_planta date [null]
+  status varchar(255) [null]
+  resultado varchar(255) [null]
+  target varchar(255) [null]
+  comentarios text [null]
+  user_id bigint [null]
+  cliente_operacion bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table matriz_seguimiento_comentarios {
+  id bigint [pk]
+  matriz_seguimiento_id bigint
+  user_id bigint [null]
+  comentario text
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO LOGÍSTICA — MATRIZ APOYO
+// ========================
+Table matriz_apoyo_agentes {
+  id bigint [pk]
+  agente_aduanal varchar(255)
+  razon_social varchar(255) [null]
+  patente varchar(50) [null]
+  calificacion tinyint [null]
+  responsabilidad varchar(120)
+  nombre varchar(255) [null]
+  correo_electronico varchar(255) [null]
+  telefono varchar(50) [null]
+  comentarios text [null]
+  cliente varchar(255) [null]
+  aduana varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table matriz_apoyo_forwarders {
+  id bigint [pk]
+  cliente varchar(255)
+  aduana varchar(255) [null]
+  razon_social varchar(255) [null]
+  calificacion tinyint [null]
+  responsabilidad varchar(120)
+  nombre varchar(255) [null]
+  correo_electronico varchar(255) [null]
+  telefono varchar(50) [null]
+  comentarios text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table matriz_apoyo_navieras {
+  id bigint [pk]
+  cliente varchar(255) [null]
+  aduana varchar(255) [null]
+  razon_social varchar(255) [null]
+  calificacion tinyint [null]
+  responsabilidad varchar(120)
+  nombre varchar(255) [null]
+  correo_electronico varchar(255) [null]
+  telefono varchar(50) [null]
+  comentarios text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table matriz_apoyo_arrastres {
+  id bigint [pk]
+  cliente varchar(255) [null]
+  aduana varchar(255) [null]
+  razon_social varchar(255) [null]
+  calificacion tinyint [null]
+  responsabilidad varchar(120)
+  nombre varchar(255) [null]
+  correo_electronico varchar(255) [null]
+  telefono varchar(50) [null]
+  comentarios text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO LEGAL
+// ========================
+Table legal_categorias {
+  id bigint [pk]
+  nombre varchar(255)
+  parent_id bigint [null]
+  tipo varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table legal_proyectos {
+  id bigint [pk]
+  empresa varchar(255) [null]
+  categoria_id bigint
+  consulta text
+  resultado text [null]
+  tipo varchar(255) [null]
+  cliente_nombre varchar(255) [null]
+  cliente_contacto varchar(255) [null]
+  cliente_correo varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table legal_archivos {
+  id bigint [pk]
+  proyecto_id bigint
+  nombre varchar(255)
+  tipo varchar(255) [default: 'otro', note: 'excel | pdf | word | imagen | otro']
+  ruta varchar(255)
+  es_url boolean [default: false]
+  mime_type varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table legal_paginas {
+  id bigint [pk]
+  titulo varchar(255)
+  contenido text
+  ruta varchar(255) [unique]
+  activo boolean [default: true]
+  created_at datetime
+  updated_at datetime
+}
+
+// ========================
+// MÓDULO ADMINISTRACIÓN
+// ========================
+Table admin_clientes {
+  id bigint [pk]
+  nombre varchar(255)
+  contacto varchar(255) [null]
+  correo varchar(255) [null]
+  telefono varchar(255) [null]
+  empresa varchar(255) [null]
+  notas text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table admin_cliente_perfiles {
+  id bigint [pk]
+  cliente_id bigint
+  nombre_legal varchar(255) [null]
+  sectores_productivos text [null]
+  fecha_inicio_operaciones date [null]
+  partes_relacionadas_extranjero boolean [default: false]
+  nombre_corporativo varchar(255) [null]
+  ciudad_estado_pais_corporativo varchar(255) [null]
+  tiene_immex boolean [default: false]
+  immex_fecha date [null]
+  es_maquiladora boolean [default: false]
+  maquiladora_fecha date [null]
+  maquiladora_servicios boolean [default: false]
+  maquiladora_servicios_fecha date [null]
+  tiene_prosec boolean [default: false]
+  prosec_fecha date [null]
+  transferencias_otras_immex boolean [default: false]
+  empresa_certificada_oea boolean [default: false]
+  oea_fecha date [null]
+  empresa_certificada_iva_eps boolean [default: false]
+  iva_eps_fecha date [null]
+  iva_eps_modalidad varchar(255) [null]
+  utiliza_regla_octava boolean [default: false]
+  automotriz_deposito_fiscal boolean [default: false]
+  proveedor_autopartes boolean [default: false]
+  utiliza_almacen_fiscal boolean [default: false]
+  utiliza_regla_2 boolean [default: false]
+  estudio_precios_transferencia boolean [default: false]
+  estudio_valoracion_aduanera boolean [default: false]
+  importa_mercancias_nom boolean [default: false]
+  proveedores_sub_maquila boolean [default: false]
+  importa_precios_estimados boolean [default: false]
+  importa_permisos_avisos boolean [default: false]
+  destino_desperdicios text [null]
+  certificados_origen_tlcan boolean [default: false]
+  certificados_origen_tlcue boolean [default: false]
+  exporta_eua_canada boolean [default: false]
+  exporta_union_europea boolean [default: false]
+  emite_certificados_eua_canada boolean [default: false]
+  emite_certificados_union_europea boolean [default: false]
+  sistema_manufactura_erp varchar(255) [null]
+  sistema_anexo_24 varchar(255) [null]
+  recibe_info_agentes_aduanales boolean [default: false]
+  manual_procedimientos_ce boolean [default: false]
+  ultima_auditoria_interna text [null]
+  ultima_auditoria_externa text [null]
+  principales_hallazgos text [null]
+  auditado_shcp_se boolean [default: false]
+  auditado_shcp_se_fecha date [null]
+  observaciones_multas text [null]
+  pedimentos_anuales_importacion integer [null]
+  pedimentos_anuales_exportacion integer [null]
+  aduana_principal_importacion varchar(255) [null]
+  aduana_principal_exportacion varchar(255) [null]
+  proveedores_extranjeros_cantidad integer [null]
+  pais_origen_importaciones varchar(255) [null]
+  importa_fuera_tlcan boolean [default: false]
+  importa_fuera_tlcan_paises varchar(255) [null]
+  clientes_extranjeros_cantidad integer [null]
+  pais_destino_exportaciones varchar(255) [null]
+  insumos_importacion_importantes text [null]
+  productos_exportacion_representativos text [null]
+  informante_nombre varchar(255) [null]
+  informante_puesto varchar(255) [null]
+  informante_fecha date [null]
+  registro_marca boolean [default: false]
+  poliza_seguro varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+// ============================================================
+// BD SECUNDARIA: Auditoría Activos (conexión independiente)
+// ============================================================
+Table activos_devices {
+  id bigint [pk]
+  uuid varchar(36) [unique]
+  name varchar(255)
+  brand varchar(255)
+  model varchar(255)
+  serial_number varchar(255) [unique]
+  type varchar(255) [note: 'computer | peripheral | printer | other | mobiliario']
+  status varchar(255) [default: 'available', note: 'available | assigned | maintenance | broken']
+  purchase_date date [null]
+  warranty_expiration date [null]
+  notes text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_credentials {
+  id bigint [pk]
+  device_id bigint
+  username varchar(255) [null]
+  password varchar(255) [null]
+  email varchar(255) [null]
+  email_password varchar(255) [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_assignments {
+  id bigint [pk]
+  device_id bigint
+  user_id bigint [null]
+  assigned_to varchar(255) [null]
+  employee_id bigint [null]
+  assigned_at timestamp
+  returned_at timestamp [null]
+  notes text [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_employees {
+  id bigint [pk]
+  name varchar(255)
+  employee_id varchar(255) [unique]
+  department varchar(255) [null]
+  position varchar(255) [null]
+  phone varchar(255) [null]
+  is_active boolean [default: true]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_device_photos {
+  id bigint [pk]
+  device_id bigint
+  file_path varchar(255)
+  caption varchar(255) [null]
+  uploaded_by bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_device_documents {
+  id bigint [pk]
+  device_id bigint
+  file_path varchar(255)
+  original_name varchar(255)
+  type varchar(255) [default: 'otro', note: 'factura | garantia | contrato | manual | otro']
+  uploaded_by bigint [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table activos_users {
+  id bigint [pk]
+  name varchar(255)
+  email varchar(255) [unique]
+  password varchar(255)
+  created_at datetime
+  updated_at datetime
+}
+
+// ============================================================
+// RELACIONES
+// ============================================================
+
+// RH
+Ref: empleados.user_id > users.id
+Ref: empleados.subdepartamento_id > subdepartamentos.id
+Ref: asistencias.empleado_id > empleados.id
+Ref: aviso_asistencias.empleado_id > empleados.id
+Ref: aviso_asistencias.enviado_por > users.id
+Ref: empleado_documentos.empleado_id > empleados.id
+Ref: empleados_baja.empleado_id > empleados.id
+Ref: recordatorios.empleado_id > empleados.id
+Ref: recordatorios.creado_por > users.id
+
+// Capacitación
+Ref: capacitaciones.subido_por > users.id
+Ref: capacitacion_adjuntos.capacitacion_id > capacitaciones.id
+
+// Evaluación
+Ref: evaluaciones.empleado_id > empleados.id
+Ref: evaluaciones.evaluador_id > users.id
+Ref: evaluaciones.ventana_id > evaluacion_ventanas.id
+Ref: evaluacion_detalles.evaluacion_id > evaluaciones.id
+Ref: evaluacion_detalles.criterio_id > criterios_evaluacion.id
+
+// Actividades / Proyectos
+Ref: activities.user_id > users.id
+Ref: activities.proyecto_id > proyectos.id
+Ref: activity_histories.activity_id > activities.id
+Ref: activity_histories.user_id > users.id
+Ref: proyectos.usuario_id > users.id
+Ref: proyecto_usuarios.proyecto_id > proyectos.id
+Ref: proyecto_usuarios.usuario_id > users.id
+
+// Sistemas IT
+Ref: tickets.user_id > users.id
+Ref: tickets.maintenance_slot_id > maintenance_slots.id
+Ref: tickets.computer_profile_id > computer_profiles.id
+Ref: computer_profiles.last_ticket_id > tickets.id
+Ref: maintenance_bookings.maintenance_slot_id > maintenance_slots.id
+Ref: maintenance_bookings.ticket_id > tickets.id
+Ref: blocked_emails.blocked_by > users.id
+Ref: it_equipos_asignados.user_id > users.id
+Ref: it_equipos_correos.equipo_asignado_id > it_equipos_asignados.id
+Ref: it_equipos_perifericos.equipo_asignado_id > it_equipos_asignados.id
+
+// Logística
+Ref: clientes_logistica.ejecutivo_asignado_id > empleados.id
+Ref: operaciones_logisticas.post_operacion_id > post_operaciones.id
+Ref: post_operaciones.operacion_logistica_id > operaciones_logisticas.id
+Ref: post_operacion_operacion.post_operacion_id > post_operaciones.id
+Ref: post_operacion_operacion.operacion_logistica_id > operaciones_logisticas.id
+Ref: operacion_comentarios.operacion_logistica_id > operaciones_logisticas.id
+Ref: historico_matriz_sgm.operacion_logistica_id > operaciones_logisticas.id
+Ref: pedimentos_operaciones.operacion_logistica_id > operaciones_logisticas.id
+Ref: valores_campos_personalizados.operacion_logistica_id > operaciones_logisticas.id
+Ref: valores_campos_personalizados.campo_personalizado_id > campos_personalizados_matriz.id
+Ref: campo_personalizado_ejecutivo.campo_personalizado_id > campos_personalizados_matriz.id
+Ref: campo_personalizado_ejecutivo.empleado_id > empleados.id
+Ref: columnas_visibles_ejecutivo.empleado_id > empleados.id
+Ref: matriz_seguimiento_comentarios.matriz_seguimiento_id > matriz_seguimiento.id
+Ref: matriz_seguimiento_comentarios.user_id > users.id
+Ref: matriz_seguimiento.user_id > users.id
+
+// Legal
+Ref: legal_categorias.parent_id > legal_categorias.id
+Ref: legal_proyectos.categoria_id > legal_categorias.id
+Ref: legal_archivos.proyecto_id > legal_proyectos.id
+
+// Administración
+Ref: admin_cliente_perfiles.cliente_id > admin_clientes.id
+
+// Activos (Secondary DB)
+Ref: activos_credentials.device_id > activos_devices.id
+Ref: activos_assignments.device_id > activos_devices.id
+Ref: activos_assignments.user_id > activos_users.id
+Ref: activos_assignments.employee_id > activos_employees.id
+Ref: activos_device_photos.device_id > activos_devices.id
+Ref: activos_device_photos.uploaded_by > activos_users.id
+Ref: activos_device_documents.device_id > activos_devices.id
+Ref: activos_device_documents.uploaded_by > activos_users.id

@@ -20,7 +20,6 @@ class LogisticaEvaluacionSeeder extends Seeder
         // 1. SOFT SKILLS (COMPETENCIAS BLANDAS - RH)
         // ==========================================
         $softSkills = [
-            ['criterio' => 'Puntualidad y Asistencia', 'descripcion' => 'Cumple con horarios y asistencia.', 'peso' => 5],
             ['criterio' => 'Iniciativa y Proactividad', 'descripcion' => 'Actúa sin supervisión constante.', 'peso' => 5],
             ['criterio' => 'Trabajo en Equipo', 'descripcion' => 'Colabora para alcanzar objetivos comunes.', 'peso' => 5],
             ['criterio' => 'Comunicación Efectiva', 'descripcion' => 'Transmite ideas de forma clara y respetuosa.', 'peso' => 5],
@@ -80,7 +79,6 @@ class LogisticaEvaluacionSeeder extends Seeder
         // ==========================================
         // RH evalúa solo Soft Skills, por lo que el peso se redistribuye para sumar 100% (12.5 c/u)
         $evaluacionRH = [
-            ['criterio' => 'Puntualidad y Asistencia', 'descripcion' => 'Cumple con horarios y asistencia.', 'peso' => 12.5],
             ['criterio' => 'Iniciativa y Proactividad', 'descripcion' => 'Actúa sin supervisión constante.', 'peso' => 12.5],
             ['criterio' => 'Trabajo en Equipo', 'descripcion' => 'Colabora para alcanzar objetivos comunes.', 'peso' => 12.5],
             ['criterio' => 'Comunicación Efectiva', 'descripcion' => 'Transmite ideas de forma clara y respetuosa.', 'peso' => 12.5],
