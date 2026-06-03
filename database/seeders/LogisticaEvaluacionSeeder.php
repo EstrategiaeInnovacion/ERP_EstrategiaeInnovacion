@@ -39,11 +39,7 @@ class LogisticaEvaluacionSeeder extends Seeder
                 ['criterio' => 'Trato con Proveedores', 'descripcion' => 'Negociación efectiva con transportistas y agentes.', 'peso' => 20],
                 ['criterio' => 'Mejora de Rutas', 'descripcion' => 'Optimización de costos y tiempos de entrega.', 'peso' => 20],
             ],
-            'Legal' => [
-                ['criterio' => 'Elaboración de Contratos', 'descripcion' => 'Redacción precisa y legalmente blindada.', 'peso' => 20],
-                ['criterio' => 'Normatividad Vigente', 'descripcion' => 'Aplicación correcta de leyes actuales.', 'peso' => 20],
-                ['criterio' => 'Gestión de Litigios', 'descripcion' => 'Seguimiento oportuno a casos legales.', 'peso' => 20],
-            ],
+            'Legal' => [], // Movido a LegalEvaluacionSeeder
             'Anexo 24' => [
                 ['criterio' => 'Control de Inventarios (Anexo 24)', 'descripcion' => 'Exactitud en el registro de entradas y salidas.', 'peso' => 20],
                 ['criterio' => 'Reporte de Descargos', 'descripcion' => 'Generación correcta de reportes mensuales.', 'peso' => 20],
