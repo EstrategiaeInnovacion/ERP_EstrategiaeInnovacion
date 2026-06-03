@@ -40,22 +40,14 @@ class LogisticaEvaluacionSeeder extends Seeder
                 ['criterio' => 'Mejora de Rutas', 'descripcion' => 'Optimización de costos y tiempos de entrega.', 'peso' => 20],
             ],
             'Legal' => [], // Movido a LegalEvaluacionSeeder
-            'Anexo 24' => [
-                ['criterio' => 'Control de Inventarios (Anexo 24)', 'descripcion' => 'Exactitud en el registro de entradas y salidas.', 'peso' => 20],
-                ['criterio' => 'Reporte de Descargos', 'descripcion' => 'Generación correcta de reportes mensuales.', 'peso' => 20],
-                ['criterio' => 'Conciliación de Saldos', 'descripcion' => 'Validación de datos contra glosa (DataStage).', 'peso' => 20],
-            ],
+            'Anexo 24' => [], // Movido a Anexo24EvaluacionSeeder
             'Post-Operacion' => [], // Movido a PostOperacionEvaluacionSeeder
             'TI' => [
                 ['criterio' => 'Soporte a Usuarios', 'descripcion' => 'Atención rápida y efectiva a tickets.', 'peso' => 20],
                 ['criterio' => 'Mantenimiento de Redes', 'descripcion' => 'Estabilidad y seguridad de la infraestructura.', 'peso' => 20],
                 ['criterio' => 'Desarrollo e Innovación', 'descripcion' => 'Implementación de nuevas herramientas tecnológicas.', 'peso' => 20],
             ],
-            'Auditoria' => [
-                ['criterio' => 'Detección de Riesgos', 'descripcion' => 'Identificación proactiva de irregularidades.', 'peso' => 20],
-                ['criterio' => 'Calidad de Informes', 'descripcion' => 'Reportes claros, objetivos y basados en evidencia.', 'peso' => 20],
-                ['criterio' => 'Seguimiento a Hallazgos', 'descripcion' => 'Verificación del cierre de no conformidades.', 'peso' => 20],
-            ],
+            'Auditoria' => [], // Movido a AuditoriaEvaluacionSeeder
             'Pedimentos' => [
                 ['criterio' => 'Captura de Pedimentos', 'descripcion' => 'Velocidad y precisión en la captura de datos.', 'peso' => 20],
                 ['criterio' => 'Clasificación Arancelaria', 'descripcion' => 'Asignación correcta de fracciones.', 'peso' => 20],

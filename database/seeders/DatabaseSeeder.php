@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             LogisticaEvaluacionSeeder::class,
             LegalEvaluacionSeeder::class,
             PostOperacionEvaluacionSeeder::class,
+            Anexo24EvaluacionSeeder::class,
+            AuditoriaEvaluacionSeeder::class,
 
             
             // 4. Inventarios
