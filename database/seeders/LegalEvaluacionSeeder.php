@@ -10,6 +10,7 @@ use App\Models\EvaluacionVentana;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class LegalEvaluacionSeeder extends Seeder
 {
@@ -122,6 +123,15 @@ class LegalEvaluacionSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('=== LegalEvaluacionSeeder ===');
+
+        // 0. Asegurar columna tipo (por si la migración no se ha corrido aún)
+        if (!Schema::hasColumn('evaluaciones', 'tipo')) {
+            $this->command->warn('Columna tipo no existe, agregándola...');
+            Schema::table('evaluaciones', function ($table) {
+                $table->string('tipo', 20)->default('supervisor')->after('ventana_id');
+            });
+            $this->command->info('Columna tipo agregada.');
+        }
 
         // 1. Actualizar criterios de Legal
         $this->updateLegalCriteria();
