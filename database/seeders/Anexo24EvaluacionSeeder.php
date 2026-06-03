@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CriterioEvaluacion;
+use App\Models\EvaluacionDetalle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -26,9 +27,15 @@ class Anexo24EvaluacionSeeder extends Seeder
         ],
     ];
 
+    private array $oldCriteria = [
+        'Control de Inventarios (Anexo 24)',
+        'Reporte de Descargos',
+        'Conciliación de Saldos',
+    ];
+
     public function run(): void
     {
-        $this->command->info('=== Anexo24EvaluacionSeeder (solo criterios) ===');
+        $this->command->info('=== Anexo24EvaluacionSeeder ===');
 
         if (!Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function ($table) {
@@ -36,23 +43,21 @@ class Anexo24EvaluacionSeeder extends Seeder
             });
         }
 
-        $this->updateAnexo24Criteria();
+        $this->replaceCriteria();
 
         $this->command->info('=== Finalizado ===');
     }
 
-    private function updateAnexo24Criteria(): void
+    private function replaceCriteria(): void
     {
-        CriterioEvaluacion::where('area', 'Anexo 24')
-            ->whereIn('criterio', [
-                'Control de Inventarios (Anexo 24)',
-                'Reporte de Descargos',
-                'Conciliación de Saldos',
-            ])
-            ->orWhere(function ($q) {
-                $q->where('area', 'Anexo 24')->where('criterio', 'like', 'Cumplimiento%');
-            })
-            ->delete();
+        $oldIds = CriterioEvaluacion::where('area', 'Anexo 24')
+            ->whereIn('criterio', $this->oldCriteria)
+            ->pluck('id');
+
+        if ($oldIds->isNotEmpty()) {
+            EvaluacionDetalle::whereIn('criterio_id', $oldIds)->delete();
+            CriterioEvaluacion::whereIn('id', $oldIds)->delete();
+        }
 
         foreach ($this->anexo24HardSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(

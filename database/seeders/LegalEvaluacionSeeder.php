@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CriterioEvaluacion;
+use App\Models\EvaluacionDetalle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -31,9 +32,15 @@ class LegalEvaluacionSeeder extends Seeder
         ],
     ];
 
+    private array $oldCriteria = [
+        'Elaboración de Contratos',
+        'Normatividad Vigente',
+        'Gestión de Litigios',
+    ];
+
     public function run(): void
     {
-        $this->command->info('=== LegalEvaluacionSeeder (solo criterios) ===');
+        $this->command->info('=== LegalEvaluacionSeeder ===');
 
         if (!Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function ($table) {
@@ -41,19 +48,21 @@ class LegalEvaluacionSeeder extends Seeder
             });
         }
 
-        $this->updateLegalCriteria();
+        $this->replaceCriteria();
 
         $this->command->info('=== Finalizado ===');
     }
 
-    private function updateLegalCriteria(): void
+    private function replaceCriteria(): void
     {
-        CriterioEvaluacion::where('area', 'Legal')
-            ->whereIn('criterio', ['Elaboración de Contratos', 'Normatividad Vigente', 'Gestión de Litigios'])
-            ->orWhere(function ($q) {
-                $q->where('area', 'Legal')->where('criterio', 'like', 'Programas%');
-            })
-            ->delete();
+        $oldIds = CriterioEvaluacion::where('area', 'Legal')
+            ->whereIn('criterio', $this->oldCriteria)
+            ->pluck('id');
+
+        if ($oldIds->isNotEmpty()) {
+            EvaluacionDetalle::whereIn('criterio_id', $oldIds)->delete();
+            CriterioEvaluacion::whereIn('id', $oldIds)->delete();
+        }
 
         foreach ($this->legalHardSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(

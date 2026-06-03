@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CriterioEvaluacion;
+use App\Models\EvaluacionDetalle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -26,9 +27,15 @@ class PostOperacionEvaluacionSeeder extends Seeder
         ],
     ];
 
+    private array $oldCriteria = [
+        'Integración de Expedientes',
+        'Auditoría Preventiva',
+        'Atención al Cliente',
+    ];
+
     public function run(): void
     {
-        $this->command->info('=== PostOperacionEvaluacionSeeder (solo criterios) ===');
+        $this->command->info('=== PostOperacionEvaluacionSeeder ===');
 
         if (!Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function ($table) {
@@ -36,20 +43,21 @@ class PostOperacionEvaluacionSeeder extends Seeder
             });
         }
 
-        $this->updatePostOpCriteria();
+        $this->replaceCriteria();
 
         $this->command->info('=== Finalizado ===');
     }
 
-    private function updatePostOpCriteria(): void
+    private function replaceCriteria(): void
     {
-        CriterioEvaluacion::where('area', 'Post-Operacion')
-            ->whereIn('criterio', [
-                'Integración de Expedientes',
-                'Auditoría Preventiva',
-                'Atención al Cliente',
-            ])
-            ->delete();
+        $oldIds = CriterioEvaluacion::where('area', 'Post-Operacion')
+            ->whereIn('criterio', $this->oldCriteria)
+            ->pluck('id');
+
+        if ($oldIds->isNotEmpty()) {
+            EvaluacionDetalle::whereIn('criterio_id', $oldIds)->delete();
+            CriterioEvaluacion::whereIn('id', $oldIds)->delete();
+        }
 
         foreach ($this->postOpHardSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(

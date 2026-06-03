@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CriterioEvaluacion;
+use App\Models\EvaluacionDetalle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -26,9 +27,15 @@ class AuditoriaEvaluacionSeeder extends Seeder
         ],
     ];
 
+    private array $oldCriteria = [
+        'Detección de Riesgos',
+        'Calidad de Informes',
+        'Seguimiento a Hallazgos',
+    ];
+
     public function run(): void
     {
-        $this->command->info('=== AuditoriaEvaluacionSeeder (solo criterios) ===');
+        $this->command->info('=== AuditoriaEvaluacionSeeder ===');
 
         if (!Schema::hasColumn('evaluaciones', 'tipo')) {
             Schema::table('evaluaciones', function ($table) {
@@ -36,23 +43,21 @@ class AuditoriaEvaluacionSeeder extends Seeder
             });
         }
 
-        $this->updateAuditoriaCriteria();
+        $this->replaceCriteria();
 
         $this->command->info('=== Finalizado ===');
     }
 
-    private function updateAuditoriaCriteria(): void
+    private function replaceCriteria(): void
     {
-        CriterioEvaluacion::where('area', 'Auditoria')
-            ->whereIn('criterio', [
-                'Detección de Riesgos',
-                'Calidad de Informes',
-                'Seguimiento a Hallazgos',
-            ])
-            ->orWhere(function ($q) {
-                $q->where('area', 'Auditoria')->where('criterio', 'like', 'Cumplimiento%');
-            })
-            ->delete();
+        $oldIds = CriterioEvaluacion::where('area', 'Auditoria')
+            ->whereIn('criterio', $this->oldCriteria)
+            ->pluck('id');
+
+        if ($oldIds->isNotEmpty()) {
+            EvaluacionDetalle::whereIn('criterio_id', $oldIds)->delete();
+            CriterioEvaluacion::whereIn('id', $oldIds)->delete();
+        }
 
         foreach ($this->auditoriaHardSkills as $skill) {
             CriterioEvaluacion::updateOrCreate(
