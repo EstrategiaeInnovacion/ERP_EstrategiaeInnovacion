@@ -571,57 +571,40 @@
                                   class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
                     </div>
 
-                    {{-- ---- Emails ---- --}}
+                    {{-- ---- Correo ---- --}}
                     <div class="border-t border-slate-100 pt-4 mb-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                </svg>
-                                Correos del Equipo
-                            </h3>
-                            <button type="button" @click="addCorreo()"
-                                    class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg px-2.5 py-1.5 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Añadir correo
-                            </button>
-                        </div>
-
-                        <div class="space-y-2">
-                            <template x-for="(c, i) in correos" :key="i">
-                                <div class="flex items-center gap-2">
-                                    <input x-model="c.correo"
-                                           type="email" placeholder="correo@dominio.com"
-                                           class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-0">
-                                    <div class="relative w-44 shrink-0">
-                                        <input x-model="c.contrasena"
-                                               :type="c.show ? 'text' : 'password'"
-                                               placeholder="Contraseña"
-                                               class="w-full border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                        <button type="button" @click="c.show = !c.show"
-                                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            <svg x-show="!c.show" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                            <svg x-show="c.show" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <button type="button" @click="removeCorreo(i)"
-                                            class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Correo del Equipo
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Dirección de correo</label>
+                                <input x-model="correo" type="email" placeholder="correo@dominio.com"
+                                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña del correo</label>
+                                <div class="relative">
+                                    <input x-model="contrasenaCorreo" :type="showCorreoCont ? 'text' : 'password'"
+                                           placeholder="••••••••"
+                                           class="w-full border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <button type="button" @click="showCorreoCont = !showCorreoCont"
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <svg x-show="!showCorreoCont" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <svg x-show="showCorreoCont" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
                                         </svg>
                                     </button>
                                 </div>
-                            </template>
-                            <p x-show="!correos.length" class="text-xs text-slate-400 italic">Sin correos agregados.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -723,10 +706,10 @@ function equipoModal() {
         nombreUsuarioPc: '',
         contrasenaEquipo: '',
         showCont: false,
+        correo: '',
+        contrasenaCorreo: '',
+        showCorreoCont: false,
         notas: '',
-
-        // emails
-        correos: [],
 
         // peripherals
         perifericos: [],
@@ -757,11 +740,13 @@ function equipoModal() {
             this.userId = '';
             this.device = null;
             this.disponibles = [];
-            this.nombreUsuarioPc = '';
+            this.nombreUsuarioPc  = '';
             this.contrasenaEquipo = '';
-            this.showCont = false;
-            this.notas = '';
-            this.correos = [];
+            this.showCont         = false;
+            this.correo           = '';
+            this.contrasenaCorreo = '';
+            this.showCorreoCont   = false;
+            this.notas            = '';
             this.perifericos = [];
             this.perifericos_disponibles = [];
             this.selectedPerUuid = '';
@@ -866,14 +851,6 @@ function equipoModal() {
             };
         },
 
-        // ---- emails ----
-        addCorreo() {
-            this.correos.push({ correo: '', contrasena: '', show: false });
-        },
-        removeCorreo(i) {
-            this.correos.splice(i, 1);
-        },
-
         // ---- peripherals ----
         async cargarPerifericos() {
             try {
@@ -927,10 +904,9 @@ function equipoModal() {
                 photo_id:          this.device.photo_id,
                 nombre_usuario_pc: this.nombreUsuarioPc.trim(),
                 contrasena_equipo: this.contrasenaEquipo,
+                correo:            this.correo.trim() || null,
+                contrasena_correo: this.contrasenaCorreo || null,
                 notas:             this.notas.trim() || null,
-                correos:           this.correos
-                    .filter(c => c.correo.trim())
-                    .map(c => ({ correo: c.correo.trim(), contrasena_correo: c.contrasena || null })),
                 perifericos:       this.perifericos.map(p => ({
                     uuid:   p.uuid,
                     nombre: p.nombre,

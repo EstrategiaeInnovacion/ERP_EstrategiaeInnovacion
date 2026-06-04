@@ -522,9 +522,9 @@
             </tr>
             <tr>
                 <th>Usuario de PC</th>
-                <td>{{ $equipoPrincipal->nombre_usuario_pc }}</td>
+                <td>{{ ($activosCreds[$equipoPrincipal->uuid_activos] ?? null)?->username ?? $equipoPrincipal->nombre_usuario_pc }}</td>
                 <th>Contraseña de equipo</th>
-                <td style="font-family:monospace;">{{ $equipoPrincipal->contrasena_descifrada }}</td>
+                <td style="font-family:monospace;">{{ ($activosCreds[$equipoPrincipal->uuid_activos] ?? null)?->password ?? '—' }}</td>
             </tr>
             @if($equipoPrincipal->notas)
             <tr>
@@ -534,25 +534,22 @@
             @endif
         </table>
 
-        {{-- Correos del equipo principal --}}
-        @if($equipoPrincipal->correos->isNotEmpty())
-        <div class="section-header">CORREOS ELECTRÓNICOS</div>
+        {{-- Correo del equipo principal --}}
+        @php $credPrincipal = $activosCreds[$equipoPrincipal->uuid_activos] ?? null; @endphp
+        @if($credPrincipal?->email)
+        <div class="section-header">CORREO ELECTRÓNICO</div>
         <table class="spec-table">
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>Correo electrónico</th>
                     <th>Contraseña</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($equipoPrincipal->correos as $i => $correo)
                 <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>{{ $correo->correo }}</td>
-                    <td style="font-family:monospace;">{{ $correo->contrasena_descifrada ?? '—' }}</td>
+                    <td>{{ $credPrincipal->email }}</td>
+                    <td style="font-family:monospace;">{{ $credPrincipal->email_password ?? '—' }}</td>
                 </tr>
-                @endforeach
             </tbody>
         </table>
         @endif
@@ -607,9 +604,9 @@
             </tr>
             <tr>
                 <th>Usuario de PC</th>
-                <td>{{ $sec->nombre_usuario_pc }}</td>
+                <td>{{ ($activosCreds[$sec->uuid_activos] ?? null)?->username ?? $sec->nombre_usuario_pc }}</td>
                 <th>Contraseña de equipo</th>
-                <td style="font-family:monospace;">{{ $sec->contrasena_descifrada }}</td>
+                <td style="font-family:monospace;">{{ ($activosCreds[$sec->uuid_activos] ?? null)?->password ?? '—' }}</td>
             </tr>
             @if($sec->notas)
             <tr>
@@ -619,24 +616,22 @@
             @endif
         </table>
 
-        @if($sec->correos->isNotEmpty())
+        @php $credSec = $activosCreds[$sec->uuid_activos] ?? null; @endphp
+        @if($credSec?->email)
         <table class="spec-table" style="margin-top:-9pt;">
             <thead>
                 <tr>
-                    <th colspan="3" style="background:#e8f4e8;color:#166534;">Correos — Equipo Secundario #{{ $si + 1 }}</th>
+                    <th colspan="2" style="background:#e8f4e8;color:#166534;">Correo — Equipo Secundario #{{ $si + 1 }}</th>
                 </tr>
                 <tr>
-                    <th>#</th><th>Correo</th><th>Contraseña</th>
+                    <th>Correo</th><th>Contraseña</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($sec->correos as $ci => $correo)
                 <tr>
-                    <td>{{ $ci + 1 }}</td>
-                    <td>{{ $correo->correo }}</td>
-                    <td style="font-family:monospace;">{{ $correo->contrasena_descifrada ?? '—' }}</td>
+                    <td>{{ $credSec->email }}</td>
+                    <td style="font-family:monospace;">{{ $credSec->email_password ?? '—' }}</td>
                 </tr>
-                @endforeach
             </tbody>
         </table>
         @endif

@@ -207,6 +207,148 @@
                     @endif
                 </div>
 
+                {{-- Credenciales --}}
+                @unless($soloLectura ?? false)
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5"
+                     x-data="{
+                        editando: false,
+                        username: '{{ addslashes($credencial?->username ?? '') }}',
+                        password: '',
+                        email: '{{ addslashes($credencial?->email ?? '') }}',
+                        emailPassword: '',
+                        showPass: false, showEmailPass: false,
+                        guardando: false, msgOk: '', msgErr: '',
+                        async guardar() {
+                            this.guardando = true; this.msgOk = ''; this.msgErr = '';
+                            try {
+                                const r = await fetch('{{ route('admin.activos.credenciales.update', $dispositivo->uuid) }}', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+                                    body: JSON.stringify({ username: this.username||null, password: this.password||null, email: this.email||null, email_password: this.emailPassword||null })
+                                });
+                                const d = await r.json();
+                                if (d.success) { this.msgOk = d.message; this.editando = false; setTimeout(()=>location.reload(), 800); }
+                                else this.msgErr = d.message;
+                            } catch { this.msgErr = 'Error de conexión.'; }
+                            finally { this.guardando = false; }
+                        }
+                     }">
+
+                    {{-- Header con botón editar --}}
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            Credenciales
+                        </h2>
+                        <button type="button" @click="editando = !editando"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                                :class="editando ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <span x-text="editando ? 'Cancelar' : 'Editar'"></span>
+                        </button>
+                    </div>
+
+                    {{-- Modo lectura --}}
+                    <dl x-show="!editando" class="space-y-4 text-sm">
+                        @if($credencial?->username)
+                        <div>
+                            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Usuario del equipo</dt>
+                            <dd class="font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">{{ $credencial->username }}</dd>
+                        </div>
+                        @endif
+                        @if($credencial?->password)
+                        <div>
+                            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Contraseña del equipo</dt>
+                            <dd class="flex items-center gap-2">
+                                <div class="flex-1 font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 overflow-hidden">
+                                    <span id="pass-activo-equipo" class="tracking-[0.2em]">••••••••</span>
+                                </div>
+                                <button type="button" onclick="togglePassActivo('pass-activo-equipo',this)" data-secret="{{ $credencial->password }}"
+                                        class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 bg-white transition shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </dd>
+                        </div>
+                        @endif
+                        @if($credencial?->email)
+                        <div>
+                            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Correo</dt>
+                            <dd class="text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 break-all">{{ $credencial->email }}</dd>
+                        </div>
+                        @endif
+                        @if($credencial?->email_password)
+                        <div>
+                            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Contraseña del correo</dt>
+                            <dd class="flex items-center gap-2">
+                                <div class="flex-1 font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 overflow-hidden">
+                                    <span id="pass-activo-correo" class="tracking-[0.2em]">••••••••</span>
+                                </div>
+                                <button type="button" onclick="togglePassActivo('pass-activo-correo',this)" data-secret="{{ $credencial->email_password }}"
+                                        class="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 border border-slate-200 bg-white transition shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </dd>
+                        </div>
+                        @endif
+                        @if(! $credencial)
+                        <p class="text-sm text-slate-400 italic">Sin credenciales registradas. Usa Editar para añadir.</p>
+                        @endif
+                    </dl>
+
+                    {{-- Modo edición --}}
+                    <div x-show="editando" x-cloak class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Usuario del equipo</label>
+                                <input type="text" x-model="username" placeholder="ej. jperez"
+                                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Contraseña del equipo <span class="text-slate-400 font-normal">(vacío = no cambiar)</span></label>
+                                <div class="relative">
+                                    <input :type="showPass ? 'text' : 'password'" x-model="password" placeholder="••••••••"
+                                           class="w-full border border-slate-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                                    <button type="button" @click="showPass=!showPass" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Correo</label>
+                                <input type="email" x-model="email" placeholder="correo@dominio.com"
+                                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-600">Contraseña del correo <span class="text-slate-400 font-normal">(vacío = no cambiar)</span></label>
+                                <div class="relative">
+                                    <input :type="showEmailPass ? 'text' : 'password'" x-model="emailPassword" placeholder="••••••••"
+                                           class="w-full border border-slate-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                                    <button type="button" @click="showEmailPass=!showEmailPass" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <template x-if="msgOk"><p class="text-sm text-emerald-600 font-medium" x-text="msgOk"></p></template>
+                        <template x-if="msgErr"><p class="text-sm text-red-600 font-medium" x-text="msgErr"></p></template>
+                        <div class="flex justify-end gap-3 pt-1">
+                            <button type="button" @click="editando=false" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl hover:bg-slate-100 transition">Cancelar</button>
+                            <button type="button" @click="guardar()" :disabled="guardando"
+                                    class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition">
+                                <svg x-show="guardando" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                                <span x-text="guardando ? 'Guardando...' : 'Guardar cambios'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endunless
+
                 {{-- Documentos --}}
                 @if(count($documentos) > 0)
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
@@ -437,6 +579,21 @@
 @endunless
 
 @push('scripts')
+<script>
+const _revealedActivo = {};
+function togglePassActivo(spanId, btn) {
+    const span = document.getElementById(spanId);
+    const secret = btn.dataset.secret;
+    _revealedActivo[spanId] = !_revealedActivo[spanId];
+    if (_revealedActivo[spanId]) {
+        span.textContent = secret;
+        span.classList.remove('tracking-[0.2em]');
+    } else {
+        span.textContent = '••••••••';
+        span.classList.add('tracking-[0.2em]');
+    }
+}
+</script>
 <script src="{{ asset('vendor/qrcode.min.js') }}"></script>
 <script>
 (function () {

@@ -17,6 +17,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        try {
+            DB::connection($this->connection)->getPdo();
+        } catch (\Exception) {
+            return; // BD de Activos no disponible en este entorno
+        }
+
         DB::connection($this->connection)->statement(
             "ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL"
         );
@@ -27,6 +33,12 @@ return new class extends Migration
      */
     public function down(): void
     {
+        try {
+            DB::connection($this->connection)->getPdo();
+        } catch (\Exception) {
+            return;
+        }
+
         DB::connection($this->connection)->statement(
             "UPDATE devices SET type = 'other' WHERE type = 'mobiliario'"
         );

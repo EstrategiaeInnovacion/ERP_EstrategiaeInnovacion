@@ -777,22 +777,18 @@ class ActivosDbService
                 'updated_at'          => now(),
             ]);
 
-            // Credenciales opcionales
-            if (!empty($data['cred_username']) || !empty($data['cred_email'])) {
+            // Credenciales opcionales (solo username + password; emails se gestionan en ERP)
+            if (!empty($data['cred_username']) || !empty($data['cred_password'])) {
                 $device = $conn->table('devices')->where('uuid', $uuid)->first();
                 if ($device) {
                     $conn->table('credentials')->insert([
-                        'device_id'      => $device->id,
-                        'username'        => $data['cred_username'] ?? null,
-                        'password'        => !empty($data['cred_password'])
+                        'device_id'  => $device->id,
+                        'username'   => $data['cred_username'] ?? null,
+                        'password'   => !empty($data['cred_password'])
                             ? encrypt($data['cred_password'])
                             : null,
-                        'email'           => $data['cred_email'] ?? null,
-                        'email_password'  => !empty($data['cred_email_password'])
-                            ? encrypt($data['cred_email_password'])
-                            : null,
-                        'created_at'      => now(),
-                        'updated_at'      => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             }
@@ -833,22 +829,18 @@ class ActivosDbService
                 'updated_at'          => now(),
             ]);
 
-            // Credenciales: upsert en tabla credentials
+            // Credenciales: upsert en tabla credentials (solo username + password; emails en ERP)
             $credencial = $conn->table('credentials')->where('device_id', $device->id)->first();
 
-            $hasCredData = !empty($data['cred_username']) || !empty($data['cred_email']);
+            $hasCredData = !empty($data['cred_username']) || !empty($data['cred_password']);
 
             if ($hasCredData) {
                 $credData = [
-                    'username'       => $data['cred_username'] ?? null,
-                    'email'          => $data['cred_email'] ?? null,
-                    'updated_at'     => now(),
+                    'username'   => $data['cred_username'] ?? null,
+                    'updated_at' => now(),
                 ];
                 if (!empty($data['cred_password'])) {
                     $credData['password'] = encrypt($data['cred_password']);
-                }
-                if (!empty($data['cred_email_password'])) {
-                    $credData['email_password'] = encrypt($data['cred_email_password']);
                 }
 
                 if ($credencial) {
@@ -859,7 +851,6 @@ class ActivosDbService
                     $conn->table('credentials')->insert($credData);
                 }
             } elseif ($credencial) {
-                // Si se borraron los datos de credenciales, eliminar el registro
                 $conn->table('credentials')->where('id', $credencial->id)->delete();
             }
 
@@ -867,6 +858,120 @@ class ActivosDbService
 
         } catch (\Exception $e) {
             Log::error("ActivosDb: updateDevice [{$uuid}] — " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene la credencial de un dispositivo buscándolo por UUID.
+     * Retorna solo username + password (los campos de email se ignoran).
+     */
+    public function getDeviceCredentialByUuid(string $uuid): ?object
+    {
+        try {
+            $device = $this->conn()->table('devices')->where('uuid', $uuid)->first(['id']);
+            if (! $device) {
+                return null;
+            }
+            return $this->getDeviceCredential($device->id);
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: getDeviceCredentialByUuid [{$uuid}] — " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene múltiples credenciales de una vez dado un array de UUIDs.
+     * Retorna array keyed by uuid. Útil para evitar N+1 en listados.
+     */
+    public function getCredentialsByUuids(array $uuids): array
+    {
+        if (empty($uuids)) {
+            return [];
+        }
+        try {
+            $conn    = $this->conn();
+            $devices = $conn->table('devices')
+                ->whereIn('uuid', $uuids)
+                ->get(['id', 'uuid'])
+                ->keyBy('id');
+
+            if ($devices->isEmpty()) {
+                return [];
+            }
+
+            $creds = $conn->table('credentials')
+                ->whereIn('device_id', $devices->keys()->toArray())
+                ->get();
+
+            $result = [];
+            foreach ($creds as $cred) {
+                $device = $devices->get($cred->device_id);
+                if (! $device) {
+                    continue;
+                }
+                if ($cred->password) {
+                    try { $cred->password = decrypt($cred->password); } catch (\Throwable) { $cred->password = null; }
+                }
+                if ($cred->email_password) {
+                    try { $cred->email_password = decrypt($cred->email_password); } catch (\Throwable) { $cred->email_password = null; }
+                }
+                $result[$device->uuid] = $cred;
+            }
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('ActivosDb: getCredentialsByUuids — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Crea o actualiza solo username + password en la tabla credentials de Activos.
+     * No toca los campos de correo (email/email_password).
+     */
+    public function upsertCredentialByUuid(
+        string $uuid,
+        ?string $username,
+        ?string $password,
+        ?string $email = null,
+        ?string $emailPassword = null
+    ): bool {
+        try {
+            $conn   = $this->conn();
+            $device = $conn->table('devices')->where('uuid', $uuid)->first(['id']);
+
+            if (! $device) {
+                Log::warning("ActivosDb: upsertCredential — dispositivo no encontrado: {$uuid}");
+                return false;
+            }
+
+            $existing = $conn->table('credentials')->where('device_id', $device->id)->first(['id']);
+
+            $data = [
+                'username'   => $username,
+                'updated_at' => now(),
+            ];
+            if ($password !== null && $password !== '') {
+                $data['password'] = encrypt($password);
+            }
+            if ($email !== null) {
+                $data['email'] = $email;
+            }
+            if ($emailPassword !== null && $emailPassword !== '') {
+                $data['email_password'] = encrypt($emailPassword);
+            }
+
+            if ($existing) {
+                $conn->table('credentials')->where('id', $existing->id)->update($data);
+            } else {
+                $data['device_id']  = $device->id;
+                $data['created_at'] = now();
+                $conn->table('credentials')->insert($data);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error("ActivosDb: upsertCredential [{$uuid}] — " . $e->getMessage());
             return false;
         }
     }

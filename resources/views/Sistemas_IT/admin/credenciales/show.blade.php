@@ -153,18 +153,19 @@
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Usuario de PC</p>
                         <p class="text-sm font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
-                            {{ $credencial->nombre_usuario_pc }}
+                            {{ $activosCred?->username ?? $credencial->nombre_usuario_pc }}
                         </p>
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Contraseña del Equipo</p>
+                        @if($activosCred?->password)
                         <div class="flex items-center gap-2">
                             <div class="flex-1 text-sm font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 tracking-[0.25em] overflow-hidden">
                                 <span id="pass-equipo">••••••••••</span>
                             </div>
                             <button type="button"
                                     onclick="togglePass('pass-equipo', this)"
-                                    data-secret="{{ $credencial->contrasena_descifrada }}"
+                                    data-secret="{{ $activosCred->password }}"
                                     class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 bg-white transition shrink-0"
                                     title="Mostrar / ocultar contraseña">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,6 +174,11 @@
                                 </svg>
                             </button>
                         </div>
+                        @else
+                        <p class="text-sm text-slate-400 italic bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                            Sin contraseña en Activos
+                        </p>
+                        @endif
                     </div>
                 </div>
 
@@ -185,52 +191,53 @@
             </div>
         </div>
 
-        {{-- ---- Card: Correos ---- --}}
+        {{-- ---- Card: Correo del Equipo ---- --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
                 <h2 class="text-sm font-bold text-slate-600 flex items-center gap-2">
                     <svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
-                    CORREOS DEL EQUIPO
+                    CORREO DEL EQUIPO
                 </h2>
-                <span class="text-xs bg-sky-100 text-sky-700 font-bold rounded-full px-2.5 py-1">
-                    {{ $credencial->correos->count() }}
-                </span>
             </div>
             <div class="px-6 py-5">
-                @if($credencial->correos->isEmpty())
-                    <p class="text-sm text-slate-400 italic">Sin correos registrados.</p>
-                @else
-                <div class="space-y-3">
-                    @foreach($credencial->correos as $correo)
-                    <div class="flex items-center gap-3 bg-sky-50 border border-sky-100 rounded-xl px-4 py-3">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-800 truncate">{{ $correo->correo }}</p>
-                        </div>
-                        @if($correo->contrasena_correo)
-                        <div class="flex items-center gap-2 shrink-0">
-                            <div class="text-sm font-mono text-slate-700 tracking-[0.2em]">
-                                <span id="pass-correo-{{ $correo->id }}">•••••••</span>
+                @if($activosCred?->email)
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Dirección de correo</p>
+                        <p class="text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 break-all">
+                            {{ $activosCred->email }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Contraseña del correo</p>
+                        @if($activosCred->email_password)
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 font-mono font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 overflow-hidden">
+                                <span id="pass-correo" class="tracking-[0.2em]">•••••••</span>
                             </div>
                             <button type="button"
-                                    onclick="togglePass('pass-correo-{{ $correo->id }}', this)"
-                                    data-secret="{{ $correo->contrasena_descifrada }}"
-                                    class="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-100 transition"
+                                    onclick="togglePass('pass-correo', this)"
+                                    data-secret="{{ $activosCred->email_password }}"
+                                    class="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 border border-slate-200 bg-white transition shrink-0"
                                     title="Mostrar / ocultar contraseña">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                             </button>
                         </div>
                         @else
-                        <span class="text-xs text-slate-400 shrink-0">Sin contraseña</span>
+                        <p class="text-sm text-slate-400 italic bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                            Sin contraseña en Activos
+                        </p>
                         @endif
                     </div>
-                    @endforeach
                 </div>
+                @else
+                <p class="text-sm text-slate-400 italic">Sin correo registrado.</p>
                 @endif
             </div>
         </div>
@@ -713,53 +720,41 @@
                 </div>
             </div>
 
-            {{-- Correos --}}
+            {{-- Correo --}}
             <div class="space-y-3 border-t border-slate-100 pt-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <svg class="w-3.5 h-3.5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                        </svg>
-                        Correos
-                    </h3>
-                    <button type="button" @click="addCorreo()"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-lg hover:bg-sky-100 transition border border-sky-200">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
-                        Agregar
-                    </button>
-                </div>
-                <template x-for="(c, i) in correos" :key="i">
-                    <div class="flex items-center gap-2">
-                        <input type="email" x-model="c.correo" placeholder="correo@ejemplo.com"
-                               class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white min-w-0">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Correo del equipo
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Dirección de correo</label>
+                        <input type="email" x-model="correo" placeholder="correo@dominio.com"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-600">Contraseña del correo <span class="text-slate-400 font-normal">(dejar vacío para no cambiar)</span></label>
                         <div class="relative">
-                            <input :type="c.showPass ? 'text' : 'password'" x-model="c.contrasena_correo"
-                                   :placeholder="c.id ? 'Nueva contraseña' : 'Contraseña'"
-                                   class="w-36 border border-slate-200 rounded-xl px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
-                            <button type="button" @click="c.showPass = !c.showPass"
-                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                <svg x-show="!c.showPass" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <input :type="showCorreoCont ? 'text' : 'password'" x-model="contrasenaCorreo"
+                                   placeholder="••••••••"
+                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                            <button type="button" @click="showCorreoCont = !showCorreoCont"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <svg x-show="!showCorreoCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
-                                <svg x-show="c.showPass" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg x-show="showCorreoCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
                                 </svg>
                             </button>
                         </div>
-                        <button type="button" @click="removeCorreo(i)"
-                                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
                     </div>
-                </template>
-                <p x-show="!correos.length" class="text-xs text-slate-400 italic">Sin correos. Usa "Agregar" para añadir uno.</p>
+                </div>
             </div>
 
             {{-- Periféricos --}}
@@ -846,9 +841,6 @@
 @endunless
 
 @php
-    $_editCorreos = $credencial->correos->map(function ($c) {
-        return ['id' => $c->id, 'correo' => $c->correo, 'contrasena_correo' => ''];
-    });
     $_editPerifericos = $credencial->perifericos->map(function ($p) {
         return [
             'id'     => $p->id,
@@ -887,19 +879,17 @@ function cerrarEditModal() {
 
 function editForm() {
     return {
-        // Main fields
-        nombreEquipo:    @json($credencial->nombre_equipo),
-        modelo:          @json($credencial->modelo ?? ''),
-        numeroSerie:     @json($credencial->numero_serie ?? ''),
-        nombreUsuarioPc: @json($credencial->nombre_usuario_pc),
+        nombreEquipo:     @json($credencial->nombre_equipo),
+        modelo:           @json($credencial->modelo ?? ''),
+        numeroSerie:      @json($credencial->numero_serie ?? ''),
+        nombreUsuarioPc:  @json($credencial->nombre_usuario_pc),
         contrasenaEquipo: '',
-        showCont: false,
-        notas:           @json($credencial->notas ?? ''),
+        showCont:         false,
+        correo:           @json($activosCred?->email ?? ''),
+        contrasenaCorreo: '',
+        showCorreoCont:   false,
+        notas:            @json($credencial->notas ?? ''),
 
-        // Correos: id=null for new rows
-        correos: @json($_editCorreos),
-
-        // Periféricos: id=null for new rows
         perifericos: @json($_editPerifericos),
 
         // Available peripherals loaded from Activos
@@ -926,14 +916,6 @@ function editForm() {
 
         get perifericosDisponiblesParaAgregar() {
             return this.disponibles.filter(d => d.type !== 'computer' && !this.perifericos.find(p => p.uuid === d.uuid));
-        },
-
-        addCorreo() {
-            this.correos.push({ id: null, correo: '', contrasena_correo: '', showPass: false });
-        },
-
-        removeCorreo(i) {
-            this.correos.splice(i, 1);
         },
 
         addPeriferico() {
@@ -972,14 +954,9 @@ function editForm() {
                         numero_serie:      this.numeroSerie.trim() || null,
                         nombre_usuario_pc: this.nombreUsuarioPc.trim(),
                         contrasena_equipo: this.contrasenaEquipo || null,
+                        correo:            this.correo.trim() || null,
+                        contrasena_correo: this.contrasenaCorreo || null,
                         notas:             this.notas.trim() || null,
-                        correos:           this.correos
-                            .filter(c => c.correo.trim())
-                            .map(c => ({
-                                id:                c.id,
-                                correo:            c.correo.trim(),
-                                contrasena_correo: c.contrasena_correo || null,
-                            })),
                         perifericos: this.perifericos.map(p => ({
                             id:     p.id,
                             uuid:   p.uuid,
@@ -1014,6 +991,9 @@ function secEquipoForm() {
         nombreUsuarioPc: '',
         contrasenaEquipo: '',
         showCont: false,
+        correo: '',
+        contrasenaCorreo: '',
+        showCorreoCont: false,
         notas: '',
         assignNew: false,
         perifericos: [],
@@ -1043,10 +1023,12 @@ function secEquipoForm() {
             this.showFormSecundario = false;
             this.step = 'pick_device';
             this.device = null;
-            this.nombreUsuarioPc = '';
+            this.nombreUsuarioPc  = '';
             this.contrasenaEquipo = '';
-            this.notas = '';
-            this.assignNew = false;
+            this.correo           = '';
+            this.contrasenaCorreo = '';
+            this.notas            = '';
+            this.assignNew        = false;
             this.perifericos = [];
             this.selectedPerUuid = '';
             this.errorMsg = '';
@@ -1102,6 +1084,8 @@ function secEquipoForm() {
                         photo_id:          this.device.photo_id,
                         nombre_usuario_pc: this.nombreUsuarioPc.trim(),
                         contrasena_equipo: this.contrasenaEquipo,
+                        correo:            this.correo.trim() || null,
+                        contrasena_correo: this.contrasenaCorreo || null,
                         notas:             this.notas.trim() || null,
                         assign_new:        this.assignNew,
                         perifericos:       this.perifericos.map(p => ({

@@ -452,6 +452,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::delete('/{uuid}', 'destroy')->name('destroy');
         Route::post('/{uuid}/asignar', 'assign')->name('assign');
         Route::post('/{uuid}/devolver', 'returnDevice')->name('return');
+        Route::patch('/{uuid}/credenciales', 'updateCredencial')->name('credenciales.update');
     });
 
     // Contraseñas y Equipos IT

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empleado;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ActivosController extends Controller
 {
@@ -295,5 +296,72 @@ class ActivosController extends Controller
 
         return redirect()->route('admin.activos.index', ['status' => 'broken'])
             ->with('success', 'Dispositivo eliminado correctamente.');
+    }
+
+    /**
+     * PATCH /admin/activos/{uuid}/credenciales
+     * Actualiza username, password, email y email_password en Activos,
+     * y sincroniza nombre_usuario_pc y correo en el ERP.
+     */
+    public function updateCredencial(Request $request, string $uuid)
+    {
+        $request->validate([
+            'username'       => 'nullable|string|max:255',
+            'password'       => 'nullable|string',
+            'email'          => 'nullable|email|max:255',
+            'email_password' => 'nullable|string',
+        ]);
+
+        if (! $this->activos->isConfigured()) {
+            return response()->json(['success' => false, 'message' => 'BD de Activos no disponible.'], 503);
+        }
+
+        // Actualizar en Activos
+        $ok = $this->activos->upsertCredentialByUuid(
+            $uuid,
+            $request->username ?: null,
+            $request->filled('password')       ? $request->password       : null,
+            $request->email ?: null,
+            $request->filled('email_password') ? $request->email_password : null,
+        );
+
+        if (! $ok) {
+            return response()->json(['success' => false, 'message' => 'No se pudo actualizar en Activos.'], 500);
+        }
+
+        // Sincronizar con ERP (nombre_usuario_pc y correo)
+        $equipoErp = DB::table('it_equipos_asignados')
+            ->where('uuid_activos', $uuid)
+            ->first(['id', 'nombre_usuario_pc']);
+
+        if ($equipoErp) {
+            if ($request->filled('username')) {
+                DB::table('it_equipos_asignados')
+                    ->where('id', $equipoErp->id)
+                    ->update(['nombre_usuario_pc' => $request->username, 'updated_at' => now()]);
+            }
+
+            if ($request->filled('email')) {
+                $correoExistente = DB::table('it_equipos_correos')
+                    ->where('equipo_asignado_id', $equipoErp->id)
+                    ->orderBy('id')
+                    ->first(['id']);
+
+                if ($correoExistente) {
+                    DB::table('it_equipos_correos')
+                        ->where('id', $correoExistente->id)
+                        ->update(['correo' => $request->email, 'updated_at' => now()]);
+                } else {
+                    DB::table('it_equipos_correos')->insert([
+                        'equipo_asignado_id' => $equipoErp->id,
+                        'correo'             => $request->email,
+                        'created_at'         => now(),
+                        'updated_at'         => now(),
+                    ]);
+                }
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Credenciales actualizadas correctamente.']);
     }
 }

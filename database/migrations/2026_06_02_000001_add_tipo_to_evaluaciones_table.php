@@ -23,14 +23,19 @@ return new class extends Migration
             DB::statement("ALTER TABLE `evaluaciones` DROP FOREIGN KEY `{$fkVentana}`");
         }
 
-        // Ensure a standalone index on empleado_id exists BEFORE dropping the unique index
-        // Otherwise MySQL 1553: the FK evaluaciones_empleado_id_foreign depends on the unique index
-        $hasEmpleadoIdx = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Column_name = 'empleado_id' AND Key_name != 'PRIMARY'"));
-        if ($hasEmpleadoIdx->isEmpty()) {
+        // Ensure a standalone index on empleado_id exists BEFORE dropping the unique index.
+        // IMPORTANT: check by key name — the unique index eval_unica_ventana also starts with
+        // empleado_id, so a column-based check would incorrectly think the standalone index exists.
+        $hasStandaloneIdx = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_empleado_id_idx'"));
+        if ($hasStandaloneIdx->isEmpty()) {
             DB::statement("ALTER TABLE `evaluaciones` ADD INDEX `eval_empleado_id_idx` (`empleado_id`)");
         }
 
-        DB::statement("ALTER TABLE `evaluaciones` DROP INDEX `eval_unica_ventana`");
+        // Drop the unique index only if it still exists
+        $uniIdx = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_ventana'"));
+        if ($uniIdx->isNotEmpty()) {
+            DB::statement("ALTER TABLE `evaluaciones` DROP INDEX `eval_unica_ventana`");
+        }
 
         $newIndex = collect(DB::select("SHOW INDEX FROM evaluaciones WHERE Key_name = 'eval_unica_vt'"));
         if ($newIndex->isEmpty()) {

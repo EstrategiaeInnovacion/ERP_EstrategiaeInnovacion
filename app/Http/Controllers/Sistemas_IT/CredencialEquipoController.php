@@ -93,10 +93,9 @@ class CredencialEquipoController extends Controller
             'photo_id' => 'nullable|integer',
             'nombre_usuario_pc' => 'required|string|max:255',
             'contrasena_equipo' => 'required|string',
+            'correo' => 'nullable|email|max:255',
+            'contrasena_correo' => 'nullable|string',
             'notas' => 'nullable|string',
-            'correos' => 'sometimes|array',
-            'correos.*.correo' => 'required_with:correos.*|email|max:255',
-            'correos.*.contrasena_correo' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
             'perifericos.*.nombre' => 'required_with:perifericos.*|string|max:255',
@@ -117,19 +116,8 @@ class CredencialEquipoController extends Controller
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
-                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $request->notas,
             ]);
-
-            // Correos
-            foreach (($request->correos ?? []) as $correoData) {
-                if (! empty($correoData['correo'])) {
-                    $equipo->correos()->create([
-                        'correo' => $correoData['correo'],
-                        'contrasena_correo' => $correoData['contrasena_correo'] ?? null,
-                    ]);
-                }
-            }
 
             // Periféricos
             foreach (($request->perifericos ?? []) as $per) {
@@ -147,6 +135,15 @@ class CredencialEquipoController extends Controller
             $empleado = $user->empleado;
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user->name;
+
+            // Guardar credenciales en Activos (username, password, email, email_password)
+            $this->activos->upsertCredentialByUuid(
+                $request->uuid_activos,
+                $request->nombre_usuario_pc,
+                $request->contrasena_equipo,
+                $request->correo,
+                $request->contrasena_correo
+            );
 
             // Equipo principal: solo cuando se seleccionó de los disponibles
             if ($request->boolean('assign_new')) {
@@ -197,9 +194,14 @@ class CredencialEquipoController extends Controller
             $esComputadora = ($deviceType === 'computer' || $deviceType === null);
         }
 
+        // Cargar credencial (username+password) desde Activos para el equipo principal
+        $activosCred = $this->activos->isConfigured()
+            ? $this->activos->getDeviceCredentialByUuid($credencial->uuid_activos)
+            : null;
+
         $soloLectura = request()->routeIs('rh.activos.*');
 
-        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios', 'esComputadora', 'soloLectura'));
+        return view('admin.credenciales.show', compact('credencial', 'equiposSecundarios', 'esComputadora', 'soloLectura', 'activosCred'));
     }
 
     public function edit(EquipoAsignado $credencial)
@@ -216,10 +218,8 @@ class CredencialEquipoController extends Controller
             'nombre_usuario_pc' => 'required|string|max:255',
             'contrasena_equipo' => 'nullable|string',
             'notas' => 'nullable|string',
-            'correos' => 'sometimes|array',
-            'correos.*.id' => 'nullable|integer',
-            'correos.*.correo' => 'required_with:correos.*|email|max:255',
-            'correos.*.contrasena_correo' => 'nullable|string',
+            'correo' => 'nullable|email|max:255',
+            'contrasena_correo' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.id' => 'nullable|integer',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
@@ -240,43 +240,13 @@ class CredencialEquipoController extends Controller
 
         try {
             // Update main record fields
-            $updateData = [
+            $credencial->update([
                 'nombre_equipo' => $request->nombre_equipo,
                 'modelo' => $request->modelo,
                 'numero_serie' => $request->numero_serie,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
                 'notas' => $request->notas,
-            ];
-            if ($request->filled('contrasena_equipo')) {
-                $updateData['contrasena_equipo'] = $request->contrasena_equipo;
-            }
-            $credencial->update($updateData);
-
-            // Sync correos: delete removed, update existing, create new
-            $incomingCorreos = collect($request->correos ?? []);
-            $keepCorreoIds = $incomingCorreos->pluck('id')->filter()->toArray();
-            $credencial->correos()->whereNotIn('id', $keepCorreoIds)->delete();
-
-            foreach ($incomingCorreos as $correoData) {
-                if (empty($correoData['correo'])) {
-                    continue;
-                }
-                if (! empty($correoData['id'])) {
-                    $existing = $credencial->correos()->find($correoData['id']);
-                    if ($existing) {
-                        $upd = ['correo' => $correoData['correo']];
-                        if (! empty($correoData['contrasena_correo'])) {
-                            $upd['contrasena_correo'] = $correoData['contrasena_correo'];
-                        }
-                        $existing->update($upd);
-                    }
-                } else {
-                    $credencial->correos()->create([
-                        'correo' => $correoData['correo'],
-                        'contrasena_correo' => $correoData['contrasena_correo'] ?? null,
-                    ]);
-                }
-            }
+            ]);
 
             // Sync perifericos: delete removed, add new
             $credencial->perifericos()->whereNotIn('id', $keepPerIds)->delete();
@@ -299,6 +269,15 @@ class CredencialEquipoController extends Controller
             $empleado = $user?->empleado;
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user?->name ?? '';
+
+            // Actualizar credenciales en Activos (username, password, email, email_password)
+            $this->activos->upsertCredentialByUuid(
+                $credencial->uuid_activos,
+                $request->nombre_usuario_pc,
+                $request->filled('contrasena_equipo') ? $request->contrasena_equipo : null,
+                $request->correo,
+                $request->filled('contrasena_correo') ? $request->contrasena_correo : null
+            );
 
             foreach ($removedPers as $per) {
                 if ($per->uuid_activos) {
@@ -362,10 +341,9 @@ class CredencialEquipoController extends Controller
             'photo_id' => 'nullable|integer',
             'nombre_usuario_pc' => 'required|string|max:255',
             'contrasena_equipo' => 'required|string',
+            'correo' => 'nullable|email|max:255',
+            'contrasena_correo' => 'nullable|string',
             'notas' => 'nullable|string',
-            'correos' => 'sometimes|array',
-            'correos.*.correo' => 'required_with:correos.*|email|max:255',
-            'correos.*.contrasena_correo' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
             'perifericos.*.nombre' => 'required_with:perifericos.*|string|max:255',
@@ -392,19 +370,9 @@ class CredencialEquipoController extends Controller
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
-                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $notas,
                 'es_principal' => false,
             ]);
-
-            foreach (($request->correos ?? []) as $correoData) {
-                if (! empty($correoData['correo'])) {
-                    $secundario->correos()->create([
-                        'correo' => $correoData['correo'],
-                        'contrasena_correo' => $correoData['contrasena_correo'] ?? null,
-                    ]);
-                }
-            }
 
             foreach (($request->perifericos ?? []) as $per) {
                 $secundario->perifericos()->create([
@@ -421,6 +389,15 @@ class CredencialEquipoController extends Controller
             $empleado = $user->empleado;
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user->name;
+
+            // Guardar credenciales en Activos
+            $this->activos->upsertCredentialByUuid(
+                $request->uuid_activos,
+                $request->nombre_usuario_pc,
+                $request->contrasena_equipo,
+                $request->correo,
+                $request->contrasena_correo
+            );
 
             // Equipo principal: solo cuando se seleccionó de los disponibles
             if ($request->boolean('assign_new')) {
@@ -495,13 +472,26 @@ class CredencialEquipoController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        // Cargar contraseñas de Activos para todos los equipos (principal + secundarios)
+        $uuids = collect([$equipoPrincipal?->uuid_activos])
+            ->merge($equiposSecundarios->pluck('uuid_activos'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $activosCreds = $this->activos->isConfigured()
+            ? $this->activos->getCredentialsByUuids($uuids)
+            : [];
+
         $fechaCarta = now();
 
         return view('admin.credenciales.carta-responsiva', compact(
             'user',
             'equipoPrincipal',
             'equiposSecundarios',
-            'fechaCarta'
+            'fechaCarta',
+            'activosCreds'
         ));
     }
 
@@ -547,6 +537,12 @@ class CredencialEquipoController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        // Obtener contraseñas de Activos para todos los equipos de una sola vez
+        $uuids = $equipos->pluck('uuid_activos')->filter()->unique()->values()->toArray();
+        $activosCreds = $this->activos->isConfigured()
+            ? $this->activos->getCredentialsByUuids($uuids)
+            : [];
+
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setTitle('Contraseñas y Equipos IT')
@@ -561,14 +557,15 @@ class CredencialEquipoController extends Controller
         $row = 2;
         foreach ($equipos as $equipo) {
             $tipo = ($equipo->es_principal === null || $equipo->es_principal) ? 'Principal' : 'Secundario';
+            $cred = $activosCreds[$equipo->uuid_activos] ?? null;
             $ws1->setCellValue("A{$row}", $equipo->user?->name ?? '—');
             $ws1->setCellValue("B{$row}", $equipo->user?->email ?? '—');
             $ws1->setCellValue("C{$row}", $tipo);
             $ws1->setCellValue("D{$row}", $equipo->nombre_equipo);
             $ws1->setCellValue("E{$row}", $equipo->modelo ?? '');
             $ws1->setCellValue("F{$row}", $equipo->numero_serie ?? '');
-            $ws1->setCellValue("G{$row}", $equipo->nombre_usuario_pc ?? '');
-            $ws1->setCellValue("H{$row}", $equipo->contrasena_descifrada);
+            $ws1->setCellValue("G{$row}", $cred?->username ?? $equipo->nombre_usuario_pc ?? '');
+            $ws1->setCellValue("H{$row}", $cred?->password ?? '');
             $ws1->setCellValue("I{$row}", $equipo->notas ?? '');
             $this->styleDataRow($ws1, $row, count($headers1));
             // Proteger visualmente la contraseña con fondo amarillo suave

@@ -5,7 +5,6 @@ namespace App\Models\Sistemas_IT;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Crypt;
 
 class EquipoAsignado extends Model
 {
@@ -21,12 +20,9 @@ class EquipoAsignado extends Model
         'numero_serie',
         'photo_id',
         'nombre_usuario_pc',
-        'contrasena_equipo',
         'notas',
         'es_principal',
     ];
-
-    protected $hidden = ['contrasena_equipo'];
 
     protected $casts = [
         'es_principal' => 'boolean',
@@ -47,17 +43,4 @@ class EquipoAsignado extends Model
         return $this->hasMany(EquipoPeriferico::class, 'equipo_asignado_id');
     }
 
-    public function setContrasenaEquipoAttribute(string $value): void
-    {
-        $this->attributes['contrasena_equipo'] = Crypt::encryptString($value);
-    }
-
-    public function getContrasenaDescifradaAttribute(): string
-    {
-        try {
-            return Crypt::decryptString($this->attributes['contrasena_equipo']);
-        } catch (\Exception $e) {
-            return '';
-        }
-    }
 }

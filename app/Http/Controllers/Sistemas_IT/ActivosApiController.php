@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Sistemas_IT;
 use App\Http\Controllers\Controller;
 use App\Models\Empleado;
 use App\Models\User;
+use App\Services\ActivosApiService;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -232,11 +233,10 @@ class ActivosApiController extends Controller
             abort(404);
         }
 
-        // 1. Intentar servir desde ACTIVOS_STORAGE_PATH (fotos de AuditoriaActivos)
+        // 1. Intentar servir desde ACTIVOS_STORAGE_PATH (filesystem compartido)
         $storagePath = rtrim(env('ACTIVOS_STORAGE_PATH', ''), '\/ ');
         if (! empty($storagePath)) {
             $fullPath = $storagePath . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
-
             if (file_exists($fullPath) && is_file($fullPath)) {
                 $realStorage = realpath($storagePath);
                 $realFile    = realpath($fullPath);
@@ -246,18 +246,37 @@ class ActivosApiController extends Controller
             }
         }
 
-        // 2. Fallback: fotos subidas directamente desde el ERP (disco 'local' → storage/app/private)
+        // 2. Fotos subidas directamente desde el ERP (disco 'local' → storage/app/private)
         $localBase = storage_path('app/private');
         $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
-
         if (file_exists($localPath) && is_file($localPath)) {
-            $realBase  = realpath($localBase);
-            $realFile  = realpath($localPath);
+            $realBase = realpath($localBase);
+            $realFile = realpath($localPath);
             if ($realBase && $realFile && str_starts_with($realFile, $realBase)) {
                 return response()->file($realFile);
             }
         }
 
+        // 3. Proxy via API HTTP de Activos (requiere ACTIVOS_API_URL y API_KEY en .env)
+        $apiService = app(ActivosApiService::class);
+        if ($apiService->isConfigured()) {
+            $binary = $apiService->getDevicePhoto($id);
+            if ($binary !== null && $binary !== '') {
+                $mime = 'image/jpeg';
+                try {
+                    $detected = (new \finfo(FILEINFO_MIME_TYPE))->buffer($binary);
+                    if ($detected && str_starts_with($detected, 'image/')) {
+                        $mime = $detected;
+                    }
+                } catch (\Throwable) {}
+
+                return response($binary, 200)
+                    ->header('Content-Type', $mime)
+                    ->header('Cache-Control', 'public, max-age=86400');
+            }
+        }
+
+        Log::warning("ActivosApiController: foto {$id} no encontrada. file_path={$filePath}");
         abort(404);
     }
 
