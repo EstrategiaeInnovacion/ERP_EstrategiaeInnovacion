@@ -5,6 +5,43 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+<style>
+.fc-event {
+    cursor: pointer;
+}
+.fc-event.urgencia-vencido {
+    background-color: #fef2f2 !important;
+    border-color: #fecaca !important;
+    color: #991b1b !important;
+}
+.fc-event.urgencia-critico {
+    background-color: #fff7ed !important;
+    border-color: #fed7aa !important;
+    color: #9a3412 !important;
+}
+.fc-event.urgencia-alerta {
+    background-color: #fefce8 !important;
+    border-color: #fef08a !important;
+    color: #854d0e !important;
+}
+.fc-event.urgencia-pronto {
+    background-color: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1e40af !important;
+}
+.fc-event.urgencia-normal {
+    background-color: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+    color: #166534 !important;
+}
+.fc-event.event-manual {
+    border-width: 2px !important;
+    border-style: dashed !important;
+}
+#calendar {
+    min-height: 500px;
+}
+</style>
 @endpush
 
 @push('scripts')
@@ -60,41 +97,6 @@ function seleccionarColor(color) {
 }
 </script>
 @endpush
-
-<style>
-.fc-event {
-    cursor: pointer;
-}
-.fc-event.urgencia-vencido {
-    background-color: #fef2f2 !important;
-    border-color: #fecaca !important;
-    color: #991b1b !important;
-}
-.fc-event.urgencia-critico {
-    background-color: #fff7ed !important;
-    border-color: #fed7aa !important;
-    color: #9a3412 !important;
-}
-.fc-event.urgencia-alerta {
-    background-color: #fefce8 !important;
-    border-color: #fef08a !important;
-    color: #854d0e !important;
-}
-.fc-event.urgencia-pronto {
-    background-color: #eff6ff !important;
-    border-color: #bfdbfe !important;
-    color: #1e40af !important;
-}
-.fc-event.urgencia-normal {
-    background-color: #ecfdf5 !important;
-    border-color: #a7f3d0 !important;
-    color: #166534 !important;
-}
-.fc-event.event-manual {
-    border-width: 2px !important;
-    border-style: dashed !important;
-}
-</style>
 
 @section('content')
 <div class="min-h-screen bg-slate-50 pb-12">
