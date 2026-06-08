@@ -52,7 +52,7 @@ class ProximoMantenimientoNotification extends Notification
         }
 
         return $mailMessage
-            ->action('Ver ficha técnica', route('admin.maintenance.computers.show', $this->profile))
+            ->action('Ver expediente de mantenimiento', route('admin.maintenance.computers.show', $this->profile))
             ->line('Por favor coordina el mantenimiento a tiempo para evitar problemas.');
     }
 

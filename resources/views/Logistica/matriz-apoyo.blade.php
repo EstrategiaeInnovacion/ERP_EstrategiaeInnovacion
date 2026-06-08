@@ -244,7 +244,7 @@
                         </thead>
                         <tbody id="tbody-forwarders">
                             @php
-                                $groupedFw    = $forwarders->groupBy('cliente');
+                                $groupedFw    = $forwarders->groupBy(fn($r) => ($r->cliente ?? '') . '||' . ($r->razon_social ?? ''));
                                 $groupIdxFw   = 0;
                             @endphp
                             @forelse($groupedFw as $clienteName => $rows)

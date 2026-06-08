@@ -116,6 +116,7 @@ class CredencialEquipoController extends Controller
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
+                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $request->notas,
             ]);
 
@@ -240,13 +241,17 @@ class CredencialEquipoController extends Controller
 
         try {
             // Update main record fields
-            $credencial->update([
+            $updateData = [
                 'nombre_equipo' => $request->nombre_equipo,
                 'modelo' => $request->modelo,
                 'numero_serie' => $request->numero_serie,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
                 'notas' => $request->notas,
-            ]);
+            ];
+            if ($request->filled('contrasena_equipo')) {
+                $updateData['contrasena_equipo'] = $request->contrasena_equipo;
+            }
+            $credencial->update($updateData);
 
             // Sync perifericos: delete removed, add new
             $credencial->perifericos()->whereNotIn('id', $keepPerIds)->delete();
@@ -370,6 +375,7 @@ class CredencialEquipoController extends Controller
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
                 'nombre_usuario_pc' => $request->nombre_usuario_pc,
+                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $notas,
                 'es_principal' => false,
             ]);

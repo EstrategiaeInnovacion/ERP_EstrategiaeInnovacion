@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Ticket extends Model
@@ -43,7 +44,7 @@ class Ticket extends Model
         'battery_status',
         'aesthetic_observations',
         'replacement_components',
-        'computer_profile_id',
+        'equipo_asignado_id',
         'imagenes_admin',
         'user_has_updates',
         'user_notified_at',
@@ -142,8 +143,20 @@ class Ticket extends Model
         return $this->hasOne(MaintenanceBooking::class);
     }
 
-    public function computerProfile(): BelongsTo
+    public function equipoAsignado(): BelongsTo
     {
-        return $this->belongsTo(ComputerProfile::class);
+        return $this->belongsTo(EquipoAsignado::class);
+    }
+
+    public function computerProfile(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            ComputerProfile::class,
+            EquipoAsignado::class,
+            'id',
+            'equipo_asignado_id',
+            'equipo_asignado_id',
+            'id'
+        );
     }
 }

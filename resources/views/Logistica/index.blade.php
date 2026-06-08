@@ -121,6 +121,26 @@
                 </div>
             </a>
 
+            {{-- CARD: MATRIZ DE CONSULTA LEGAL --}}
+            <a href="{{ route('legal.matriz.index') }}"
+               class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-amber-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M3 6l3 1m0 0l-3 9a5 5 0 006 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5 5 0 006 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-amber-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition-colors">Matriz de Consulta Legal</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Consulta y seguimiento de expedientes, casos y gestiones jurídicas por empresa y categoría.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-amber-600 font-bold text-sm">
+                    Ver Matriz Legal <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
         </div>
 
     </div>

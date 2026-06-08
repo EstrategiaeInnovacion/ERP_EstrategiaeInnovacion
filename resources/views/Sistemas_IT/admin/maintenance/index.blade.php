@@ -1,4 +1,4 @@
-@extends('layouts.master')
+﻿@extends('layouts.master')
 
 @section('title', 'Gestión de Mantenimientos - Panel Administrativo')
 
@@ -23,6 +23,17 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-sm text-red-800 font-medium">{{ session('error') }}</span>
+                </div>
+            </div>
+        @endif
+
         <div class="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="bg-slate-50 border-b border-blue-100 flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3">
                 <button type="button" data-tab-target="tab-agenda"
@@ -31,11 +42,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     Agenda de Mantenimientos
-                </button>
-                <button type="button" data-tab-target="tab-profiles"
-                    class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
-                    <span class="hidden sm:inline">Ficha técnica</span>
-                    <span class="sm:hidden">Ficha</span>
                 </button>
                 <button type="button" data-tab-target="tab-expedientes"
                     class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
@@ -180,12 +186,12 @@
                                                         Todo el día
                                                     @endif
                                                     @if($block->reason)
-                                                        · {{ $block->reason }}
+                                                        Â· {{ $block->reason }}
                                                     @endif
                                                 </p>
                                             </div>
                                         </div>
-                                        <form method="POST" action="{{ route('admin.maintenance.unblock-slot', $block) }}" onsubmit="return confirm('¿Eliminar este bloqueo?');">
+                                        <form method="POST" action="{{ route('admin.maintenance.unblock-slot', $block) }}" onsubmit="return confirm('Â¿Eliminar este bloqueo?');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -203,307 +209,6 @@
                             </div>
                         @endif
                     </div>
-                </section>
-
-                <section id="tab-profiles" data-tab-panel class="space-y-8 hidden">
-                    <div class="space-y-1">
-                        <h3 class="text-xl font-semibold text-slate-900">Nueva ficha técnica de equipo</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Completa los datos del equipo y el mantenimiento realizado. Selecciona primero el ticket para auto-llenar los campos.</p>
-                    </div>
-
-                    <form method="POST" action="{{ route('admin.maintenance.computers.store') }}" class="space-y-0" id="technicalProfileForm" enctype="multipart/form-data">
-                        @csrf
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 1 · Ticket de origen
-                        ══════════════════════════════════════════════════════ --}}
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">1</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Ticket de mantenimiento</h4>
-                                <span class="text-xs text-slate-500">— vincula la ficha con la solicitud del usuario</span>
-                            </div>
-                            <div class="p-5 space-y-3">
-                                <div>
-                                    <label for="maintenance_ticket_id" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Ticket relacionado</label>
-                                    <select id="maintenance_ticket_id" name="maintenance_ticket_id"
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">— Selecciona un ticket —</option>
-                                        @foreach ($maintenanceTickets as $ticket)
-                                            @php
-                                                $createdAt = optional($ticket->created_at)->timezone('America/Mexico_City');
-                                                $equiposUser = optional($ticket->user)->equiposAsignados ?? collect();
-                                                $estadoBadge = match($ticket->estado) {
-                                                    'abierto'    => '🟢 Abierto',
-                                                    'en_proceso' => '🔵 En proceso',
-                                                    'cerrado'    => '⚫ Cerrado',
-                                                    default      => $ticket->estado
-                                                };
-                                            @endphp
-                                            <option value="{{ $ticket->id }}"
-                                                {{ (string) old('maintenance_ticket_id') === (string) $ticket->id ? 'selected' : '' }}
-                                                data-equipment-identifier="{{ $ticket->equipment_identifier ?? '' }}"
-                                                data-equipment-brand="{{ $ticket->equipment_brand ?? '' }}"
-                                                data-equipment-model="{{ $ticket->equipment_model ?? '' }}"
-                                                data-disk-type="{{ $ticket->disk_type ?? '' }}"
-                                                data-ram-capacity="{{ $ticket->ram_capacity ?? '' }}"
-                                                data-battery-status="{{ $ticket->battery_status ?? '' }}"
-                                                data-aesthetic-observations="{{ $ticket->aesthetic_observations ?? '' }}"
-                                                data-replacement-components="{{ $ticket->replacement_components ? json_encode($ticket->replacement_components) : '[]' }}"
-                                                data-equipos-asignados="{{ $equiposUser->map(fn($e) => ['id'=>$e->id,'nombre'=>$e->nombre_equipo,'modelo'=>$e->modelo,'serie'=>$e->numero_serie,'usuario'=>$e->nombre_usuario_pc,'principal'=>$e->es_principal])->values()->toJson() }}">
-                                                {{ $ticket->folio }} · {{ $ticket->nombre_solicitante }} · {{ $estadoBadge }} · {{ $createdAt ? $createdAt->format('d/m/Y') : 'Sin fecha' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('maintenance_ticket_id')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                {{-- Picker de equipo asignado --}}
-                                <div id="equipoPicker" class="hidden rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-                                    <p class="text-xs font-semibold text-indigo-800 mb-2.5 flex items-center gap-1.5">
-                                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                                        Equipos registrados para este usuario — selecciona el que se va a mantener
-                                    </p>
-                                    <div id="equipoPickerOptions" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 2 · Identificación del equipo
-                        ══════════════════════════════════════════════════════ --}}
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">2</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Identificación del equipo</h4>
-                                <span class="text-xs text-slate-500">— número de inventario, marca y modelo</span>
-                            </div>
-                            <div class="p-5">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label for="identifier" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-                                            Identificador / N° inventario <span class="text-red-500">*</span>
-                                        </label>
-                                        <input type="text" id="identifier" name="identifier" value="{{ old('identifier') }}"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Ej: LAPTOP-EI-001">
-                                        @error('identifier')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label for="brand" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Marca</label>
-                                        <input type="text" id="brand" name="brand" value="{{ old('brand') }}"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Ej: Dell, HP, Lenovo">
-                                        @error('brand')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label for="model" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Modelo</label>
-                                        <input type="text" id="model" name="model" value="{{ old('model') }}"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Ej: Latitude 5420">
-                                        @error('model')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 3 · Especificaciones técnicas
-                        ══════════════════════════════════════════════════════ --}}
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">3</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Especificaciones técnicas</h4>
-                                <span class="text-xs text-slate-500">— hardware del equipo al momento del mantenimiento</span>
-                            </div>
-                            <div class="p-5">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label for="disk_type" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tipo y capacidad de disco</label>
-                                        <input type="text" id="disk_type" name="disk_type" value="{{ old('disk_type') }}"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Ej: SSD 256 GB, HDD 1 TB">
-                                        @error('disk_type')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label for="ram_capacity" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Memoria RAM</label>
-                                        <input type="text" id="ram_capacity" name="ram_capacity" value="{{ old('ram_capacity') }}"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Ej: 8 GB DDR4, 16 GB DDR5">
-                                        @error('ram_capacity')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                    <div>
-                                        <label for="battery_status" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Estado de la batería</label>
-                                        <select id="battery_status" name="battery_status"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="">— Sin evaluar —</option>
-                                            <option value="functional" {{ old('battery_status') === 'functional' ? 'selected' : '' }}>✅ Funcional</option>
-                                            <option value="partially_functional" {{ old('battery_status') === 'partially_functional' ? 'selected' : '' }}>⚠️ Parcialmente funcional</option>
-                                            <option value="damaged" {{ old('battery_status') === 'damaged' ? 'selected' : '' }}>❌ Dañada / Sin batería</option>
-                                        </select>
-                                        @error('battery_status')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 4 · Estado físico del equipo
-                        ══════════════════════════════════════════════════════ --}}
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">4</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Estado físico del equipo</h4>
-                                <span class="text-xs text-slate-500">— condición estética al momento de recibir el equipo</span>
-                            </div>
-                            <div class="p-5">
-                                <label for="aesthetic_observations" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones estéticas</label>
-                                <textarea id="aesthetic_observations" name="aesthetic_observations" rows="4"
-                                    class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Describe el estado físico: rayones, golpes, bisagras, teclado, pantalla, puertos, etc.">{{ old('aesthetic_observations') }}</textarea>
-                                @error('aesthetic_observations')
-                                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 5 · Registro del mantenimiento
-                        ══════════════════════════════════════════════════════ --}}
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">5</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Registro del mantenimiento</h4>
-                                <span class="text-xs text-slate-500">— fecha y componentes intervenidos</span>
-                            </div>
-                            <div class="p-5 space-y-5">
-                                <div class="max-w-xs">
-                                    <label for="last_maintenance_at" class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Fecha del mantenimiento realizado</label>
-                                    <input type="datetime-local" id="last_maintenance_at" name="last_maintenance_at"
-                                        value="{{ old('last_maintenance_at') }}"
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <p class="text-xs text-slate-500 mt-1">Se calculará automáticamente la próxima fecha de mantenimiento a 4 meses.</p>
-                                    @error('last_maintenance_at')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <p class="text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Componentes reemplazados o intervenidos</p>
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                                        @foreach ($componentOptions as $value => $label)
-                                            <label class="flex items-center gap-2.5 text-sm text-slate-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl px-3 py-2.5 cursor-pointer transition-colors group">
-                                                <input type="checkbox" name="replacement_components[]" value="{{ $value }}"
-                                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                                    {{ is_array(old('replacement_components')) && in_array($value, old('replacement_components', []), true) ? 'checked' : '' }}>
-                                                <span class="text-xs font-medium group-hover:text-blue-700 transition-colors">{{ $label }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @error('replacement_components')
-                                        <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
-                                    @enderror
-                                    @error('replacement_components.*')
-                                        <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ══════════════════════════════════════════════════════
-                             PASO 6 · Notas técnicas y seguimiento del ticket
-                        ══════════════════════════════════════════════════════ --}}
-                        <div id="seguimientoStep" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-4">
-                            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">6</span>
-                                <h4 class="text-sm font-semibold text-slate-800">Notas técnicas del mantenimiento</h4>
-                                <span class="text-xs text-slate-500">— observaciones, reporte e imágenes del técnico (se guardan en el ticket)</span>
-                            </div>
-
-                            {{-- placeholder cuando no hay ticket --}}
-                            <div id="seguimientoNoTicket" class="p-5 text-sm text-slate-400 italic">
-                                Selecciona un ticket en el Paso 1 para completar las notas técnicas.
-                            </div>
-
-                            {{-- Contenido cuando sí hay ticket seleccionado --}}
-                            <div id="seguimientoContent" class="hidden p-5 space-y-5">
-                                {{-- Estado del ticket --}}
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Estado del ticket</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        @foreach(['abierto' => ['label'=>'Abierto','color'=>'green'], 'en_proceso' => ['label'=>'En proceso','color'=>'blue'], 'cerrado' => ['label'=>'Cerrado','color'=>'slate']] as $val => $cfg)
-                                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition text-xs font-medium
-                                                @if($val === 'abierto') border-green-200 bg-green-50 text-green-700 hover:bg-green-100
-                                                @elseif($val === 'en_proceso') border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100
-                                                @else border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 @endif">
-                                                <input type="radio" name="ticket_estado" value="{{ $val }}" class="accent-blue-600"
-                                                    {{ old('ticket_estado', 'en_proceso') === $val ? 'checked' : '' }}>
-                                                {{ $cfg['label'] }}
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-
-                                {{-- Observaciones + Reporte --}}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones del administrador</label>
-                                        <textarea name="ticket_observaciones" rows="4"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Notas internas sobre el mantenimiento...">{{ old('ticket_observaciones') }}</textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Reporte técnico</label>
-                                        <textarea name="ticket_maintenance_report" rows="4"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="Describe el trabajo realizado, diagnóstico, solución...">{{ old('ticket_maintenance_report') }}</textarea>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Observaciones al cerrar (opcional)</label>
-                                    <textarea name="ticket_closure_observations" rows="2"
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Notas finales, recomendaciones, pendientes...">{{ old('ticket_closure_observations') }}</textarea>
-                                </div>
-
-                                {{-- Imágenes --}}
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Imágenes del técnico (evidencia)</label>
-                                    <input type="file" name="ticket_imagenes_admin[]" multiple accept="image/*"
-                                        class="block w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
-                                        data-maintenance-upload>
-                                    <p class="text-xs text-slate-500 mt-1" data-upload-status>0 archivos seleccionados.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Botón único de envío --}}
-                        <div class="flex items-center justify-between pt-2 mt-4">
-                            <p class="text-xs text-slate-500">La ficha y el seguimiento del ticket se guardarán en un solo paso.</p>
-                            <button type="submit"
-                                class="inline-flex items-center px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-colors text-sm">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Guardar ficha técnica
-                            </button>
-                        </div>
-                    </form>
                 </section>
 
                 <section id="tab-expedientes" data-tab-panel class="space-y-6 hidden">
@@ -528,7 +233,7 @@
                                 </svg>
                                 <div>
                                     <p class="text-sm font-medium text-blue-900">Total de equipos registrados: {{ $profiles->count() }}</p>
-                                    <p class="text-xs text-blue-700 mt-1">Haz clic en "Ver detalles" para consultar la ficha técnica completa, tickets asociados y empleado asignado</p>
+                                    <p class="text-xs text-blue-700 mt-1">Haz clic en "Ver expediente" para consultar el historial de mantenimientos, tickets asociados y empleado asignado</p>
                                 </div>
                             </div>
                         </div>
@@ -584,13 +289,12 @@
                                                 @endif
                                             </td>
                                             <td class="px-6 py-4 text-sm">
-                                                <a href="{{ route('admin.maintenance.computers.show', $profile) }}" 
-                                                   class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">
+                                                <a href="{{ route('admin.maintenance.computers.show', $profile) }}"
+                                                   class="inline-flex items-center px-3 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 rounded-lg text-xs font-semibold transition-colors">
                                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
-                                                    Ver detalles
+                                                    Ver expediente
                                                 </a>
                                             </td>
                                         </tr>
@@ -784,7 +488,7 @@
                             <span class="font-semibold text-indigo-900">${eq.nombre}</span>
                             ${eq.principal ? '<span class="ml-1.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">Principal</span>' : '<span class="ml-1.5 text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Secundaria</span>'}
                             <br>
-                            <span class="text-xs text-gray-500">${eq.modelo || 'Sin modelo'}${eq.serie ? ' · S/N: ' + eq.serie : ''}${eq.usuario ? ' · Usuario: ' + eq.usuario : ''}</span>
+                            <span class="text-xs text-gray-500">${eq.modelo || 'Sin modelo'}${eq.serie ? ' Â· S/N: ' + eq.serie : ''}${eq.usuario ? ' Â· Usuario: ' + eq.usuario : ''}</span>
                         </div>`;
                     const radio = card.querySelector('input');
                     radio.addEventListener('change', () => {
@@ -873,7 +577,7 @@
                 });
             }
 
-            // (seguimiento integrado en Step 6 del formulario — no requiere paneles separados)
+            // (seguimiento integrado en Step 6 del formulario â€” no requiere paneles separados)
 
         });
 
@@ -1185,7 +889,7 @@
                                     </div>
                                     <div>
                                         <p class="font-medium text-slate-800">${m.solicitante}</p>
-                                        <p class="text-xs text-slate-500">${m.folio} · ${m.asunto || 'Sin asunto'}</p>
+                                        <p class="text-xs text-slate-500">${m.folio} Â· ${m.asunto || 'Sin asunto'}</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -1209,7 +913,16 @@
             weekView.innerHTML = html;
         }
 
-        // Inicializar agenda
-        initAgenda();
     </script>
+
+@push('scripts')
+    <script>
+        window.addEventListener('load', function () {
+            if (window.flatpickr && window.flatpickr.l10ns && window.flatpickr.l10ns.es) {
+                window.flatpickr.localize(window.flatpickr.l10ns.es);
+            }
+            initAgenda();
+        });
+    </script>
+@endpush
 @endsection

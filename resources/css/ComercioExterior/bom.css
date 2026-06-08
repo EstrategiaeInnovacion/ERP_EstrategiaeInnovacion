@@ -1,0 +1,281 @@
+/* ==========================================================
+   BOM MODULE  —  bom.css
+   Styles específicos de la tabla BOM (replica layout Excel)
+   ========================================================== */
+
+/* ── Wrapper con scroll horizontal ──────────────────────── */
+.bom-table-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 260px);
+    border: 1px solid #9ca3af;
+    border-radius: 0.5rem;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ── Tabla base ──────────────────────────────────────────── */
+.bom-table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    font-size: 13px;
+    font-family: 'Figtree', sans-serif;
+}
+
+.bom-table th,
+.bom-table td {
+    border: 1px solid #6b7280;
+    padding: 8px 12px;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* ── Encabezados de sección (fila 1) ─────────────────────── */
+.bom-table .section-fg {
+    background-color: #C00000;
+    color: #ffffff;
+    font-weight: 700;
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+}
+
+.bom-table .section-rm {
+    background-color: #BFBFBF;
+    color: #111827;
+    font-weight: 700;
+    text-align: center;
+    font-size: 13px;
+    padding: 10px 14px;
+}
+
+.bom-table .section-analisis {
+    background-color: #BDD7EE;
+    color: #1E3A5F;
+    font-weight: 700;
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+}
+
+/* ── Encabezados de columna (fila 2) ─────────────────────── */
+.bom-table .col-header {
+    background-color: #1f2937;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: normal;
+    min-width: 110px;
+    max-width: 160px;
+    vertical-align: middle;
+    padding: 8px 10px;
+}
+
+/* ── Filas de datos ──────────────────────────────────────── */
+.bom-table tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.bom-table tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.bom-table tbody tr:hover {
+    background-color: #eff6ff;
+}
+
+/* ── Celdas numéricas alineadas a la derecha ─────────────── */
+.bom-table td.num {
+    text-align: right;
+}
+
+/* ── Celdas centradas ────────────────────────────────────── */
+.bom-table td.center {
+    text-align: center;
+}
+
+/* ── Celdas de análisis: color de fondo tenue ────────────── */
+.bom-table td.analisis {
+    background-color: #eff6ff;
+}
+
+.bom-table tbody tr:nth-child(even) td.analisis {
+    background-color: #dbeafe;
+}
+
+.bom-table tbody tr:hover td.analisis {
+    background-color: #bfdbfe;
+}
+
+/* ── Estado vacío ────────────────────────────────────────── */
+.bom-empty-row td {
+    text-align: center;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 24px;
+}
+
+/* ── Modal overlay ───────────────────────────────────────── */
+#bom-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+}
+
+#bom-modal.open {
+    display: flex;
+}
+
+#bom-modal-box {
+    background: #fff;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+/* ── Barra de progreso del modal ─────────────────────────── */
+.bom-progress {
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.bom-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4f46e5, #3b82f6);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* ── Drop zone ───────────────────────────────────────────── */
+.bom-drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.bom-drop-zone:hover,
+.bom-drop-zone.dragover {
+    border-color: #4f46e5;
+    background-color: #eef2ff;
+}
+
+.bom-drop-zone input[type="file"] {
+    display: none;
+}
+
+/* ── Badge de clave BOM ──────────────────────────────────── */
+.bom-clave-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 8px;
+}
+
+/* ── Lista de BOMs (index) ───────────────────────────────── */
+.bom-list-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    transition: background 0.15s;
+}
+
+.bom-list-row:hover {
+    background: #f8fafc;
+}
+
+.bom-list-row + .bom-list-row {
+    border-top: 1px solid #f1f5f9;
+}
+
+/* ── Modo edición: inputs dentro de celdas ───────────────── */
+.bom-edit-input {
+    width: 100%;
+    min-width: 90px;
+    padding: 3px 6px;
+    border: 1.5px solid #6366f1;
+    border-radius: 4px;
+    background: #fafafe;
+    font-size: 12px;
+    font-family: inherit;
+    color: #111827;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.bom-edit-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    background: #fff;
+}
+
+.bom-edit-input.num {
+    text-align: right;
+}
+
+/* Highlight de celda en modo edición */
+.bom-table.edit-mode td {
+    background-color: #fef9c3 !important;
+}
+
+.bom-table.edit-mode tbody tr:hover td {
+    background-color: #fef08a !important;
+}
+
+.bom-table.edit-mode td.analisis {
+    background-color: #e0f2fe !important;
+}
+
+/* Banner de modo edición */
+.bom-edit-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: linear-gradient(90deg, #fef3c7, #fffbeb);
+    border: 1px solid #fcd34d;
+    border-radius: 0.625rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 12px;
+}
+
+/* Input de nombre del BOM en modo edición */
+.bom-nombre-input {
+    border: none;
+    border-bottom: 2px solid #6366f1;
+    outline: none;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    background: transparent;
+    padding: 2px 4px;
+    min-width: 200px;
+}
+

@@ -79,7 +79,7 @@ class SincronizarCorreosActivos extends Command
             $correos = DB::table('it_equipos_correos')
                 ->where('equipo_asignado_id', $equipo->id)
                 ->orderBy('id')
-                ->get(['id', 'correo', 'contrasena_correo']);
+                ->get(['id', 'correo']);
 
             $equipo->correos = $correos;
 
@@ -197,21 +197,9 @@ class SincronizarCorreosActivos extends Command
             return [$equipo->nombre_equipo, $correo->correo, $device->name, '✗ Error al leer Activos'];
         }
 
-        // Descifrar contraseña de correo del ERP
-        $passErp = $this->descifrarErp($correo->contrasena_correo);
-
-        // Descifrar contraseña de correo de Activos (si existe)
-        $passActivos  = null;
+        // Solo comparar dirección de correo (contrasena_correo ya no existe en ERP)
         $emailActivos = $credActivos?->email ?? null;
-        if ($credActivos?->email_password) {
-            try {
-                $passActivos = decrypt($credActivos->email_password);
-            } catch (\Throwable) {
-                $passActivos = null;
-            }
-        }
-
-        $hayDiff = ($correo->correo !== $emailActivos) || ($passErp !== $passActivos);
+        $hayDiff      = ($correo->correo !== $emailActivos);
 
         if (! $hayDiff) {
             $stats['igual']++;
@@ -228,7 +216,7 @@ class SincronizarCorreosActivos extends Command
         }
 
         if ($apply) {
-            $this->aplicarCambio($device->id, $credActivos, $correo->correo, $passErp);
+            $this->aplicarCambio($device->id, $credActivos, $correo->correo);
         }
 
         return [$equipo->nombre_equipo, $correo->correo, $device->name, $accion];
@@ -236,16 +224,15 @@ class SincronizarCorreosActivos extends Command
 
     // -----------------------------------------------------------------------
 
-    private function aplicarCambio(int $deviceId, ?object $credActivos, string $email, ?string $passErp): void
+    private function aplicarCambio(int $deviceId, ?object $credActivos, string $email): void
     {
         try {
+            // Solo actualiza el campo email; la contraseña de correo ya está en Activos
+            // y no se puede obtener del ERP (columna eliminada)
             $data = [
                 'email'      => $email,
                 'updated_at' => now(),
             ];
-            if ($passErp !== null && $passErp !== '') {
-                $data['email_password'] = encrypt($passErp);
-            }
 
             if ($credActivos) {
                 DB::connection('activos')

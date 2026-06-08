@@ -22,6 +22,21 @@
                 </div>
             @endif
 
+            @if(session('error'))
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Detalles del Ticket -->
                 <div class="lg:col-span-2 space-y-8">
@@ -403,14 +418,20 @@
                                               class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">{{ $ticket->observaciones }}</textarea>
                                 </div>
                             @else
-                                @php
-                                    $maintenanceLink = $ticket->computerProfile
-                                        ? route('admin.maintenance.computers.show', $ticket->computerProfile)
-                                        : route('admin.maintenance.index');
-                                @endphp
-                                <div class="bg-blue-50 border border-blue-100 text-blue-800 text-sm px-4 py-3 rounded-lg">
-                                    <p class="font-semibold">Gestión del mantenimiento</p>
-                                    <p class="mt-1">Las observaciones, reportes técnicos e imágenes del administrador ahora se administran desde la ficha técnica del equipo en <a href="{{ $maintenanceLink }}" class="underline font-medium">/admin/maintenance</a>.</p>
+                                <div class="space-y-3">
+                                    <a href="{{ route('admin.tickets.crear-mantenimiento', $ticket) }}"
+                                       class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Crear reporte de mantenimiento
+                                    </a>
+                                    @if($ticket->computerProfile)
+                                        <a href="{{ route('admin.maintenance.computers.show', $ticket->computerProfile) }}"
+                                           class="flex items-center justify-center gap-2 w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition">
+                                            Ver expediente del equipo
+                                        </a>
+                                    @endif
                                 </div>
                             @endif
 

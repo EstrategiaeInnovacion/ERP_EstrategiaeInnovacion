@@ -73,6 +73,17 @@
                     'hover_border' => 'hover:border-amber-200',
                     'btn_color' => 'bg-amber-600 hover:bg-amber-700 shadow-amber-200',
                 ],
+                [
+                    'title' => 'Expedientes de Mantenimiento',
+                    'description' => 'Hoja de vida por equipo: historial completo de mantenimientos preventivos, correctivos y emergentes.',
+                    'route' => route('admin.expedientes.index'),
+                    'cta' => 'Ver expedientes',
+                    'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+                    'color_bg' => 'bg-teal-50',
+                    'color_text' => 'text-teal-600',
+                    'hover_border' => 'hover:border-teal-200',
+                    'btn_color' => 'bg-teal-600 hover:bg-teal-700 shadow-teal-200',
+                ],
             ];
         @endphp
 
@@ -104,6 +115,7 @@
                     </div>
                 </article>
             @endforeach
+
         </div>
 
         <div class="mt-12 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed p-8 text-center">

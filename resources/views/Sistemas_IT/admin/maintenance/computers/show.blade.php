@@ -1,842 +1,636 @@
 @extends('layouts.master')
 
-@section('title', 'Detalles de ficha técnica - Panel Administrativo')
+@section('title', 'Ficha técnica — ' . ($profile->identifier ?? 'Equipo'))
 
 @section('content')
-    @php
-        $componentLabels = collect($profile->replacement_components ?? [])
-            ->map(fn ($component) => $componentOptions[$component] ?? ucfirst(str_replace('_', ' ', $component)));
+@php
+    $componentLabels = collect($profile->replacement_components ?? [])
+        ->map(fn($c) => $componentOptions[$c] ?? ucfirst(str_replace('_', ' ', $c)));
 
-        $latestTicketComponents = collect(optional($latestTicket)->replacement_components ?? [])
-            ->map(fn ($component) => $componentOptions[$component] ?? ucfirst(str_replace('_', ' ', $component)));
+    $userImages = collect(optional($latestTicket)->imagenes ?? [])
+        ->map(function ($img, $i) {
+            if (is_array($img) && isset($img['data'])) {
+                return ['src' => "data:{$img['mime']};base64,{$img['data']}", 'label' => $img['name'] ?? "Imagen ".($i+1)];
+            }
+            if (is_string($img) && str_starts_with($img, 'data:image')) {
+                return ['src' => $img, 'label' => "Imagen ".($i+1)];
+            }
+            return null;
+        })->filter();
 
-        $userImages = collect(optional($latestTicket)->imagenes ?? [])
-            ->map(function ($image, $index) {
-                if (is_array($image) && isset($image['data'])) {
-                    $mime = $image['mime'] ?? 'image/jpeg';
-                    return [
-                        'src' => "data:{$mime};base64," . $image['data'],
-                        'label' => $image['name'] ?? 'Imagen ' . ($index + 1),
-                    ];
-                }
+    $adminImages = collect(optional($latestTicket)->imagenes_admin ?? [])
+        ->map(fn($img, $i) => [
+            'src'   => str_starts_with($img, 'data:image') ? $img : "data:image/jpeg;base64,{$img}",
+            'label' => "Foto TI ".($i+1),
+        ]);
 
-                if (is_string($image) && str_starts_with($image, 'data:image')) {
-                    return [
-                        'src' => $image,
-                        'label' => 'Imagen ' . ($index + 1),
-                    ];
-                }
+    $lastMaint = $profile->last_maintenance_at
+        ? $profile->last_maintenance_at->copy()->timezone('America/Mexico_City')
+        : null;
+    $nextMaint = $profile->next_maintenance_at
+        ? $profile->next_maintenance_at->copy()->timezone('America/Mexico_City')
+        : ($lastMaint ? $lastMaint->copy()->addMonths(4) : null);
 
-                return null;
-            })
-            ->filter();
+    $diasRestantes = $nextMaint
+        ? (int) now('America/Mexico_City')->startOfDay()->diffInDays($nextMaint->copy()->startOfDay(), false)
+        : null;
 
-        $adminImages = collect(optional($latestTicket)->imagenes_admin ?? [])
-            ->map(fn ($image, $index) => [
-                'src' => str_starts_with($image, 'data:image') ? $image : 'data:image/jpeg;base64,' . $image,
-                'label' => 'Imagen administrador ' . ($index + 1),
-            ]);
+    $batLabels = ['functional' => 'Funcional', 'partially_functional' => 'Parcial', 'damaged' => 'Dañada'];
 
-        $imageCount = $userImages->count() + $adminImages->count();
-        $lastMaintenanceAt = $profile->last_maintenance_at ? $profile->last_maintenance_at->copy()->timezone('America/Mexico_City') : null;
-        $nextMaintenanceAt = $profile->next_maintenance_at ? $profile->next_maintenance_at->copy()->timezone('America/Mexico_City') : ($lastMaintenanceAt ? $lastMaintenanceAt->copy()->addMonths(4) : null);
-        $lastUpdatedAt = $lastMaintenanceAt ?? optional($latestTicket)->updated_at ?? $profile->updated_at;
-    @endphp
+    $equipoMostrar = $equiposAsignados->firstWhere('id', $profile->equipo_asignado_id)
+        ?? $equiposAsignados->firstWhere('es_principal', true)
+        ?? $equiposAsignados->first();
 
-    <main class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
-            <div>
-                <p class="text-xs font-semibold tracking-[0.2em] uppercase text-blue-500">Ficha técnica de mantenimiento</p>
-                <h1 class="mt-2 text-3xl md:text-4xl font-bold text-slate-900">{{ $profile->identifier ?? 'Equipo sin identificador' }}</h1>
-                <p class="mt-2 text-slate-600">
-                    Información consolidada del equipo, los reportes del usuario y las intervenciones del equipo de TI.
-                    @if($lastUpdatedAt)
-                        <span class="block text-sm text-slate-500 mt-1">Última actualización {{ $lastUpdatedAt->timezone('America/Mexico_City')->format('d \d\e F Y \a \l\a\s H:i') }}</span>
-                    @endif
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ route('admin.maintenance.computers.index') }}"
-                   class="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition-colors text-sm font-semibold shadow-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Volver al historial
-                </a>
-                <a href="{{ route('admin.maintenance.computers.edit', $profile) }}"
-                   class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold shadow-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m2 0h.01M7 5h.01M5 7h14M5 11h14M5 15h10" />
-                    </svg>
-                    Editar ficha
-                </a>
-                @if($profile->last_ticket_id)
-                    <a href="{{ route('admin.tickets.show', $profile->last_ticket_id) }}"
-                       class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors text-sm font-semibold shadow-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8h2a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    $usuarioAsignado = $equipoMostrar?->user ?? $latestTicket?->user ?? null;
+@endphp
+
+<div class="min-h-screen bg-slate-50 pb-16">
+
+    {{-- ── Header ──────────────────────────────────────────────────────── --}}
+    <div class="bg-white border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('admin.maintenance.computers.index') }}"
+                       class="p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
-                        Ver ticket {{ optional($profile->ticket)->folio ?? '#' . $profile->last_ticket_id }}
                     </a>
-                @endif
-                <button type="button" onclick="document.getElementById('modalEliminarFicha').classList.remove('hidden')"
-                    class="inline-flex items-center px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors text-sm font-semibold shadow-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Eliminar ficha
-                </button>
-            </div>
-        </div>
-
-        {{-- Modal: Confirmar eliminación de ficha --}}
-        <div id="modalEliminarFicha" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="document.getElementById('modalEliminarFicha').classList.add('hidden')"></div>
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        </svg>
-                    </div>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900">¿Eliminar esta ficha técnica?</h3>
-                        <p class="text-sm text-slate-600 mt-1">
-                            Se eliminará la ficha <span class="font-semibold text-slate-900">{{ $profile->identifier ?? 'sin identificador' }}</span>.
-                            @if($latestTicket && $latestTicket->estado !== 'cerrado')
-                                <br><span class="text-blue-700 font-medium">El ticket {{ $latestTicket->folio }} seguirá activo</span> y podrás registrar una nueva ficha para él.
-                            @else
-                                <br>El ticket vinculado no se eliminará.
-                            @endif
-                        </p>
-                        <p class="text-xs text-red-600 mt-2 font-medium">Esta acción no se puede deshacer.</p>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Ficha técnica</p>
+                        <h1 class="text-xl font-bold text-slate-900 leading-tight">
+                            {{ $profile->identifier ?? 'Sin identificador' }}
+                            <span class="text-slate-400 font-normal text-base ml-1">{{ $profile->brand }} {{ $profile->model }}</span>
+                        </h1>
                     </div>
                 </div>
-                <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" onclick="document.getElementById('modalEliminarFicha').classList.add('hidden')"
-                        class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition">
-                        Cancelar
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($profile->expediente)
+                    <a href="{{ route('admin.expedientes.show', $profile->expediente) }}"
+                       class="inline-flex items-center gap-1.5 px-3 py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        Expediente
+                        @if($profile->expediente->mantenimientos_count ?? $profile->expediente->mantenimientos()->count())
+                            <span class="bg-teal-500 rounded-full px-1.5 py-0.5 text-[10px]">
+                                {{ $profile->expediente->mantenimientos()->count() }}
+                            </span>
+                        @endif
+                    </a>
+                    @endif
+                    <a href="{{ route('admin.maintenance.computers.edit', $profile) }}"
+                       class="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar ficha
+                    </a>
+                    <button onclick="document.getElementById('modalEliminar').classList.remove('hidden')"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-100 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Eliminar
                     </button>
-                    <form method="POST" action="{{ route('admin.maintenance.computers.destroy', $profile) }}">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit"
-                            class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition shadow-sm">
-                            Sí, eliminar ficha
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 via-white to-white border-b border-slate-100 px-6 md:px-10 py-6 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Resumen del equipo</h2>
-                    <p class="text-sm text-slate-500">Datos principales para identificar el equipo y su estado actual.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    @if($equiposAsignados->isNotEmpty())
-                        @php
-                            $eqHeader = $equiposAsignados->firstWhere('id', $profile->equipo_asignado_id)
-                                ?? $equiposAsignados->firstWhere('es_principal', true)
-                                ?? $equiposAsignados->first();
-                        @endphp
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                            {{ $eqHeader->nombre_equipo }}
-                            @if($equiposAsignados->count() > 1)
-                                · {{ $eqHeader->es_principal ? 'Principal' : 'Secundaria' }}
-                            @endif
-                        </span>
-                    @endif
-                    @if($latestTicket)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $latestTicket->estado_badge }}">
-                            Ticket {{ $latestTicket->folio }} · {{ ucfirst(str_replace('_', ' ', $latestTicket->estado)) }}
-                        </span>
-                    @endif
-                    @if($latestTicket && $latestTicket->maintenance_scheduled_at)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                            Mantenimiento {{ $latestTicket->maintenance_scheduled_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}
-                        </span>
-                    @endif
-                    @if($nextMaintenanceAt)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                            Próximo {{ $nextMaintenanceAt->format('d/m/Y H:i') }}
-                        </span>
-                    @endif
-                </div>
-            </div>
-
-            <div class="p-6 md:p-10">
-                <div class="grid gap-10 lg:grid-cols-3">
-                    <section class="lg:col-span-2 space-y-10">
-                        <div>
-                            <h3 class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500 mb-4">Características técnicas</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Identificador del equipo</p>
-                                    <p class="text-lg font-semibold text-blue-600 mt-1">{{ $profile->identifier ?? 'Sin asignar' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Marca y modelo</p>
-                                    <p class="text-base text-slate-800 mt-1">{{ trim(($profile->brand ?? 'Marca no definida') . ' ' . ($profile->model ?? '')) }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Tipo de disco</p>
-                                    <p class="text-base text-slate-800 mt-1">{{ $profile->disk_type ?? 'Sin registro' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Memoria RAM</p>
-                                    <p class="text-base text-slate-800 mt-1">{{ $profile->ram_capacity ?? 'Sin registro' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Estado de la batería</p>
-                                    <p class="text-base text-slate-800 mt-1">{{ $profile->battery_status ? ucfirst(str_replace('_', ' ', $profile->battery_status)) : 'Sin registro' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Último mantenimiento registrado</p>
-                                    <p class="text-base text-slate-800 mt-1">
-                                        @if($lastMaintenanceAt)
-                                            {{ $lastMaintenanceAt->format('d/m/Y H:i') }}
-                                        @else
-                                            Sin registro
-                                        @endif
-                                    </p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-medium text-slate-500 uppercase">Próximo mantenimiento</p>
-                                    <p class="text-base text-slate-800 mt-1">
-                                        @if($nextMaintenanceAt)
-                                            @php
-                                                $diasRestantes = (int) now('America/Mexico_City')->startOfDay()->diffInDays($nextMaintenanceAt->copy()->startOfDay(), false);
-                                            @endphp
-                                            {{ $nextMaintenanceAt->format('d/m/Y') }}
-                                            @if($diasRestantes < 0)
-                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">VENCIDO hace {{ abs($diasRestantes) }} día(s)</span>
-                                            @elseif($diasRestantes === 0)
-                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">HOY</span>
-                                            @elseif($diasRestantes <= 7)
-                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">En {{ $diasRestantes }} día(s)</span>
-                                            @else
-                                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">En {{ $diasRestantes }} días</span>
-                                            @endif
-                                        @else
-                                            <span class="text-slate-400">Sin fecha programada</span>
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="mt-6">
-                                <p class="text-xs font-medium text-slate-500 uppercase">Observaciones estéticas</p>
-                                <div class="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
-                                    {{ $profile->aesthetic_observations ?? 'Sin observaciones registradas.' }}
-                                </div>
-                            </div>
-
-                            <div class="mt-6">
-                                <p class="text-xs font-medium text-slate-500 uppercase">Componentes reemplazados</p>
-                                @if($componentLabels->isNotEmpty())
-                                    <div class="flex flex-wrap gap-2 mt-2">
-                                        @foreach($componentLabels as $label)
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
-                                                {{ $label }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <p class="text-sm text-slate-600 mt-2">No se registraron reemplazos en la ficha técnica.</p>
-                                @endif
-                            </div>
-                        </div>
-
-                        @if($latestTicket)
-                            <div>
-                                <h3 class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500 mb-4">Información capturada en el ticket</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="space-y-4">
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Solicitante</p>
-                                            <p class="text-base font-semibold text-slate-900">{{ $latestTicket->nombre_solicitante }}</p>
-                                            <p class="text-sm text-blue-600">{{ $latestTicket->correo_solicitante }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Equipo o programa reportado</p>
-                                            <p class="text-sm text-slate-700">{{ $latestTicket->nombre_programa ?? 'No especificado' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Descripción del usuario</p>
-                                            <div class="mt-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700 shadow-sm">
-                                                {{ $latestTicket->descripcion_problema }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Programación del mantenimiento</p>
-                                            <div class="mt-2 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800 shadow-sm space-y-1">
-                                                <p><span class="font-semibold">Fecha:</span> {{ optional($latestTicket->maintenance_scheduled_at)->timezone('America/Mexico_City')->format('d/m/Y H:i') ?? 'Por asignar' }}</p>
-                                                <p><span class="font-semibold">Horario:</span>
-                                                    @if($latestTicket->maintenanceSlot)
-                                                        {{ \Carbon\Carbon::parse($latestTicket->maintenanceSlot->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($latestTicket->maintenanceSlot->end_time)->format('H:i') }}
-                                                    @else
-                                                        No definido
-                                                    @endif
-                                                </p>
-                                                <p><span class="font-semibold">Folio:</span> {{ $latestTicket->folio }}</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Detalles adicionales del usuario</p>
-                                            <div class="mt-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700 shadow-sm">
-                                                {{ $latestTicket->maintenance_details ?? 'Sin información adicional proporcionada.' }}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Componentes sugeridos por el usuario</p>
-                                            @if($latestTicketComponents->isNotEmpty())
-                                                <div class="flex flex-wrap gap-2 mt-2">
-                                                    @foreach($latestTicketComponents as $label)
-                                                        <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
-                                                            {{ $label }}
-                                                        </span>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <p class="text-sm text-slate-600 mt-2">Sin componentes sugeridos en este ticket.</p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h3 class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500 mb-3">Reporte técnico del administrador</h3>
-                                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-800 min-h-[160px]">
-                                        {{ $latestTicket->maintenance_report ?? 'Aún no se registra un reporte técnico para este mantenimiento.' }}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500 mb-3">Observaciones y cierre</h3>
-                                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-800 space-y-4 min-h-[160px]">
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Observaciones al cierre</p>
-                                            <p class="mt-2">{{ $latestTicket->closure_observations ?? 'Sin observaciones registradas al cierre.' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-slate-500 uppercase">Notas del administrador en el ticket</p>
-                                            <p class="mt-2">{{ $latestTicket->observaciones ?? 'Sin notas adicionales.' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 class="text-xs font-semibold tracking-[0.3em] uppercase text-slate-500 mb-3">Archivos e imágenes del caso</h3>
-                                @if($imageCount > 0)
-                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        @foreach($userImages as $image)
-                                            <button type="button" onclick="openMaintenanceImageModal('{{ $image['src'] }}', '{{ $image['label'] }}')"
-                                                    class="group relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                <img src="{{ $image['src'] }}" alt="{{ $image['label'] }}" class="h-full w-full object-cover transition duration-200 group-hover:scale-105 group-hover:brightness-90">
-                                                <span class="absolute bottom-0 inset-x-0 bg-slate-900/70 text-white text-xs font-medium px-3 py-2 text-left">{{ $image['label'] }}</span>
-                                            </button>
-                                        @endforeach
-                                        @foreach($adminImages as $image)
-                                            <button type="button" onclick="openMaintenanceImageModal('{{ $image['src'] }}', '{{ $image['label'] }}')"
-                                                    class="group relative aspect-video overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                                <img src="{{ $image['src'] }}" alt="{{ $image['label'] }}" class="h-full w-full object-cover transition duration-200 group-hover:scale-105 group-hover:brightness-95">
-                                                <span class="absolute bottom-0 inset-x-0 bg-emerald-800/80 text-white text-xs font-medium px-3 py-2 text-left">{{ $image['label'] }}</span>
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                                        No hay imágenes adjuntas para este mantenimiento.
-                                    </div>
-                                @endif
-                            </div>
-                        @endif
-                    </section>
-
-                    <aside class="space-y-6">
-                        {{-- Equipo(s) asignado(s) al solicitante --}}
-                        @if($equiposAsignados->isNotEmpty())
-                            <div class="rounded-3xl border border-indigo-200 bg-indigo-50 p-6 shadow-inner">
-                                <h3 class="text-sm font-semibold text-indigo-900 mb-1 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                    </svg>
-                                    Equipo(s) asignado(s)
-                                </h3>
-                                <p class="text-xs text-indigo-600 mb-4">Computadoras registradas para {{ optional($latestTicket?->user)->name ?? 'el solicitante' }}.</p>
-
-                                @if($equiposAsignados->count() > 1)
-                                    {{-- Selector de equipo a mantener --}}
-                                    <form method="POST" action="{{ route('admin.maintenance.computers.setEquipo', $profile) }}" class="mb-4">
-                                        @csrf
-                                        @method('PATCH')
-                                        <label class="block text-xs font-semibold text-indigo-800 mb-1.5">Equipo a mantener</label>
-                                        <select name="equipo_asignado_id"
-                                            class="w-full rounded-lg border border-indigo-300 bg-white text-sm text-indigo-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-2">
-                                            @foreach($equiposAsignados as $eq)
-                                                <option value="{{ $eq->id }}"
-                                                    {{ $profile->equipo_asignado_id == $eq->id ? 'selected' : '' }}>
-                                                    {{ $eq->nombre_equipo }}
-                                                    ({{ $eq->modelo ?? 'Sin modelo' }})
-                                                    {{ $eq->es_principal ? '· Principal' : '· Secundaria' }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <button type="submit"
-                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition">
-                                            Confirmar selección
-                                        </button>
-                                    </form>
-                                @endif
-
-                                {{-- Detalle del equipo seleccionado (o el principal si no hay selección) --}}
-                                @php
-                                    $equipoMostrar = $equiposAsignados->firstWhere('id', $profile->equipo_asignado_id)
-                                        ?? $equiposAsignados->firstWhere('es_principal', true)
-                                        ?? $equiposAsignados->first();
-                                @endphp
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex items-center gap-2">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $equipoMostrar->es_principal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600' }}">
-                                            {{ $equipoMostrar->es_principal ? 'Principal' : 'Secundaria' }}
-                                        </span>
-                                        @if($equiposAsignados->count() > 1 && $profile->equipo_asignado_id)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                                Seleccionada para mantenimiento
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-indigo-600 uppercase font-medium">Nombre del equipo</p>
-                                        <p class="font-semibold text-indigo-900">{{ $equipoMostrar->nombre_equipo ?? '—' }}</p>
-                                    </div>
-                                    @if($equipoMostrar->modelo)
-                                    <div>
-                                        <p class="text-xs text-indigo-600 uppercase font-medium">Modelo</p>
-                                        <p class="text-indigo-900">{{ $equipoMostrar->modelo }}</p>
-                                    </div>
-                                    @endif
-                                    @if($equipoMostrar->numero_serie)
-                                    <div>
-                                        <p class="text-xs text-indigo-600 uppercase font-medium">Número de serie</p>
-                                        <p class="text-indigo-900 font-mono text-xs">{{ $equipoMostrar->numero_serie }}</p>
-                                    </div>
-                                    @endif
-                                    @if($equipoMostrar->nombre_usuario_pc)
-                                    <div>
-                                        <p class="text-xs text-indigo-600 uppercase font-medium">Usuario de Windows</p>
-                                        <p class="text-indigo-900">{{ $equipoMostrar->nombre_usuario_pc }}</p>
-                                    </div>
-                                    @endif
-                                    @if($equipoMostrar->notas)
-                                    <div>
-                                        <p class="text-xs text-indigo-600 uppercase font-medium">Notas</p>
-                                        <p class="text-indigo-800 text-xs">{{ $equipoMostrar->notas }}</p>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @else
-                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-inner">
-                                <h3 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                    </svg>
-                                    Equipo asignado
-                                </h3>
-                                <p class="text-sm text-slate-500">Sin equipos asignados registrados para este solicitante.</p>
-                                <dl class="mt-3 space-y-2 text-sm text-slate-700">
-                                    <div>
-                                        <dt class="text-slate-500 text-xs uppercase">Último ticket vinculado</dt>
-                                        <dd class="font-medium">{{ optional($latestTicket)->folio ?? 'Sin asignar' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-slate-500 text-xs uppercase">Última intervención</dt>
-                                        <dd class="font-medium">
-                                            @if($lastMaintenanceAt)
-                                                {{ $lastMaintenanceAt->format('d/m/Y H:i') }}
-                                            @elseif($latestTicket)
-                                                {{ $latestTicket->updated_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}
-                                            @else
-                                                Sin registro
-                                            @endif
-                                        </dd>
-                                    </div>
-                                </dl>
-                            </div>
-                        @endif
-
-                        {{-- Resumen de ticket --}}
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-inner">
-                            <h3 class="text-sm font-semibold text-slate-900 mb-3">Resumen del ticket</h3>
-                            <dl class="space-y-3 text-sm text-slate-700">
-                                <div>
-                                    <dt class="text-slate-500 text-xs uppercase">Último ticket vinculado</dt>
-                                    <dd class="font-medium">{{ optional($latestTicket)->folio ?? 'Sin asignar' }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-slate-500 text-xs uppercase">Última intervención</dt>
-                                    <dd class="font-medium">
-                                        @if($lastMaintenanceAt)
-                                            {{ $lastMaintenanceAt->format('d/m/Y H:i') }}
-                                        @elseif($latestTicket)
-                                            {{ $latestTicket->updated_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}
-                                        @else
-                                            Sin registro
-                                        @endif
-                                    </dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        @if($empleado)
-                            <div class="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-inner">
-                                <h3 class="text-sm font-semibold text-blue-900 mb-4 flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                    Empleado asociado
-                                </h3>
-                                <div class="space-y-3 text-sm">
-                                    @if($empleado->foto_path)
-                                        <div class="flex justify-center mb-4">
-                                            <img src="{{ asset('storage/' . $empleado->foto_path) }}" 
-                                                 alt="{{ $empleado->nombre }}"
-                                                 class="w-20 h-20 rounded-full object-cover border-2 border-blue-300 shadow-md">
-                                        </div>
-                                    @endif
-                                    <div>
-                                        <dt class="text-blue-600 text-xs font-medium uppercase">Nombre completo</dt>
-                                        <dd class="font-semibold text-blue-900 mt-1">{{ $empleado->nombre }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-blue-600 text-xs font-medium uppercase">ID Empleado</dt>
-                                        <dd class="font-medium text-blue-900 mt-1">{{ $empleado->id_empleado }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-blue-600 text-xs font-medium uppercase">Área</dt>
-                                        <dd class="font-medium text-blue-900 mt-1">{{ $empleado->area ?? 'Sin especificar' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-blue-600 text-xs font-medium uppercase">Posición</dt>
-                                        <dd class="font-medium text-blue-900 mt-1">{{ $empleado->posicion ?? 'Sin especificar' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-blue-600 text-xs font-medium uppercase">Correo corporativo</dt>
-                                        <dd class="font-medium text-blue-900 mt-1 break-words">{{ $empleado->correo }}</dd>
-                                    </div>
-                                    @if($empleado->telefono)
-                                        <div>
-                                            <dt class="text-blue-600 text-xs font-medium uppercase">Teléfono</dt>
-                                            <dd class="font-medium text-blue-900 mt-1">{{ $empleado->telefono }}</dd>
-                                        </div>
-                                    @endif
-                                    @if($empleado->supervisor)
-                                        <div>
-                                            <dt class="text-blue-600 text-xs font-medium uppercase">Supervisor</dt>
-                                            <dd class="font-medium text-blue-900 mt-1">{{ $empleado->supervisor->nombre ?? 'Sin asignar' }}</dd>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h3 class="text-sm font-semibold text-slate-900 mb-4">Historial de mantenimientos</h3>
-                            @if($historyTickets->isNotEmpty())
-                                <ul class="space-y-4">
-                                    @foreach($historyTickets as $ticket)
-                                        <li class="relative pl-5">
-                                            <span class="absolute left-0 top-1.5 h-2 w-2 rounded-full {{ $ticket->id === optional($latestTicket)->id ? 'bg-blue-500' : 'bg-slate-300' }}"></span>
-                                            <p class="text-xs uppercase tracking-wide text-slate-400">{{ $ticket->created_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}</p>
-                                            <p class="text-sm font-semibold text-slate-900">{{ $ticket->folio }}</p>
-                                            <p class="text-xs text-slate-500 mt-1">{{ ucfirst(str_replace('_', ' ', $ticket->estado)) }} · {{ $ticket->maintenance_scheduled_at ? $ticket->maintenance_scheduled_at->timezone('America/Mexico_City')->format('d/m/Y H:i') : 'Sin programación' }}</p>
-                                            <a href="{{ route('admin.tickets.show', $ticket) }}" class="mt-2 inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-800">
-                                                Ver detalles
-                                                <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </a>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <p class="text-sm text-slate-500">Aún no hay tickets de mantenimiento relacionados con este equipo.</p>
-                            @endif
-                        </div>
-
-                        @if($latestTicket)
-                            <div class="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-inner">
-                                <h3 class="text-sm font-semibold text-blue-900 mb-2">Actualizar seguimiento administrativo</h3>
-                                <p class="text-xs text-blue-700 mb-4">Los cambios que realices aquí se guardan directamente en el ticket {{ $latestTicket->folio }}.</p>
-
-                                <form method="POST" action="{{ route('admin.tickets.update', $latestTicket) }}" class="space-y-5" enctype="multipart/form-data">
-                                    @csrf
-                                    @method('PATCH')
-
-                                    <input type="hidden" name="estado" value="{{ old('estado', $latestTicket->estado) }}">
-
-                                    <div class="space-y-2">
-                                        <label for="maintenance_observaciones" class="block text-xs font-medium text-blue-900">Observaciones del administrador</label>
-                                        <textarea id="maintenance_observaciones"
-                                                  name="observaciones"
-                                                  rows="3"
-                                                  class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                                                  placeholder="Registra notas importantes sobre este mantenimiento">{{ old('observaciones', $latestTicket->observaciones) }}</textarea>
-                                        @error('observaciones')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                    </div>
-
-                                    <div class="space-y-3">
-                                        <div class="space-y-2">
-                                            <label for="maintenanceAdminImages" class="block text-xs font-medium text-blue-900">Imágenes del administrador</label>
-                                            <input type="file"
-                                                   id="maintenanceAdminImages"
-                                                   name="imagenes_admin[]"
-                                                   multiple
-                                                   accept="image/*"
-                                                   class="block w-full text-sm text-blue-900 border border-blue-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200">
-                                            <p class="text-xs text-blue-700">Puedes adjuntar evidencias visuales o capturas del trabajo realizado.</p>
-                                            @error('imagenes_admin')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                            @error('imagenes_admin.*')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                        </div>
-
-                                        <div id="maintenanceImagePreview" class="grid grid-cols-2 gap-3" style="display: none;"></div>
-
-                                        <div id="maintenanceUploadStatus" class="hidden text-xs text-blue-800 bg-blue-100 border border-blue-200 rounded-lg px-3 py-2">
-                                            <span id="maintenanceFileCount">0</span> archivo(s) seleccionado(s). Recuerda guardar los cambios para aplicar la actualización.
-                                        </div>
-
-                                        @if($latestTicket->imagenes_admin && count($latestTicket->imagenes_admin) > 0)
-                                            <div class="bg-white border border-blue-200 rounded-lg p-3 space-y-2">
-                                                <p class="text-xs font-semibold text-blue-900">Imágenes existentes ({{ count($latestTicket->imagenes_admin) }})</p>
-                                                <div class="grid grid-cols-2 gap-2">
-                                                    @foreach($latestTicket->imagenes_admin as $index => $imagen)
-                                                        <div class="relative group rounded-lg overflow-hidden border border-blue-200">
-                                                            <img src="data:image/jpeg;base64,{{ $imagen }}"
-                                                                 alt="Imagen administrador {{ $index + 1 }}"
-                                                                 class="h-24 w-full object-cover cursor-pointer transition duration-200 group-hover:scale-105"
-                                                                 onclick="openMaintenanceImageModal('data:image/jpeg;base64,{{ $imagen }}', 'Imagen administrador {{ $index + 1 }}')">
-                                                            <button type="button"
-                                                                    onclick="removeExistingMaintenanceAdminImage(event, {{ $index }})"
-                                                                    class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
-                                                            </button>
-                                                            <span class="absolute bottom-1 left-1 bg-blue-900/80 text-white text-[10px] font-medium px-2 py-0.5 rounded">IMG {{ $index + 1 }}</span>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <div class="grid grid-cols-1 gap-4">
-                                        <div class="space-y-2">
-                                            <label for="maintenance_report_form" class="block text-xs font-medium text-blue-900">Reporte técnico</label>
-                                            <textarea id="maintenance_report_form"
-                                                      name="maintenance_report"
-                                                      rows="3"
-                                                      class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                                                      placeholder="Describe el trabajo realizado, piezas reemplazadas u observaciones relevantes">{{ old('maintenance_report', $latestTicket->maintenance_report) }}</textarea>
-                                            @error('maintenance_report')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                        </div>
-                                        <div class="space-y-2">
-                                            <label for="closure_observations_form" class="block text-xs font-medium text-blue-900">Observaciones al cerrar</label>
-                                            <textarea id="closure_observations_form"
-                                                      name="closure_observations"
-                                                      rows="2"
-                                                      class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                                                      placeholder="Notas finales cuando se cierre el ticket">{{ old('closure_observations', $latestTicket->closure_observations) }}</textarea>
-                                            @error('closure_observations')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="pt-3 border-t border-blue-200">
-                                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Guardar seguimiento
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        @endif
-                    </aside>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <div id="maintenanceImageModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm">
-        <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="relative max-w-4xl w-full">
-                <button type="button" onclick="closeMaintenanceImageModal()" class="absolute -top-10 right-0 text-white hover:text-slate-200 transition">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                <div class="overflow-hidden rounded-3xl shadow-2xl border border-white/10 bg-slate-900">
-                    <img id="maintenanceModalImage" src="" alt="" class="w-full max-h-[75vh] object-contain bg-black">
-                    <div id="maintenanceModalCaption" class="px-6 py-4 text-sm text-slate-200 border-t border-white/10"></div>
                 </div>
             </div>
         </div>
     </div>
-@endsection
+
+    {{-- ── Modal eliminar ───────────────────────────────────────────────── --}}
+    <div id="modalEliminar" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+             onclick="document.getElementById('modalEliminar').classList.add('hidden')"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
+            <div class="flex items-start gap-4 mb-5">
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900">¿Eliminar esta ficha técnica?</h3>
+                    <p class="text-sm text-slate-600 mt-1">
+                        Se eliminará permanentemente la ficha de
+                        <strong>{{ $profile->identifier ?? 'este equipo' }}</strong>.
+                        El expediente y los tickets vinculados no se eliminarán.
+                    </p>
+                    <p class="text-xs text-red-600 mt-2 font-medium">Esta acción no se puede deshacer.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('modalEliminar').classList.add('hidden')"
+                        class="px-4 py-2 border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <form method="POST" action="{{ route('admin.maintenance.computers.destroy', $profile) }}">
+                    @csrf @method('DELETE')
+                    <button type="submit"
+                            class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition shadow-sm">
+                        Sí, eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        @if(session('success'))
+        <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-5 flex items-center gap-2 text-sm text-green-800">
+            <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ session('success') }}
+        </div>
+        @endif
+
+        {{-- ── Tarjetas de estado ────────────────────────────────────────── --}}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+
+            {{-- Hardware --}}
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Hardware</p>
+                <dl class="space-y-2 text-sm">
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">Disco</dt>
+                        <dd class="font-medium text-slate-800 text-right">{{ $profile->disk_type ?? '—' }}</dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">RAM</dt>
+                        <dd class="font-medium text-slate-800 text-right">{{ $profile->ram_capacity ?? '—' }}</dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">Batería</dt>
+                        <dd class="font-medium text-right">
+                            @php $bat = $profile->battery_status; @endphp
+                            @if($bat === 'functional')
+                                <span class="text-green-700">Funcional</span>
+                            @elseif($bat === 'partially_functional')
+                                <span class="text-amber-600">Parcial</span>
+                            @elseif($bat === 'damaged')
+                                <span class="text-red-600">Dañada</span>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+                @if($componentLabels->isNotEmpty())
+                <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-1">
+                    @foreach($componentLabels as $label)
+                    <span class="inline-flex px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded border border-blue-100">
+                        {{ $label }}
+                    </span>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+            {{-- Asignación --}}
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Asignado a</p>
+                @if($usuarioAsignado)
+                <div class="flex items-center gap-3 mb-3">
+                    @if($empleado?->foto_path)
+                    <img src="{{ asset('storage/'.$empleado->foto_path) }}" alt="{{ $usuarioAsignado->name }}"
+                         class="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0">
+                    @else
+                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm font-bold text-slate-500">{{ strtoupper(substr($usuarioAsignado->name, 0, 1)) }}</span>
+                    </div>
+                    @endif
+                    <div class="min-w-0">
+                        <p class="font-semibold text-slate-900 text-sm truncate">{{ $usuarioAsignado->name }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ $usuarioAsignado->email }}</p>
+                    </div>
+                </div>
+                <dl class="space-y-1.5 text-sm">
+                    @if($empleado?->area)
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">Área</dt>
+                        <dd class="font-medium text-slate-800 text-right text-xs">{{ $empleado->area }}</dd>
+                    </div>
+                    @endif
+                    @if($empleado?->posicion)
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">Puesto</dt>
+                        <dd class="font-medium text-slate-800 text-right text-xs">{{ $empleado->posicion }}</dd>
+                    </div>
+                    @endif
+                    @if($equipoMostrar?->nombre_usuario_pc)
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">Usuario PC</dt>
+                        <dd class="font-mono text-slate-800 text-right text-xs">{{ $equipoMostrar->nombre_usuario_pc }}</dd>
+                    </div>
+                    @endif
+                </dl>
+                @else
+                <p class="text-sm text-slate-400">Sin usuario asignado</p>
+                @if($profile->is_loaned && $profile->loaned_to_name)
+                <p class="text-xs text-amber-600 mt-1">Prestado a: {{ $profile->loaned_to_name }}</p>
+                @endif
+                @endif
+            </div>
+
+            {{-- Mantenimiento --}}
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mantenimiento</p>
+                <dl class="space-y-2 text-sm">
+                    <div>
+                        <dt class="text-xs text-slate-400 mb-0.5">Último</dt>
+                        <dd class="font-medium text-slate-800">
+                            {{ $lastMaint ? $lastMaint->format('d/m/Y') : '—' }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-slate-400 mb-0.5">Próximo</dt>
+                        <dd class="flex items-center gap-1.5 flex-wrap">
+                            @if($nextMaint)
+                                <span class="font-medium text-slate-800">{{ $nextMaint->format('d/m/Y') }}</span>
+                                @if($diasRestantes < 0)
+                                    <span class="px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded-full">
+                                        VENCIDO {{ abs($diasRestantes) }}d
+                                    </span>
+                                @elseif($diasRestantes === 0)
+                                    <span class="px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded-full">HOY</span>
+                                @elseif($diasRestantes <= 7)
+                                    <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full">{{ $diasRestantes }}d</span>
+                                @else
+                                    <span class="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 rounded-full">{{ $diasRestantes }}d</span>
+                                @endif
+                            @else
+                                <span class="text-slate-400">Sin programar</span>
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+                @if($latestTicket)
+                <div class="mt-3 pt-3 border-t border-slate-100">
+                    <a href="{{ route('admin.tickets.show', $latestTicket) }}"
+                       class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800">
+                        Ticket activo: {{ $latestTicket->folio }}
+                        <span class="@php
+                            echo match($latestTicket->estado) {
+                                'abierto' => 'bg-sky-100 text-sky-700',
+                                'en_proceso' => 'bg-yellow-100 text-yellow-700',
+                                'cerrado' => 'bg-slate-100 text-slate-600',
+                                default => 'bg-slate-100 text-slate-600',
+                            }
+                        @endphp px-1.5 py-0.5 rounded-full text-[10px] font-semibold ml-1">
+                            {{ ucfirst(str_replace('_', ' ', $latestTicket->estado)) }}
+                        </span>
+                    </a>
+                    @if($latestTicket->maintenance_scheduled_at)
+                    <p class="text-xs text-slate-500 mt-1">
+                        Agendado: {{ $latestTicket->maintenance_scheduled_at->timezone('America/Mexico_City')->format('d/m/Y H:i') }}
+                    </p>
+                    @endif
+                </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- ── Contenido principal ─────────────────────────────────────── --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {{-- Columna izquierda (2/3) --}}
+            <div class="lg:col-span-2 space-y-5">
+
+                {{-- Observaciones estéticas --}}
+                @if($profile->aesthetic_observations)
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Observaciones estéticas</p>
+                    <p class="text-sm text-slate-700 leading-relaxed">{{ $profile->aesthetic_observations }}</p>
+                </div>
+                @endif
+
+                {{-- Ticket: descripción y notas TI --}}
+                @if($latestTicket)
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Ticket {{ $latestTicket->folio }}</p>
+                            <p class="text-sm font-semibold text-slate-800 mt-0.5">
+                                Solicitante: {{ $latestTicket->nombre_solicitante }}
+                            </p>
+                        </div>
+                        <a href="{{ route('admin.tickets.show', $latestTicket) }}"
+                           class="text-xs text-blue-600 font-semibold hover:underline">
+                            Ver ticket completo →
+                        </a>
+                    </div>
+
+                    <div class="p-5 space-y-4">
+                        {{-- Descripción del usuario --}}
+                        @if($latestTicket->descripcion_problema)
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Descripción del usuario</p>
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-700 leading-relaxed">
+                                {{ $latestTicket->descripcion_problema }}
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Reporte técnico --}}
+                        @if($latestTicket->maintenance_report)
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Reporte técnico</p>
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-700 leading-relaxed">
+                                {{ $latestTicket->maintenance_report }}
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Observaciones al cierre --}}
+                        @if($latestTicket->closure_observations || $latestTicket->observaciones)
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            @if($latestTicket->closure_observations)
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Observaciones de cierre</p>
+                                <p class="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 leading-relaxed">
+                                    {{ $latestTicket->closure_observations }}
+                                </p>
+                            </div>
+                            @endif
+                            @if($latestTicket->observaciones)
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Notas del administrador</p>
+                                <p class="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 leading-relaxed">
+                                    {{ $latestTicket->observaciones }}
+                                </p>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Imágenes --}}
+                @if($userImages->isNotEmpty() || $adminImages->isNotEmpty())
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                        Evidencia fotográfica
+                        <span class="font-normal text-slate-400 ml-1">({{ $userImages->count() + $adminImages->count() }} archivos)</span>
+                    </p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        @foreach($userImages as $imgItem)
+                        @php $imgSrc = $imgItem['src']; $imgLbl = $imgItem['label']; @endphp
+                        <button data-img-src="{{ $imgSrc }}" data-img-label="{{ $imgLbl }}"
+                                onclick="openImgModal(this.dataset.imgSrc, this.dataset.imgLabel)"
+                                class="group relative aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-100 focus:outline-none">
+                            <img src="{{ $imgSrc }}" alt="{{ $imgLbl }}"
+                                 class="h-full w-full object-cover group-hover:scale-105 group-hover:brightness-90 transition duration-200">
+                            <span class="absolute bottom-0 inset-x-0 bg-slate-900/70 text-white text-[10px] px-2 py-1 text-left">
+                                {{ $imgLbl }}
+                            </span>
+                        </button>
+                        @endforeach
+                        @foreach($adminImages as $imgItem)
+                        @php $imgSrc = $imgItem['src']; $imgLbl = $imgItem['label']; @endphp
+                        <button data-img-src="{{ $imgSrc }}" data-img-label="{{ $imgLbl }}"
+                                onclick="openImgModal(this.dataset.imgSrc, this.dataset.imgLabel)"
+                                class="group relative aspect-video overflow-hidden rounded-lg border border-teal-200 bg-teal-50 focus:outline-none">
+                            <img src="{{ $imgSrc }}" alt="{{ $imgLbl }}"
+                                 class="h-full w-full object-cover group-hover:scale-105 group-hover:brightness-95 transition duration-200">
+                            <span class="absolute bottom-0 inset-x-0 bg-teal-800/80 text-white text-[10px] px-2 py-1 text-left">
+                                {{ $imgLbl }}
+                            </span>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+                @endif
+
+                {{-- Historial de tickets anteriores --}}
+                @if($historyTickets->isNotEmpty())
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                        Tickets anteriores
+                        <span class="font-normal ml-1">({{ $historyTickets->count() }})</span>
+                    </p>
+                    <div class="space-y-2">
+                        @foreach($historyTickets as $tkt)
+                        <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></span>
+                                <div>
+                                    <span class="font-semibold text-slate-800 text-sm">{{ $tkt->folio }}</span>
+                                    <span class="text-xs text-slate-400 ml-2">
+                                        {{ $tkt->created_at->timezone('America/Mexico_City')->format('d/m/Y') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="{{ route('admin.tickets.show', $tkt) }}"
+                               class="text-xs text-blue-600 font-semibold hover:underline flex-shrink-0">
+                                Ver →
+                            </a>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+            </div>
+
+            {{-- Columna derecha (1/3) --}}
+            <div class="space-y-5">
+
+                {{-- Selector de equipo asignado (si hay varios) --}}
+                @if($equiposAsignados->count() > 1)
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Equipo a mantener</p>
+                    <form method="POST" action="{{ route('admin.maintenance.computers.setEquipo', $profile) }}" class="space-y-2">
+                        @csrf @method('PATCH')
+                        <select name="equipo_asignado_id"
+                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            @foreach($equiposAsignados as $eq)
+                            <option value="{{ $eq->id }}" @selected($profile->equipo_asignado_id == $eq->id)>
+                                {{ $eq->nombre_equipo }}
+                                {{ $eq->es_principal ? '(Principal)' : '(Secundaria)' }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <button type="submit"
+                                class="w-full py-2 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition">
+                            Confirmar selección
+                        </button>
+                    </form>
+                </div>
+                @endif
+
+                {{-- Actualizar ticket --}}
+                @if($latestTicket)
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                        <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Actualizar ticket</p>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ $latestTicket->folio }}</p>
+                    </div>
+                    <div class="p-4">
+                        <form method="POST" action="{{ route('admin.tickets.update', $latestTicket) }}"
+                              class="space-y-4" enctype="multipart/form-data">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="estado" value="{{ $latestTicket->estado }}">
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Reporte técnico</label>
+                                <textarea name="maintenance_report" rows="3"
+                                          placeholder="Trabajo realizado, componentes, diagnóstico…"
+                                          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y">{{ old('maintenance_report', $latestTicket->maintenance_report) }}</textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Observaciones de cierre</label>
+                                <textarea name="closure_observations" rows="2"
+                                          placeholder="Notas al cerrar el ticket…"
+                                          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y">{{ old('closure_observations', $latestTicket->closure_observations) }}</textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Notas internas</label>
+                                <textarea name="observaciones" rows="2"
+                                          placeholder="Notas visibles solo para el administrador…"
+                                          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y">{{ old('observaciones', $latestTicket->observaciones) }}</textarea>
+                            </div>
+
+                            {{-- Imágenes --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Agregar fotos de TI</label>
+                                <input type="file" id="adminImages" name="imagenes_admin[]" multiple accept="image/*"
+                                       class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                                <div id="imgPreview" class="grid grid-cols-2 gap-2 mt-2" style="display:none"></div>
+                                <div id="imgStatus" class="hidden text-xs text-slate-500 mt-1">
+                                    <span id="imgCount">0</span> archivo(s) seleccionado(s).
+                                </div>
+                            </div>
+
+                            {{-- Imágenes existentes --}}
+                            @if($latestTicket->imagenes_admin && count($latestTicket->imagenes_admin) > 0)
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 mb-2">
+                                    Fotos existentes ({{ count($latestTicket->imagenes_admin) }})
+                                </p>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    @foreach($latestTicket->imagenes_admin as $idx => $adminImg)
+                                    @php $adminImgSrc = 'data:image/jpeg;base64,' . $adminImg; $adminImgLbl = 'Foto TI ' . ($idx + 1); @endphp
+                                    <div class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-square">
+                                        <img src="{{ $adminImgSrc }}" alt="{{ $adminImgLbl }}"
+                                             class="h-full w-full object-cover cursor-pointer hover:scale-105 transition"
+                                             data-img-src="{{ $adminImgSrc }}" data-img-label="{{ $adminImgLbl }}"
+                                             onclick="openImgModal(this.dataset.imgSrc, this.dataset.imgLabel)">
+                                        <button type="button" data-rm-idx="{{ $idx }}"
+                                                onclick="removeExistingImg(event, parseInt(this.dataset.rmIdx))"
+                                                class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
+                            <button type="submit"
+                                    class="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm">
+                                Guardar cambios
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal imagen --}}
+<div id="imgModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+     onclick="closeImgModal()">
+    <div class="relative max-w-4xl w-full" onclick="event.stopPropagation()">
+        <button onclick="closeImgModal()"
+                class="absolute -top-8 right-0 text-white/80 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <div class="rounded-2xl overflow-hidden bg-slate-900 shadow-2xl">
+            <img id="imgModalSrc" src="" alt="" class="w-full max-h-[78vh] object-contain bg-black">
+            <p id="imgModalCaption" class="px-5 py-3 text-sm text-slate-300 border-t border-white/10"></p>
+        </div>
+    </div>
+</div>
 
 @push('scripts')
-    <script>
-        function openMaintenanceImageModal(src, caption) {
-            const modal = document.getElementById('maintenanceImageModal');
-            const image = document.getElementById('maintenanceModalImage');
-            const label = document.getElementById('maintenanceModalCaption');
+<script>
+function openImgModal(src, caption) {
+    document.getElementById('imgModalSrc').src = src;
+    document.getElementById('imgModalCaption').textContent = caption ?? '';
+    document.getElementById('imgModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeImgModal() {
+    document.getElementById('imgModal').classList.add('hidden');
+    document.getElementById('imgModalSrc').src = '';
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImgModal(); });
 
-            image.src = src;
-            image.alt = caption;
-            label.textContent = caption || '';
-
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMaintenanceImageModal() {
-            const modal = document.getElementById('maintenanceImageModal');
-            const image = document.getElementById('maintenanceModalImage');
-            const label = document.getElementById('maintenanceModalCaption');
-
-            image.src = '';
-            image.alt = '';
-            label.textContent = '';
-
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeMaintenanceImageModal();
-            }
+// Image preview for new uploads
+let selectedFiles = [];
+const adminInput = document.getElementById('adminImages');
+if (adminInput) {
+    adminInput.addEventListener('change', () => {
+        selectedFiles = [...selectedFiles, ...Array.from(adminInput.files)];
+        renderPreview();
+    });
+}
+function renderPreview() {
+    const grid   = document.getElementById('imgPreview');
+    const status = document.getElementById('imgStatus');
+    const count  = document.getElementById('imgCount');
+    grid.innerHTML = '';
+    if (selectedFiles.length) {
+        grid.style.display = 'grid';
+        status.classList.remove('hidden');
+        count.textContent = selectedFiles.length;
+        selectedFiles.forEach((file, i) => {
+            if (!file?.type?.startsWith('image/')) return;
+            const r = new FileReader();
+            r.onload = e => {
+                const div = document.createElement('div');
+                div.className = 'relative group aspect-square rounded-lg overflow-hidden border border-slate-200';
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="h-full w-full object-cover cursor-pointer" onclick="openImgModal('${e.target.result}', 'Vista previa ${i+1}')">
+                    <button type="button" onclick="removePreview(${i})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>`;
+                grid.appendChild(div);
+            };
+            r.readAsDataURL(file);
         });
-
-        document.addEventListener('click', (event) => {
-            const modal = document.getElementById('maintenanceImageModal');
-            if (!modal.classList.contains('hidden') && event.target === modal) {
-                closeMaintenanceImageModal();
-            }
-        });
-
-        let maintenanceSelectedFiles = [];
-        const maintenanceImagesInput = document.getElementById('maintenanceAdminImages');
-
-        if (maintenanceImagesInput) {
-            maintenanceImagesInput.addEventListener('change', (event) => {
-                const files = Array.from(event.target.files);
-                maintenanceSelectedFiles = [...maintenanceSelectedFiles, ...files];
-                updateMaintenanceImagePreview();
-            });
-        }
-
-        function updateMaintenanceImagePreview() {
-            const previewContainer = document.getElementById('maintenanceImagePreview');
-            const uploadStatus = document.getElementById('maintenanceUploadStatus');
-            const fileCount = document.getElementById('maintenanceFileCount');
-
-            if (!previewContainer || !uploadStatus || !fileCount) {
-                return;
-            }
-
-            previewContainer.innerHTML = '';
-
-            if (maintenanceSelectedFiles.length > 0) {
-                previewContainer.style.display = 'grid';
-                uploadStatus.classList.remove('hidden');
-                fileCount.textContent = maintenanceSelectedFiles.length;
-
-                maintenanceSelectedFiles.forEach((file, index) => {
-                    if (file && file.type && file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            const card = document.createElement('div');
-                            card.className = 'relative group';
-                            card.innerHTML = `
-                                <img src="${e.target.result}" alt="Vista previa ${index + 1}" class="h-24 w-full object-cover rounded-lg border border-blue-200 cursor-pointer transition hover:border-blue-400" onclick="openMaintenanceImageModal('${e.target.result}', 'Vista previa ${index + 1}')">
-                                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
-                                    <button type="button" onclick="removeMaintenancePreviewImage(${index})" class="bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 text-xs shadow-lg">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                                <span class="absolute bottom-1 left-1 bg-blue-900/80 text-white text-[10px] font-medium px-2 py-0.5 rounded">${Math.round(file.size / 1024)} KB</span>
-                            `;
-                            previewContainer.appendChild(card);
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            } else {
-                previewContainer.style.display = 'none';
-                uploadStatus.classList.add('hidden');
-            }
-
-            updateMaintenanceFileInput();
-        }
-
-        function updateMaintenanceFileInput() {
-            if (!maintenanceImagesInput) {
-                return;
-            }
-
-            const dt = new DataTransfer();
-
-            maintenanceSelectedFiles.forEach(file => {
-                if (file) {
-                    dt.items.add(file);
-                }
-            });
-
-            maintenanceImagesInput.files = dt.files;
-        }
-
-        function removeMaintenancePreviewImage(index) {
-            maintenanceSelectedFiles.splice(index, 1);
-            updateMaintenanceImagePreview();
-        }
-
-        let maintenanceRemovedAdminImages = [];
-
-        function removeExistingMaintenanceAdminImage(event, index) {
-            if (!event) {
-                return;
-            }
-
-            if (!maintenanceRemovedAdminImages.includes(index)) {
-                maintenanceRemovedAdminImages.push(index);
-            }
-
-            const trigger = event.currentTarget || event.target;
-            const container = trigger.closest('.relative');
-            if (container) {
-                container.style.display = 'none';
-            }
-
-            const form = trigger.closest('form');
-            if (form && !form.querySelector(`input[name="removed_admin_images[]"][value="${index}"]`)) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'removed_admin_images[]';
-                hiddenInput.value = index;
-                form.appendChild(hiddenInput);
-            }
-        }
-    </script>
+    } else {
+        grid.style.display = 'none';
+        status.classList.add('hidden');
+    }
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => f && dt.items.add(f));
+    if (adminInput) adminInput.files = dt.files;
+}
+function removePreview(i) { selectedFiles.splice(i, 1); renderPreview(); }
+function removeExistingImg(event, idx) {
+    event.currentTarget.closest('.relative').style.display = 'none';
+    const form = event.currentTarget.closest('form');
+    if (!form.querySelector(`input[name="removed_admin_images[]"][value="${idx}"]`)) {
+        const h = document.createElement('input');
+        h.type = 'hidden'; h.name = 'removed_admin_images[]'; h.value = idx;
+        form.appendChild(h);
+    }
+}
+</script>
 @endpush
+@endsection

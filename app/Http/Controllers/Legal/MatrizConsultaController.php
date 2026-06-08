@@ -13,6 +13,8 @@ class MatrizConsultaController extends Controller
 {
     public function index(Request $request)
     {
+        $puedeEditar = auth()->user()->isLegal();
+
         $query = LegalProyecto::with(['categoria.parent', 'archivos']);
 
         if ($request->filled('empresa')) {
@@ -29,7 +31,6 @@ class MatrizConsultaController extends Controller
 
         if ($request->filled('categoria_id')) {
             $catId = $request->categoria_id;
-            // Incluir proyectos de la categoría seleccionada y sus subcategorías
             $subcatIds = LegalCategoria::where('parent_id', $catId)->pluck('id');
             $ids = $subcatIds->prepend($catId);
             $query->whereIn('categoria_id', $ids);
@@ -46,7 +47,10 @@ class MatrizConsultaController extends Controller
         $empresas = LegalProyecto::where('tipo', 'consulta')->select('empresa')->distinct()->orderBy('empresa')->pluck('empresa');
         $proyectosNombres = LegalProyecto::where('tipo', 'escritos')->select('empresa')->distinct()->orderBy('empresa')->pluck('empresa');
 
-        return view('Legal.matriz-consulta.index', compact('proyectos', 'categorias', 'categoriasConsultas', 'categoriasEscritos', 'empresas', 'proyectosNombres'));
+        return view('Legal.matriz-consulta.index', compact(
+            'proyectos', 'categorias', 'categoriasConsultas', 'categoriasEscritos',
+            'empresas', 'proyectosNombres', 'puedeEditar'
+        ));
     }
 
     public function store(Request $request)

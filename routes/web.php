@@ -5,6 +5,10 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\EvaluacionController;
 use App\Http\Controllers\Legal\CategoriaLegalController;
+use App\Http\Controllers\Legal\ComercioExterior\BomController as BomCEController;
+use App\Http\Controllers\Legal\ComercioExterior\CatalogoController as CatalogoCEController;
+use App\Http\Controllers\Legal\ComercioExterior\ConfiguracionCEController;
+use App\Http\Controllers\Legal\ComercioExterior\OriginAnalysisController;
 // --- Controllers de Sistemas IT ---
 use App\Http\Controllers\Legal\DigitalizacionController;
 use App\Http\Controllers\Legal\LegalController;
@@ -23,6 +27,7 @@ use App\Http\Controllers\Sistemas_IT\ActivosApiController;
 use App\Http\Controllers\Sistemas_IT\ActivosController;
 use App\Http\Controllers\Sistemas_IT\AdminController;
 use App\Http\Controllers\Sistemas_IT\CredencialEquipoController;
+use App\Http\Controllers\Sistemas_IT\ExpedienteController as ExpedienteTIController;
 use App\Http\Controllers\Sistemas_IT\MaintenanceController;
 use App\Http\Controllers\Sistemas_IT\NotificationController;
 use App\Http\Controllers\Sistemas_IT\TicketController; // <--- AGREGADO
@@ -312,18 +317,22 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
 
 });
 
-// 7. MÓDULO LEGAL
+// 7. MÓDULO LEGAL — Matriz de consulta (lectura para todos los autenticados)
+Route::middleware(['auth', 'verified'])->prefix('legal')->name('legal.')->group(function () {
+    Route::get('/matriz', [MatrizConsultaController::class, 'index'])->name('matriz.index');
+    Route::get('/matriz/{id}', [MatrizConsultaController::class, 'show'])->name('matriz.show');
+    Route::get('/matriz/archivo/{id}/download', [MatrizConsultaController::class, 'downloadArchivo'])->name('matriz.archivo.download');
+});
+
+// 7. MÓDULO LEGAL — Resto del módulo restringido a área Legal
 Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('legal.')->group(function () {
     Route::get('/', [LegalController::class, 'dashboard'])->name('dashboard');
 
-    // Matriz de Consulta
-    Route::get('/matriz', [MatrizConsultaController::class, 'index'])->name('matriz.index');
+    // Matriz de Consulta (escritura solo Legal)
     Route::post('/matriz', [MatrizConsultaController::class, 'store'])->name('matriz.store');
-    Route::get('/matriz/{id}', [MatrizConsultaController::class, 'show'])->name('matriz.show');
     Route::put('/matriz/{id}', [MatrizConsultaController::class, 'update'])->name('matriz.update');
     Route::delete('/matriz/{id}', [MatrizConsultaController::class, 'destroy'])->name('matriz.destroy');
     Route::delete('/matriz/archivo/{id}', [MatrizConsultaController::class, 'destroyArchivo'])->name('matriz.archivo.destroy');
-    Route::get('/matriz/archivo/{id}/download', [MatrizConsultaController::class, 'downloadArchivo'])->name('matriz.archivo.download');
 
     // Categorías
     Route::get('/categorias', [CategoriaLegalController::class, 'index'])->name('categorias.index');
@@ -338,6 +347,34 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
 
     // Cuestionario clientes (solo lectura)
     Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
+
+    // ── Comercio Exterior / Análisis de Origen T-MEC ─────────────────────
+    Route::prefix('comercio-exterior')->name('ce.')->group(function () {
+        // BOMs
+        Route::get('/bom', [BomCEController::class, 'index'])->name('bom.index');
+        Route::post('/bom', [BomCEController::class, 'store'])->name('bom.store');
+        Route::get('/bom/{bom}', [BomCEController::class, 'show'])->name('bom.show');
+        Route::put('/bom/{bom}/items', [BomCEController::class, 'updateItems'])->name('bom.items.update');
+        Route::delete('/bom/{bom}', [BomCEController::class, 'destroy'])->name('bom.destroy');
+        Route::post('/bom/{bom}/analizar', [BomCEController::class, 'analizarBom'])->name('bom.analizar');
+        Route::post('/bom/{bom}/items/{item}/analizar', [BomCEController::class, 'analizarItem'])->name('bom.item.analizar');
+
+        // Catálogo de Reglas
+        Route::get('/catalogo', [CatalogoCEController::class, 'index'])->name('catalogo.index');
+
+        // Análisis de Origen
+        Route::get('/origen/{bom}', [OriginAnalysisController::class, 'show'])->name('origen.show');
+        Route::post('/origen/{bom}', [OriginAnalysisController::class, 'store'])->name('origen.store');
+        Route::get('/origen/{bom}/export', [OriginAnalysisController::class, 'export'])->name('origen.export');
+        Route::post('/origen/{bom}/chat', [OriginAnalysisController::class, 'chat'])->name('origen.chat');
+        Route::put('/origen/{bom}/corregir', [OriginAnalysisController::class, 'applyCorrections'])->name('origen.corregir');
+
+        // Configuración y carga de catálogo Excel
+        Route::get('/configuracion', [ConfiguracionCEController::class, 'index'])->name('configuracion.index');
+        Route::post('/configuracion', [ConfiguracionCEController::class, 'update'])->name('configuracion.update');
+        Route::post('/configuracion/catalogo', [ConfiguracionCEController::class, 'uploadCatalogo'])->name('configuracion.catalogo.upload');
+    });
+
 });
 
 // 8. MÓDULO ANEXO 24
@@ -390,6 +427,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         Route::get('/tickets/{ticket}', 'show')->name('tickets.show');
         Route::patch('/tickets/{ticket}', 'update')->name('tickets.update');
         Route::post('/tickets/{ticket}/change-maintenance-date', 'changeMaintenanceDate')->name('tickets.change-maintenance-date');
+        Route::get('/tickets/{ticket}/crear-mantenimiento', [ExpedienteTIController::class, 'crearMantenimientoDesdeTicket'])->name('tickets.crear-mantenimiento');
         Route::get('/maintenance-slots/available', 'getAvailableMaintenanceSlots')->name('maintenance-slots.available');
     }
     );
@@ -398,16 +436,10 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
     Route::controller(MaintenanceController::class)->name('maintenance.')->group(function () {
         Route::get('/maintenance', 'adminIndex')->name('index');
         Route::get('/maintenance/computers', function () {
-            return redirect()->route('admin.maintenance.index');
-        }
-        )->name('computers.index');
+            return redirect()->route('admin.expedientes.index');
+        })->name('computers.index');
 
-        Route::post('/maintenance/computers', 'storeComputer')->name('computers.store');
         Route::get('/maintenance/computers/{computerProfile}', 'showComputer')->name('computers.show');
-        Route::patch('/maintenance/computers/{computerProfile}/equipo', 'setEquipoAsignado')->name('computers.setEquipo');
-        Route::get('/maintenance/computers/{computerProfile}/edit', 'editComputer')->name('computers.edit');
-        Route::put('/maintenance/computers/{computerProfile}', 'updateComputer')->name('computers.update');
-        Route::delete('/maintenance/computers/{computerProfile}', 'destroyComputer')->name('computers.destroy');
 
         // API para agenda de mantenimientos
         Route::get('/maintenance/week-maintenances', 'getWeekMaintenances')->name('week-maintenances');
@@ -482,6 +514,27 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
         ->name('credenciales.secundarios.store');
     Route::delete('credenciales/{credencial}/secundarios/{secundario}', [CredencialEquipoController::class, 'destroySecundario'])
         ->name('credenciales.secundarios.destroy');
+
+    // Expedientes de mantenimiento (hoja de vida del equipo)
+    Route::prefix('expedientes')->name('expedientes.')->controller(ExpedienteTIController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{expediente}', 'show')->name('show');
+        Route::post('/{expediente}/cerrar', 'cerrar')->name('cerrar');
+        Route::post('/{expediente}/reactivar', 'reactivar')->name('reactivar');
+        Route::delete('/{expediente}', 'destroy')->name('destroy');
+
+        // Mantenimientos dentro del expediente
+        Route::get('/{expediente}/mantenimientos/crear', 'createMantenimiento')->name('mantenimiento.create');
+        Route::post('/{expediente}/mantenimientos', 'storeMantenimiento')->name('mantenimiento.store');
+        Route::get('/{expediente}/mantenimientos/{mantenimiento}', 'showMantenimiento')->name('mantenimiento.show');
+        Route::get('/{expediente}/mantenimientos/{mantenimiento}/editar', 'editMantenimiento')->name('mantenimiento.edit');
+        Route::put('/{expediente}/mantenimientos/{mantenimiento}', 'updateMantenimiento')->name('mantenimiento.update');
+        Route::delete('/{expediente}/mantenimientos/{mantenimiento}', 'destroyMantenimiento')->name('mantenimiento.destroy');
+
+        // Archivos
+        Route::post('/mantenimientos/{mantenimiento}/archivos', 'uploadArchivo')->name('archivo.upload');
+        Route::delete('/archivos/{archivo}', 'deleteArchivo')->name('archivo.destroy');
+    });
 });
 
 // API Notificaciones Admin

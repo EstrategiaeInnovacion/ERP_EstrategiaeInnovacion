@@ -92,7 +92,7 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
                                             <a href="{{ route('admin.maintenance.computers.edit', $profile) }}" class="inline-flex items-center px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">Editar</a>
-                                            <a href="{{ route('admin.maintenance.computers.show', $profile) }}" class="inline-flex items-center px-3 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-lg text-xs font-semibold transition-colors">Ver detalles</a>
+                                            <a href="{{ route('admin.maintenance.computers.show', $profile) }}" class="inline-flex items-center px-3 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 rounded-lg text-xs font-semibold transition-colors">Ver expediente</a>
                                             <form method="POST" action="{{ route('admin.maintenance.computers.destroy', $profile) }}" onsubmit="return confirm('¿Deseas eliminar esta ficha técnica? Esta acción no se puede deshacer.');">
                                                 @csrf
                                                 @method('DELETE')

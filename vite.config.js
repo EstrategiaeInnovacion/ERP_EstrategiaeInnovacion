@@ -16,7 +16,10 @@ export default defineConfig({
                 'resources/js/Recursos_Humanos/index.js',
                 // Area: Logistica
                 'resources/css/Logistica/index.css',
-                'resources/js/Logistica/index.js'
+                'resources/js/Logistica/index.js',
+                // Area: Comercio Exterior
+                'resources/css/ComercioExterior/bom.css',
+                'resources/js/ComercioExterior/bom.js'
             ],
             refresh: true,
         }),

@@ -6,14 +6,14 @@
     <main class="max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
             <div>
-                <h2 class="text-3xl font-bold text-gray-900">Editar ficha técnica</h2>
+                <h2 class="text-3xl font-bold text-gray-900">Editar perfil de equipo</h2>
                 <p class="text-gray-600">Actualiza la información del equipo {{ $profile->identifier ?? 'sin identificador' }}.</p>
             </div>
             <a href="{{ route('admin.maintenance.computers.show', $profile) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-semibold">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                Volver a la ficha
+                Ver expediente
             </a>
         </div>
 

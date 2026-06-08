@@ -5,6 +5,7 @@ namespace App\Models\Sistemas_IT;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ComputerProfile extends Model
 {
@@ -37,6 +38,22 @@ class ComputerProfile extends Model
         'is_loaned' => 'boolean',
     ];
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::created(function (self $profile) {
+            Expediente::firstOrCreate(
+                ['equipo_asignado_id' => $profile->equipo_asignado_id],
+                [
+                    'estado'         => 'activo',
+                    'fecha_apertura' => now()->toDateString(),
+                    'created_by'     => auth()->id() ?? 1,
+                ]
+            );
+        });
+    }
+
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class, 'last_ticket_id');
@@ -45,5 +62,10 @@ class ComputerProfile extends Model
     public function equipoAsignado(): BelongsTo
     {
         return $this->belongsTo(EquipoAsignado::class, 'equipo_asignado_id');
+    }
+
+    public function expediente(): HasOne
+    {
+        return $this->hasOne(Expediente::class, 'equipo_asignado_id', 'equipo_asignado_id');
     }
 }

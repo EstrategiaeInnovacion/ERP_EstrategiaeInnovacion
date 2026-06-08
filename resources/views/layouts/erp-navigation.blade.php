@@ -4,6 +4,8 @@
     // 1. Detección de Contexto (¿En qué módulo estoy navegando?)
     $isRH = request()->routeIs('rh.*') || request()->routeIs('recursos-humanos.*');
     $isLogistica = request()->routeIs('logistica.*');
+    $isLegal = request()->routeIs('legal.*');
+    $isCE    = request()->routeIs('legal.ce.*');
 
     // 1b. ¿El usuario tiene posición autorizada para acceso completo a RH?
     $posNorm = $user?->empleado?->posicion ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($user->empleado->posicion)), 'UTF-8') : null;
@@ -16,6 +18,8 @@
         $homeRoute = route('recursos-humanos.index');
     } elseif ($isLogistica) {
         $homeRoute = route('logistica.index');
+    } elseif ($isLegal) {
+        $homeRoute = route('legal.dashboard');
     }
 
     // 3. Datos de usuario
@@ -39,6 +43,9 @@
                             @elseif($isLogistica)
                                 <h1 class="text-sm font-bold text-slate-800 tracking-tight">Logística y Aduanas</h1>
                                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Operaciones</p>
+                            @elseif($isLegal)
+                                <h1 class="text-sm font-bold text-slate-800 tracking-tight">Área Legal</h1>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ $isCE ? 'Comercio Exterior' : 'Jurídica' }}</p>
                             @else
                                 <h1 class="text-sm font-bold text-slate-800 tracking-tight">Portal Corporativo</h1>
                                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estrategia e Innovación</p>
@@ -71,7 +78,28 @@
                         <x-nav-link :href="route('logistica.index')" :active="request()->routeIs('logistica.index')">
                             Dashboard
                         </x-nav-link>
-                    
+
+                    {{-- MENÚ LEGAL --}}
+                    @elseif($isLegal)
+                        <x-nav-link :href="route('legal.dashboard')" :active="request()->routeIs('legal.dashboard')">
+                            Panel Legal
+                        </x-nav-link>
+                        @if($isCE)
+                            <x-nav-link :href="route('legal.ce.bom.index')" :active="request()->routeIs('legal.ce.bom.*')">
+                                BOMs
+                            </x-nav-link>
+                            <x-nav-link :href="route('legal.ce.catalogo.index')" :active="request()->routeIs('legal.ce.catalogo.*')">
+                                Catálogo
+                            </x-nav-link>
+                            <x-nav-link :href="route('legal.ce.configuracion.index')" :active="request()->routeIs('legal.ce.configuracion.*')">
+                                Configuración
+                            </x-nav-link>
+                        @else
+                            <x-nav-link :href="route('legal.ce.bom.index')" :active="false">
+                                Análisis Origen T-MEC
+                            </x-nav-link>
+                        @endif
+
                     {{-- MENÚ GENERAL --}}
                     @else
                         @can('ver_rh')
@@ -171,6 +199,21 @@
                 <x-responsive-nav-link :href="route('logistica.index')" :active="request()->routeIs('logistica.index')">
                     Dashboard Logística
                 </x-responsive-nav-link>
+            @elseif($isLegal)
+                <x-responsive-nav-link :href="route('legal.dashboard')" :active="request()->routeIs('legal.dashboard')">
+                    Panel Legal
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('legal.ce.bom.index')" :active="request()->routeIs('legal.ce.bom.*')">
+                    Análisis Origen T-MEC
+                </x-responsive-nav-link>
+                @if($isCE)
+                    <x-responsive-nav-link :href="route('legal.ce.catalogo.index')" :active="request()->routeIs('legal.ce.catalogo.*')">
+                        Catálogo de Reglas
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('legal.ce.configuracion.index')" :active="request()->routeIs('legal.ce.configuracion.*')">
+                        Configuración CE
+                    </x-responsive-nav-link>
+                @endif
             @else
                 <x-responsive-nav-link :href="route('welcome')">Inicio</x-responsive-nav-link>
             @endif

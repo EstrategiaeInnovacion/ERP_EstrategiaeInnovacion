@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Sistemas_IT;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sistemas_IT\ComputerProfile;
+use App\Models\Sistemas_IT\EquipoAsignado;
+use App\Models\Sistemas_IT\Expediente;
 use App\Models\Sistemas_IT\MaintenanceBooking;
 use App\Models\Sistemas_IT\MaintenanceSlot;
 use App\Models\Sistemas_IT\Ticket;
@@ -29,11 +30,7 @@ class TicketController extends Controller
         $assignedPrinterLoan = null;
 
         if ($tipo === 'hardware' && auth()->check()) {
-            $user = auth()->user();
-
-            $assignedComputerProfile = ComputerProfile::where('is_loaned', true)
-                ->where('loaned_to_email', $user->email)
-                ->first();
+            $assignedComputerProfile = null; // deprecated — no longer used
         }
 
         // --- CORRECCIÓN VITAL: Obtener hora exacta del servidor (México) ---
@@ -112,12 +109,19 @@ class TicketController extends Controller
             ];
 
             if ($validated['tipo_problema'] === 'mantenimiento') {
-                // Nueva lógica: usar fecha y hora de los inputs directamente
+                // Auto-vincular el equipo principal del usuario
+                $equipoPrincipal = EquipoAsignado::where('user_id', auth()->id())
+                    ->orderByDesc('es_principal')
+                    ->first();
+
+                if ($equipoPrincipal) {
+                    $ticketData['equipo_asignado_id'] = $equipoPrincipal->id;
+                }
+
                 $fechaRequerida = $request->input('fecha_requerida');
-                $horaRequerida = $request->input('hora_requerida');
-                
+                $horaRequerida  = $request->input('hora_requerida');
+
                 if ($fechaRequerida && $horaRequerida) {
-                    // Crear datetime completo para maintenance_scheduled_at
                     $scheduledAt = \Carbon\Carbon::parse(
                         $fechaRequerida . ' ' . $horaRequerida,
                         'America/Mexico_City'
@@ -126,6 +130,14 @@ class TicketController extends Controller
                 }
 
                 $ticket = Ticket::create($ticketData);
+
+                // Auto-crear expediente para el equipo si no existe
+                if ($equipoPrincipal) {
+                    Expediente::firstOrCreate(
+                        ['equipo_asignado_id' => $equipoPrincipal->id],
+                        ['estado' => 'activo', 'fecha_apertura' => now()->toDateString(), 'created_by' => auth()->id()]
+                    );
+                }
 
                 \Log::info('TicketController::store - Ticket de mantenimiento creado exitosamente', [
                     'ticket_id' => $ticket->id,
@@ -441,8 +453,8 @@ class TicketController extends Controller
 
                     $profile->save();
 
-                    if ($ticket->computer_profile_id !== $profile->id) {
-                        $ticket->computer_profile_id = $profile->id;
+                    if ($ticket->equipo_asignado_id !== $profile->equipo_asignado_id) {
+                        $ticket->equipo_asignado_id = $profile->equipo_asignado_id;
                         $ticket->save();
                     }
                 }

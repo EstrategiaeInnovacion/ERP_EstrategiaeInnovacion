@@ -27,6 +27,7 @@
             <h1 class="text-2xl font-bold text-slate-900">Matriz de Consultas y Escritos</h1>
             <p class="text-slate-500 mt-1 text-sm">Registro y seguimiento de consultas jurídicas por empresa.</p>
         </div>
+        @if($puedeEditar)
         <div class="flex gap-3 flex-wrap">
             <a href="{{ route('legal.categorias.index') }}"
                class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-600 font-semibold text-sm rounded-xl hover:bg-slate-50 hover:border-amber-200 hover:text-amber-600 transition shadow-sm">
@@ -43,6 +44,7 @@
                 Añadir Proyecto
             </button>
         </div>
+        @endif
     </div>
 </div>
 
@@ -210,6 +212,7 @@
                                 </button>
                             </td>
                             <td class="px-5 py-4 text-center">
+                                @if($puedeEditar)
                                 <div class="flex items-center justify-center gap-1.5">
                                     <button onclick="abrirEditar({{ $proyecto->id }})"
                                         class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-transparent hover:border-slate-200 transition">
@@ -228,6 +231,7 @@
                                         </button>
                                     </form>
                                 </div>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -269,7 +273,9 @@
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Descripción</th>
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Resultado</th>
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Recursos</th>
+                            @if($puedeEditar)
                             <th class="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide text-center">Acciones</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody id="tbodyEscritos" class="divide-y divide-slate-100">
@@ -302,6 +308,7 @@
                                     Ver ({{ $proyecto->archivos_count ?? $proyecto->archivos->count() }})
                                 </button>
                             </td>
+                            @if($puedeEditar)
                             <td class="px-5 py-4 text-center">
                                 <div class="flex items-center justify-center gap-1.5">
                                     <button onclick="abrirEditar({{ $proyecto->id }})"
@@ -322,6 +329,7 @@
                                     </form>
                                 </div>
                             </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>
@@ -708,11 +716,11 @@
             const btn   = document.getElementById('tab-' + t);
             const panel = document.getElementById('panel-' + t);
             if (t === tab) {
-                btn.className = 'tab-btn px-6 py-3 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm';
-                panel.classList.remove('hidden');
+                if (btn) btn.className = 'tab-btn px-6 py-3 text-sm font-bold rounded-t-2xl border border-b-0 border-amber-300 bg-amber-50 text-amber-700 transition-all shadow-sm';
+                if (panel) panel.classList.remove('hidden');
             } else {
-                btn.className = 'tab-btn px-6 py-3 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all';
-                panel.classList.add('hidden');
+                if (btn) btn.className = 'tab-btn px-6 py-3 text-sm font-semibold rounded-t-2xl border border-b-0 border-slate-200 bg-white text-slate-500 hover:text-slate-700 transition-all';
+                if (panel) panel.classList.add('hidden');
             }
         });
         sincronizarFiltros(tab);
@@ -803,13 +811,13 @@
                     : `<a href="/legal/matriz/archivo/${a.id}/download"
                             class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Descargar ↓</a>`;
 
-                const deleteBtn = `
+                const deleteBtn = @json($puedeEditar) ? `
                     <button onclick="eliminarArchivo(${a.id}, this)" title="Eliminar"
                         class="text-xs text-red-400 hover:text-red-600 transition ml-1">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
-                    </button>`;
+                    </button>` : '';
 
                 return `
                     <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -935,7 +943,6 @@
         }
     });
 
-    // Inicializar filtros según pestaña activa al cargar
     sincronizarFiltros(tabActiva);
 
     // Auto-reabrir modal de Añadir Proyecto si hubo errores de validación

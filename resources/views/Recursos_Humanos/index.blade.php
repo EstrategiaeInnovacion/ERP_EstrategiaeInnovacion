@@ -140,6 +140,7 @@
                     Ver Recordatorios <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
             </a>
+
         </div>
 
         @php

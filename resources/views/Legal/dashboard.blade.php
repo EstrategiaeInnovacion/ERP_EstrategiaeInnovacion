@@ -1,4 +1,4 @@
-@extends('layouts.master')
+@extends('layouts.erp')
 
 @section('title', 'Panel Legal - Área Jurídica')
 
@@ -70,6 +70,17 @@
                     'hover_border' => 'hover:border-sky-200',
                     'btn_color'    => 'bg-sky-600 hover:bg-sky-700 shadow-sky-200',
                 ],
+                [
+                    'title'        => 'Análisis de Origen T-MEC',
+                    'description'  => 'Determina si tus productos califican como originarios bajo las reglas T-MEC/USMCA. Carga BOMs, calcula VCR, verifica CC y emite el dictamen de origen.',
+                    'route'        => route('legal.ce.bom.index'),
+                    'cta'          => 'Ir al Análisis de Origen',
+                    'icon'         => 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+                    'color_bg'     => 'bg-indigo-50',
+                    'color_text'   => 'text-indigo-600',
+                    'hover_border' => 'hover:border-indigo-200',
+                    'btn_color'    => 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200',
+                ],
             ];
         @endphp
 
@@ -103,10 +114,15 @@
             @endforeach
         </div>
 
-        <div class="mt-12 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed p-8 text-center">
-            <p class="text-slate-400 text-sm">
-                Más módulos del área Legal serán agregados aquí próximamente.
-            </p>
+        <div class="mt-12 bg-indigo-50/50 rounded-3xl border border-indigo-100 border-dashed p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold text-indigo-700">Configurar Análisis de Origen</p>
+                <p class="text-xs text-slate-500 mt-0.5">Carga el catálogo de reglas T-MEC desde Excel y configura el motor de análisis.</p>
+            </div>
+            <a href="{{ route('legal.ce.configuracion.index') }}"
+               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm shrink-0">
+                Ir a Configuración CE
+            </a>
         </div>
 
     </div>

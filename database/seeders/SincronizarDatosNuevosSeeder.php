@@ -66,7 +66,7 @@ class SincronizarDatosNuevosSeeder extends Seeder
                 'maintenance_scheduled_at', 'maintenance_details', 'equipment_identifier',
                 'equipment_brand', 'equipment_model', 'disk_type', 'ram_capacity', 'battery_status',
                 'aesthetic_observations', 'maintenance_report', 'closure_observations',
-                'replacement_components', 'computer_profile_id'
+                'replacement_components', 'equipo_asignado_id'
             ]);
 
             $this->sincronizarTabla('maintenance_bookings', 'id');

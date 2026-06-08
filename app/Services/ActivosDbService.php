@@ -830,8 +830,8 @@ class ActivosDbService
             ]);
 
             // Credenciales: upsert en tabla credentials (solo username + password; emails en ERP)
-            $credencial = $conn->table('credentials')->where('device_id', $device->id)->first();
-
+            // NUNCA se borran las credenciales al editar el equipo — solo se actualizan si vienen datos.
+            $credencial  = $conn->table('credentials')->where('device_id', $device->id)->first();
             $hasCredData = !empty($data['cred_username']) || !empty($data['cred_password']);
 
             if ($hasCredData) {
@@ -850,9 +850,8 @@ class ActivosDbService
                     $credData['created_at'] = now();
                     $conn->table('credentials')->insert($credData);
                 }
-            } elseif ($credencial) {
-                $conn->table('credentials')->where('id', $credencial->id)->delete();
             }
+            // Si no vienen datos de credenciales, se conservan las existentes intactas.
 
             return true;
 
@@ -969,9 +968,10 @@ class ActivosDbService
                 $conn->table('credentials')->insert($data);
             }
 
+            Log::info("ActivosDb: upsertCredential OK [{$uuid}] campos=" . implode(',', array_keys($data)));
             return true;
         } catch (\Exception $e) {
-            Log::error("ActivosDb: upsertCredential [{$uuid}] — " . $e->getMessage());
+            Log::error("ActivosDb: upsertCredential FALLO [{$uuid}] — " . $e->getMessage());
             return false;
         }
     }
