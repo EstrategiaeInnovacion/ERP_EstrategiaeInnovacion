@@ -9,6 +9,7 @@ use App\Models\Sistemas_IT\Mantenimiento;
 use App\Models\Sistemas_IT\MantenimientoArchivo;
 use App\Models\Sistemas_IT\Ticket;
 use App\Models\User;
+use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ExpedienteController extends Controller
 {
+    public function __construct(private ActivosDbService $activos) {}
+
     // ── Expedientes ──────────────────────────────────────────────────────────
 
     public function index(Request $request)
@@ -120,6 +123,40 @@ class ExpedienteController extends Controller
 
     public function crearMantenimientoDesdeTicket(Ticket $ticket)
     {
+        if (!$ticket->equipo_asignado_id) {
+            // Buscar EquipoAsignado existente del usuario del ticket
+            $equipo = EquipoAsignado::where('user_id', $ticket->user_id)
+                ->orderByDesc('es_principal')
+                ->first();
+
+            // Si no hay registro ERP, buscar el dispositivo en la BD de activos y crearlo
+            if (!$equipo) {
+                $usuario  = User::with('empleado')->find($ticket->user_id);
+                $empleado = $usuario?->empleado;
+                $badge    = $empleado?->id_empleado ?: null;
+                $nombre   = $empleado?->nombre ?? $usuario?->name ?? '';
+
+                $devices = $usuario ? $this->activos->getAssignedDevices($nombre, $badge, $usuario->email) : [];
+
+                if (!empty($devices)) {
+                    $device = $devices[0]['device'] ?? $devices[0];
+                    $equipo = EquipoAsignado::create([
+                        'user_id'       => $ticket->user_id,
+                        'uuid_activos'  => $device['uuid'] ?? null,
+                        'nombre_equipo' => $device['name'] ?: ($device['uuid'] ?? 'Equipo sin nombre'),
+                        'modelo'        => $device['model'] ?? null,
+                        'numero_serie'  => $device['serial_number'] ?? null,
+                        'photo_id'      => $device['photos'][0]['id'] ?? null,
+                        'es_principal'  => true,
+                    ]);
+                }
+            }
+
+            if ($equipo) {
+                $ticket->update(['equipo_asignado_id' => $equipo->id]);
+            }
+        }
+
         if (!$ticket->equipo_asignado_id) {
             return redirect()->back()
                 ->with('error', 'Este ticket no tiene un equipo asignado. Asigna un equipo primero.');
