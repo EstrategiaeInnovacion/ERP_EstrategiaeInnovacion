@@ -17,11 +17,20 @@
                     <h1 class="text-2xl font-bold text-slate-900">Matriz de Seguimiento</h1>
                     <p class="text-slate-500 mt-1 text-sm">Seguimiento y control del estado de operaciones de comercio exterior por cliente.</p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <input type="text" id="buscar-seguimiento"
                            placeholder="Buscar en la tabla..."
                            oninput="filtrarSeguimiento()"
                            class="text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-56">
+                    @if($esCoordinador)
+                    <button onclick="abrirModalCampos()"
+                            class="flex items-center gap-1.5 px-4 py-2 font-bold text-sm rounded-xl transition shadow-sm hover:shadow-md border border-purple-200 text-purple-700 bg-white hover:bg-purple-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        Campos personalizados
+                    </button>
+                    @endif
                     <button onclick="abrirModalExportar()"
                             class="flex items-center gap-1.5 px-4 py-2 font-bold text-sm rounded-xl transition shadow-sm hover:shadow-md border border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,14 +254,28 @@
                             </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
                             <td class="px-3 py-3 text-center whitespace-nowrap">
-                                <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                                        title="Ver / agregar comentarios">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
-                                    </svg>
-                                    <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
-                                </button>
+                                <div class="flex items-center justify-center gap-1">
+                                    <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Ver / agregar comentarios">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                                        </svg>
+                                        <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
+                                    </button>
+                                    @if($esCoordinador && isset($clientesConCampos[$reg->proveedor_cliente]))
+                                    <button data-id="{{ $reg->id }}"
+                                            data-cliente="{{ e($reg->proveedor_cliente) }}"
+                                            onclick="abrirCamposValores(Number(this.dataset.id), this.dataset.cliente)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-purple-600 hover:text-purple-800 hover:bg-purple-50 transition"
+                                            title="Ver campos personalizados">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                        </svg>
+                                        Campos
+                                    </button>
+                                    @endif
+                                </div>
                             </td>
                             {{-- INDICADORES --}}
                             @php
@@ -496,14 +519,28 @@
                             </td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->target ?? '—' }}</td>
                             <td class="px-3 py-3 text-center whitespace-nowrap">
-                                <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                                        title="Ver / agregar comentarios">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
-                                    </svg>
-                                    <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
-                                </button>
+                                <div class="flex items-center justify-center gap-1">
+                                    <button data-id="{{ $reg->id }}" onclick="abrirComentarios(Number(this.dataset.id))"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                            title="Ver / agregar comentarios">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+                                        </svg>
+                                        <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
+                                    </button>
+                                    @if($esCoordinador && isset($clientesConCampos[$reg->proveedor_cliente]))
+                                    <button data-id="{{ $reg->id }}"
+                                            data-cliente="{{ e($reg->proveedor_cliente) }}"
+                                            onclick="abrirCamposValores(Number(this.dataset.id), this.dataset.cliente)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-purple-600 hover:text-purple-800 hover:bg-purple-50 transition"
+                                            title="Ver campos personalizados">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                        </svg>
+                                        Campos
+                                    </button>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <div class="flex flex-col items-center gap-1">
@@ -894,6 +931,137 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
     </div>
 </div>
 {{-- MODAL EXPORTAR EXCEL --}}
+@if($esCoordinador)
+{{-- MODAL: Gestionar definiciones de campos personalizados por cliente --}}
+<div id="modal-campos-def" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalCampos()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
+        {{-- Header --}}
+        <div class="bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Campos personalizados</h3>
+                    <p class="text-xs text-slate-500">Definir campos extra por cliente</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalCampos()" class="text-slate-400 hover:text-slate-600 transition p-1 rounded-lg hover:bg-slate-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        {{-- Body --}}
+        <div class="px-6 py-5 overflow-y-auto flex-1 space-y-5">
+            {{-- Selector de cliente --}}
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1.5">Selecciona el cliente</label>
+                <select id="campos-cliente-sel"
+                        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+                    <option value="">— Elige un cliente —</option>
+                    @foreach($todosCatalogoClientes as $cat)
+                        <option value="{{ $cat->id }}">{{ $cat->cliente }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Estado vacío --}}
+            <div id="campos-empty" class="text-center py-6 text-slate-400 text-sm">
+                Selecciona un cliente para ver o agregar campos.
+            </div>
+
+            {{-- Lista de campos + botón agregar --}}
+            <div id="mc-campos" class="hidden space-y-4">
+                <div id="campos-lista" class="divide-y divide-slate-100"></div>
+
+                <button type="button" id="mc-btn-agregar"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-xl text-sm font-semibold text-purple-600 hover:bg-purple-50 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    Agregar campo
+                </button>
+
+                {{-- Formulario nuevo campo --}}
+                <form id="mc-form-nuevo-campo" class="hidden bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
+                    <p class="text-xs font-bold text-purple-800 uppercase tracking-wide">Nuevo campo</p>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del campo <span class="text-red-500">*</span></label>
+                        <input type="text" id="mc-campo-nombre" placeholder="Ej: Número de referencia cliente"
+                               class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" required>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo</label>
+                            <select id="mc-campo-tipo" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+                                <option value="texto">Texto</option>
+                                <option value="fecha">Fecha</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end pb-1 gap-2">
+                            <input type="checkbox" id="mc-campo-obligatorio" class="w-4 h-4 rounded text-purple-600 focus:ring-purple-400">
+                            <label for="mc-campo-obligatorio" class="text-xs font-semibold text-slate-600">Obligatorio</label>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button type="button" onclick="document.getElementById('mc-nuevo-form').classList.add('hidden')"
+                                class="px-4 py-2 text-sm rounded-lg text-slate-600 hover:bg-slate-100 transition">Cancelar</button>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm rounded-lg text-white font-semibold transition"
+                                style="background:linear-gradient(135deg,#7c3aed,#a855f7)">Guardar campo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-end flex-shrink-0">
+            <button onclick="cerrarModalCampos()" class="px-5 py-2 text-sm rounded-xl text-slate-600 hover:bg-slate-100 transition font-semibold">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL: Ver / llenar valores de campos por operación --}}
+<div id="modal-campos-valores" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalValores()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+        {{-- Header --}}
+        <div class="rounded-t-3xl border-b border-slate-100 px-6 py-5 flex items-center justify-between flex-shrink-0"
+             style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">
+            <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <h3 class="text-base font-bold text-slate-900">Campos personalizados</h3>
+                </div>
+                <p class="text-xs text-slate-500">Cliente: <span id="cv-cliente" class="font-semibold text-purple-700"></span> · Ref: <span id="cv-ref" class="font-semibold"></span></p>
+            </div>
+            <button onclick="cerrarModalValores()" class="text-slate-400 hover:text-slate-600 transition p-1 rounded-lg hover:bg-white/60">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        {{-- Body --}}
+        <form id="cv-form" class="flex-1 overflow-y-auto">
+            <div class="px-6 py-5 space-y-4">
+                <div id="cv-loading" class="flex items-center justify-center py-8 text-slate-400 gap-2">
+                    <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    Cargando...
+                </div>
+                <div id="cv-error" class="hidden text-sm text-red-600 text-center py-4">Error al cargar los campos. Intenta de nuevo.</div>
+                <div id="cv-campos-wrap" class="hidden">
+                    <div id="cv-campos-list" class="space-y-4"></div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
+                <button type="button" onclick="cerrarModalValores()" class="px-5 py-2 text-sm rounded-xl text-slate-600 hover:bg-slate-100 transition font-semibold">Cancelar</button>
+                <button type="submit"
+                        class="px-5 py-2 text-sm rounded-xl text-white font-bold transition"
+                        style="background:linear-gradient(135deg,#7c3aed,#a855f7)">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
 <div id="modal-exportar" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalExportar()"></div>
     <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4">
@@ -1312,5 +1480,190 @@ document.getElementById('f-tipo_operacion').addEventListener('change', function 
     }
     toggleDetallesMaritimo(this.value);
 });
+
+// ── Campos personalizados ────────────────────────────────────────────
+@if($esCoordinador)
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const RUTA_CAMPOS_CLIENTE  = '{{ route("logistica.campos.por-cliente", ["cliente" => "__ID__"]) }}';
+const RUTA_CAMPOS_STORE    = '{{ route("logistica.campos.store",       ["cliente" => "__ID__"]) }}';
+const RUTA_CAMPOS_DESTROY  = '{{ route("logistica.campos.destroy",     ["campo"   => "__ID__"]) }}';
+const RUTA_VALORES_GET     = '{{ route("logistica.seguimiento.campos", ["seguimiento" => "__ID__"]) }}';
+const RUTA_VALORES_SAVE    = '{{ route("logistica.seguimiento.campos.save", ["seguimiento" => "__ID__"]) }}';
+
+const catalogoClientes = @json($todosCatalogoClientes);
+
+// ── Modal gestión de definiciones ───────────────────────────────────
+let clienteSeleccionadoId = null;
+
+function abrirModalCampos() {
+    clienteSeleccionadoId = null;
+    document.getElementById('campos-lista').innerHTML = '';
+    document.getElementById('campos-cliente-sel').value = '';
+    document.getElementById('campos-empty').classList.remove('hidden');
+    document.getElementById('mc-campos').classList.add('hidden');
+    document.getElementById('mc-nuevo-form').classList.add('hidden');
+    document.getElementById('modal-campos-def').classList.remove('hidden');
+    document.getElementById('modal-campos-def').classList.add('flex');
+}
+function cerrarModalCampos() {
+    document.getElementById('modal-campos-def').classList.add('hidden');
+    document.getElementById('modal-campos-def').classList.remove('flex');
+}
+
+document.getElementById('campos-cliente-sel')?.addEventListener('change', async function () {
+    clienteSeleccionadoId = this.value || null;
+    if (!clienteSeleccionadoId) {
+        document.getElementById('campos-empty').classList.remove('hidden');
+        document.getElementById('mc-campos').classList.add('hidden');
+        return;
+    }
+    await cargarCamposDef(clienteSeleccionadoId);
+    document.getElementById('campos-empty').classList.add('hidden');
+    document.getElementById('mc-campos').classList.remove('hidden');
+});
+
+async function cargarCamposDef(clienteId) {
+    const url = RUTA_CAMPOS_CLIENTE.replace('__ID__', clienteId);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const campos = await res.json();
+    renderCamposDef(campos);
+}
+
+function renderCamposDef(campos) {
+    const lista = document.getElementById('campos-lista');
+    if (!campos.length) {
+        lista.innerHTML = '<p class="text-sm text-slate-400 italic py-2">No hay campos definidos aún.</p>';
+        return;
+    }
+    lista.innerHTML = campos.map(c => `
+        <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
+            <div class="flex-1 min-w-0">
+                <span class="text-sm font-semibold text-slate-800">${c.nombre}</span>
+                <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full ${c.tipo === 'fecha' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}">${c.tipo}</span>
+                ${c.es_obligatorio ? '<span class="ml-1 text-xs text-red-600 font-medium">Obligatorio</span>' : ''}
+            </div>
+            <button onclick="eliminarCampo(${c.id})" class="text-red-400 hover:text-red-600 p-1 rounded transition" title="Eliminar">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+async function eliminarCampo(campoId) {
+    if (!confirm('¿Eliminar este campo? También se borrarán los valores guardados.')) return;
+    const url = RUTA_CAMPOS_DESTROY.replace('__ID__', campoId);
+    await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' } });
+    await cargarCamposDef(clienteSeleccionadoId);
+}
+
+document.getElementById('mc-btn-agregar')?.addEventListener('click', () => {
+    document.getElementById('mc-nuevo-form').classList.toggle('hidden');
+});
+
+document.getElementById('mc-form-nuevo-campo')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!clienteSeleccionadoId) return;
+    const nombre = document.getElementById('mc-campo-nombre').value.trim();
+    const tipo   = document.getElementById('mc-campo-tipo').value;
+    const oblig  = document.getElementById('mc-campo-obligatorio').checked;
+    if (!nombre) return;
+
+    const url = RUTA_CAMPOS_STORE.replace('__ID__', clienteSeleccionadoId);
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ nombre, tipo, es_obligatorio: oblig }),
+    });
+
+    if (res.ok) {
+        document.getElementById('mc-campo-nombre').value = '';
+        document.getElementById('mc-campo-obligatorio').checked = false;
+        document.getElementById('mc-nuevo-form').classList.add('hidden');
+        await cargarCamposDef(clienteSeleccionadoId);
+        // Recargar página para que el botón "Campos" aparezca en las filas si acaba de crearse
+        if (res.status === 201) {
+            setTimeout(() => location.reload(), 800);
+        }
+    } else {
+        const data = await res.json();
+        alert(data.error || 'Error al guardar el campo.');
+    }
+});
+
+// ── Modal valores por operación ─────────────────────────────────────
+let camposValoresSeguimientoId = null;
+
+async function abrirCamposValores(seguimientoId, clienteNombre) {
+    camposValoresSeguimientoId = seguimientoId;
+    document.getElementById('cv-loading').classList.remove('hidden');
+    document.getElementById('cv-campos-wrap').classList.add('hidden');
+    document.getElementById('cv-error').classList.add('hidden');
+    document.getElementById('modal-campos-valores').classList.remove('hidden');
+    document.getElementById('modal-campos-valores').classList.add('flex');
+    document.getElementById('cv-cliente').textContent = clienteNombre;
+
+    const url = RUTA_VALORES_GET.replace('__ID__', seguimientoId);
+    try {
+        const res  = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        document.getElementById('cv-ref').textContent = data.ref_interna || ('#' + seguimientoId);
+        renderCamposValores(data.campos || []);
+        document.getElementById('cv-loading').classList.add('hidden');
+        document.getElementById('cv-campos-wrap').classList.remove('hidden');
+    } catch {
+        document.getElementById('cv-loading').classList.add('hidden');
+        document.getElementById('cv-error').classList.remove('hidden');
+    }
+}
+
+function renderCamposValores(campos) {
+    const wrap = document.getElementById('cv-campos-list');
+    if (!campos.length) {
+        wrap.innerHTML = '<p class="text-sm text-slate-400 italic">No hay campos configurados para este cliente.</p>';
+        return;
+    }
+    wrap.innerHTML = campos.map(c => `
+        <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-600">
+                ${c.nombre}
+                ${c.es_obligatorio ? '<span class="text-red-500 ml-0.5">*</span>' : ''}
+                <span class="ml-1 text-xs font-normal text-slate-400">(${c.tipo})</span>
+            </label>
+            ${c.tipo === 'fecha'
+                ? `<input type="date" data-campo-id="${c.id}" value="${c.valor || ''}" class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+                : `<input type="text" data-campo-id="${c.id}" value="${c.valor || ''}" placeholder="Escribe aquí..." class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+            }
+        </div>
+    `).join('');
+}
+
+function cerrarModalValores() {
+    document.getElementById('modal-campos-valores').classList.add('hidden');
+    document.getElementById('modal-campos-valores').classList.remove('flex');
+    camposValoresSeguimientoId = null;
+}
+
+document.getElementById('cv-form')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!camposValoresSeguimientoId) return;
+
+    const inputs  = document.querySelectorAll('#cv-campos-list .cv-input');
+    const valores = {};
+    inputs.forEach(inp => { valores[inp.dataset.campoId] = inp.value; });
+
+    const url = RUTA_VALORES_SAVE.replace('__ID__', camposValoresSeguimientoId);
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ valores }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+        cerrarModalValores();
+    } else {
+        alert(data.error || 'Error al guardar.');
+    }
+});
+@endif
 </script>
 @endpush

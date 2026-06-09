@@ -18,6 +18,7 @@ use App\Http\Controllers\Logistica\ClienteController;
 use App\Http\Controllers\Logistica\MatrizSeguimientoController;
 // --- Controllers de Legal ---
 use App\Http\Controllers\Logistica\MatrizApoyoController;
+use App\Http\Controllers\Logistica\CampoPersonalizadoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RH\CapacitacionController;
 use App\Http\Controllers\RH\ExpedienteController;
@@ -209,6 +210,14 @@ Route::middleware(['auth', 'area.logistica'])->prefix('logistica')->name('logist
     Route::delete('/matriz-seguimiento/{seguimiento}', [MatrizSeguimientoController::class, 'destroy'])->name('matriz-seguimiento.destroy');
     Route::get('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'getComentarios'])->name('matriz-seguimiento.comentarios');
     Route::post('/matriz-seguimiento/{seguimiento}/comentarios', [MatrizSeguimientoController::class, 'storeComentario'])->name('matriz-seguimiento.comentarios.store');
+
+    // Campos personalizados por cliente
+    Route::get('/campos/cliente/{cliente}', [CampoPersonalizadoController::class, 'indexPorCliente'])->name('campos.por-cliente');
+    Route::post('/campos/cliente/{cliente}', [CampoPersonalizadoController::class, 'store'])->name('campos.store');
+    Route::delete('/campos/{campo}', [CampoPersonalizadoController::class, 'destroy'])->name('campos.destroy');
+    // Valores de campos por operación
+    Route::get('/matriz-seguimiento/{seguimiento}/campos', [CampoPersonalizadoController::class, 'getValores'])->name('seguimiento.campos');
+    Route::post('/matriz-seguimiento/{seguimiento}/campos', [CampoPersonalizadoController::class, 'saveValores'])->name('seguimiento.campos.save');
 
     // Reportes
     Route::get('/reportes', [MatrizSeguimientoController::class, 'reportes'])->name('reportes');

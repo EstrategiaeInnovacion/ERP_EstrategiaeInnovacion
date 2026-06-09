@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Logistica;
 
 use App\Http\Controllers\Controller;
 use App\Models\Logistica\Aduana;
+use App\Models\Logistica\CampoPersonalizado;
 use App\Models\Logistica\Cliente;
 use App\Models\Logistica\MatrizSeguimiento;
 use App\Models\Logistica\MatrizSeguimientoComentario;
@@ -120,11 +121,25 @@ class MatrizSeguimientoController extends Controller
         $tiposContenedor = MatrizSeguimiento::TIPOS_CONTENEDOR;
         $miUserId        = $user?->id;
 
+        // Campos personalizados: Set de nombres de cliente que tienen campos definidos
+        $clientesConCampos = collect();
+        $todosCatalogoClientes = collect();
+        if ($esCoordinador) {
+            $clientesConCampos = CampoPersonalizado::with('cliente')
+                ->get()
+                ->filter(fn($c) => $c->cliente !== null)
+                ->groupBy(fn($c) => $c->cliente->cliente)
+                ->map->count();
+
+            $todosCatalogoClientes = Cliente::orderBy('cliente')->get(['id', 'cliente']);
+        }
+
         return view('Logistica.matriz-seguimiento', compact(
             'registros', 'completados', 'tiposOperacion',
             'aduanas', 'claves', 'cargaTipos', 'tiposContenedor',
             'misClientes', 'misClientesFiltro', 'esCoordinador', 'ejecutivos', 'todosClientes',
-            'filtroCliente', 'filtroEjecutivo', 'miUserId'
+            'filtroCliente', 'filtroEjecutivo', 'miUserId',
+            'clientesConCampos', 'todosCatalogoClientes'
         ));
     }
 
