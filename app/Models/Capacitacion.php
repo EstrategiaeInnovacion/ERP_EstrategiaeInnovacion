@@ -16,8 +16,10 @@ class Capacitacion extends Model
         'descripcion',
         'categoria',
         'puestos_permitidos',
-        'usuarios_permitidos', // <-- NUEVO
+        'usuarios_permitidos',
         'archivo_path',
+        'archivo_contenido',
+        'archivo_mime_type',
         'thumbnail_path',
         'subido_por',
         'activo',
@@ -28,6 +30,17 @@ class Capacitacion extends Model
         'puestos_permitidos' => 'array',
         'usuarios_permitidos' => 'array',
     ];
+
+    protected static function boot(): void
+    {
+        parent::boot();
+        static::addGlobalScope('sin_contenido', fn ($q) => $q->select([
+            'id', 'titulo', 'descripcion', 'categoria', 'puestos_permitidos',
+            'usuarios_permitidos', 'archivo_path', 'archivo_mime_type',
+            'thumbnail_path', 'subido_por', 'activo', 'youtube_url',
+            'created_at', 'updated_at',
+        ]));
+    }
 
     /**
      * Determina si el video es visible para el usuario dado.

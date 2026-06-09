@@ -312,10 +312,10 @@ class ActivosDbService
     // ---------------------------------------------------------------
 
     /**
-     * Inserta un registro en device_photos para un dispositivo identificado por UUID.
-     * $filePath es relativo a storage/app/private del ERP (e.g. "activos-fotos/archivo.jpg").
+     * Inserta una foto en device_photos guardando el binario directamente en la BD.
+     * $filePath se conserva como referencia; el contenido real va en file_data.
      */
-    public function addDevicePhoto(string $uuid, string $filePath, ?string $caption = null): bool
+    public function addDevicePhoto(string $uuid, string $filePath, ?string $caption = null, ?string $fileData = null, ?string $mimeType = null): bool
     {
         try {
             $device = $this->conn()->table('devices')->where('uuid', $uuid)->first();
@@ -327,6 +327,8 @@ class ActivosDbService
             $this->conn()->table('device_photos')->insert([
                 'device_id'  => $device->id,
                 'file_path'  => $filePath,
+                'file_data'  => $fileData,
+                'mime_type'  => $mimeType,
                 'caption'    => $caption,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -340,25 +342,26 @@ class ActivosDbService
     }
 
     /**
-     * Retorna el file_path de una foto de dispositivo para servir como proxy.
-     * El ERP debe tener ACTIVOS_STORAGE_PATH en .env apuntando al
-     * directorio storage/app/private de AuditoriaActivos.
+     * Retorna el registro completo de una foto (incluye file_data y mime_type).
      */
-    public function getPhotoPath(int $photoId): ?string
+    public function getPhoto(int $photoId): ?object
     {
         try {
-            $photo = $this->conn()
+            return $this->conn()
                 ->table('device_photos')
                 ->where('id', $photoId)
-                ->select('file_path')
+                ->select(['id', 'file_path', 'file_data', 'mime_type'])
                 ->first();
-
-            return $photo?->file_path;
-
         } catch (\Exception $e) {
-            Log::error("ActivosDb: getPhotoPath [{$photoId}] — " . $e->getMessage());
+            Log::error("ActivosDb: getPhoto [{$photoId}] — " . $e->getMessage());
             return null;
         }
+    }
+
+    /** @deprecated Usar getPhoto() */
+    public function getPhotoPath(int $photoId): ?string
+    {
+        return $this->getPhoto($photoId)?->file_path;
     }
 
     /**

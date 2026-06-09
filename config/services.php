@@ -42,7 +42,7 @@ return [
 
     'n8n' => [
         'webhook_url' => env('N8N_WEBHOOK_URL'),
-        'logistica_webhook_url' => env('N8N_LOGISTICA_WEBHOOK_URL', 'https://c06a622f9486ece49a2db2acdcebb3.18.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4d18962376014414b02dbdd20060e2b1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=4l6Kkhpot_YreAb6Buo57Zs1pQ9I4oJl1gtl0A5sLak'),
+        'logistica_webhook_url' => env('N8N_LOGISTICA_WEBHOOK_URL'),
     ],
 
     'microsoft_graph' => [

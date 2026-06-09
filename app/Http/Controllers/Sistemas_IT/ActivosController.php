@@ -109,15 +109,16 @@ class ActivosController extends Controller
                 ->with('error', 'No se pudo registrar el dispositivo. Intenta de nuevo.');
         }
 
-        // Guardar fotos subidas desde el formulario de creación
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $foto) {
                 if ($foto->isValid()) {
                     $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
-                    $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
-                    if ($filePath) {
-                        $this->activos->addDevicePhoto($uuid, $filePath);
-                    }
+                    $this->activos->addDevicePhoto(
+                        uuid:     $uuid,
+                        filePath: 'activos-fotos/' . $filename,
+                        fileData: $foto->get(),
+                        mimeType: $foto->getMimeType(),
+                    );
                 }
             }
         }
@@ -210,15 +211,16 @@ class ActivosController extends Controller
                 ->with('error', 'No se pudo actualizar el dispositivo. Intenta de nuevo.');
         }
 
-        // Guardar fotos nuevas
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $foto) {
                 if ($foto->isValid()) {
                     $filename = $uuid . '-' . uniqid() . '.' . $foto->getClientOriginalExtension();
-                    $filePath = $foto->storeAs('activos-fotos', $filename, 'local');
-                    if ($filePath) {
-                        $this->activos->addDevicePhoto($uuid, $filePath);
-                    }
+                    $this->activos->addDevicePhoto(
+                        uuid:     $uuid,
+                        filePath: 'activos-fotos/' . $filename,
+                        fileData: $foto->get(),
+                        mimeType: $foto->getMimeType(),
+                    );
                 }
             }
         }

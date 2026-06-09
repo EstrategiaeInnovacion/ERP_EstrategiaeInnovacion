@@ -18,9 +18,9 @@
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowfullscreen>
             </iframe>
-        @elseif($video->archivo_path)
+        @elseif($video->archivo_path || $video->archivo_mime_type)
             <video controls class="absolute top-0 left-0 w-full h-full" controlsList="nodownload">
-                <source src="{{ asset('storage/' . $video->archivo_path) }}" type="video/mp4">
+                <source src="{{ route('capacitacion.stream', $video->id) }}" type="{{ $video->archivo_mime_type ?? 'video/mp4' }}">
                 Tu navegador no soporta la reproducción de video.
             </video>
         @else
@@ -44,7 +44,7 @@
                 <h3 class="text-lg font-bold text-gray-900 mb-4">Material de Apoyo y Descargas</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @foreach($video->adjuntos as $adjunto)
-                        <a href="{{ asset('storage/' . $adjunto->archivo_path) }}" target="_blank" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition group">
+                        <a href="{{ route('capacitacion.adjunto.download', $adjunto->id) }}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200 transition group">
                             <span class="text-2xl mr-3 group-hover:scale-110 transition">📄</span>
                             <div>
                                 <p class="text-sm font-medium text-gray-700 group-hover:text-indigo-600">{{ $adjunto->titulo }}</p>

@@ -162,8 +162,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('capacitacion')->name('capacitacion.')->group(function () {
         Route::get('/', [CapacitacionController::class, 'index'])->name('index');
         Route::get('/ver/{id}', [CapacitacionController::class, 'show'])->name('show');
-    }
-    );
+        Route::get('/ver/{id}/video', [CapacitacionController::class, 'streamVideo'])->name('stream');
+        Route::get('/adjunto/{adjuntoId}/descargar', [CapacitacionController::class, 'downloadAdjunto'])->name('adjunto.download');
+    });
 
     // Evaluación
     Route::prefix('capital-humano')->name('rh.')->controller(EvaluacionController::class)->group(function () {

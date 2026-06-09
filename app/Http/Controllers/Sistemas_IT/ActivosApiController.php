@@ -228,25 +228,27 @@ class ActivosApiController extends Controller
             abort(503, 'BD de activos no disponible.');
         }
 
-        $filePath = $this->activos->getPhotoPath($id);
+        $photo = $this->activos->getPhoto($id);
+        if (! $photo) {
+            abort(404);
+        }
+
+        // 1. Contenido binario guardado directamente en la BD (nuevo flujo)
+        if (! empty($photo->file_data)) {
+            $mime = $photo->mime_type ?? 'image/jpeg';
+            return response($photo->file_data, 200)
+                ->header('Content-Type', $mime)
+                ->header('Cache-Control', 'public, max-age=86400');
+        }
+
+        $filePath = $photo->file_path;
+
+        // file_path vacío → foto sin archivo (referencia limpiada de sistema externo)
         if (! $filePath) {
             abort(404);
         }
 
-        // 1. Intentar servir desde ACTIVOS_STORAGE_PATH (filesystem compartido)
-        $storagePath = rtrim(env('ACTIVOS_STORAGE_PATH', ''), '\/ ');
-        if (! empty($storagePath)) {
-            $fullPath = $storagePath . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
-            if (file_exists($fullPath) && is_file($fullPath)) {
-                $realStorage = realpath($storagePath);
-                $realFile    = realpath($fullPath);
-                if ($realStorage && $realFile && str_starts_with($realFile, $realStorage)) {
-                    return response()->file($realFile);
-                }
-            }
-        }
-
-        // 2. Fotos subidas directamente desde el ERP (disco 'local' → storage/app/private)
+        // 2. Fotos subidas desde el ERP en disco local (storage/app/private)
         $localBase = storage_path('app/private');
         $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
         if (file_exists($localPath) && is_file($localPath)) {
@@ -254,25 +256,6 @@ class ActivosApiController extends Controller
             $realFile = realpath($localPath);
             if ($realBase && $realFile && str_starts_with($realFile, $realBase)) {
                 return response()->file($realFile);
-            }
-        }
-
-        // 3. Proxy via API HTTP de Activos (requiere ACTIVOS_API_URL y API_KEY en .env)
-        $apiService = app(ActivosApiService::class);
-        if ($apiService->isConfigured()) {
-            $binary = $apiService->getDevicePhoto($id);
-            if ($binary !== null && $binary !== '') {
-                $mime = 'image/jpeg';
-                try {
-                    $detected = (new \finfo(FILEINFO_MIME_TYPE))->buffer($binary);
-                    if ($detected && str_starts_with($detected, 'image/')) {
-                        $mime = $detected;
-                    }
-                } catch (\Throwable) {}
-
-                return response($binary, 200)
-                    ->header('Content-Type', $mime)
-                    ->header('Cache-Control', 'public, max-age=86400');
             }
         }
 
@@ -290,20 +273,23 @@ class ActivosApiController extends Controller
             abort(503, 'BD de activos no disponible.');
         }
 
-        $filePath = $this->activos->getPhotoPath($id);
-        if (! $filePath) {
+        $photo = $this->activos->getPhoto($id);
+        if (! $photo) {
             abort(404);
         }
 
         $this->activos->deleteDevicePhoto($id);
 
-        // Eliminar archivo local si fue subido desde el ERP (disco 'local' → app/private)
-        $localBase = realpath(storage_path('app/private'));
-        if ($localBase) {
-            $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
-            $realFile  = realpath($localPath);
-            if ($realFile && str_starts_with($realFile, $localBase) && is_file($realFile)) {
-                @unlink($realFile);
+        // Eliminar archivo local si existía en disco (storage/app/private)
+        $filePath = $photo->file_path;
+        if ($filePath) {
+            $localBase = realpath(storage_path('app/private'));
+            if ($localBase) {
+                $localPath = $localBase . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $filePath), '\/ ');
+                $realFile  = realpath($localPath);
+                if ($realFile && str_starts_with($realFile, $localBase) && is_file($realFile)) {
+                    @unlink($realFile);
+                }
             }
         }
 

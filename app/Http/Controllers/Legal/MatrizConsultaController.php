@@ -89,7 +89,7 @@ class MatrizConsultaController extends Controller
             'detalles' => $request->detalles,
         ]);
 
-        // Archivos subidos al sistema
+        // Archivos subidos — se guardan en la base de datos
         if ($request->hasFile('archivos_file')) {
             foreach ($request->file('archivos_file') as $index => $file) {
                 if (! $file || ! $file->isValid()) {
@@ -100,15 +100,14 @@ class MatrizConsultaController extends Controller
                 $extension = strtolower($file->getClientOriginalExtension());
                 $tipoAuto = $this->detectarTipo($extension);
 
-                $ruta = $file->store("legal/archivos/{$proyecto->id}", 'public');
-
                 LegalArchivo::create([
                     'proyecto_id' => $proyecto->id,
                     'nombre' => $nombre,
                     'tipo' => $tipoAuto,
-                    'ruta' => $ruta,
+                    'ruta' => null,
                     'es_url' => false,
                     'mime_type' => $file->getMimeType(),
+                    'contenido' => $file->get(),
                 ]);
             }
         }
@@ -180,9 +179,8 @@ class MatrizConsultaController extends Controller
     {
         $proyecto = LegalProyecto::findOrFail($id);
 
-        // Eliminar archivos físicos del storage
         foreach ($proyecto->archivos as $archivo) {
-            if (! $archivo->es_url && Storage::disk('public')->exists($archivo->ruta)) {
+            if (! $archivo->es_url && $archivo->ruta && Storage::disk('public')->exists($archivo->ruta)) {
                 Storage::disk('public')->delete($archivo->ruta);
             }
         }
@@ -197,7 +195,7 @@ class MatrizConsultaController extends Controller
     {
         $archivo = LegalArchivo::findOrFail($id);
 
-        if (! $archivo->es_url && Storage::disk('public')->exists($archivo->ruta)) {
+        if (! $archivo->es_url && $archivo->ruta && Storage::disk('public')->exists($archivo->ruta)) {
             Storage::disk('public')->delete($archivo->ruta);
         }
 
@@ -208,17 +206,29 @@ class MatrizConsultaController extends Controller
 
     public function downloadArchivo($id)
     {
-        $archivo = LegalArchivo::findOrFail($id);
+        $archivo = LegalArchivo::withoutGlobalScope('sin_contenido')
+            ->select(['id', 'nombre', 'tipo', 'ruta', 'es_url', 'mime_type', 'contenido'])
+            ->findOrFail($id);
 
         if ($archivo->es_url) {
             return redirect($archivo->ruta);
         }
 
-        if (! Storage::disk('public')->exists($archivo->ruta)) {
+        if ($archivo->contenido) {
+            $extension = pathinfo($archivo->nombre, PATHINFO_EXTENSION);
+            $nombreBase = pathinfo($archivo->nombre, PATHINFO_FILENAME) ?: $archivo->nombre;
+            $nombreDescarga = $extension ? "{$nombreBase}.{$extension}" : $archivo->nombre;
+
+            return response($archivo->contenido, 200, [
+                'Content-Type' => $archivo->mime_type ?? 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . $nombreDescarga . '"',
+            ]);
+        }
+
+        if (! $archivo->ruta || ! Storage::disk('public')->exists($archivo->ruta)) {
             abort(404, 'Archivo no encontrado.');
         }
 
-        // Preservar la extensión original del archivo almacenado
         $extension = pathinfo($archivo->ruta, PATHINFO_EXTENSION);
         $nombreBase = pathinfo($archivo->nombre, PATHINFO_FILENAME) ?: $archivo->nombre;
         $nombreDescarga = $extension ? "{$nombreBase}.{$extension}" : $archivo->nombre;

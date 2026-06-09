@@ -548,7 +548,8 @@ DB_ACTIVOS_HOST=localhost
 DB_ACTIVOS_PORT=3306
 DB_ACTIVOS_DATABASE=AuditoriaActivos
 DB_ACTIVOS_USERNAME=user_activos
-DB_ACTIVOS_PASSWORD=password
+# DB_ACTIVOS_PASSWORD — definir en .env, no documentar
+# DB_ACTIVOS_PASSWORD=password
 ACTIVOS_STORAGE_PATH=/var/www/AuditoriaActivos/storage/app/private
 ```
 

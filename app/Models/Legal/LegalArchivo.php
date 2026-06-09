@@ -8,11 +8,20 @@ class LegalArchivo extends Model
 {
     protected $table = 'legal_archivos';
 
-    protected $fillable = ['proyecto_id', 'nombre', 'tipo', 'ruta', 'es_url', 'mime_type'];
+    protected $fillable = ['proyecto_id', 'nombre', 'tipo', 'ruta', 'es_url', 'mime_type', 'contenido'];
 
     protected $casts = [
         'es_url' => 'boolean',
     ];
+
+    // Excluir el LONGBLOB de todas las consultas normales para no saturar memoria
+    protected static function boot(): void
+    {
+        parent::boot();
+        static::addGlobalScope('sin_contenido', fn ($q) => $q->select([
+            'id', 'proyecto_id', 'nombre', 'tipo', 'ruta', 'es_url', 'mime_type', 'created_at', 'updated_at',
+        ]));
+    }
 
     public function proyecto()
     {
@@ -27,6 +36,6 @@ class LegalArchivo extends Model
         if ($this->es_url) {
             return $this->ruta;
         }
-        return asset('storage/' . $this->ruta);
+        return route('legal.matriz.archivo.download', $this->id);
     }
 }

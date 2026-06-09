@@ -663,7 +663,8 @@ DB_ACTIVOS_HOST=127.0.0.1
 DB_ACTIVOS_PORT=3306
 DB_ACTIVOS_DATABASE=AuditoriaActivos
 DB_ACTIVOS_USERNAME=erp_user
-DB_ACTIVOS_PASSWORD=secret
+# DB_ACTIVOS_PASSWORD — definir en .env, no documentar
+# DB_ACTIVOS_PASSWORD=secret
 
 # Ruta al storage de AuditoriaActivos para servir sus fotos como proxy
 # Debe apuntar al directorio storage/app/private de AuditoriaActivos
