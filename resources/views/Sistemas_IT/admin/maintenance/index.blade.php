@@ -43,11 +43,7 @@
                     </svg>
                     Agenda de Mantenimientos
                 </button>
-                <button type="button" data-tab-target="tab-expedientes"
-                    class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
-                    <span class="hidden sm:inline">Expedientes</span>
-                    <span class="sm:hidden">Expedientes</span>
-                </button>
+
                 <button type="button" data-tab-target="tab-bloqueos"
                     class="tab-trigger inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-700 hover:bg-white/80">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,99 +207,7 @@
                     </div>
                 </section>
 
-                <section id="tab-expedientes" data-tab-panel class="space-y-6 hidden">
-                    <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-900">Expedientes de Equipos</h3>
-                        <p class="text-sm text-slate-500 max-w-2xl">Historial de equipos con mantenimiento registrado y su estado de préstamo.</p>
-                    </div>
 
-                    @if($profiles->isEmpty())
-                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                            <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p class="text-gray-600 font-medium">No hay equipos registrados</p>
-                            <p class="text-sm text-gray-500 mt-1">Comienza creando una ficha técnica desde la pestaña "Ficha técnica"</p>
-                        </div>
-                    @else
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-start">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <div>
-                                    <p class="text-sm font-medium text-blue-900">Total de equipos registrados: {{ $profiles->count() }}</p>
-                                    <p class="text-xs text-blue-700 mt-1">Haz clic en "Ver expediente" para consultar el historial de mantenimientos, tickets asociados y empleado asignado</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="overflow-x-auto rounded-xl border border-gray-200">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identificador</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipo</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último mantenimiento</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($profiles as $profile)
-                                        <tr class="hover:bg-gray-50 transition-colors">
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-semibold text-blue-600">{{ $profile->identifier ?? 'Sin asignar' }}</div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <div class="text-sm font-semibold text-gray-900">{{ $profile->brand ?? 'Marca no definida' }} {{ $profile->model }}</div>
-                                                @if($profile->disk_type || $profile->ram_capacity)
-                                                    <div class="text-xs text-gray-500 mt-1">
-                                                        @if($profile->disk_type)
-                                                            <span>Disco: {{ $profile->disk_type }}</span>
-                                                        @endif
-                                                        @if($profile->ram_capacity)
-                                                            <span class="ml-2">RAM: {{ $profile->ram_capacity }}</span>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                @php
-                                                    $lastMaintenance = $profile->last_maintenance_at
-                                                        ? $profile->last_maintenance_at->copy()->timezone('America/Mexico_City')
-                                                        : null;
-                                                @endphp
-                                                @if($lastMaintenance)
-                                                    {{ $lastMaintenance->format('d/m/Y H:i') }}
-                                                @else
-                                                    <span class="text-gray-400">Sin registro</span>
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $profile->is_loaned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                                    {{ $profile->is_loaned ? 'Prestado' : 'Disponible' }}
-                                                </span>
-                                                @if($profile->is_loaned && $profile->loaned_to_name)
-                                                    <div class="text-xs text-gray-500 mt-1">{{ $profile->loaned_to_name }}</div>
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm">
-                                                <a href="{{ route('admin.maintenance.computers.show', $profile) }}"
-                                                   class="inline-flex items-center px-3 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 rounded-lg text-xs font-semibold transition-colors">
-                                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                    Ver expediente
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </section>
             </div>
         </div>
     </main>

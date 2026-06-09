@@ -356,11 +356,6 @@ class MaintenanceController extends Controller
             ->limit(15)
             ->get();
 
-        // Perfiles de computadoras
-        $profiles = ComputerProfile::with(['ticket'])
-            ->orderByDesc('updated_at')
-            ->get();
-
         // Bloqueos activos
         $blockedSlots = MaintenanceBlockedSlot::where('date_start', '>=', now()->toDateString())
             ->orWhere(function ($q) {
@@ -375,7 +370,6 @@ class MaintenanceController extends Controller
             'users' => User::orderBy('name')->get(['id', 'name', 'email']),
             'maintenanceTickets' => $maintenanceTickets,
             'ticketsWithoutProfile' => $ticketsWithoutProfile,
-            'profiles' => $profiles,
             'blockedSlots' => $blockedSlots,
             'timeSlots' => self::TIME_SLOTS,
         ]);
