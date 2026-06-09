@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Logistica;
 use App\Http\Controllers\Controller;
 use App\Models\Logistica\Aduana;
 use App\Models\Logistica\CampoPersonalizado;
+use App\Models\Logistica\CampoValor;
 use App\Models\Logistica\Cliente;
 use App\Models\Logistica\MatrizSeguimiento;
 use App\Models\Logistica\MatrizSeguimientoComentario;
@@ -376,6 +377,33 @@ class MatrizSeguimientoController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // ── Campos personalizados para el export ─────────────────────
+        $clienteNombresExport = $registros->pluck('proveedor_cliente')->filter()->unique();
+        $clienteModelsExport  = Cliente::whereIn('cliente', $clienteNombresExport)
+            ->get()->keyBy('cliente');
+
+        // Lista ordenada de campos extra: [ ['id', 'label', 'tipo', 'cliente_id'] ]
+        $extraCampos = CampoPersonalizado::whereIn('cliente_id', $clienteModelsExport->pluck('id'))
+            ->orderBy('cliente_id')->orderBy('orden')->orderBy('id')
+            ->get()
+            ->map(fn($c) => [
+                'id'         => $c->id,
+                'label'      => ($clienteModelsExport->firstWhere('id', $c->cliente_id)?->cliente ?? '') . ' – ' . $c->nombre,
+                'tipo'       => $c->tipo,
+                'cliente_id' => $c->cliente_id,
+            ]);
+
+        // Valores: [seguimiento_id => [campo_id => valor]]
+        $valoresMapa = [];
+        if ($extraCampos->isNotEmpty()) {
+            CampoValor::whereIn('campo_id', $extraCampos->pluck('id'))
+                ->whereIn('matriz_seguimiento_id', $registros->pluck('id'))
+                ->get()
+                ->each(function ($v) use (&$valoresMapa) {
+                    $valoresMapa[$v->matriz_seguimiento_id][$v->campo_id] = $v->valor;
+                });
+        }
+
         // Convierte columna numérica (1-based) a letra(s) Excel
         $cl = fn(int $n): string => Coordinate::stringFromColumnIndex($n);
 
@@ -431,12 +459,30 @@ class MatrizSeguimientoController extends Controller
             'Ejecutivo',              // 27
             'Fecha Creación',         // 28 ← fecha
         ];
-        $last1 = $cl(count($cols1));
+        // Agregar encabezados de campos personalizados al final
+        foreach ($extraCampos as $ec) {
+            $cols1[] = $ec['label'];
+        }
+        $totalCols1 = count($cols1);
+        $last1 = $cl($totalCols1);
 
         foreach ($cols1 as $ci => $hdr) {
             $sh1->setCellValue($cl($ci + 1) . '1', $hdr);
         }
-        $sh1->getStyle("A1:{$last1}1")->applyFromArray($headerStyle);
+
+        // Estilo especial para columnas de campos personalizados (fondo morado)
+        if ($extraCampos->isNotEmpty()) {
+            $extraHeaderStyle = [
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF6D28D9']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+                'borders'   => ['bottom' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FFA78BFA']]],
+            ];
+            $extraStart = $cl(29);
+            $sh1->getStyle("{$extraStart}1:{$last1}1")->applyFromArray($extraHeaderStyle);
+        }
+
+        $sh1->getStyle("A1:{$cl(28)}1")->applyFromArray($headerStyle);
         $sh1->getRowDimension(1)->setRowHeight(28);
         $sh1->freezePane('A2');
         $sh1->setAutoFilter("A1:{$last1}1");
@@ -445,9 +491,19 @@ class MatrizSeguimientoController extends Controller
         foreach ($widths1 as $ci => $w) {
             $sh1->getColumnDimension($cl($ci + 1))->setWidth($w);
         }
+        // Ancho por defecto para columnas extra de campos personalizados
+        for ($ec = 29; $ec <= $totalCols1; $ec++) {
+            $sh1->getColumnDimension($cl($ec))->setWidth(22);
+        }
 
         // Columnas de fecha (1-indexed): ETD=17, ETA=18, Previo=20, Despacho=21, Arribo=22, Creación=28
         $dateCols1 = [17, 18, 20, 21, 22, 28];
+        // Agregar columnas de fecha de campos personalizados
+        foreach ($extraCampos as $idx => $ec) {
+            if ($ec['tipo'] === 'fecha') {
+                $dateCols1[] = 29 + $idx;
+            }
+        }
 
         foreach ($registros as $i => $reg) {
             $row = $i + 2;
@@ -488,6 +544,20 @@ class MatrizSeguimientoController extends Controller
 
             foreach ($values as $ci => $val) {
                 $sh1->setCellValue($cl($ci + 1) . $row, $val ?? '');
+            }
+
+            // Escribir valores de campos personalizados
+            foreach ($extraCampos as $idx => $ec) {
+                $colIdx = 29 + $idx;
+                $valor  = $valoresMapa[$reg->id][$ec['id']] ?? '';
+                if ($ec['tipo'] === 'fecha' && $valor) {
+                    try {
+                        $valor = $exDate(\Carbon\Carbon::parse($valor));
+                    } catch (\Throwable) {
+                        $valor = '';
+                    }
+                }
+                $sh1->setCellValue($cl($colIdx) . $row, $valor);
             }
 
             foreach ($dateCols1 as $dc) {
