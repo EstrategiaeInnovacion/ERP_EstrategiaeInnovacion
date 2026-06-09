@@ -1004,7 +1004,7 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 pt-1">
-                        <button type="button" onclick="document.getElementById('mc-nuevo-form').classList.add('hidden')"
+                        <button type="button" onclick="document.getElementById('mc-form-nuevo-campo').classList.add('hidden')"
                                 class="px-4 py-2 text-sm rounded-lg text-slate-600 hover:bg-slate-100 transition">Cancelar</button>
                         <button type="submit"
                                 class="px-4 py-2 text-sm rounded-lg text-white font-semibold transition"
@@ -1507,7 +1507,7 @@ function abrirModalCampos() {
     if (sel) sel.value = '';
     $c('campos-empty')?.classList.remove('hidden');
     $c('mc-campos')?.classList.add('hidden');
-    $c('mc-nuevo-form')?.classList.add('hidden');
+    $c('mc-form-nuevo-campo')?.classList.add('hidden');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
@@ -1616,7 +1616,7 @@ function _initCamposListeners() {
     });
 
     $c('mc-btn-agregar')?.addEventListener('click', () => {
-        $c('mc-nuevo-form')?.classList.toggle('hidden');
+        $c('mc-form-nuevo-campo')?.classList.toggle('hidden');
     });
 
     $c('mc-form-nuevo-campo')?.addEventListener('submit', async function (e) {
@@ -1636,7 +1636,7 @@ function _initCamposListeners() {
         if (res.ok) {
             if ($c('mc-campo-nombre')) $c('mc-campo-nombre').value = '';
             if ($c('mc-campo-obligatorio')) $c('mc-campo-obligatorio').checked = false;
-            $c('mc-nuevo-form')?.classList.add('hidden');
+            $c('mc-form-nuevo-campo')?.classList.add('hidden');
             await cargarCamposDef(clienteSeleccionadoId);
             if (res.status === 201) setTimeout(() => location.reload(), 800);
         } else {
