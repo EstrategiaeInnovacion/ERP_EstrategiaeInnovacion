@@ -121,16 +121,16 @@ class MatrizSeguimientoController extends Controller
         $tiposContenedor = MatrizSeguimiento::TIPOS_CONTENEDOR;
         $miUserId        = $user?->id;
 
-        // Campos personalizados: Set de nombres de cliente que tienen campos definidos
-        $clientesConCampos = collect();
+        // Campos personalizados: Set de nombres de cliente que tienen campos definidos (todos ven)
+        $clientesConCampos = CampoPersonalizado::with('cliente')
+            ->get()
+            ->filter(fn($c) => $c->cliente !== null)
+            ->groupBy(fn($c) => $c->cliente->cliente)
+            ->map->count();
+
+        // Catálogo completo de clientes solo para coordinadores (gestión de definiciones)
         $todosCatalogoClientes = collect();
         if ($esCoordinador) {
-            $clientesConCampos = CampoPersonalizado::with('cliente')
-                ->get()
-                ->filter(fn($c) => $c->cliente !== null)
-                ->groupBy(fn($c) => $c->cliente->cliente)
-                ->map->count();
-
             $todosCatalogoClientes = Cliente::orderBy('cliente')->get(['id', 'cliente']);
         }
 

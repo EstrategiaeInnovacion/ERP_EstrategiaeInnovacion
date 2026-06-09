@@ -94,9 +94,6 @@ class CampoPersonalizadoController extends Controller
     // Devuelve definiciones + valores ya guardados para una operación
     public function getValores(MatrizSeguimiento $seguimiento)
     {
-        if (! $this->esCoordinador()) {
-            abort(403);
-        }
 
         // Buscar el cliente en el catálogo por nombre exacto (proveedor_cliente)
         $cliente = Cliente::where('cliente', $seguimiento->proveedor_cliente)->first();
@@ -135,10 +132,6 @@ class CampoPersonalizadoController extends Controller
     // Guarda / actualiza los valores de los campos para una operación
     public function saveValores(Request $request, MatrizSeguimiento $seguimiento)
     {
-        if (! $this->esCoordinador()) {
-            abort(403);
-        }
-
         $cliente = Cliente::where('cliente', $seguimiento->proveedor_cliente)->first();
         if (! $cliente) {
             return response()->json(['error' => 'Cliente no encontrado'], 422);

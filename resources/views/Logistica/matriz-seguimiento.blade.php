@@ -263,7 +263,7 @@
                                         </svg>
                                         <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
                                     </button>
-                                    @if($esCoordinador && isset($clientesConCampos[$reg->proveedor_cliente]))
+                                    @if(isset($clientesConCampos[$reg->proveedor_cliente]))
                                     <button data-id="{{ $reg->id }}"
                                             data-cliente="{{ e($reg->proveedor_cliente) }}"
                                             onclick="abrirCamposValores(Number(this.dataset.id), this.dataset.cliente)"
@@ -528,7 +528,7 @@
                                         </svg>
                                         <span class="comentarios-count-{{ $reg->id }}">{{ $reg->historial->count() }}</span>
                                     </button>
-                                    @if($esCoordinador && isset($clientesConCampos[$reg->proveedor_cliente]))
+                                    @if(isset($clientesConCampos[$reg->proveedor_cliente]))
                                     <button data-id="{{ $reg->id }}"
                                             data-cliente="{{ e($reg->proveedor_cliente) }}"
                                             onclick="abrirCamposValores(Number(this.dataset.id), this.dataset.cliente)"
@@ -1018,8 +1018,9 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
         </div>
     </div>
 </div>
+@endif
 
-{{-- MODAL: Ver / llenar valores de campos por operación --}}
+{{-- MODAL: Ver / llenar valores de campos por operación (visible para todos) --}}
 <div id="modal-campos-valores" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalValores()"></div>
     <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
@@ -1060,7 +1061,6 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
         </form>
     </div>
 </div>
-@endif
 
 <div id="modal-exportar" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="cerrarModalExportar()"></div>
@@ -1481,22 +1481,103 @@ document.getElementById('f-tipo_operacion').addEventListener('change', function 
     toggleDetallesMaritimo(this.value);
 });
 
-// ── Campos personalizados ────────────────────────────────────────────
+// ── Campos personalizados ─────────────────────────────────────────────
+// Constantes y funciones de VALORES disponibles para todos los usuarios
+const CSRF_TOKEN       = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const RUTA_VALORES_GET  = '{{ route("logistica.seguimiento.campos", ["seguimiento" => "__ID__"]) }}';
+const RUTA_VALORES_SAVE = '{{ route("logistica.seguimiento.campos.save", ["seguimiento" => "__ID__"]) }}';
+
+let camposValoresSeguimientoId = null;
+
+const $c = id => document.getElementById(id);
+
+async function abrirCamposValores(seguimientoId, clienteNombre) {
+    const modal = $c('modal-campos-valores');
+    if (!modal) return;
+    camposValoresSeguimientoId = seguimientoId;
+    $c('cv-loading')?.classList.remove('hidden');
+    $c('cv-campos-wrap')?.classList.add('hidden');
+    $c('cv-error')?.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    const cvCliente = $c('cv-cliente');
+    if (cvCliente) cvCliente.textContent = clienteNombre;
+
+    try {
+        const res  = await fetch(RUTA_VALORES_GET.replace('__ID__', seguimientoId), { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        const cvRef = $c('cv-ref');
+        if (cvRef) cvRef.textContent = data.ref_interna || ('#' + seguimientoId);
+        renderCamposValores(data.campos || []);
+        $c('cv-loading')?.classList.add('hidden');
+        $c('cv-campos-wrap')?.classList.remove('hidden');
+    } catch {
+        $c('cv-loading')?.classList.add('hidden');
+        $c('cv-error')?.classList.remove('hidden');
+    }
+}
+
+function renderCamposValores(campos) {
+    const wrap = $c('cv-campos-list');
+    if (!wrap) return;
+    wrap.innerHTML = campos.length
+        ? campos.map(c => `
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-600">
+                    ${c.nombre}
+                    ${c.es_obligatorio ? '<span class="text-red-500 ml-0.5">*</span>' : ''}
+                    <span class="ml-1 text-xs font-normal text-slate-400">(${c.tipo})</span>
+                </label>
+                ${c.tipo === 'fecha'
+                    ? `<input type="date" data-campo-id="${c.id}" value="${c.valor || ''}" class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+                    : `<input type="text" data-campo-id="${c.id}" value="${c.valor || ''}" placeholder="Escribe aquí..." class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+                }
+            </div>`).join('')
+        : '<p class="text-sm text-slate-400 italic">No hay campos configurados para este cliente.</p>';
+}
+
+function cerrarModalValores() {
+    $c('modal-campos-valores')?.classList.add('hidden');
+    $c('modal-campos-valores')?.classList.remove('flex');
+    camposValoresSeguimientoId = null;
+}
+
+function _initValoresListener() {
+    $c('cv-form')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!camposValoresSeguimientoId) return;
+        const valores = {};
+        document.querySelectorAll('#cv-campos-list .cv-input').forEach(inp => {
+            valores[inp.dataset.campoId] = inp.value;
+        });
+        const res = await fetch(RUTA_VALORES_SAVE.replace('__ID__', camposValoresSeguimientoId), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ valores }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            cerrarModalValores();
+        } else {
+            alert(data.error || 'Error al guardar.');
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initValoresListener);
+} else {
+    _initValoresListener();
+}
+
+// ── Solo coordinadores: gestión de definiciones ───────────────────────
 @if($esCoordinador)
-const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const RUTA_CAMPOS_CLIENTE = '{{ route("logistica.campos.por-cliente", ["cliente" => "__ID__"]) }}';
 const RUTA_CAMPOS_STORE   = '{{ route("logistica.campos.store",       ["cliente" => "__ID__"]) }}';
 const RUTA_CAMPOS_DESTROY = '{{ route("logistica.campos.destroy",     ["campo"   => "__ID__"]) }}';
-const RUTA_VALORES_GET    = '{{ route("logistica.seguimiento.campos", ["seguimiento" => "__ID__"]) }}';
-const RUTA_VALORES_SAVE   = '{{ route("logistica.seguimiento.campos.save", ["seguimiento" => "__ID__"]) }}';
 
-let clienteSeleccionadoId      = null;
-let camposValoresSeguimientoId = null;
+let clienteSeleccionadoId = null;
 
-// ── Helper: get element safely ───────────────────────────────────────
-const $c = id => document.getElementById(id);
-
-// ── Modal gestión de definiciones ────────────────────────────────────
 function abrirModalCampos() {
     const modal = $c('modal-campos-def');
     if (!modal) return;
@@ -1549,60 +1630,7 @@ async function eliminarCampo(campoId) {
     if (clienteSeleccionadoId) await cargarCamposDef(clienteSeleccionadoId);
 }
 
-// ── Modal valores por operación ──────────────────────────────────────
-async function abrirCamposValores(seguimientoId, clienteNombre) {
-    const modal = $c('modal-campos-valores');
-    if (!modal) return;
-    camposValoresSeguimientoId = seguimientoId;
-    $c('cv-loading')?.classList.remove('hidden');
-    $c('cv-campos-wrap')?.classList.add('hidden');
-    $c('cv-error')?.classList.add('hidden');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    const cvCliente = $c('cv-cliente');
-    if (cvCliente) cvCliente.textContent = clienteNombre;
-
-    try {
-        const res  = await fetch(RUTA_VALORES_GET.replace('__ID__', seguimientoId), { headers: { 'Accept': 'application/json' } });
-        const data = await res.json();
-        const cvRef = $c('cv-ref');
-        if (cvRef) cvRef.textContent = data.ref_interna || ('#' + seguimientoId);
-        renderCamposValores(data.campos || []);
-        $c('cv-loading')?.classList.add('hidden');
-        $c('cv-campos-wrap')?.classList.remove('hidden');
-    } catch {
-        $c('cv-loading')?.classList.add('hidden');
-        $c('cv-error')?.classList.remove('hidden');
-    }
-}
-
-function renderCamposValores(campos) {
-    const wrap = $c('cv-campos-list');
-    if (!wrap) return;
-    wrap.innerHTML = campos.length
-        ? campos.map(c => `
-            <div class="space-y-1">
-                <label class="block text-xs font-bold text-slate-600">
-                    ${c.nombre}
-                    ${c.es_obligatorio ? '<span class="text-red-500 ml-0.5">*</span>' : ''}
-                    <span class="ml-1 text-xs font-normal text-slate-400">(${c.tipo})</span>
-                </label>
-                ${c.tipo === 'fecha'
-                    ? `<input type="date" data-campo-id="${c.id}" value="${c.valor || ''}" class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
-                    : `<input type="text" data-campo-id="${c.id}" value="${c.valor || ''}" placeholder="Escribe aquí..." class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
-                }
-            </div>`).join('')
-        : '<p class="text-sm text-slate-400 italic">No hay campos configurados para este cliente.</p>';
-}
-
-function cerrarModalValores() {
-    $c('modal-campos-valores')?.classList.add('hidden');
-    $c('modal-campos-valores')?.classList.remove('flex');
-    camposValoresSeguimientoId = null;
-}
-
-// ── Event listeners (se registran cuando el DOM esté listo) ──────────
-function _initCamposListeners() {
+function _initDefListeners() {
     $c('campos-cliente-sel')?.addEventListener('change', async function () {
         clienteSeleccionadoId = this.value || null;
         if (!clienteSeleccionadoId) {
@@ -1644,34 +1672,12 @@ function _initCamposListeners() {
             alert(data.error || 'Error al guardar el campo.');
         }
     });
-
-    $c('cv-form')?.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        if (!camposValoresSeguimientoId) return;
-        const valores = {};
-        document.querySelectorAll('#cv-campos-list .cv-input').forEach(inp => {
-            valores[inp.dataset.campoId] = inp.value;
-        });
-
-        const res = await fetch(RUTA_VALORES_SAVE.replace('__ID__', camposValoresSeguimientoId), {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ valores }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-            cerrarModalValores();
-        } else {
-            alert(data.error || 'Error al guardar.');
-        }
-    });
 }
 
-// Registrar listeners independientemente del momento de carga del script
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _initCamposListeners);
+    document.addEventListener('DOMContentLoaded', _initDefListeners);
 } else {
-    _initCamposListeners();
+    _initDefListeners();
 }
 @endif
 </script>
