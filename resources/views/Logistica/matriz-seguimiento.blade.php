@@ -1484,43 +1484,38 @@ document.getElementById('f-tipo_operacion').addEventListener('change', function 
 // ── Campos personalizados ────────────────────────────────────────────
 @if($esCoordinador)
 const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
-const RUTA_CAMPOS_CLIENTE  = '{{ route("logistica.campos.por-cliente", ["cliente" => "__ID__"]) }}';
-const RUTA_CAMPOS_STORE    = '{{ route("logistica.campos.store",       ["cliente" => "__ID__"]) }}';
-const RUTA_CAMPOS_DESTROY  = '{{ route("logistica.campos.destroy",     ["campo"   => "__ID__"]) }}';
-const RUTA_VALORES_GET     = '{{ route("logistica.seguimiento.campos", ["seguimiento" => "__ID__"]) }}';
-const RUTA_VALORES_SAVE    = '{{ route("logistica.seguimiento.campos.save", ["seguimiento" => "__ID__"]) }}';
+const RUTA_CAMPOS_CLIENTE = '{{ route("logistica.campos.por-cliente", ["cliente" => "__ID__"]) }}';
+const RUTA_CAMPOS_STORE   = '{{ route("logistica.campos.store",       ["cliente" => "__ID__"]) }}';
+const RUTA_CAMPOS_DESTROY = '{{ route("logistica.campos.destroy",     ["campo"   => "__ID__"]) }}';
+const RUTA_VALORES_GET    = '{{ route("logistica.seguimiento.campos", ["seguimiento" => "__ID__"]) }}';
+const RUTA_VALORES_SAVE   = '{{ route("logistica.seguimiento.campos.save", ["seguimiento" => "__ID__"]) }}';
 
-const catalogoClientes = @json($todosCatalogoClientes);
+let clienteSeleccionadoId      = null;
+let camposValoresSeguimientoId = null;
 
-// ── Modal gestión de definiciones ───────────────────────────────────
-let clienteSeleccionadoId = null;
+// ── Helper: get element safely ───────────────────────────────────────
+const $c = id => document.getElementById(id);
 
+// ── Modal gestión de definiciones ────────────────────────────────────
 function abrirModalCampos() {
+    const modal = $c('modal-campos-def');
+    if (!modal) return;
     clienteSeleccionadoId = null;
-    document.getElementById('campos-lista').innerHTML = '';
-    document.getElementById('campos-cliente-sel').value = '';
-    document.getElementById('campos-empty').classList.remove('hidden');
-    document.getElementById('mc-campos').classList.add('hidden');
-    document.getElementById('mc-nuevo-form').classList.add('hidden');
-    document.getElementById('modal-campos-def').classList.remove('hidden');
-    document.getElementById('modal-campos-def').classList.add('flex');
-}
-function cerrarModalCampos() {
-    document.getElementById('modal-campos-def').classList.add('hidden');
-    document.getElementById('modal-campos-def').classList.remove('flex');
+    const lista = $c('campos-lista');
+    if (lista) lista.innerHTML = '';
+    const sel = $c('campos-cliente-sel');
+    if (sel) sel.value = '';
+    $c('campos-empty')?.classList.remove('hidden');
+    $c('mc-campos')?.classList.add('hidden');
+    $c('mc-nuevo-form')?.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
-document.getElementById('campos-cliente-sel')?.addEventListener('change', async function () {
-    clienteSeleccionadoId = this.value || null;
-    if (!clienteSeleccionadoId) {
-        document.getElementById('campos-empty').classList.remove('hidden');
-        document.getElementById('mc-campos').classList.add('hidden');
-        return;
-    }
-    await cargarCamposDef(clienteSeleccionadoId);
-    document.getElementById('campos-empty').classList.add('hidden');
-    document.getElementById('mc-campos').classList.remove('hidden');
-});
+function cerrarModalCampos() {
+    $c('modal-campos-def')?.classList.add('hidden');
+    $c('modal-campos-def')?.classList.remove('flex');
+}
 
 async function cargarCamposDef(clienteId) {
     const url = RUTA_CAMPOS_CLIENTE.replace('__ID__', clienteId);
@@ -1530,140 +1525,154 @@ async function cargarCamposDef(clienteId) {
 }
 
 function renderCamposDef(campos) {
-    const lista = document.getElementById('campos-lista');
-    if (!campos.length) {
-        lista.innerHTML = '<p class="text-sm text-slate-400 italic py-2">No hay campos definidos aún.</p>';
-        return;
-    }
-    lista.innerHTML = campos.map(c => `
-        <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
-            <div class="flex-1 min-w-0">
-                <span class="text-sm font-semibold text-slate-800">${c.nombre}</span>
-                <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full ${c.tipo === 'fecha' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}">${c.tipo}</span>
-                ${c.es_obligatorio ? '<span class="ml-1 text-xs text-red-600 font-medium">Obligatorio</span>' : ''}
-            </div>
-            <button onclick="eliminarCampo(${c.id})" class="text-red-400 hover:text-red-600 p-1 rounded transition" title="Eliminar">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
-        </div>
-    `).join('');
+    const lista = $c('campos-lista');
+    if (!lista) return;
+    lista.innerHTML = campos.length
+        ? campos.map(c => `
+            <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
+                <div class="flex-1 min-w-0">
+                    <span class="text-sm font-semibold text-slate-800">${c.nombre}</span>
+                    <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full ${c.tipo === 'fecha' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}">${c.tipo}</span>
+                    ${c.es_obligatorio ? '<span class="ml-1 text-xs text-red-600 font-medium">Obligatorio</span>' : ''}
+                </div>
+                <button onclick="eliminarCampo(${c.id})" class="text-red-400 hover:text-red-600 p-1 rounded transition" title="Eliminar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>`).join('')
+        : '<p class="text-sm text-slate-400 italic py-2">No hay campos definidos aún.</p>';
 }
 
 async function eliminarCampo(campoId) {
     if (!confirm('¿Eliminar este campo? También se borrarán los valores guardados.')) return;
     const url = RUTA_CAMPOS_DESTROY.replace('__ID__', campoId);
     await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' } });
-    await cargarCamposDef(clienteSeleccionadoId);
+    if (clienteSeleccionadoId) await cargarCamposDef(clienteSeleccionadoId);
 }
 
-document.getElementById('mc-btn-agregar')?.addEventListener('click', () => {
-    document.getElementById('mc-nuevo-form').classList.toggle('hidden');
-});
-
-document.getElementById('mc-form-nuevo-campo')?.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    if (!clienteSeleccionadoId) return;
-    const nombre = document.getElementById('mc-campo-nombre').value.trim();
-    const tipo   = document.getElementById('mc-campo-tipo').value;
-    const oblig  = document.getElementById('mc-campo-obligatorio').checked;
-    if (!nombre) return;
-
-    const url = RUTA_CAMPOS_STORE.replace('__ID__', clienteSeleccionadoId);
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ nombre, tipo, es_obligatorio: oblig }),
-    });
-
-    if (res.ok) {
-        document.getElementById('mc-campo-nombre').value = '';
-        document.getElementById('mc-campo-obligatorio').checked = false;
-        document.getElementById('mc-nuevo-form').classList.add('hidden');
-        await cargarCamposDef(clienteSeleccionadoId);
-        // Recargar página para que el botón "Campos" aparezca en las filas si acaba de crearse
-        if (res.status === 201) {
-            setTimeout(() => location.reload(), 800);
-        }
-    } else {
-        const data = await res.json();
-        alert(data.error || 'Error al guardar el campo.');
-    }
-});
-
-// ── Modal valores por operación ─────────────────────────────────────
-let camposValoresSeguimientoId = null;
-
+// ── Modal valores por operación ──────────────────────────────────────
 async function abrirCamposValores(seguimientoId, clienteNombre) {
+    const modal = $c('modal-campos-valores');
+    if (!modal) return;
     camposValoresSeguimientoId = seguimientoId;
-    document.getElementById('cv-loading').classList.remove('hidden');
-    document.getElementById('cv-campos-wrap').classList.add('hidden');
-    document.getElementById('cv-error').classList.add('hidden');
-    document.getElementById('modal-campos-valores').classList.remove('hidden');
-    document.getElementById('modal-campos-valores').classList.add('flex');
-    document.getElementById('cv-cliente').textContent = clienteNombre;
+    $c('cv-loading')?.classList.remove('hidden');
+    $c('cv-campos-wrap')?.classList.add('hidden');
+    $c('cv-error')?.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    const cvCliente = $c('cv-cliente');
+    if (cvCliente) cvCliente.textContent = clienteNombre;
 
-    const url = RUTA_VALORES_GET.replace('__ID__', seguimientoId);
     try {
-        const res  = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const res  = await fetch(RUTA_VALORES_GET.replace('__ID__', seguimientoId), { headers: { 'Accept': 'application/json' } });
         const data = await res.json();
-        document.getElementById('cv-ref').textContent = data.ref_interna || ('#' + seguimientoId);
+        const cvRef = $c('cv-ref');
+        if (cvRef) cvRef.textContent = data.ref_interna || ('#' + seguimientoId);
         renderCamposValores(data.campos || []);
-        document.getElementById('cv-loading').classList.add('hidden');
-        document.getElementById('cv-campos-wrap').classList.remove('hidden');
+        $c('cv-loading')?.classList.add('hidden');
+        $c('cv-campos-wrap')?.classList.remove('hidden');
     } catch {
-        document.getElementById('cv-loading').classList.add('hidden');
-        document.getElementById('cv-error').classList.remove('hidden');
+        $c('cv-loading')?.classList.add('hidden');
+        $c('cv-error')?.classList.remove('hidden');
     }
 }
 
 function renderCamposValores(campos) {
-    const wrap = document.getElementById('cv-campos-list');
-    if (!campos.length) {
-        wrap.innerHTML = '<p class="text-sm text-slate-400 italic">No hay campos configurados para este cliente.</p>';
-        return;
-    }
-    wrap.innerHTML = campos.map(c => `
-        <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-600">
-                ${c.nombre}
-                ${c.es_obligatorio ? '<span class="text-red-500 ml-0.5">*</span>' : ''}
-                <span class="ml-1 text-xs font-normal text-slate-400">(${c.tipo})</span>
-            </label>
-            ${c.tipo === 'fecha'
-                ? `<input type="date" data-campo-id="${c.id}" value="${c.valor || ''}" class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
-                : `<input type="text" data-campo-id="${c.id}" value="${c.valor || ''}" placeholder="Escribe aquí..." class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
-            }
-        </div>
-    `).join('');
+    const wrap = $c('cv-campos-list');
+    if (!wrap) return;
+    wrap.innerHTML = campos.length
+        ? campos.map(c => `
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-600">
+                    ${c.nombre}
+                    ${c.es_obligatorio ? '<span class="text-red-500 ml-0.5">*</span>' : ''}
+                    <span class="ml-1 text-xs font-normal text-slate-400">(${c.tipo})</span>
+                </label>
+                ${c.tipo === 'fecha'
+                    ? `<input type="date" data-campo-id="${c.id}" value="${c.valor || ''}" class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+                    : `<input type="text" data-campo-id="${c.id}" value="${c.valor || ''}" placeholder="Escribe aquí..." class="cv-input w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">`
+                }
+            </div>`).join('')
+        : '<p class="text-sm text-slate-400 italic">No hay campos configurados para este cliente.</p>';
 }
 
 function cerrarModalValores() {
-    document.getElementById('modal-campos-valores').classList.add('hidden');
-    document.getElementById('modal-campos-valores').classList.remove('flex');
+    $c('modal-campos-valores')?.classList.add('hidden');
+    $c('modal-campos-valores')?.classList.remove('flex');
     camposValoresSeguimientoId = null;
 }
 
-document.getElementById('cv-form')?.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    if (!camposValoresSeguimientoId) return;
-
-    const inputs  = document.querySelectorAll('#cv-campos-list .cv-input');
-    const valores = {};
-    inputs.forEach(inp => { valores[inp.dataset.campoId] = inp.value; });
-
-    const url = RUTA_VALORES_SAVE.replace('__ID__', camposValoresSeguimientoId);
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ valores }),
+// ── Event listeners (se registran cuando el DOM esté listo) ──────────
+function _initCamposListeners() {
+    $c('campos-cliente-sel')?.addEventListener('change', async function () {
+        clienteSeleccionadoId = this.value || null;
+        if (!clienteSeleccionadoId) {
+            $c('campos-empty')?.classList.remove('hidden');
+            $c('mc-campos')?.classList.add('hidden');
+            return;
+        }
+        await cargarCamposDef(clienteSeleccionadoId);
+        $c('campos-empty')?.classList.add('hidden');
+        $c('mc-campos')?.classList.remove('hidden');
     });
-    const data = await res.json();
-    if (res.ok) {
-        cerrarModalValores();
-    } else {
-        alert(data.error || 'Error al guardar.');
-    }
-});
+
+    $c('mc-btn-agregar')?.addEventListener('click', () => {
+        $c('mc-nuevo-form')?.classList.toggle('hidden');
+    });
+
+    $c('mc-form-nuevo-campo')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!clienteSeleccionadoId) return;
+        const nombre = $c('mc-campo-nombre')?.value.trim();
+        const tipo   = $c('mc-campo-tipo')?.value;
+        const oblig  = $c('mc-campo-obligatorio')?.checked ?? false;
+        if (!nombre) return;
+
+        const res = await fetch(RUTA_CAMPOS_STORE.replace('__ID__', clienteSeleccionadoId), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ nombre, tipo, es_obligatorio: oblig }),
+        });
+
+        if (res.ok) {
+            if ($c('mc-campo-nombre')) $c('mc-campo-nombre').value = '';
+            if ($c('mc-campo-obligatorio')) $c('mc-campo-obligatorio').checked = false;
+            $c('mc-nuevo-form')?.classList.add('hidden');
+            await cargarCamposDef(clienteSeleccionadoId);
+            if (res.status === 201) setTimeout(() => location.reload(), 800);
+        } else {
+            const data = await res.json();
+            alert(data.error || 'Error al guardar el campo.');
+        }
+    });
+
+    $c('cv-form')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!camposValoresSeguimientoId) return;
+        const valores = {};
+        document.querySelectorAll('#cv-campos-list .cv-input').forEach(inp => {
+            valores[inp.dataset.campoId] = inp.value;
+        });
+
+        const res = await fetch(RUTA_VALORES_SAVE.replace('__ID__', camposValoresSeguimientoId), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ valores }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            cerrarModalValores();
+        } else {
+            alert(data.error || 'Error al guardar.');
+        }
+    });
+}
+
+// Registrar listeners independientemente del momento de carga del script
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initCamposListeners);
+} else {
+    _initCamposListeners();
+}
 @endif
 </script>
 @endpush
