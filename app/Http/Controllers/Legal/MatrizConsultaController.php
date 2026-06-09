@@ -149,6 +149,14 @@ class MatrizConsultaController extends Controller
         $proyecto = LegalProyecto::with(['categoria.parent', 'archivos'])->findOrFail($id);
 
         if (request()->expectsJson()) {
+            // Detectar qué archivos tienen contenido en BD (sin cargar el BLOB)
+            $idsConContenido = \Illuminate\Support\Facades\DB::table('legal_archivos')
+                ->where('proyecto_id', $id)
+                ->whereNotNull('contenido')
+                ->pluck('id')
+                ->flip()
+                ->all();
+
             return response()->json([
                 'proyecto' => [
                     'id' => $proyecto->id,
@@ -167,6 +175,9 @@ class MatrizConsultaController extends Controller
                         'es_url' => $a->es_url,
                         'url_publica' => $a->url_publica,
                         'ruta' => $a->ruta,
+                        'tiene_archivo' => $a->es_url
+                            || $a->ruta !== null
+                            || isset($idsConContenido[$a->id]),
                     ]),
                 ],
             ]);

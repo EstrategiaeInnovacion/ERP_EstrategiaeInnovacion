@@ -808,8 +808,10 @@
 
                 const action = a.es_url
                     ? buildRutaAction(a.url_publica)
-                    : `<a href="/legal/matriz/archivo/${a.id}/download"
-                            class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Descargar ↓</a>`;
+                    : (a.tiene_archivo
+                        ? `<a href="/legal/matriz/archivo/${a.id}/download"
+                                class="text-xs font-semibold text-amber-600 hover:text-amber-800 transition">Descargar ↓</a>`
+                        : `<span class="text-xs text-slate-400 italic">Sin archivo</span>`);
 
                 const deleteBtn = @json($puedeEditar) ? `
                     <button onclick="eliminarArchivo(${a.id}, this)" title="Eliminar"
