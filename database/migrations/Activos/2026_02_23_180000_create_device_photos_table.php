@@ -13,7 +13,8 @@ return new class extends Migration
             $table->foreignId('device_id')->constrained()->cascadeOnDelete();
             $table->string('file_path');
             $table->string('caption')->nullable();
-            $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
+            $dbMain = config('database.connections.mysql.database', 'erp');
+            $table->foreignId('uploaded_by')->nullable()->constrained($dbMain . '.users')->nullOnDelete();
             $table->timestamps();
         });
     }

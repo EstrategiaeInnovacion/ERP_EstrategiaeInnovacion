@@ -20,7 +20,7 @@ class NotificationController extends Controller
         $tickets = Ticket::where('is_read', false)
             ->orderBy('created_at', 'desc')
             ->limit(10)
-            ->select(['id', 'folio', 'nombre_solicitante', 'tipo_problema', 'descripcion_problema', 'created_at'])
+            ->select(['id', 'folio', 'nombre_solicitante', 'tipo_problema', 'descripcion_problema', 'created_at', 'closed_by_user'])
             ->get()
             ->map(function ($ticket) {
                 $descripcion = $ticket->closed_by_user

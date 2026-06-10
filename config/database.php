@@ -82,7 +82,7 @@ return [
 
         // Segunda BD: sistema de activos (Auditoria_Activos)
         'activos' => [
-            'driver'    => 'mysql',
+            'driver'    => env('DB_ACTIVOS_DRIVER', 'mysql'),
             'host'      => env('DB_ACTIVOS_HOST', '127.0.0.1'),
             'port'      => env('DB_ACTIVOS_PORT', '3306'),
             'database'  => env('DB_ACTIVOS_DATABASE', 'Auditoria_Activos'),
@@ -93,6 +93,7 @@ return [
             'prefix'    => '',
             'strict'    => false,
             'engine'    => null,
+            'foreign_key_constraints' => env('DB_ACTIVOS_FOREIGN_KEYS', true),
         ],
 
         'mariadb' => [

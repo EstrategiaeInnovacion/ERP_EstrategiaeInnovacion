@@ -23,9 +23,11 @@ return new class extends Migration
             return; // BD de Activos no disponible en este entorno
         }
 
-        DB::connection($this->connection)->statement(
-            "ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL"
-        );
+        if (DB::connection($this->connection)->getDriverName() === 'mysql') {
+            DB::connection($this->connection)->statement(
+                "ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL"
+            );
+        }
     }
 
     /**
@@ -39,12 +41,14 @@ return new class extends Migration
             return;
         }
 
-        DB::connection($this->connection)->statement(
-            "UPDATE devices SET type = 'other' WHERE type = 'mobiliario'"
-        );
+        if (DB::connection($this->connection)->getDriverName() === 'mysql') {
+            DB::connection($this->connection)->statement(
+                "UPDATE devices SET type = 'other' WHERE type = 'mobiliario'"
+            );
 
-        DB::connection($this->connection)->statement(
-            "ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL"
-        );
+            DB::connection($this->connection)->statement(
+                "ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL"
+            );
+        }
     }
 };

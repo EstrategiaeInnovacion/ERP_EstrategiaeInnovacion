@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $isMysql = Schema::getConnection()->getDriverName() === 'mysql';
+
         // ── 1. it_equipos_asignados: agregar fechas de mantenimiento ────────
         if (!Schema::hasColumn('it_equipos_asignados', 'last_maintenance_at')) {
             Schema::table('it_equipos_asignados', function (Blueprint $table) {
@@ -18,15 +20,17 @@ return new class extends Migration
             });
 
             // Migrar fechas de mantenimiento existentes
-            DB::statement("
-                UPDATE it_equipos_asignados ea
-                INNER JOIN computer_profiles cp ON cp.equipo_asignado_id = ea.id
-                SET
-                    ea.last_maintenance_at = cp.last_maintenance_at,
-                    ea.next_maintenance_at = cp.next_maintenance_at,
-                    ea.maintenance_reminder_sent_at = cp.maintenance_reminder_sent_at
-                WHERE cp.equipo_asignado_id IS NOT NULL
-            ");
+            if ($isMysql) {
+                DB::statement("
+                    UPDATE it_equipos_asignados ea
+                    INNER JOIN computer_profiles cp ON cp.equipo_asignado_id = ea.id
+                    SET
+                        ea.last_maintenance_at = cp.last_maintenance_at,
+                        ea.next_maintenance_at = cp.next_maintenance_at,
+                        ea.maintenance_reminder_sent_at = cp.maintenance_reminder_sent_at
+                    WHERE cp.equipo_asignado_id IS NOT NULL
+                ");
+            }
         }
 
         // ── 2. ti_expedientes: reemplazar computer_profile_id → equipo_asignado_id ─
@@ -35,22 +39,31 @@ return new class extends Migration
                 $table->unsignedBigInteger('equipo_asignado_id')->nullable()->after('id');
             });
 
-            DB::statement("
-                UPDATE ti_expedientes e
-                INNER JOIN computer_profiles cp ON e.computer_profile_id = cp.id
-                SET e.equipo_asignado_id = cp.equipo_asignado_id
-                WHERE cp.equipo_asignado_id IS NOT NULL
-            ");
+            if ($isMysql) {
+                DB::statement("
+                    UPDATE ti_expedientes e
+                    INNER JOIN computer_profiles cp ON e.computer_profile_id = cp.id
+                    SET e.equipo_asignado_id = cp.equipo_asignado_id
+                    WHERE cp.equipo_asignado_id IS NOT NULL
+                ");
+            }
 
-            Schema::table('ti_expedientes', function (Blueprint $table) {
-                $table->dropForeign(['computer_profile_id']);
-            });
+            if ($isMysql) {
+                Schema::table('ti_expedientes', function (Blueprint $table) {
+                    $table->dropForeign(['computer_profile_id']);
+                });
 
-            Schema::table('ti_expedientes', function (Blueprint $table) {
-                $table->dropColumn('computer_profile_id');
-                $table->unique('equipo_asignado_id');
-                $table->foreign('equipo_asignado_id')->references('id')->on('it_equipos_asignados')->onDelete('cascade');
-            });
+                Schema::table('ti_expedientes', function (Blueprint $table) {
+                    $table->dropColumn('computer_profile_id');
+                    $table->unique('equipo_asignado_id');
+                    $table->foreign('equipo_asignado_id')->references('id')->on('it_equipos_asignados')->onDelete('cascade');
+                });
+            } else {
+                Schema::table('ti_expedientes', function (Blueprint $table) {
+                    $table->unique('equipo_asignado_id');
+                    $table->foreign('equipo_asignado_id')->references('id')->on('it_equipos_asignados')->onDelete('cascade');
+                });
+            }
         }
 
         // ── 3. tickets: reemplazar computer_profile_id → equipo_asignado_id ─
@@ -60,30 +73,44 @@ return new class extends Migration
                     $table->unsignedBigInteger('equipo_asignado_id')->nullable()->after('computer_profile_id');
                 });
 
-                DB::statement("
-                    UPDATE tickets t
-                    INNER JOIN computer_profiles cp ON t.computer_profile_id = cp.id
-                    SET t.equipo_asignado_id = cp.equipo_asignado_id
-                    WHERE cp.equipo_asignado_id IS NOT NULL
-                ");
+                if ($isMysql) {
+                    DB::statement("
+                        UPDATE tickets t
+                        INNER JOIN computer_profiles cp ON t.computer_profile_id = cp.id
+                        SET t.equipo_asignado_id = cp.equipo_asignado_id
+                        WHERE cp.equipo_asignado_id IS NOT NULL
+                    ");
+                }
             }
 
-            Schema::table('tickets', function (Blueprint $table) {
-                $table->dropForeign(['computer_profile_id']);
-                $table->dropColumn('computer_profile_id');
-            });
+            if ($isMysql) {
+                Schema::table('tickets', function (Blueprint $table) {
+                    $table->dropForeign(['computer_profile_id']);
+                    $table->dropColumn('computer_profile_id');
+                });
+            }
         }
 
         // Agregar FK de equipo_asignado_id en tickets si no existe
         if (Schema::hasColumn('tickets', 'equipo_asignado_id')) {
-            $fks = DB::select("
-                SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'tickets'
-                  AND COLUMN_NAME = 'equipo_asignado_id'
-                  AND REFERENCED_TABLE_NAME IS NOT NULL
-            ");
-            if (empty($fks)) {
+            $hasFk = false;
+            if ($isMysql) {
+                $fks = DB::select("
+                    SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'tickets'
+                      AND COLUMN_NAME = 'equipo_asignado_id'
+                      AND REFERENCED_TABLE_NAME IS NOT NULL
+                ");
+                $hasFk = !empty($fks);
+            } else {
+                $foreignKeys = Schema::getForeignKeys('tickets');
+                $hasFk = collect($foreignKeys)->contains(function ($fk) {
+                    return in_array('equipo_asignado_id', $fk['columns'] ?? []);
+                });
+            }
+
+            if (!$hasFk) {
                 Schema::table('tickets', function (Blueprint $table) {
                     $table->foreign('equipo_asignado_id')->references('id')->on('it_equipos_asignados')->onDelete('set null');
                 });

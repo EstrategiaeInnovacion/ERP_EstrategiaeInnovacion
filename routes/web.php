@@ -39,6 +39,9 @@ use App\Http\Controllers\Administracion\PerfilClienteController;
 use App\Http\Controllers\Anexo24\Anexo24Controller;
 use App\Http\Controllers\PostOperaciones\PostOperacionesPanelController;
 use App\Http\Controllers\Auditoria\AuditoriaController;
+use App\Http\Controllers\Auditoria\AuditoriaProyectoController;
+use App\Http\Controllers\Auditoria\AuditoriaCambiosController;
+use App\Http\Controllers\Auditoria\AuditoriaClienteViewController;
 use App\Http\Controllers\Shared\ClientesReadonlyController;
 use Illuminate\Support\Facades\Route;
 
@@ -401,9 +404,34 @@ Route::middleware(['auth', 'verified', 'area.postoperaciones'])->prefix('postope
 
 // 10. MÓDULO AUDITORÍA
 Route::middleware(['auth', 'verified', 'area.auditoria'])->prefix('auditoria')->name('auditoria.')->group(function () {
-    Route::get('/', [AuditoriaController::class, 'dashboard'])->name('dashboard');
+    Route::get('/', [AuditoriaProyectoController::class, 'index'])->name('dashboard');
     Route::get('/clientes', [ClientesReadonlyController::class, 'index'])->name('clientes');
+ 
+    // Proyectos
+    Route::post('/proyectos', [AuditoriaProyectoController::class, 'store'])->name('proyectos.store');
+    Route::get('/proyectos/{id}', [AuditoriaProyectoController::class, 'show'])->name('proyectos.show');
+    Route::put('/proyectos/{id}', [AuditoriaProyectoController::class, 'update'])->name('proyectos.update');
+    Route::patch('/proyectos/{id}/fase', [AuditoriaProyectoController::class, 'updateFase'])->name('proyectos.update_fase');
+    Route::delete('/proyectos/{id}', [AuditoriaProyectoController::class, 'destroy'])->name('proyectos.destroy');
+    Route::post('/proyectos/{id}/publicar', [AuditoriaProyectoController::class, 'publicarAvance'])->name('proyectos.publicar');
+ 
+    // Actividades
+    Route::post('/proyectos/{id}/actividades', [AuditoriaProyectoController::class, 'storeActividad'])->name('proyectos.actividades.store');
+    Route::delete('/proyectos/{id}/actividades/{actividadId}', [AuditoriaProyectoController::class, 'destroyActividad'])->name('proyectos.actividades.destroy');
+    Route::post('/proyectos/{id}/actividades/orden', [AuditoriaProyectoController::class, 'updateActividadOrden'])->name('proyectos.actividades.orden');
+ 
+    // Flujo de Cambios (Analistas / Coordinadores)
+    Route::post('/proyectos/{id}/cambios', [AuditoriaCambiosController::class, 'store'])->name('proyectos.cambios.store');
+    Route::post('/proyectos/{id}/cambios/enviar', [AuditoriaCambiosController::class, 'enviarRevision'])->name('proyectos.cambios.enviar');
+    Route::post('/proyectos/{id}/cambios/enviar-todos', [AuditoriaCambiosController::class, 'enviarTodosRevision'])->name('proyectos.cambios.enviar_todos');
+    Route::post('/proyectos/{id}/cambios/revisar', [AuditoriaCambiosController::class, 'revisar'])->name('proyectos.cambios.revisar');
+    Route::post('/proyectos/{id}/cambios/revisar-paquete', [AuditoriaCambiosController::class, 'revisarPaquete'])->name('proyectos.cambios.revisar_paquete');
+    Route::delete('/proyectos/{id}/cambios/{cambioId}', [AuditoriaCambiosController::class, 'destroy'])->name('proyectos.cambios.destroy');
 });
+ 
+// 10.1 RUTAS PÚBLICAS DE CLIENTE PARA AUDITORÍA (Sin auth)
+Route::get('/auditoria/publico/{token}', [AuditoriaClienteViewController::class, 'show'])->name('auditoria.publico.show');
+Route::post('/auditoria/publico/{token}/password', [AuditoriaClienteViewController::class, 'verifyPassword'])->name('auditoria.publico.password');
 
 // 6. MÓDULO ADMINISTRACIÓN
 Route::middleware(['auth', 'verified', 'admin'])->prefix('administracion')->name('administracion.')->group(function () {

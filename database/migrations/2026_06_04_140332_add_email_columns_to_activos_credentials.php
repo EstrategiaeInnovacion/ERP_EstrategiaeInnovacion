@@ -17,6 +17,10 @@ return new class extends Migration
             return; // BD de Activos no disponible en este entorno
         }
 
+        if (!Schema::connection('activos')->hasTable('credentials')) {
+            return;
+        }
+
         // Añadir email si no existe
         if (! Schema::connection('activos')->hasColumn('credentials', 'email')) {
             Schema::connection('activos')->table('credentials', function (Blueprint $table) {
@@ -33,11 +37,18 @@ return new class extends Migration
 
         // Cambiar password y email_password a TEXT para evitar truncamiento del encrypt()
         // (varchar 255 puede ser insuficiente para el token cifrado de Laravel)
-        DB::connection('activos')->statement(
-            "ALTER TABLE credentials
-             MODIFY COLUMN password TEXT NULL,
-             MODIFY COLUMN email_password TEXT NULL"
-        );
+        if (DB::connection('activos')->getDriverName() === 'mysql') {
+            DB::connection('activos')->statement(
+                "ALTER TABLE credentials
+                 MODIFY COLUMN password TEXT NULL,
+                 MODIFY COLUMN email_password TEXT NULL"
+            );
+        } else {
+            Schema::connection('activos')->table('credentials', function (Blueprint $table) {
+                $table->text('password')->nullable()->change();
+                $table->text('email_password')->nullable()->change();
+            });
+        }
     }
 
     public function down(): void
@@ -45,6 +56,10 @@ return new class extends Migration
         try {
             DB::connection('activos')->getPdo();
         } catch (\Exception) {
+            return;
+        }
+
+        if (!Schema::connection('activos')->hasTable('credentials')) {
             return;
         }
 

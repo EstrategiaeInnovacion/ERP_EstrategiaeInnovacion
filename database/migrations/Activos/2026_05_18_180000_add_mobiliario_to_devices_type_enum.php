@@ -17,7 +17,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL");
+        if (DB::connection($this->connection)->getDriverName() === 'mysql') {
+            DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'mobiliario', 'other') NOT NULL");
+        }
     }
 
     /**
@@ -25,7 +27,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::connection($this->connection)->statement("UPDATE devices SET type = 'other' WHERE type = 'mobiliario'");
-        DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL");
+        if (DB::connection($this->connection)->getDriverName() === 'mysql') {
+            DB::connection($this->connection)->statement("UPDATE devices SET type = 'other' WHERE type = 'mobiliario'");
+            DB::connection($this->connection)->statement("ALTER TABLE devices MODIFY COLUMN type ENUM('computer', 'peripheral', 'printer', 'other') NOT NULL");
+        }
     }
 };

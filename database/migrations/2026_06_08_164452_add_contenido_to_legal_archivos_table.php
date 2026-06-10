@@ -9,8 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // LONGBLOB soporta hasta 4GB; necesario para archivos de hasta 20 MB
-        DB::statement('ALTER TABLE legal_archivos ADD COLUMN contenido LONGBLOB NULL AFTER mime_type');
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            // LONGBLOB soporta hasta 4GB; necesario para archivos de hasta 20 MB
+            DB::statement('ALTER TABLE legal_archivos ADD COLUMN contenido LONGBLOB NULL AFTER mime_type');
+        } else {
+            Schema::table('legal_archivos', function (Blueprint $table) {
+                $table->binary('contenido')->nullable();
+            });
+        }
 
         Schema::table('legal_archivos', function (Blueprint $table) {
             $table->string('ruta')->nullable()->change();

@@ -14,7 +14,8 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('original_name');
             $table->enum('type', ['factura', 'garantia', 'contrato', 'manual', 'otro'])->default('otro');
-            $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
+            $dbMain = config('database.connections.mysql.database', 'erp');
+            $table->foreignId('uploaded_by')->nullable()->constrained($dbMain . '.users')->nullOnDelete();
             $table->timestamps();
         });
     }

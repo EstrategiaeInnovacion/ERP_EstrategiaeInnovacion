@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('assignments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('device_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained(); // Si se asigna a un usuario del sistema (opcional)
+            $dbMain = config('database.connections.mysql.database', 'erp');
+            $table->foreignId('user_id')->nullable()->constrained($dbMain . '.users'); // Si se asigna a un usuario del sistema (opcional)
             $table->string('assigned_to')->nullable(); // Nombre de la persona si no es usuario del sistema
             $table->timestamp('assigned_at')->useCurrent();
             $table->timestamp('returned_at')->nullable();

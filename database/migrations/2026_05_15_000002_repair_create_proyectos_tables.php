@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         // Deshabilitar FK checks para evitar conflictos con FKs huérfanas que ya existen
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Schema::disableForeignKeyConstraints();
 
         if (! Schema::hasTable('proyectos')) {
             Schema::create('proyectos', function (Blueprint $table) {
@@ -38,7 +38,7 @@ return new class extends Migration
             });
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::enableForeignKeyConstraints();
     }
 
     public function down(): void
