@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 
 class AuditoriaController extends Controller
 {
-    public function dashboard()
+    public function dashboard(\Illuminate\Http\Request $request)
     {
-        return redirect()->route('auditoria.dashboard');
+        return app(AuditoriaProyectoController::class)->index($request);
     }
 }
