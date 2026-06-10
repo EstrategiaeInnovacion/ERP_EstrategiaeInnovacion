@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Seguimiento de Auditoría — {{ $proyecto->cliente->nombre }}</title>
+    <title>Seguimiento de Auditoría — {{ $proyecto->nombre_cliente }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,850&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -45,7 +45,7 @@
                     <img src="{{ asset('images/logo-ei.png') }}" alt="E&I Logo" class="h-10 w-auto">
                     <div class="border-l border-slate-200 pl-4">
                         <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">Seguimiento de Auditoría</span>
-                        <h1 class="text-xl font-black text-slate-800 tracking-tight">{{ $proyecto->cliente->nombre }}</h1>
+                        <h1 class="text-xl font-black text-slate-800 tracking-tight">{{ $proyecto->nombre_cliente }}</h1>
                     </div>
                 </div>
                 

@@ -31,7 +31,7 @@
                     <span class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 border border-indigo-100">Seguimiento Externo</span>
                     <h2 class="mt-4 text-2xl font-extrabold text-slate-800 tracking-tight">Acceso Restringido</h2>
                     <p class="mt-2 text-sm text-slate-400">
-                        Esta auditoría del cliente <strong>{{ $proyecto->cliente->nombre }}</strong> está protegida. Ingresa la contraseña asignada por tu coordinador para ver el avance.
+                        Esta auditoría del cliente <strong>{{ $proyecto->nombre_cliente }}</strong> está protegida. Ingresa la contraseña asignada por tu coordinador para ver el avance.
                     </p>
                 </div>
  

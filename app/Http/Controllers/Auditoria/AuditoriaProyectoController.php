@@ -53,9 +53,14 @@ class AuditoriaProyectoController extends Controller
         $user = auth()->user();
         $esCoordinador = $this->esCoordinador($user);
  
-        // Clientes para el filtro del encabezado
-        $clientesConProyectos = Cliente::whereHas('perfil')->orderBy('nombre')->get();
-        $clientesCatalog = Cliente::orderBy('nombre')->get();
+        // Clientes únicos para el filtro del encabezado
+        $clientesConProyectos = ProyectoAuditoria::select('cliente_nombre')
+            ->whereNotNull('cliente_nombre')
+            ->distinct()
+            ->orderBy('cliente_nombre')
+            ->pluck('cliente_nombre');
+        
+        $clientesCatalog = collect(); // Ya no se requiere catálogo para crear proyectos
  
         // Buscar analistas disponibles para asignación
         $analistas = User::whereHas('empleado', function ($q) {
@@ -63,7 +68,7 @@ class AuditoriaProyectoController extends Controller
         })->orWhere('role', 'admin')->get();
  
         // Query de proyectos
-        $query = ProyectoAuditoria::with(['cliente', 'analista', 'coordinador']);
+        $query = ProyectoAuditoria::with(['analista', 'coordinador']);
  
         if (!$esCoordinador) {
             // El analista solo ve los proyectos que tiene asignados
@@ -73,9 +78,9 @@ class AuditoriaProyectoController extends Controller
             });
         }
  
-        // Filtro por cliente
+        // Filtro por cliente (compara el string seleccionado)
         if ($request->filled('cliente_id')) {
-            $query->where('cliente_id', $request->cliente_id);
+            $query->where('cliente_nombre', $request->cliente_id);
         }
  
         $proyectos = $query->latest()->get();
@@ -108,7 +113,7 @@ class AuditoriaProyectoController extends Controller
         }
  
         $data = $request->validate([
-            'cliente_id' => 'required|exists:admin_clientes,id',
+            'cliente_nombre' => 'required|string|max:255',
             'periodo_fiscal' => 'required|string|max:100',
             'analista_id' => 'required|exists:users,id',
             'cantidad_expedientes' => 'required|integer|min:1',
@@ -300,6 +305,7 @@ class AuditoriaProyectoController extends Controller
         $proyecto = ProyectoAuditoria::findOrFail($id);
  
         $data = $request->validate([
+            'cliente_nombre' => 'required|string|max:255',
             'periodo_fiscal' => 'required|string|max:100',
             'analista_id' => 'required|exists:users,id',
             'cantidad_expedientes' => 'required|integer|min:1',

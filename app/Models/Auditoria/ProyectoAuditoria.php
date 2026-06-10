@@ -15,6 +15,7 @@ class ProyectoAuditoria extends Model
  
     protected $fillable = [
         'cliente_id',
+        'cliente_nombre',
         'periodo_fiscal',
         'coordinador_id',
         'analista_id',
@@ -34,6 +35,12 @@ class ProyectoAuditoria extends Model
         'ultima_publicacion_at',
         'ultima_publicacion_user_id',
     ];
+
+    // Accessor para obtener el nombre del cliente de manera unificada
+    public function getNombreClienteAttribute()
+    {
+        return $this->cliente ? $this->cliente->nombre : ($this->cliente_nombre ?? 'Cliente sin nombre');
+    }
  
     protected $casts = [
         'fecha_inicio' => 'date',

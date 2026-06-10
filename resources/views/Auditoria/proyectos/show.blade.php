@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Proyecto de Auditoría - ' . $proyecto->cliente->nombre)
+@section('title', 'Proyecto de Auditoría - ' . $proyecto->nombre_cliente)
  
 @section('content')
 <div class="min-h-screen bg-slate-50/50 pb-16" 
@@ -240,7 +240,7 @@
                         <span>Proyecto Detalle</span>
                     </div>
                     
-                    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $proyecto->cliente->nombre }}</h1>
+                    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $proyecto->nombre_cliente }}</h1>
                     
                     <div class="flex flex-wrap items-center gap-3 mt-3">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -487,7 +487,7 @@
                             class="text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition w-full sm:w-auto">
                         <option value="">Todos los responsables</option>
                         <option value="E&I">E&I</option>
-                        <option value="{{ $proyecto->cliente->nombre }}">{{ $proyecto->cliente->nombre }}</option>
+                        <option value="{{ $proyecto->nombre_cliente }}">{{ $proyecto->nombre_cliente }}</option>
                     </select>
  
                     {{-- Filtro Estatus --}}
@@ -921,6 +921,12 @@
                         </div>
  
                         <div class="bg-white px-6 py-6 space-y-4">
+                            <div>
+                                <label for="edit_cliente_nombre" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cliente</label>
+                                <input type="text" name="cliente_nombre" id="edit_cliente_nombre" required value="{{ $proyecto->nombre_cliente }}"
+                                       class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="edit_periodo" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Periodo Fiscal</label>
@@ -1274,7 +1280,7 @@
                                 <select name="responsable" id="new_responsable" required
                                         class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
                                     <option value="E&I">E&I</option>
-                                    <option value="{{ $proyecto->cliente->nombre }}">{{ $proyecto->cliente->nombre }}</option>
+                                    <option value="{{ $proyecto->nombre_cliente }}">{{ $proyecto->nombre_cliente }}</option>
                                 </select>
                             </div>
  
