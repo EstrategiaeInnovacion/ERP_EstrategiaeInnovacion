@@ -8,6 +8,6 @@ class AuditoriaController extends Controller
 {
     public function dashboard()
     {
-        return view('Auditoria.dashboard');
+        return redirect()->route('auditoria.dashboard');
     }
 }
