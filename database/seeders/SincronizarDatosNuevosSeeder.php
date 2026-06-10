@@ -25,6 +25,13 @@ class SincronizarDatosNuevosSeeder extends Seeder
         $this->command->info('Solo se agregarán registros que NO existan en la BD nueva.');
         $this->command->info('');
 
+        try {
+            DB::connection('mysql_old')->getPdo();
+        } catch (\Exception $e) {
+            $this->command->warn('⚠ La conexión a la base de datos vieja (mysql_old) no está disponible. Saltando sincronización de datos nuevos...');
+            return;
+        }
+
         DB::statement("SET FOREIGN_KEY_CHECKS = 0;");
 
         try {

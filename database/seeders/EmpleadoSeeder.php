@@ -178,8 +178,8 @@ class EmpleadoSeeder extends Seeder
                 'nombre' => 'Isaac Covarrubias Quintero',
                 'correo' => 'isaac.covarrubias@empresa.com',
                 'area' => 'Estrategia e Innovacion',
-                'posicion' => 'TI', // Ajustado de 'IT'
-                'supervisor' => 'Liliana Hernandez Castilla',
+                'posicion' => 'Auditoria',
+                'supervisor' => 'Silvestre Reyes Castillo',
             ],
 
             // ===== REPORTAN A MARIO =====
@@ -388,6 +388,11 @@ class EmpleadoSeeder extends Seeder
             // Administración RH y TI también son admin
             elseif (str_contains($posicionNorm, 'administracion rh') || str_contains($posicionNorm, 'ti')) {
                 $user->update(['role' => 'admin']);
+            }
+
+            // 6. ASIGNAR COORDINADOR DE AUDITORÍA
+            if ($nombreNorm === 'silvestre reyes castillo') {
+                $empleado->update(['es_coordinador' => true]);
             }
         }
 
