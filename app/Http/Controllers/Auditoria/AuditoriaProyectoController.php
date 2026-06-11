@@ -62,10 +62,10 @@ class AuditoriaProyectoController extends Controller
         
         $clientesCatalog = collect(); // Ya no se requiere catálogo para crear proyectos
  
-        // Buscar analistas disponibles para asignación
+        // Buscar analistas disponibles para asignación (solo posición 'Auditoria')
         $analistas = User::whereHas('empleado', function ($q) {
-            $q->whereRaw("LOWER(area) LIKE '%auditor%' OR LOWER(posicion) LIKE '%auditor%'");
-        })->orWhere('role', 'admin')->get();
+            $q->whereRaw("LOWER(posicion) = 'auditoria'");
+        })->get();
  
         // Query de proyectos
         $query = ProyectoAuditoria::with(['analista', 'coordinador']);
