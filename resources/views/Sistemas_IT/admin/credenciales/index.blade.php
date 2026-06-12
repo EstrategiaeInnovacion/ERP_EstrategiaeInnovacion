@@ -4,7 +4,8 @@
 
 @section('content')
 <script>
-    window._equipoUsuarios = {!! json_encode($usuarios, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+    window._equipoUsuarios    = {!! json_encode($usuarios,         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+    window._equiposPorUsuario = {!! json_encode($equiposPorUsuario, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
 </script>
 <div class="min-h-screen bg-slate-50 pb-12" x-data="{ ...equipoModal(), cartaModal: false, cartaUserId: '' }">
 
@@ -418,6 +419,37 @@
                     Consultando sistema de activos…
                 </div>
 
+                {{-- ---- Step: Usuario ya tiene registro ERP ---- --}}
+                <div x-show="step === 'already_registered'" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-amber-800">Este usuario ya tiene un equipo registrado</p>
+                            <p class="text-sm text-amber-700 mt-0.5 truncate" x-text="erpEquipo?.nombre ?? ''"></p>
+                            <p class="text-xs text-amber-600 mt-1">Para actualizar credenciales o periféricos, abre el registro existente.</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <a :href="`{{ url('admin/credenciales') }}/${erpEquipo?.id}`"
+                           class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Ver registro
+                        </a>
+                        <button type="button" @click="step = 'select_user'; userId = ''; erpEquipo = null"
+                                class="px-3 py-2 text-xs font-medium text-amber-700 hover:text-amber-900 transition">
+                            Seleccionar otro usuario
+                        </button>
+                    </div>
+                </div>
+
                 {{-- ---- Step: Select available device ---- --}}
                 <div x-show="step === 'select_device'">
                     <p class="text-sm font-semibold text-slate-700 mb-3">Este usuario no tiene equipo asignado. Selecciona uno disponible:</p>
@@ -695,10 +727,12 @@ function equipoModal() {
     return {
         // state
         modalOpen: false,
-        step: 'select_user', // select_user | loading | select_device | credentials
+        step: 'select_user', // select_user | loading | already_registered | select_device | credentials
         usuarios: window._equipoUsuarios || [],
+        erpEquipos: window._equiposPorUsuario || {},
         userId: '',
         userHasDevice: false,
+        erpEquipo: null,    // { id, nombre } si el usuario ya tiene registro ERP
         disponibles: [],
         device: null,       // { uuid, nombre, modelo, serie, photo_id, assign_new }
 
@@ -738,6 +772,7 @@ function equipoModal() {
         resetModal() {
             this.step = 'select_user';
             this.userId = '';
+            this.erpEquipo = null;
             this.device = null;
             this.disponibles = [];
             this.nombreUsuarioPc  = '';
@@ -759,9 +794,19 @@ function equipoModal() {
         // ---- device lookup ----
         async onUserChange() {
             if (!this.userId) return;
-            this.step = 'loading';
             this.device = null;
+            this.erpEquipo = null;
             this.errorMsg = null;
+
+            // Verificar si el usuario ya tiene un registro principal en el ERP
+            const existente = this.erpEquipos[this.userId] ?? null;
+            if (existente) {
+                this.erpEquipo = existente;
+                this.step = 'already_registered';
+                return;
+            }
+
+            this.step = 'loading';
 
             try {
                 const resp = await fetch(

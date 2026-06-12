@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Sistemas_IT;
 use App\Http\Controllers\Controller;
 use App\Models\Empleado;
 use App\Models\User;
-use App\Services\ActivosApiService;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;

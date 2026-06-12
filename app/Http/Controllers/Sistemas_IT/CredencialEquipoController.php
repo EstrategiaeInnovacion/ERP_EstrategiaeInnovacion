@@ -73,7 +73,16 @@ class CredencialEquipoController extends Controller
             ->flip()
             ->all();
 
-        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios', 'soloLectura', 'usersConCarta'));
+        // Mapa user_id → equipo_id para detectar en el modal si el usuario ya tiene registro ERP
+        $equiposPorUsuario = EquipoAsignado::where(function ($q) {
+                $q->where('es_principal', true)->orWhereNull('es_principal');
+            })
+            ->get(['id', 'user_id', 'nombre_equipo', 'modelo'])
+            ->keyBy('user_id')
+            ->map(fn ($e) => ['id' => $e->id, 'nombre' => trim($e->nombre_equipo . ($e->modelo ? ' – ' . $e->modelo : ''))])
+            ->toArray();
+
+        return view('admin.credenciales.index', compact('equipos', 'usuarios', 'secundarios', 'soloLectura', 'usersConCarta', 'equiposPorUsuario'));
     }
 
     public function create()
