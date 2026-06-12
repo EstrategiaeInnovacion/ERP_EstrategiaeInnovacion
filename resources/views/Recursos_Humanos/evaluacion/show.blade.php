@@ -46,13 +46,11 @@
                             $tipoLabel = match($tipo ?? 'supervisor') {
                                 'admin_rh' => 'Admin RH',
                                 'subordinado' => 'Subordinado',
-                                'autoevaluacion' => 'Autoevaluación',
                                 default => 'Supervisor',
                             };
                             $tipoColor = match($tipo ?? 'supervisor') {
                                 'admin_rh' => 'bg-purple-600 border-purple-500',
                                 'subordinado' => 'bg-teal-600 border-teal-500',
-                                'autoevaluacion' => 'bg-amber-600 border-amber-500',
                                 default => 'bg-slate-600 border-slate-500',
                             };
                         @endphp

@@ -232,7 +232,6 @@ class EvaluacionController extends Controller
             $target->dual_role = $isAdminRH && $isDirectSupervisor;
 
             $target->is_my_boss = $me && $me->supervisor_id == $target->id;
-            $target->is_me = $me && $me->id == $target->id;
 
             $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
 
@@ -242,10 +241,6 @@ class EvaluacionController extends Controller
 
             if ($target->is_my_boss) {
                 $target->evaluacion_subordinado = $baseEvalQuery('subordinado')->first();
-            }
-
-            if ($target->is_me) {
-                $target->evaluacion_autoevaluacion = $baseEvalQuery('autoevaluacion')->first();
             }
 
             return $target;
@@ -272,13 +267,11 @@ class EvaluacionController extends Controller
 
         $isDirectSupervisor = $me && $target->supervisor_id == $me->id;
         $isBoss = $me && $me->supervisor_id == $target->id;
-        $isSelf = $me && $me->id == $target->id;
 
         $tiposPermitidos = [];
         if ($isAdminRH || $hasFullVisibility) $tiposPermitidos[] = 'admin_rh';
         if ($isDirectSupervisor || $hasFullVisibility) $tiposPermitidos[] = 'supervisor';
         if ($isBoss || $hasFullVisibility) $tiposPermitidos[] = 'subordinado';
-        if ($isSelf || $hasFullVisibility) $tiposPermitidos[] = 'autoevaluacion';
         $tiposPermitidos = array_unique($tiposPermitidos);
 
         if (!in_array($tipo, $tiposPermitidos)) {
@@ -322,13 +315,6 @@ class EvaluacionController extends Controller
                 $criterios = CriterioEvaluacion::where('area', 'Evaluacion Supervisor')->get();
                 $areaDisplay = 'Evaluación de Liderazgo (A tu Supervisor)';
                 break;
-            case 'autoevaluacion':
-                $areaTecnica = $this->getTechnicalArea($target->posicion);
-                $criterios = CriterioEvaluacion::where(function ($q) use ($areaTecnica) {
-                    $q->where('area', $areaTecnica)->orWhere('area', 'Recursos Humanos');
-                })->get();
-                $areaDisplay = "Autoevaluación ($areaTecnica + Soft Skills)";
-                break;
             default:
                 return redirect()->route('rh.evaluacion.index')->with('error', 'Tipo de evaluación inválido.');
         }
@@ -347,7 +333,6 @@ class EvaluacionController extends Controller
             'observaciones' => $observaciones,
             'is_locked' => !$canEdit,
             'isWindowOpen' => $isWindowOpen,
-            'isMe' => ($me && $me->id == $target->id),
             'tipo' => $tipo,
         ]);
     }
@@ -362,7 +347,7 @@ class EvaluacionController extends Controller
             return back()->with('error', 'No hay una ventana de evaluación activa.');
 
         $request->validate([
-            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado,autoevaluacion',
+            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado',
             'observaciones' => 'required|array',
             'observaciones.*' => 'required|string|min:1',
             'comentarios_generales' => 'required|string|min:1',
@@ -431,7 +416,7 @@ class EvaluacionController extends Controller
             return abort(403);
 
         $request->validate([
-            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado,autoevaluacion',
+            'tipo' => 'required|string|in:supervisor,admin_rh,subordinado',
             'observaciones' => 'required|array',
             'observaciones.*' => 'required|string|min:1',
             'comentarios_generales' => 'required|string|min:1',
@@ -631,7 +616,6 @@ class EvaluacionController extends Controller
             $sheet->setCellValue("C$row", match ($eval->tipo ?? 'supervisor') {
                 'admin_rh' => 'Admin RH',
                 'subordinado' => 'Subordinado',
-                'autoevaluacion' => 'Autoevaluación',
                 default => 'Supervisor',
             });
             $sheet->setCellValue("D$row", number_format($eval->promedio_final, 1));

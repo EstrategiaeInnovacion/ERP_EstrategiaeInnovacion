@@ -134,9 +134,18 @@
                                                             {{ substr($empleado->nombre, 0, 1) }}
                                                         @endif
                                                     </div>
-                                                    @if(isset($empleado->evaluacion_actual))
-                                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold {{ $empleado->evaluacion_actual->edit_count >= 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                                            {{ $empleado->evaluacion_actual->edit_count >= 1 ? 'FINALIZADA' : 'EN REVISIÓN' }}
+                                                    @php
+                                                        $tipoPrimary = 'supervisor';
+                                                        $evalPrimary = $empleado->evaluacion_actual ?? null;
+                                                        $labelPrimary = 'Evaluar';
+                                                        if ($empleado->is_my_boss ?? false) {
+                                                            $tipoPrimary = 'subordinado';
+                                                            $evalPrimary = $empleado->evaluacion_subordinado ?? null;
+                                                        }
+                                                    @endphp
+                                                    @if(isset($evalPrimary))
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold {{ $evalPrimary->edit_count >= 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                                            {{ $evalPrimary->edit_count >= 1 ? 'FINALIZADA' : 'EN REVISIÓN' }}
                                                         </span>
                                                     @else
                                                         <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-slate-50 text-slate-500">PENDIENTE</span>
@@ -220,30 +229,30 @@
                                                             @endif
                                                         </div>
                                                     @else
-                                                        @if(!$isWindowOpen)
-                                                            @if(isset($empleado->evaluacion_actual))
-                                                                <div class="flex gap-2">
-                                                                    <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                        Ver Evaluación (Cerrado)
-                                                                    </a>
-                                                                    @if(isset($hasFullVisibility) && $hasFullVisibility)
-                                                                        <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
-                                                                        class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5" 
-                                                                        title="Ver Resultados Consolidados">
-                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                                                                        Ver Porcentajes
-                                                                        </a>
-                                                                    @endif
-                                                                    @if(!empty($puedeGestionarVentanas))
-                                                                        <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
-                                                                            @csrf @method('DELETE')
-                                                                            <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
-                                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                                            </button>
-                                                                        </form>
-                                                                    @endif
-                                                                </div>
-                                                             @else
+                                                         @if(!$isWindowOpen)
+                                                             @if(isset($evalPrimary))
+                                                                 <div class="flex gap-2">
+                                                                     <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $tipoPrimary]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                         Ver Evaluación (Cerrado)
+                                                                     </a>
+                                                                     @if(isset($hasFullVisibility) && $hasFullVisibility)
+                                                                         <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
+                                                                         class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5" 
+                                                                         title="Ver Resultados Consolidados">
+                                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                                                         Ver Porcentajes
+                                                                         </a>
+                                                                     @endif
+                                                                     @if(!empty($puedeGestionarVentanas))
+                                                                         <form method="POST" action="{{ route('rh.evaluacion.destroy', $evalPrimary->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                             @csrf @method('DELETE')
+                                                                             <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                             </button>
+                                                                         </form>
+                                                                     @endif
+                                                                 </div>
+                                                              @else
                                                                  @if(isset($hasFullVisibility) && $hasFullVisibility)
                                                                      <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
                                                                      class="flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition" 
@@ -258,50 +267,50 @@
                                                                  @endif
                                                              @endif
                                                         @else
-                                                            @if(isset($empleado->evaluacion_actual))
-                                                                @if($empleado->evaluacion_actual->edit_count >= 1)
-                                                                    <div class="flex gap-2">
-                                                                        <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                            Ver Evaluación
-                                                                        </a>
-                                                                        @if(isset($hasFullVisibility) && $hasFullVisibility)
-                                                                            <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
-                                                                            class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5" 
-                                                                            title="Ver Resultados Consolidados">
-                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                                                                            Ver Porcentajes
-                                                                            </a>
-                                                                        @endif
-                                                                        @if(!empty($puedeGestionarVentanas))
-                                                                            <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
-                                                                                @csrf @method('DELETE')
-                                                                                <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
-                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                                                </button>
-                                                                            </form>
-                                                                        @endif
-                                                                    </div>
-                                                                @else
-                                                                    <div class="flex gap-2">
-                                                                        <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                            Editar Evaluación
-                                                                        </a>
-                                                                        @if(!empty($puedeGestionarVentanas))
-                                                                            <form method="POST" action="{{ route('rh.evaluacion.destroy', $empleado->evaluacion_actual->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
-                                                                                @csrf @method('DELETE')
-                                                                                <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
-                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                                            </button>
-                                                                        </form>
-                                                                    @endif
-                                                                </div>
-                                                            @endif
-                                                        @else
-                                                            <div class="mt-4 flex gap-2">
-                                                                <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
-                                                                class="flex-1 text-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-bold hover:bg-indigo-100 transition">
-                                                                Evaluar
-                                                                </a>
+                                                             @if(isset($evalPrimary))
+                                                                 @if($evalPrimary->edit_count >= 1)
+                                                                     <div class="flex gap-2">
+                                                                         <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $tipoPrimary]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                             Ver Evaluación
+                                                                         </a>
+                                                                         @if(isset($hasFullVisibility) && $hasFullVisibility)
+                                                                             <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
+                                                                             class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5" 
+                                                                             title="Ver Resultados Consolidados">
+                                                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                                                             Ver Porcentajes
+                                                                             </a>
+                                                                         @endif
+                                                                         @if(!empty($puedeGestionarVentanas))
+                                                                             <form method="POST" action="{{ route('rh.evaluacion.destroy', $evalPrimary->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                 @csrf @method('DELETE')
+                                                                                 <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                             </button>
+                                                                         </form>
+                                                                     @endif
+                                                                 </div>
+                                                                 @else
+                                                                     <div class="flex gap-2">
+                                                                         <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $tipoPrimary]) }}" class="flex-1 flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                             Editar Evaluación
+                                                                         </a>
+                                                                         @if(!empty($puedeGestionarVentanas))
+                                                                             <form method="POST" action="{{ route('rh.evaluacion.destroy', $evalPrimary->id) }}" onsubmit="return confirm('¿Eliminar esta evaluación permanentemente?')">
+                                                                                 @csrf @method('DELETE')
+                                                                                 <button type="submit" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar evaluación">
+                                                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                                             </button>
+                                                                         </form>
+                                                                     @endif
+                                                                 </div>
+                                                             @endif
+                                                         @else
+                                                             <div class="mt-4 flex gap-2">
+                                                                 <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => $tipoPrimary]) }}" 
+                                                                 class="flex-1 text-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-bold hover:bg-indigo-100 transition">
+                                                                 {{ $labelPrimary }}
+                                                                 </a>
 
                                                                 @if(isset($hasFullVisibility) && $hasFullVisibility)
                                                                     <a href="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $selectedPeriod]) }}" 
@@ -315,77 +324,7 @@
                                                      @endif
                                                  @endif
 
-                                                 {{-- Subordinado (evaluar a mi supervisor) --}}
-                                                 @if($empleado->is_my_boss ?? false)
-                                                     @php $evalSub = $empleado->evaluacion_subordinado ?? null; @endphp
-                                                     <div class="mt-2">
-                                                     @if(!$isWindowOpen)
-                                                         @if($evalSub)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Ver (Subordinado)
-                                                             </a>
-                                                         @else
-                                                             <span class="block text-center px-4 py-1.5 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
-                                                                 Sin eval. Subordinado
-                                                             </span>
-                                                         @endif
-                                                     @else
-                                                         @if($evalSub && $evalSub->edit_count >= 1)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Ver (Subordinado)
-                                                             </a>
-                                                         @elseif($evalSub)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Editar (Subordinado)
-                                                             </a>
-                                                         @else
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-[10px] font-bold hover:bg-purple-100 transition">
-                                                                 Evaluar (Subordinado)
-                                                             </a>
-                                                         @endif
-                                                     @endif
-                                                     </div>
-                                                 @endif
-
-                                                 {{-- Autoevaluación --}}
-                                                 @if($empleado->is_me ?? false)
-                                                     @php $evalAuto = $empleado->evaluacion_autoevaluacion ?? null; @endphp
-                                                     <div class="mt-2">
-                                                     @if(!$isWindowOpen)
-                                                         @if($evalAuto)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Ver (Autoevaluación)
-                                                             </a>
-                                                         @else
-                                                             <span class="block text-center px-4 py-1.5 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
-                                                                 Sin Autoevaluación
-                                                             </span>
-                                                         @endif
-                                                     @else
-                                                         @if($evalAuto && $evalAuto->edit_count >= 1)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Ver (Autoevaluación)
-                                                             </a>
-                                                         @elseif($evalAuto)
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
-                                                                 Editar (Autoevaluación)
-                                                             </a>
-                                                         @else
-                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
-                                                                class="flex items-center justify-center px-4 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-[10px] font-bold hover:bg-cyan-100 transition">
-                                                                 Autoevaluación
-                                                             </a>
-                                                         @endif
-                                                     @endif
-                                                     </div>
-                                                 @endif
+                                                   {{-- Subordinado (absorbido por el botón principal cuando is_my_boss) --}}
                                              </div>
                                              </div>
                                          </div>
