@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             IncotermSeeder::class,
             GlobalEvaluacionSeeder::class,
             GestionRHEvaluacionSeeder::class,
+            TIEvaluacionSeeder::class,
             LegalEvaluacionSeeder::class,
             PostOperacionEvaluacionSeeder::class,
             Anexo24EvaluacionSeeder::class,

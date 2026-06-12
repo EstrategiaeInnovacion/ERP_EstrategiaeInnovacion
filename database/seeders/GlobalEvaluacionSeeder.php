@@ -30,11 +30,7 @@ class GlobalEvaluacionSeeder extends Seeder
             'Legal' => [], // Movido a LegalEvaluacionSeeder
             'Anexo 24' => [], // Movido a Anexo24EvaluacionSeeder
             'Post-Operacion' => [], // Movido a PostOperacionEvaluacionSeeder
-            'TI' => [
-                ['criterio' => 'Soporte a Usuarios', 'descripcion' => 'Atención rápida y efectiva a tickets.', 'peso' => 20],
-                ['criterio' => 'Mantenimiento de Redes', 'descripcion' => 'Estabilidad y seguridad de la infraestructura.', 'peso' => 20],
-                ['criterio' => 'Desarrollo e Innovación', 'descripcion' => 'Implementación de nuevas herramientas tecnológicas.', 'peso' => 20],
-            ],
+            'TI' => [], // Movido a TIEvaluacionSeeder
             'Auditoria' => [], // Movido a AuditoriaEvaluacionSeeder
             'Pedimentos' => [
                 ['criterio' => 'Captura de Pedimentos', 'descripcion' => 'Velocidad y precisión en la captura de datos.', 'peso' => 20],
