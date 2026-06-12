@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             // 3. Catálogos y Configuración
             IncotermSeeder::class,
             GlobalEvaluacionSeeder::class,
+            GestionRHEvaluacionSeeder::class,
             LegalEvaluacionSeeder::class,
             PostOperacionEvaluacionSeeder::class,
             Anexo24EvaluacionSeeder::class,

@@ -41,11 +41,7 @@ class GlobalEvaluacionSeeder extends Seeder
                 ['criterio' => 'Clasificación Arancelaria', 'descripcion' => 'Asignación correcta de fracciones.', 'peso' => 20],
                 ['criterio' => 'Validación Previa', 'descripcion' => 'Revisión de documentos antes del pago.', 'peso' => 20],
             ],
-            'Gestion RH' => [
-                ['criterio' => 'Reclutamiento Efectivo', 'descripcion' => 'Cobertura de vacantes en tiempo y forma.', 'peso' => 20],
-                ['criterio' => 'Administración de Personal', 'descripcion' => 'Manejo impecable de incidencias y nómina.', 'peso' => 20],
-                ['criterio' => 'Desarrollo Organizacional', 'descripcion' => 'Ejecución de planes de capacitación y clima.', 'peso' => 20],
-            ],
+            'Gestion RH' => [], // Movido a GestionRHEvaluacionSeeder
             'General' => [
                 ['criterio' => 'Cumplimiento de Metas', 'descripcion' => 'Logro de los objetivos asignados al puesto.', 'peso' => 20],
                 ['criterio' => 'Calidad en el Trabajo', 'descripcion' => 'Entregables libres de errores.', 'peso' => 20],
