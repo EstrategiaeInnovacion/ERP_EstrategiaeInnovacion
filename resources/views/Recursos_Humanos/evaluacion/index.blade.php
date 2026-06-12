@@ -309,14 +309,86 @@
                                                                     title="Ver Resultados Consolidados">
                                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                                                     </a>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-                                                    @endif
-                                                @endif
-                                            </div>
-                                            </div>
-                                        </div>
+                                                                 @endif
+                                                             </div>
+                                                         @endif
+                                                     @endif
+                                                 @endif
+
+                                                 {{-- Subordinado (evaluar a mi supervisor) --}}
+                                                 @if($empleado->is_my_boss ?? false)
+                                                     @php $evalSub = $empleado->evaluacion_subordinado ?? null; @endphp
+                                                     <div class="mt-2">
+                                                     @if(!$isWindowOpen)
+                                                         @if($evalSub)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Ver (Subordinado)
+                                                             </a>
+                                                         @else
+                                                             <span class="block text-center px-4 py-1.5 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
+                                                                 Sin eval. Subordinado
+                                                             </span>
+                                                         @endif
+                                                     @else
+                                                         @if($evalSub && $evalSub->edit_count >= 1)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Ver (Subordinado)
+                                                             </a>
+                                                         @elseif($evalSub)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Editar (Subordinado)
+                                                             </a>
+                                                         @else
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'subordinado']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-[10px] font-bold hover:bg-purple-100 transition">
+                                                                 Evaluar (Subordinado)
+                                                             </a>
+                                                         @endif
+                                                     @endif
+                                                     </div>
+                                                 @endif
+
+                                                 {{-- Autoevaluación --}}
+                                                 @if($empleado->is_me ?? false)
+                                                     @php $evalAuto = $empleado->evaluacion_autoevaluacion ?? null; @endphp
+                                                     <div class="mt-2">
+                                                     @if(!$isWindowOpen)
+                                                         @if($evalAuto)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Ver (Autoevaluación)
+                                                             </a>
+                                                         @else
+                                                             <span class="block text-center px-4 py-1.5 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-not-allowed">
+                                                                 Sin Autoevaluación
+                                                             </span>
+                                                         @endif
+                                                     @else
+                                                         @if($evalAuto && $evalAuto->edit_count >= 1)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Ver (Autoevaluación)
+                                                             </a>
+                                                         @elseif($evalAuto)
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                                                                 Editar (Autoevaluación)
+                                                             </a>
+                                                         @else
+                                                             <a href="{{ route('rh.evaluacion.show', ['id' => $empleado->id, 'periodo' => $selectedPeriod, 'tipo' => 'autoevaluacion']) }}"
+                                                                class="flex items-center justify-center px-4 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-[10px] font-bold hover:bg-cyan-100 transition">
+                                                                 Autoevaluación
+                                                             </a>
+                                                         @endif
+                                                     @endif
+                                                     </div>
+                                                 @endif
+                                             </div>
+                                             </div>
+                                         </div>
                                     @endforeach
                                 </div>
                             @endif
