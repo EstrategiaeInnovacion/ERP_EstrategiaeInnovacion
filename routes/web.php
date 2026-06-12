@@ -379,6 +379,8 @@ Route::middleware(['auth', 'verified', 'area.legal'])->prefix('legal')->name('le
         Route::get('/origen/{bom}', [OriginAnalysisController::class, 'show'])->name('origen.show');
         Route::post('/origen/{bom}', [OriginAnalysisController::class, 'store'])->name('origen.store');
         Route::get('/origen/{bom}/export', [OriginAnalysisController::class, 'export'])->name('origen.export');
+        Route::get('/origen/{bom}/cert', [OriginAnalysisController::class, 'certForm'])->name('origen.cert');
+        Route::post('/origen/{bom}/cert', [OriginAnalysisController::class, 'exportCert'])->name('origen.cert.download');
         Route::post('/origen/{bom}/chat', [OriginAnalysisController::class, 'chat'])->name('origen.chat');
         Route::put('/origen/{bom}/corregir', [OriginAnalysisController::class, 'applyCorrections'])->name('origen.corregir');
 

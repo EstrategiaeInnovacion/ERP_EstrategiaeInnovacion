@@ -22,7 +22,10 @@ class BomController extends Controller
 
     public function index()
     {
-        $boms = Bom::where('created_by', (int) auth()->user()?->id)->latest()->paginate(20);
+        $boms = Bom::where('created_by', (int) auth()->user()?->id)
+            ->with(['originAnalyses' => fn($q) => $q->latest('analyzed_at')->limit(1)])
+            ->latest()
+            ->paginate(20);
 
         return view('Legal.comercio-exterior.bom.index', compact('boms'));
     }

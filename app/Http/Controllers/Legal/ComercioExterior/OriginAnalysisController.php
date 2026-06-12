@@ -11,6 +11,8 @@ use App\Services\ComercioExterior\ExcelRulesService;
 use App\Services\ComercioExterior\LocalOriginAnalyzer;
 use App\Services\ComercioExterior\OrigenCalculatorService;
 use App\Services\ComercioExterior\OriginAnalysisService;
+use App\Models\Legal\ComercioExterior\UsmcaCertData;
+use App\Services\ComercioExterior\UsmcaCertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -87,6 +89,69 @@ class OriginAnalysisController extends Controller
 
         $writer   = new Xlsx($spreadsheet);
         $filename = 'BOM_Origen_' . ($bom->clave ?: $bom->id) . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function certForm(Bom $bom)
+    {
+        abort_unless($bom->created_by === (int) auth()->user()?->id, 403);
+
+        $bom->load('items');
+        $analysis = $bom->originAnalyses()->latest('analyzed_at')->firstOrFail();
+        $parts    = app(UsmcaCertificateService::class)->getQualifyingParts($bom, $analysis);
+        $saved    = UsmcaCertData::where('bom_id', $bom->id)->value('cert_data') ?? [];
+
+        return view('Legal.comercio-exterior.origen.cert', compact('bom', 'analysis', 'parts', 'saved'));
+    }
+
+    public function exportCert(Request $request, Bom $bom): StreamedResponse
+    {
+        abort_unless($bom->created_by === (int) auth()->user()?->id, 403);
+
+        $bom->load('items');
+        $analysis = $bom->originAnalyses()->latest('analyzed_at')->firstOrFail();
+
+        $coverData = $request->only([
+            // Blanket period
+            'blanket_from', 'blanket_to',
+            // Certifier type checkbox
+            'certifier_type',
+            // Certifier (Section 2)
+            'certifier_name', 'certifier_address', 'certifier_country',
+            'certifier_phone', 'certifier_email',
+            // Exporter (Section 3)
+            'exporter_name', 'exporter_address', 'exporter_country',
+            'exporter_phone', 'exporter_email',
+            // Producer (Section 4)
+            'producer_name', 'producer_address', 'producer_country',
+            'producer_phone', 'producer_email', 'producer_tax_id',
+            // Importer (Section 5)
+            'importer_name', 'importer_address',
+            'importer_phone', 'importer_email', 'importer_tax_id',
+            // Section 12
+            'cert_company', 'cert_name', 'cert_title',
+            'cert_date', 'cert_phone', 'cert_email',
+        ]);
+
+        // Supplier Part Numbers array keyed by part_number
+        $coverData['supplier_part_number'] = $request->input('supplier_part_number', []);
+
+        // Persist form data so the next visit pre-fills the form
+        UsmcaCertData::updateOrCreate(
+            ['bom_id' => $bom->id],
+            ['cert_data' => $coverData],
+        );
+
+        $spreadsheet = app(UsmcaCertificateService::class)->fill($bom, $analysis, $coverData);
+        $writer      = new Xlsx($spreadsheet);
+
+        $part     = str_replace(['/', ' ', '\\'], '_', $bom->clave ?: $bom->id);
+        $filename = 'USMCA_CERT_' . $part . '_' . now()->format('Ymd') . '.xlsx';
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');

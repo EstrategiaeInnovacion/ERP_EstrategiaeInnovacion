@@ -139,22 +139,26 @@ class ActivosDbService
                     'dp.file_path as photo_path'
                 )
                 ->where(function ($q) use ($nombre, $badge, $email, $palabras) {
-                    // 1. Badge exacto
                     if ($badge) {
+                        // Badge disponible: buscar solo por identificador exacto.
+                        // No usar LIKE para evitar falsos positivos con empleados que
+                        // comparten apellido u otras palabras del nombre.
                         $q->where('e.employee_id', $badge);
-                    }
-                    // 2. Email exacto del usuario en Activos
-                    if ($email) {
-                        $q->orWhere('u.email', $email);
-                    }
-                    // 3-5. Nombre completo con LIKE (detecta si el nombre ERP está dentro del campo o viceversa)
-                    $q->orWhere('e.name', 'like', "%{$nombre}%")
-                      ->orWhere('u.name', 'like', "%{$nombre}%")
-                      ->orWhere('a.assigned_to', 'like', "%{$nombre}%");
-                    // 6. Búsqueda palabra por palabra (nombres que no coinciden al 100%)
-                    foreach ($palabras as $palabra) {
-                        $q->orWhere('e.name', 'like', "%{$palabra}%")
-                          ->orWhere('a.assigned_to', 'like', "%{$palabra}%");
+                        if ($email) {
+                            $q->orWhere('u.email', $email);
+                        }
+                    } else {
+                        // Sin badge: usar nombre/email como fallback
+                        if ($email) {
+                            $q->where('u.email', $email);
+                        }
+                        $q->orWhere('e.name', 'like', "%{$nombre}%")
+                          ->orWhere('u.name', 'like', "%{$nombre}%")
+                          ->orWhere('a.assigned_to', 'like', "%{$nombre}%");
+                        foreach ($palabras as $palabra) {
+                            $q->orWhere('e.name', 'like', "%{$palabra}%")
+                              ->orWhere('a.assigned_to', 'like', "%{$palabra}%");
+                        }
                     }
                 })
                 ->distinct()

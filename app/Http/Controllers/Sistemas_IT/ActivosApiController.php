@@ -70,6 +70,16 @@ class ActivosApiController extends Controller
 
         $hasDevice = count($computers) > 0;
 
+        // Incluir credenciales del primer equipo para pre-llenar el formulario
+        if ($hasDevice && !empty($computers[0]['device']['uuid'])) {
+            $cred = $this->activos->getDeviceCredentialByUuid($computers[0]['device']['uuid']);
+            $computers[0]['credential'] = $cred ? [
+                'username' => $cred->username ?? null,
+                'password' => $cred->password ?? null,
+                'email'    => $cred->email    ?? null,
+            ] : null;
+        }
+
         return response()->json([
             'user'        => ['id' => $user->id, 'name' => $nombre],
             'has_device'  => $hasDevice,

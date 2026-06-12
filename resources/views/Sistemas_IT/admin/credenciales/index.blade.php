@@ -788,6 +788,14 @@ function equipoModal() {
                 if (data.has_device && data.devices && data.devices.length) {
                     const d = data.devices[0];
                     this.device = this.mapDevice(d, false);
+                    // Pre-llenar credenciales desde activos
+                    if (d.credential) {
+                        this.nombreUsuarioPc  = d.credential.username ?? '';
+                        this.contrasenaEquipo = d.credential.password ?? '';
+                        if (d.credential.email) {
+                            this.correo = d.credential.email;
+                        }
+                    }
                     // Pre-poblar con periféricos ya asignados a este usuario en activos
                     if (data.peripherals && data.peripherals.length) {
                         this.perifericos = mapPerifericos(data.peripherals);
