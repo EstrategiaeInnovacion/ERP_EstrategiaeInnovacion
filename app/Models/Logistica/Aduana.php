@@ -25,16 +25,6 @@ class Aduana extends Model
         'pais'
     ];
 
-    /**
-     * Atributos que deben ser convertidos a tipos nativos
-     */
-    protected $casts = [
-        'aduana' => 'string',
-        'seccion' => 'string',
-        'denominacion' => 'string',
-        'patente' => 'string',
-        'pais' => 'string'
-    ];
 
     /**
      * Scope para buscar por código de aduana

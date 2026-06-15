@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class ClienteImportService
 {
+    private $ejecutivosCache = null;
     public function importFromExcel($filePath)
     {
         try {
@@ -141,11 +142,12 @@ class ClienteImportService
         
         // Si no se encontró por correo, buscar por nombre
         if (!empty($nombre)) {
-            // Normalizar el nombre para la búsqueda
             $nombreNormalizado = $this->normalizeString($nombre);
             
-            // Obtener todos los ejecutivos de logística
-            $ejecutivos = Empleado::where('area', 'Logística')->get();
+            if ($this->ejecutivosCache === null) {
+                $this->ejecutivosCache = Empleado::where('area', 'Logística')->get();
+            }
+            $ejecutivos = $this->ejecutivosCache;
             
             foreach ($ejecutivos as $ejecutivo) {
                 $nombreEjecutivoNormalizado = $this->normalizeString($ejecutivo->nombre);

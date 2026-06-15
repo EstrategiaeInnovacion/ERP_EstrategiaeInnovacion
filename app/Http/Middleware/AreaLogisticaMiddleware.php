@@ -23,7 +23,7 @@ class AreaLogisticaMiddleware
         $esLogistica = ($areaNorm && stripos($areaNorm, 'logistic') !== false) || 
                        ($posNorm && stripos($posNorm, 'logistic') !== false);
         
-        if (!$user || !$esLogistica) {
+        if (!$esLogistica) {
             return redirect()->route('login')->with('info','Acceso restringido a Logística');
         }
         

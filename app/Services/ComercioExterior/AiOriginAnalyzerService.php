@@ -8,12 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class AiOriginAnalyzerService
 {
-    private const TMEC_COUNTRIES = [
-        'MX', 'US', 'CA',
-        'MEX', 'USA', 'CAN',
-        'MEXICO', 'ESTADOS UNIDOS', 'CANADA', 'CANADÁ',
-    ];
-
     public function __construct(
         private CatalogoRelacionService $catalogoService,
     ) {}
@@ -44,8 +38,8 @@ class AiOriginAnalyzerService
 
         $prompt = $this->buildPrompt($bom, $calc, $rule, $tablaBC, $tablaBCDetail, $ccPreAnalysis, $rmCatalogContext);
 
-        $groqKey   = config('services.groq.key', env('GROQ_API_KEY'));
-        $groqModel = config('services.groq.model', env('GROQ_MODEL', 'llama-3.3-70b-versatile'));
+        $groqKey   = config('services.groq.key');
+        $groqModel = config('services.groq.model', 'llama-3.3-70b-versatile');
 
         if (! $groqKey) {
             Log::error('AiOriginAnalyzer: GROQ_API_KEY no configurada');
@@ -158,7 +152,7 @@ SYSTEM;
         $fgSubhead   = substr($fgDigits . str_repeat('0', 6), 0, 6);
         $fgBreakdown = "Cap. {$fgChapter} | Partida {$fgHeading} | Subpartida {$fgSubhead}";
 
-        $tmecPaises   = self::TMEC_COUNTRIES;
+        $tmecPaises   = config('app.tmec_countries');
         $items        = $bom->items;
         $nonOrigCount = $items->filter(fn ($i) => ! in_array(strtoupper(trim((string) $i->pais_de_origen)), $tmecPaises))->count();
         $origCount    = $items->count() - $nonOrigCount;
@@ -262,7 +256,7 @@ PROMPT;
         };
 
         $fgKey = $getLevelKey($fgDigits);
-        $tmec  = self::TMEC_COUNTRIES;
+        $tmec  = config('app.tmec_countries');
 
         if ($fgKey === '') {
             return "Nivel de CC '{$nivelCC}' no reconocido — verificar manualmente en la regla.";
@@ -318,7 +312,7 @@ PROMPT;
 
     private function buildRmCatalogContext($items): string
     {
-        $tmec  = self::TMEC_COUNTRIES;
+        $tmec  = config('app.tmec_countries');
         $lines = [];
 
         foreach ($items as $i => $item) {

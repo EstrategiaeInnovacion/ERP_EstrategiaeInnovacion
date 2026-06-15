@@ -47,7 +47,7 @@
                 <div class="text-sm font-medium text-slate-600">Total:</div>
                 <div class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold">{{ $proyectos->count() }}</div>
                 <div class="text-sm font-medium text-slate-600 ml-4">Con actividades pendientes:</div>
-                <div class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-bold">{{ $proyectosConActividades->where('actividades_pendientes', '>', 0)->count() }}</div>
+                <div class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-bold">{{ $proyectos->where('actividades_pendientes', '>', 0)->count() }}</div>
             </div>
         </div>
         @endif

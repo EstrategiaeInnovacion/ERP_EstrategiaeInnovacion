@@ -14,38 +14,86 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage; // Importante para las transacciones
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RelojChecadorImportController extends Controller
 {
+    private function determinarEsRetardo($entrada)
+    {
+        if (!$entrada) {
+            return false;
+        }
+        $limite = Carbon::createFromFormat('H:i', '08:40');
+        try {
+            return Carbon::createFromFormat('H:i:s', $entrada)->gt($limite);
+        } catch (\Exception $e) {
+            try {
+                return Carbon::createFromFormat('H:i', $entrada)->gt($limite);
+            } catch (\Exception $e2) {
+                return false;
+            }
+        }
+    }
+
+    private function generarFechasPeriodo($start, $end)
+    {
+        $fechas = [];
+        $loopDate = $start->copy();
+        while ($loopDate->lte($end)) {
+            if (!$loopDate->isWeekend()) {
+                $fechas[] = $loopDate->copy();
+            }
+            $loopDate->addDay();
+        }
+        return $fechas;
+    }
+
+    private function calcularKpisAsistencia($baseQuery)
+    {
+        return [
+            'total' => (clone $baseQuery)->laborales()->count(),
+            'ok' => (clone $baseQuery)->asistenciasOk()->count(),
+            'retardos' => (clone $baseQuery)->retardosInjustificados()->count(),
+            'faltas' => (clone $baseQuery)->soloFaltas()->count(),
+        ];
+    }
+
+    private function calcularHorasTrabajadas($baseQuery)
+    {
+        $registrosTiempos = (clone $baseQuery)
+            ->whereNotNull('entrada')
+            ->whereNotNull('salida')
+            ->get();
+
+        $minutosTotales = 0;
+        foreach ($registrosTiempos as $registro) {
+            $fechaStr = $registro->fecha ? $registro->fecha->format('Y-m-d') : now()->format('Y-m-d');
+            $entrada = Carbon::parse($fechaStr . ' ' . $registro->entrada);
+            $salida = Carbon::parse($fechaStr . ' ' . $registro->salida);
+            if ($salida->gt($entrada)) {
+                $minutosTotales += $entrada->diffInMinutes($salida);
+            }
+        }
+        $horas = floor($minutosTotales / 60);
+        $minutos = $minutosTotales % 60;
+        return sprintf('%d:%02d', $horas, $minutos);
+    }
+
     public function index(Request $request)
     {
-        // Configurar Carbon en español
         Carbon::setLocale('es');
 
-        // 1. Definir Periodo
         $inicio = $request->input('fecha_inicio', now()->startOfMonth()->toDateString());
         $fin = $request->input('fecha_fin', now()->endOfMonth()->toDateString());
 
         $start = Carbon::parse($inicio);
         $end = Carbon::parse($fin);
 
-        // 2. Generar Array de Fechas
-        $fechas = [];
-        $loopDate = $start->copy();
+        $fechas = $this->generarFechasPeriodo($start, $end);
 
-        while ($loopDate->lte($end)) {
-            if (! $loopDate->isWeekend()) {
-                $fechas[] = $loopDate->copy();
-            }
-            $loopDate->addDay();
-        }
-
-        // 3. Preparar Límites BD
         $dbFechaFin = Carbon::parse($fin)->addDay()->format('Y-m-d');
 
-        // 4. Obtener Empleados
         $search = $request->input('search');
 
         $empleados = Empleado::query()
@@ -53,8 +101,7 @@ class RelojChecadorImportController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('id_empleado', 'like', "%{$search}%");
-                }
-                );
+                });
             })
             ->orderBy('nombre')
             ->with([
@@ -69,35 +116,12 @@ class RelojChecadorImportController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // 5. KPIs
         $baseQuery = Asistencia::query()
             ->where('fecha', '>=', $inicio)
             ->where('fecha', '<', $dbFechaFin);
 
-        $kpis = [
-            'total' => (clone $baseQuery)->laborales()->count(),
-            'ok' => (clone $baseQuery)->asistenciasOk()->count(),
-            'retardos' => (clone $baseQuery)->retardosInjustificados()->count(),
-            'faltas' => (clone $baseQuery)->soloFaltas()->count(),
-        ];
-
-        // Cálculo de Horas
-        $registrosTiempos = (clone $baseQuery)
-            ->whereNotNull('entrada')
-            ->whereNotNull('salida')
-            ->get(['entrada', 'salida']);
-
-        $minutosTotales = 0;
-        foreach ($registrosTiempos as $registro) {
-            $entrada = Carbon::parse($registro->entrada);
-            $salida = Carbon::parse($registro->salida);
-            if ($salida->gt($entrada)) {
-                $minutosTotales += $entrada->diffInMinutes($salida);
-            }
-        }
-        $horas = floor($minutosTotales / 60);
-        $minutos = $minutosTotales % 60;
-        $horasTotales = sprintf('%d:%02d', $horas, $minutos);
+        $kpis = $this->calcularKpisAsistencia($baseQuery);
+        $horasTotales = $this->calcularHorasTrabajadas($baseQuery);
 
         $porcentajeAsistencia = $kpis['total'] > 0 ? round(($kpis['ok'] / $kpis['total']) * 100, 1) : 0;
 
@@ -111,11 +135,9 @@ class RelojChecadorImportController extends Controller
             ->limit(3)
             ->get();
 
-        // Formatear fechas para mostrar en español
         $fechaInicioFormato = Carbon::parse($inicio)->isoFormat('D [de] MMMM [de] YYYY');
         $fechaFinFormato = Carbon::parse($fin)->isoFormat('D [de] MMMM [de] YYYY');
 
-        // Flag para indicar si hubo búsqueda sin resultados
         $sinResultados = $search && $empleados->isEmpty();
 
         $todosEmpleados = Empleado::orderBy('nombre')->get(['id', 'nombre']);
@@ -139,9 +161,6 @@ class RelojChecadorImportController extends Controller
         ]);
     }
 
-    /**
-     * Actualiza un registro individual (Edición rápida).
-     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -149,7 +168,6 @@ class RelojChecadorImportController extends Controller
             'comentarios' => 'nullable|string|max:255',
         ]);
 
-        // ATOMICIDAD: Aunque es un solo registro, buena práctica envolverlo.
         DB::transaction(function () use ($request, $id) {
             $asistencia = Asistencia::findOrFail($id);
 
@@ -167,10 +185,6 @@ class RelojChecadorImportController extends Controller
         return back()->with('success', 'Registro actualizado correctamente.');
     }
 
-    /**
-     * Registra incidencias individuales o MASIVAS
-     * ATOMICIDAD APLICADA: Si falla el registro 99, se revierten los 98 anteriores.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -208,10 +222,9 @@ class RelojChecadorImportController extends Controller
 
                     $registroExistente = Asistencia::where('empleado_id', $empleado->id)
                         ->whereDate('fecha', $loopDate->toDateString())
-                        ->lockForUpdate() // Bloqueamos la fila para evitar condiciones de carrera
+                        ->lockForUpdate()
                         ->first();
 
-                    // Datos base
                     $datosGuardar = [
                         'empleado_id' => $empleado->id,
                         'fecha' => $registroExistente ? $registroExistente->fecha : $loopDate->toDateString(),
@@ -244,10 +257,6 @@ class RelojChecadorImportController extends Controller
         });
     }
 
-    /**
-     * Registra asistencia manual para un empleado individual (entrada/salida).
-     * Soporta rango de fechas para cubrir periodos completos.
-     */
     public function storeManual(Request $request)
     {
         $request->validate([
@@ -263,13 +272,7 @@ class RelojChecadorImportController extends Controller
         $entrada = $request->entrada;
         $salida = $request->salida;
 
-        // Determinar si es retardo (entrada después de las 8:40)
-        $esRetardo = false;
-        if ($entrada) {
-            $horaEntrada = Carbon::createFromFormat('H:i', $entrada);
-            $limite = Carbon::createFromFormat('H:i', '08:40');
-            $esRetardo = $horaEntrada->gt($limite);
-        }
+        $esRetardo = $this->determinarEsRetardo($entrada);
 
         $inicio = Carbon::parse($request->fecha_inicio);
         $fin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : $inicio->copy();
@@ -277,7 +280,6 @@ class RelojChecadorImportController extends Controller
 
         $loopDate = $inicio->copy();
         while ($loopDate->lte($fin)) {
-            // Saltar fines de semana
             if (! $loopDate->isWeekend()) {
                 Asistencia::updateOrCreate(
                     [
@@ -304,9 +306,6 @@ class RelojChecadorImportController extends Controller
         return back()->with('success', "Se registraron {$contador} día(s) de asistencia para {$empleado->nombre}.");
     }
 
-    /**
-     * Proceso de Importación (Async con Cache)
-     */
     public function start(Request $request)
     {
         set_time_limit(300);
@@ -330,14 +329,11 @@ class RelojChecadorImportController extends Controller
 
             $service = new ProcesarAsistenciaService;
 
-            // Filtro de empleados (opcional) - solo procesar estos IDs
             $filtroEmpleados = $request->input('empleados_filtro', []);
             if (is_string($filtroEmpleados)) {
                 $filtroEmpleados = array_filter(explode(',', $filtroEmpleados));
             }
 
-            // La transacción está implementada DENTRO del servicio para no bloquear
-            // la base de datos mientras se lee el archivo Excel (que es lento).
             $resultado = $service->process($fullPath, true, function ($estado) use ($key) {
                 $percent = ($estado['total'] > 0) ? round(($estado['indice'] / $estado['total']) * 100) : 0;
                 $this->updateProgress($key, 'procesando', max(5, $percent), 'Procesando registros...');
@@ -355,7 +351,6 @@ class RelojChecadorImportController extends Controller
         }
     }
 
-    // Helper privado
     private function updateProgress($key, $status, $percent, $msg, $finalizado = false)
     {
         Cache::put($key, [
@@ -371,16 +366,17 @@ class RelojChecadorImportController extends Controller
         return response()->json(Cache::get($key) ?? ['percent' => 0, 'finalizado' => false]);
     }
 
-    public function clear()
+    public function clear(Request $request)
     {
+        if ($request->query('confirm') !== 'yes') {
+            return redirect()->route('rh.reloj.index')->with('error', 'El vaciado de base de datos debe ser confirmado.');
+        }
+
         Asistencia::truncate();
 
         return redirect()->route('rh.reloj.index')->with('success', 'Base de datos de asistencia vaciada correctamente.');
     }
 
-    /**
-     * Eliminar registros de asistencia en un rango de fechas.
-     */
     public function clearRango(Request $request)
     {
         $request->validate([
@@ -399,9 +395,6 @@ class RelojChecadorImportController extends Controller
         );
     }
 
-    /**
-     * Revertir todos los registros de un empleado en un rango de fechas.
-     */
     public function revertirRango(Request $request)
     {
         $request->validate([
@@ -414,38 +407,72 @@ class RelojChecadorImportController extends Controller
             ->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin])
             ->get();
 
+        $toDeleteIds = [];
+        $toUpdateAsistenciaIds = [];
+        $toUpdateAsistenciaRetardoIds = [];
+        $toUpdateIncompletoIds = [];
+        $toUpdateIncompletoRetardoIds = [];
+
+        foreach ($asistencias as $as) {
+            if (!$as->entrada && !$as->salida) {
+                $toDeleteIds[] = $as->id;
+            } else {
+                $esRetardo = $this->determinarEsRetardo($as->entrada);
+                $isIncompleto = ($as->entrada && !$as->salida);
+                
+                if ($isIncompleto) {
+                    if ($esRetardo) {
+                        $toUpdateIncompletoRetardoIds[] = $as->id;
+                    } else {
+                        $toUpdateIncompletoIds[] = $as->id;
+                    }
+                } else {
+                    if ($esRetardo) {
+                        $toUpdateAsistenciaRetardoIds[] = $as->id;
+                    } else {
+                        $toUpdateAsistenciaIds[] = $as->id;
+                    }
+                }
+            }
+        }
+
         $revertidos = 0;
         $eliminados = 0;
 
-        foreach ($asistencias as $asistencia) {
-            if ($asistencia->entrada || $asistencia->salida) {
-                $esRetardo = false;
-                if ($asistencia->entrada) {
-                    try {
-                        $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
-                        $limite = Carbon::createFromFormat('H:i', '08:40');
-                        $esRetardo = $horaEntrada->gt($limite);
-                    } catch (\Exception $e) {
-                        try {
-                            $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
-                            $limite = Carbon::createFromFormat('H:i', '08:40');
-                            $esRetardo = $horaEntrada->gt($limite);
-                        } catch (\Exception $e2) {
-                        }
-                    }
-                }
-                $tipo = ($asistencia->entrada && ! $asistencia->salida) ? 'incompleto' : 'asistencia';
-                $asistencia->update([
-                    'tipo_registro' => $tipo,
-                    'es_justificado' => false,
-                    'es_retardo' => $esRetardo,
-                    'comentarios' => null,
-                ]);
-                $revertidos++;
-            } else {
-                $asistencia->delete();
-                $eliminados++;
-            }
+        if (!empty($toDeleteIds)) {
+            $eliminados = Asistencia::whereIn('id', $toDeleteIds)->delete();
+        }
+        if (!empty($toUpdateAsistenciaIds)) {
+            $revertidos += Asistencia::whereIn('id', $toUpdateAsistenciaIds)->update([
+                'tipo_registro' => 'asistencia',
+                'es_justificado' => false,
+                'es_retardo' => false,
+                'comentarios' => null,
+            ]);
+        }
+        if (!empty($toUpdateAsistenciaRetardoIds)) {
+            $revertidos += Asistencia::whereIn('id', $toUpdateAsistenciaRetardoIds)->update([
+                'tipo_registro' => 'asistencia',
+                'es_justificado' => false,
+                'es_retardo' => true,
+                'comentarios' => null,
+            ]);
+        }
+        if (!empty($toUpdateIncompletoIds)) {
+            $revertidos += Asistencia::whereIn('id', $toUpdateIncompletoIds)->update([
+                'tipo_registro' => 'incompleto',
+                'es_justificado' => false,
+                'es_retardo' => false,
+                'comentarios' => null,
+            ]);
+        }
+        if (!empty($toUpdateIncompletoRetardoIds)) {
+            $revertidos += Asistencia::whereIn('id', $toUpdateIncompletoRetardoIds)->update([
+                'tipo_registro' => 'incompleto',
+                'es_justificado' => false,
+                'es_retardo' => true,
+                'comentarios' => null,
+            ]);
         }
 
         $empleado = Empleado::findOrFail($request->empleado_id);
@@ -464,39 +491,13 @@ class RelojChecadorImportController extends Controller
         );
     }
 
-    /**
-     * Revertir un registro a su estado original.
-     * - Si tiene entrada/salida: vuelve a 'asistencia', recalcula retardo, quita justificación.
-     * - Si no tiene horarios (creado manualmente): lo elimina por completo.
-     */
     public function revertir(Request $request, $id)
     {
         $asistencia = Asistencia::findOrFail($id);
 
-        // Si tiene horarios, revertir al estado original
         if ($asistencia->entrada || $asistencia->salida) {
-            // Recalcular si era retardo (entrada después de las 8:40)
-            $esRetardo = false;
-            if ($asistencia->entrada) {
-                try {
-                    $horaEntrada = Carbon::createFromFormat('H:i:s', $asistencia->entrada);
-                    $limite = Carbon::createFromFormat('H:i', '08:40');
-                    $esRetardo = $horaEntrada->gt($limite);
-                } catch (\Exception $e) {
-                    try {
-                        $horaEntrada = Carbon::createFromFormat('H:i', $asistencia->entrada);
-                        $limite = Carbon::createFromFormat('H:i', '08:40');
-                        $esRetardo = $horaEntrada->gt($limite);
-                    } catch (\Exception $e2) {
-                    }
-                }
-            }
-
-            // Determinar tipo: si falta salida es 'incompleto', si no es 'asistencia'
-            $tipo = 'asistencia';
-            if ($asistencia->entrada && ! $asistencia->salida) {
-                $tipo = 'incompleto';
-            }
+            $esRetardo = $this->determinarEsRetardo($asistencia->entrada);
+            $tipo = ($asistencia->entrada && ! $asistencia->salida) ? 'incompleto' : 'asistencia';
 
             $asistencia->update([
                 'tipo_registro' => $tipo,
@@ -512,7 +513,6 @@ class RelojChecadorImportController extends Controller
             return back()->with('success', 'Registro revertido a su estado original.');
         }
 
-        // Si no tiene horarios, fue creado manualmente — eliminar
         $asistencia->delete();
 
         if ($request->ajax()) {
@@ -522,9 +522,6 @@ class RelojChecadorImportController extends Controller
         return back()->with('success', 'Registro eliminado correctamente. El día queda disponible para un nuevo registro.');
     }
 
-    /**
-     * Enviar aviso de asistencia al empleado (visible en dashboard).
-     */
     public function enviarAviso(Request $request)
     {
         $request->validate([
@@ -545,7 +542,6 @@ class RelojChecadorImportController extends Controller
             'leido' => false,
         ]);
 
-        // Enviar Correo Electrónico
         try {
             $empleado = $aviso->empleado;
             $usuarioEmpleado = $empleado->user;
@@ -575,16 +571,11 @@ class RelojChecadorImportController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Error al enviar correo de aviso de asistencia: '.$e->getMessage());
-            // No interrumpimos el flujo si falla el correo, el aviso igual queda en el dashboard
         }
 
         return back()->with('success', 'Aviso enviado exitosamente al dashboard y por correo electrónico (si aplica).');
     }
 
-    /**
-     * Vista de reloj checador para supervisores/coordinadores (solo lectura).
-     * Acceso permitido si tiene subordinados asignados.
-     */
     public function equipo(Request $request)
     {
         $user = auth()->user();
@@ -594,7 +585,6 @@ class RelojChecadorImportController extends Controller
             abort(403, 'No tienes acceso a este módulo.');
         }
 
-        // Verificar si tiene subordinados (cualquier supervisor)
         $subordinadosQuery = $miEmpleado->subordinados()->where('es_activo', true);
         
         if (!$subordinadosQuery->exists()) {
@@ -603,11 +593,9 @@ class RelojChecadorImportController extends Controller
 
         $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
         
-        // Si es director, ve todo el personal activo
         if (Str::contains($posicion, 'direcc')) {
             $subordinados = Empleado::where('es_activo', true)->pluck('id')->toArray();
         } else {
-            // Supervisores ven solo sus subordinados
             $subordinados = $subordinadosQuery->pluck('id')->toArray();
         }
 
@@ -637,14 +625,7 @@ class RelojChecadorImportController extends Controller
         $start = Carbon::parse($inicio);
         $end = Carbon::parse($fin);
 
-        $fechas = [];
-        $loopDate = $start->copy();
-        while ($loopDate->lte($end)) {
-            if (!$loopDate->isWeekend()) {
-                $fechas[] = $loopDate->copy();
-            }
-            $loopDate->addDay();
-        }
+        $fechas = $this->generarFechasPeriodo($start, $end);
 
         $dbFechaFin = Carbon::parse($fin)->addDay()->format('Y-m-d');
 
@@ -676,30 +657,8 @@ class RelojChecadorImportController extends Controller
             ->where('fecha', '>=', $inicio)
             ->where('fecha', '<', $dbFechaFin);
 
-        $kpis = [
-            'total' => (clone $baseQuery)->laborales()->count(),
-            'ok' => (clone $baseQuery)->asistenciasOk()->count(),
-            'retardos' => (clone $baseQuery)->retardosInjustificados()->count(),
-            'faltas' => (clone $baseQuery)->soloFaltas()->count(),
-        ];
-
-        $registrosTiempos = (clone $baseQuery)
-            ->whereNotNull('entrada')
-            ->whereNotNull('salida')
-            ->get();
-
-        $totalMinutos = 0;
-        foreach ($registrosTiempos as $reg) {
-            $entrada = Carbon::parse($reg->fecha->format('Y-m-d') . ' ' . $reg->entrada);
-            $salida = Carbon::parse($reg->fecha->format('Y-m-d') . ' ' . $reg->salida);
-            $minutos = $salida->diffInMinutes($entrada);
-            if ($minutos > 0) {
-                $totalMinutos += $minutos;
-            }
-        }
-        $horas = floor($totalMinutos / 60);
-        $minutosRestantes = $totalMinutos % 60;
-        $horasTotales = sprintf('%d:%02d', $horas, $minutosRestantes);
+        $kpis = $this->calcularKpisAsistencia($baseQuery);
+        $horasTotales = $this->calcularHorasTrabajadas($baseQuery);
 
         $porcentajeAsistencia = $kpis['total'] > 0 ? round(($kpis['ok'] / $kpis['total']) * 100, 1) : 0;
 

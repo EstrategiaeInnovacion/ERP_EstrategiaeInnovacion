@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sistemas_IT\EquipoAsignado;
 use App\Models\Sistemas_IT\Expediente;
 use App\Models\Sistemas_IT\MaintenanceBooking;
+use App\Models\Sistemas_IT\ComputerProfile;
 use App\Models\Sistemas_IT\MaintenanceSlot;
 use App\Models\Sistemas_IT\Ticket;
 use App\Services\MicrosoftGraphMailService;

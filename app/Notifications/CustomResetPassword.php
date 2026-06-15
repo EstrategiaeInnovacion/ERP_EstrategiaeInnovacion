@@ -29,15 +29,12 @@ class CustomResetPassword extends Notification
         return ['mail'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
+            ->line('Has solicitado el restablecimiento de tu contraseña.')
+            ->action('Restablecer Contraseña', url('/'))
+            ->line('Si no solicitaste este cambio, ignora este mensaje.');
     }
 
     /**

@@ -223,9 +223,6 @@ function initializeCancelTicketModal() {
             }
             
             const url = currentCancelUrl || `${window.location.origin}/ticket/${ticketId}`;
-            console.log('Attempting DELETE request to:', url);
-            console.log('currentCancelUrl:', currentCancelUrl);
-            console.log('ticketId:', ticketId);
             
             // Crear un formulario oculto para manejar la petición DELETE
             const form = document.createElement('form');

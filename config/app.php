@@ -137,4 +137,10 @@ return [
 
     'admin_sistemas_email' => env('ADMIN_SISTEMAS_EMAIL', 'sistemas@estrategiaeinnovacion.com.mx'),
 
+    'tmec_countries' => [
+        'MX', 'MEX', 'MEXICO', 'MÉXICO',
+        'US', 'USA', 'EEUU', 'EUA', 'ESTADOS UNIDOS', 'UNITED STATES',
+        'CA', 'CAN', 'CANADA', 'CANADÁ',
+    ],
+
 ];

@@ -1,4 +1,4 @@
-@extends('layouts.master')
+@extends('layouts.erp')
 
 @section('title', 'Panel de Administración')
 

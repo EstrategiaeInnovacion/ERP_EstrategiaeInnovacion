@@ -10,12 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class OriginAnalysisService
 {
-    private const TMEC_COUNTRIES = [
-        'MX', 'MEX', 'MEXICO', 'MÉXICO',
-        'US', 'USA', 'EEUU', 'EUA', 'ESTADOS UNIDOS', 'UNITED STATES',
-        'CA', 'CAN', 'CANADA', 'CANADÁ',
-    ];
-
     public function calculate(Bom $bom): array
     {
         $items = $bom->items;
@@ -24,7 +18,7 @@ class OriginAnalysisService
         $fgPrice    = (float) ($firstItem?->precio_final_usd ?? 0);
 
         $nonOrigCost = $items
-            ->filter(fn ($i) => ! in_array(strtoupper(trim((string) $i->pais_de_origen)), self::TMEC_COUNTRIES))
+            ->filter(fn ($i) => ! in_array(strtoupper(trim((string) $i->pais_de_origen)), config('app.tmec_countries')))
             ->sum(fn ($i) => (float) $i->cantidad_incorporada * (float) $i->precio_unitario);
 
         $rvc = $fgPrice > 0
@@ -102,7 +96,7 @@ class OriginAnalysisService
         $items     = $bom->items;
         $itemLines = $items->map(function ($item) {
             $pais       = strtoupper(trim((string) $item->pais_de_origen));
-            $isOrig     = in_array($pais, self::TMEC_COUNTRIES) ? 'ORIGINARIO T-MEC' : 'NO ORIGINARIO';
+            $isOrig     = in_array($pais, config('app.tmec_countries')) ? 'ORIGINARIO T-MEC' : 'NO ORIGINARIO';
             $costoTotal = round((float) $item->cantidad_incorporada * (float) $item->precio_unitario, 4);
 
             return sprintf(

@@ -65,15 +65,11 @@ Route::get('/', function () {
 })->name('welcome');
 
 
-// 2. RUTAS DE AUTENTICACIÓN
+// 2. RUTAS DE AUTENTICACIÓN (AuthController solo para registro, auth.php maneja login/logout)
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
-
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // 3. RUTAS GENERALES (Autenticadas)
 Route::middleware('auth')->group(function () {
@@ -276,11 +272,8 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
     // Expedientes
     Route::prefix('recursos-humanos/expedientes')->name('rh.expedientes.')->controller(ExpedienteController::class)->group(function () {
         Route::get('/', 'index')->name('index');
-        Route::post('/refresh', 'refresh')->name('refresh');
         Route::get('/{empleado}', 'show')->name('show');
-        Route::get('/{empleado}/editar', 'edit')->name('edit');
         Route::put('/{empleado}', 'update')->name('update');
-        Route::delete('/{empleado}', 'destroy')->name('destroy');
         Route::post('/{id}/upload', 'uploadDocument')->name('upload');
         Route::delete('/documento/{id}', 'deleteDocument')->name('delete-doc');
         Route::post('/{id}/import-excel', 'importFormatoId')->name('import-excel');

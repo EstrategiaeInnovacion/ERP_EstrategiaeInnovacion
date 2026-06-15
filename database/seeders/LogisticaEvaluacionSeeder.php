@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\CriterioEvaluacion;
 use App\Models\EvaluacionDetalle;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
 
 class LogisticaEvaluacionSeeder extends Seeder
 {
@@ -51,12 +50,6 @@ class LogisticaEvaluacionSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('=== LogisticaEvaluacionSeeder ===');
-
-        if (!Schema::hasColumn('evaluaciones', 'tipo')) {
-            Schema::table('evaluaciones', function ($table) {
-                $table->string('tipo', 20)->default('supervisor')->after('ventana_id');
-            });
-        }
 
         $this->replaceCriteria();
 

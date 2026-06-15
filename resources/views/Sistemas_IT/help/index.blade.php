@@ -133,7 +133,7 @@
                     <!-- Contenido de la Sección -->
                     <div class="px-6 py-6 sm:px-10 sm:py-8">
                         <div class="prose prose-lg max-w-none text-slate-700 leading-relaxed">
-                            {!! nl2br($section->getProcessedContent()) !!}
+                            {!! nl2br(e($section->getProcessedContent())) !!}
                         </div>
                     </div>
 

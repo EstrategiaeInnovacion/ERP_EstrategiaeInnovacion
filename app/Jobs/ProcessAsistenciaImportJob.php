@@ -35,26 +35,7 @@ class ProcessAsistenciaImportJob implements ShouldQueue
             'finalizado' => false,
         ], now()->addMinutes(30));
 
-        $resultado = $service->process($this->path, true, function (array $evento) {
-            $data = Cache::get($this->progressKey);
-            if (!$data) { $data = []; }
-            if ($evento['evento'] === 'preparando') {
-                $data['sheet_total'] = $evento['total'];
-                $data['sheet_actual'] = 0;
-                $data['mensaje'] = 'Preparando hojas (' . $evento['total'] . ')';
-                Cache::put($this->progressKey, $data, now()->addMinutes(30));
-                return; // evitamos sobreescritura adicional en este ciclo
-            }
-            if ($evento['evento'] === 'inicio_hoja') {
-                $data['sheet_actual'] = $evento['indice'];
-                $data['sheet_total'] = $evento['total'];
-                $data['mensaje'] = 'Procesando hoja: ' . $evento['titulo'];
-            } elseif ($evento['evento'] === 'fin_hoja') {
-                $data['registros'] = $evento['registros_acumulados'];
-                $data['mensaje'] = 'Completada hoja: ' . $evento['titulo'];
-            }
-            Cache::put($this->progressKey, $data, now()->addMinutes(30));
-        });
+        $resultado = $service->process($this->path, true, [$this, 'onProgress']);
 
         Cache::put($this->progressKey, [
             'status' => 'completado',
@@ -65,5 +46,27 @@ class ProcessAsistenciaImportJob implements ShouldQueue
             'periodo' => $resultado['periodo'],
             'finalizado' => true,
         ], now()->addMinutes(30));
+    }
+
+    public function onProgress(array $evento): void
+    {
+        $data = Cache::get($this->progressKey);
+        if (!$data) { $data = []; }
+        if ($evento['evento'] === 'preparando') {
+            $data['sheet_total'] = $evento['total'];
+            $data['sheet_actual'] = 0;
+            $data['mensaje'] = 'Preparando hojas (' . $evento['total'] . ')';
+            Cache::put($this->progressKey, $data, now()->addMinutes(30));
+            return;
+        }
+        if ($evento['evento'] === 'inicio_hoja') {
+            $data['sheet_actual'] = $evento['indice'];
+            $data['sheet_total'] = $evento['total'];
+            $data['mensaje'] = 'Procesando hoja: ' . $evento['titulo'];
+        } elseif ($evento['evento'] === 'fin_hoja') {
+            $data['registros'] = $evento['registros_acumulados'];
+            $data['mensaje'] = 'Completada hoja: ' . $evento['titulo'];
+        }
+        Cache::put($this->progressKey, $data, now()->addMinutes(30));
     }
 }

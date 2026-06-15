@@ -25,80 +25,63 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ActivityController extends Controller
 {
-    public function index(Request $request)
+    private function esDireccion($user)
     {
-        $user = Auth::user();
-        $miEmpleado = $user->empleado;
+        return $user && $user->empleado && Str::contains(mb_strtolower($user->empleado->posicion ?? '', 'UTF-8'), 'direcc');
+    }
 
-        // 1. CARGA DINÁMICA DE POSICIONES
-        $areasSistema = Empleado::where('es_activo', true)
-            ->whereNotNull('posicion')->where('posicion', '!=', '')
-            ->distinct()->orderBy('posicion')->pluck('posicion');
+    private function esSupervisor($user)
+    {
+        return $user && $user->empleado && Empleado::where('supervisor_id', $user->empleado->id)->exists();
+    }
 
-        if ($areasSistema->isEmpty()) {
-            $areasSistema = collect(['General', 'Operativo', 'Administrativo']);
+    private function esSupervisorDirectoDe($supervisor, $colaborador)
+    {
+        if (!$supervisor || !$supervisor->empleado || !$colaborador || !$colaborador->empleado) {
+            return false;
+        }
+        return $colaborador->empleado->supervisor_id === $supervisor->empleado->id;
+    }
+
+    private function puedeAsignarAOtros($user)
+    {
+        if (!$user || !$user->empleado) {
+            return false;
+        }
+        return (bool) $user->empleado->es_coordinador || $this->esDireccion($user) || $this->esSupervisor($user);
+    }
+
+    private function determinarEstatusInicial($targetUserId, $currentUser)
+    {
+        if ($targetUserId == $currentUser->id) {
+            return 'En proceso';
         }
 
-        // LISTA DE USUARIOS
-        $empleadosAsignables = User::whereHas('empleado', function ($q) {
-            $q->where('es_activo', true);
-        })->orderBy('name')->get();
-
-        // 2. PERMISOS
-        $esDireccion = false;
-        $esSupervisor = false;
-        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
-        $esPuestoPlanificador = false;
-        $esHorarioPermitido = false;
-        $puedePlanificar = false;
-        $idsVisibles = [$user->id];
-
-        if ($miEmpleado) {
-            $posicionLower = mb_strtolower($miEmpleado->posicion, 'UTF-8');
-            $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion', 'auditoria']);
-
-            // VALIDACIÓN HORARIA (configurable desde BD, fallback lunes 9-11)
-            $esHorarioPermitido = PlaneacionVentana::estaAbierta();
-
-            if ($esPuestoPlanificador && $esHorarioPermitido) {
-                $puedePlanificar = true;
-            }
-            if (str_contains($posicionLower, 'direcc')) {
-                $esDireccion = true;
-            }
-
-            $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray();
-            if (count($subordinadosIds) > 0) {
-                $esSupervisor = true;
-                $idsVisibles = array_merge($idsVisibles, $subordinadosIds);
-            }
+        if ($this->esDireccion($currentUser)) {
+            return 'Planeado';
         }
 
-        // 3. CONTEXTO
-        $targetUserId = $user->id;
-        if (($esSupervisor || $esDireccion) && $request->filled('user_id')) {
-            if ($esDireccion || in_array($request->user_id, $idsVisibles)) {
-                $targetUserId = $request->user_id;
-            }
+        $targetUser = User::with('empleado')->find($targetUserId);
+        if ($targetUser && $this->esSupervisorDirectoDe($currentUser, $targetUser)) {
+            return 'Planeado';
         }
-        $targetUser = User::findOrFail($targetUserId);
 
-        // 4. LÓGICA DE FECHAS FLEXIBLE
+        return 'Por Aprobar';
+    }
+
+    private function parsearFechas(Request $request)
+    {
         $rangeType = $request->input('range', 'week');
-
         if ($request->filled('date_start') && $request->filled('date_end')) {
             $startDate = Carbon::parse($request->date_start)->startOfDay();
             $endDate = Carbon::parse($request->date_end)->endOfDay();
             $rangeType = 'custom';
-            $periodLabel = 'Rango: '.$startDate->format('d/m').' - '.$endDate->format('d/m');
-
+            $periodLabel = 'Rango: ' . $startDate->format('d/m') . ' - ' . $endDate->format('d/m');
             $daysDiff = $startDate->diffInDays($endDate) + 1;
             $prevDateRef = $startDate->copy()->subDays($daysDiff)->format('Y-m-d');
             $nextDateRef = $endDate->copy()->addDay()->format('Y-m-d');
-
         } else {
             $refDate = $request->has('ref_date') ? Carbon::parse($request->ref_date) : now();
-
             switch ($rangeType) {
                 case 'month':
                     $startDate = $refDate->copy()->startOfMonth();
@@ -107,66 +90,60 @@ class ActivityController extends Controller
                     $prevDateRef = $startDate->copy()->subMonth()->format('Y-m-d');
                     $nextDateRef = $startDate->copy()->addMonth()->format('Y-m-d');
                     break;
-
                 case 'quarter':
                     $startDate = $refDate->copy()->startOfQuarter();
                     $endDate = $refDate->copy()->endOfQuarter();
-                    $periodLabel = 'Trimestre: '.$startDate->format('M').' - '.$endDate->format('M Y');
+                    $periodLabel = 'Trimestre: ' . $startDate->format('M') . ' - ' . $endDate->format('M Y');
                     $prevDateRef = $startDate->copy()->subMonths(3)->format('Y-m-d');
                     $nextDateRef = $startDate->copy()->addMonths(3)->format('Y-m-d');
                     break;
-
                 case 'week':
                 default:
                     $startDate = $refDate->copy()->startOfWeek();
                     $endDate = $refDate->copy()->endOfWeek();
-                    $periodLabel = 'Semana: '.$startDate->format('d M').' - '.$endDate->format('d M');
+                    $periodLabel = 'Semana: ' . $startDate->format('d M') . ' - ' . $endDate->format('d M');
                     $prevDateRef = $startDate->copy()->subWeek()->format('Y-m-d');
                     $nextDateRef = $startDate->copy()->addWeek()->format('Y-m-d');
                     break;
             }
         }
+        return [$startDate, $endDate, $periodLabel, $rangeType, $prevDateRef, $nextDateRef];
+    }
 
-        $isHistoryView = $endDate->lt(now()->startOfWeek());
-        $verTodo = $request->has('ver_historial') && $request->ver_historial == '1';
-        $filterOrigin = $request->input('filter_origin', 'todos');
-
-        // FILTRO DE PROYECTO - verificar permisos
-        $esRhPermiso = $user->isRh();
-        $filtroProyectoId = null;
-
-        if ($request->filled('proyecto_id')) {
-            $proyectoIdParam = $request->proyecto_id;
-
-            // Verificar que el proyecto pertenece al usuario (solo si no es RH)
-            if (! $esRhPermiso) {
-                $proyectoAccesible = Proyecto::where('archivado', false)
-                    ->where(function ($q) use ($user) {
-                        $q->where('usuario_id', $user->id)
-                            ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
-                            ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
-                    })
-                    ->pluck('id')
-                    ->toArray();
-
-                if ($proyectoIdParam === 'sin_proyecto') {
-                    $filtroProyectoId = 'sin_proyecto';
-                } elseif (in_array((int) $proyectoIdParam, $proyectoAccesible)) {
-                    $filtroProyectoId = (int) $proyectoIdParam;
-                }
-            } else {
-                if ($proyectoIdParam === 'sin_proyecto') {
-                    $filtroProyectoId = 'sin_proyecto';
-                } else {
-                    $filtroProyectoId = (int) $proyectoIdParam;
-                }
-            }
+    private function obtenerFiltroProyecto(Request $request, $user)
+    {
+        if (!$request->filled('proyecto_id')) {
+            return null;
         }
 
-        // Inicializar query base
+        $proyectoIdParam = $request->proyecto_id;
+        if ($proyectoIdParam === 'sin_proyecto') {
+            return 'sin_proyecto';
+        }
+
+        if (!$user->isRh()) {
+            $proyectoAccesible = Proyecto::where('archivado', false)
+                ->where(function ($q) use ($user) {
+                    $q->where('usuario_id', $user->id)
+                        ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
+                        ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (in_array((int) $proyectoIdParam, $proyectoAccesible)) {
+                return (int) $proyectoIdParam;
+            }
+            return null;
+        }
+
+        return (int) $proyectoIdParam;
+    }
+
+    private function construirQueryActividades($user, $targetUserId, $filterOrigin, $filtroProyectoId, $verTodo, $isHistoryView, $startDate, $endDate, $search)
+    {
         $query = Activity::query();
 
-        // Filtrar por usuario
         if ($filterOrigin === 'delegadas') {
             $query->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
         } elseif ($filterOrigin === 'propias') {
@@ -174,11 +151,9 @@ class ActivityController extends Controller
         } elseif ($filterOrigin === 'recibidas') {
             $query->where('user_id', $user->id)->where('asignado_por', '!=', $user->id);
         } elseif ($filterOrigin === 'todos' || $filterOrigin === '') {
-            if ($request->filled('user_id') && ($esSupervisor || $esDireccion) && $targetUserId != $user->id) {
-                // Usuario específico seleccionado por supervisor/dirección: todas sus tareas
+            if ($targetUserId != $user->id && ($this->esSupervisor($user) || $this->esDireccion($user))) {
                 $query->where('user_id', $targetUserId);
             } else {
-                // Para TODOS: propias + delegadas + recibidas
                 $query->where(function ($q) use ($user) {
                     $q->where('user_id', $user->id)
                       ->orWhere(function ($qq) use ($user) {
@@ -186,14 +161,12 @@ class ActivityController extends Controller
                       });
                 });
             }
-        } elseif ($request->filled('user_id') && ($esSupervisor || $esDireccion)) {
-            // Supervisor/dirección con usuario seleccionado fuera del filtro "todos"
+        } elseif ($targetUserId != $user->id && ($this->esSupervisor($user) || $this->esDireccion($user))) {
             $query->where('user_id', $targetUserId);
         } else {
             $query->where('user_id', $user->id);
         }
 
-        // Aplicar filtro de proyecto
         if ($filtroProyectoId) {
             if ($filtroProyectoId === 'sin_proyecto') {
                 $query->whereNull('proyecto_id');
@@ -202,7 +175,7 @@ class ActivityController extends Controller
             }
         }
 
-        if (! $verTodo && ! $isHistoryView) {
+        if (!$verTodo && !$isHistoryView) {
             $query->whereNotIn('estatus', ['Completado', 'Completado con retardo', 'Rechazado']);
         } elseif ($verTodo) {
             $query->where(function ($q) use ($startDate, $endDate) {
@@ -211,26 +184,115 @@ class ActivityController extends Controller
             });
         }
 
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nombre_actividad', 'like', "%{$request->search}%")
-                    ->orWhere('cliente', 'like', "%{$request->search}%")
-                    ->orWhere('area', 'like', "%{$request->search}%");
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre_actividad', 'like', "%{$search}%")
+                    ->orWhere('cliente', 'like', "%{$search}%")
+                    ->orWhere('area', 'like', "%{$search}%");
             });
         }
 
-        $mainActivities = $query
-            ->with(['user.empleado.supervisor.user'])
-            ->orderByRaw("CASE WHEN user_id = {$user->id} THEN 0 ELSE 1 END")
+        return $query->with(['user.empleado.supervisor.user'])
+            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$user->id])
             ->orderByRaw("CASE WHEN estatus IN ('Completado', 'Completado con retardo') THEN 2 ELSE 1 END")
             ->orderByRaw("CASE prioridad WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 4 END")
             ->orderBy('fecha_compromiso', 'asc')
             ->orderBy('created_at', 'desc')
             ->orderBy('hora_inicio_programada')
             ->get();
+    }
 
-        // 5. VARIABLES DE EQUIPO
-        $puedeAsignarAOtros = $esSupervisor || $esDireccion || $esCoordinador;
+    private function obtenerActividadesBorradas($user, $targetUserId, $verEliminadas)
+    {
+        if (!$verEliminadas) {
+            return collect();
+        }
+
+        $esDireccion = $this->esDireccion($user);
+        $esSupervisor = $this->esSupervisor($user);
+        $miEmpleado = $user->empleado;
+        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
+
+        if ($esDireccion) {
+            $coordinadorUserIds = Empleado::where('es_coordinador', true)
+                ->whereNotNull('user_id')->pluck('user_id')->toArray();
+            if (!empty($coordinadorUserIds)) {
+                return Activity::onlyTrashed()
+                    ->with(['user', 'deletedByUser'])
+                    ->whereIn('deleted_by', $coordinadorUserIds)
+                    ->orderBy('deleted_at', 'desc')
+                    ->limit(100)
+                    ->get();
+            }
+        } elseif (($esCoordinador || $esSupervisor) && $targetUserId !== $user->id) {
+            return Activity::onlyTrashed()
+                ->with(['user', 'deletedByUser'])
+                ->where('user_id', $targetUserId)
+                ->orderBy('deleted_at', 'desc')
+                ->limit(50)
+                ->get();
+        }
+
+        return collect();
+    }
+
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $miEmpleado = $user->empleado;
+
+        $areasSistema = Empleado::where('es_activo', true)
+            ->whereNotNull('posicion')->where('posicion', '!=', '')
+            ->distinct()->orderBy('posicion')->pluck('posicion');
+
+        if ($areasSistema->isEmpty()) {
+            $areasSistema = collect(['General', 'Operativo', 'Administrativo']);
+        }
+
+        $empleadosAsignables = User::whereHas('empleado', function ($q) {
+            $q->where('es_activo', true);
+        })->orderBy('name')->get();
+
+        $esDireccion = $this->esDireccion($user);
+        $esSupervisor = $this->esSupervisor($user);
+        $esCoordinador = $miEmpleado ? (bool) $miEmpleado->es_coordinador : false;
+        $esPuestoPlanificador = false;
+        $esHorarioPermitido = PlaneacionVentana::estaAbierta();
+        $puedePlanificar = false;
+        $idsVisibles = [$user->id];
+
+        if ($miEmpleado) {
+            $posicionLower = mb_strtolower($miEmpleado->posicion, 'UTF-8');
+            $esPuestoPlanificador = Str::contains($posicionLower, ['anexo 24', 'anexo24', 'post-operacion', 'post operacion', 'auditoria']);
+            if ($esPuestoPlanificador && $esHorarioPermitido) {
+                $puedePlanificar = true;
+            }
+            $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray();
+            if (count($subordinadosIds) > 0) {
+                $idsVisibles = array_merge($idsVisibles, $subordinadosIds);
+            }
+        }
+
+        $targetUserId = $user->id;
+        if (($esSupervisor || $esDireccion) && $request->filled('user_id')) {
+            if ($esDireccion || in_array($request->user_id, $idsVisibles)) {
+                $targetUserId = $request->user_id;
+            }
+        }
+        $targetUser = User::findOrFail($targetUserId);
+
+        list($startDate, $endDate, $periodLabel, $rangeType, $prevDateRef, $nextDateRef) = $this->parsearFechas($request);
+
+        $isHistoryView = $endDate->lt(now()->startOfWeek());
+        $verTodo = $request->has('ver_historial') && $request->ver_historial == '1';
+        $filterOrigin = $request->input('filter_origin', 'todos');
+
+        $esRhPermiso = $user->isRh();
+        $filtroProyectoId = $this->obtenerFiltroProyecto($request, $user);
+
+        $mainActivities = $this->construirQueryActividades($user, $targetUserId, $filterOrigin, $filtroProyectoId, $verTodo, $isHistoryView, $startDate, $endDate, $request->search);
+
+        $puedeAsignarAOtros = $this->puedeAsignarAOtros($user);
         $teamUsers = collect();
         if ($esDireccion) {
             $teamUsers = User::orderBy('name')->get();
@@ -238,12 +300,10 @@ class ActivityController extends Controller
             $teamUsers = User::whereIn('id', $idsVisibles)->orderBy('name')->get();
         }
 
-        // ALERTAS
         $globalPendingCount = 0;
         $usersWithPending = [];
 
         if (($esSupervisor || $esDireccion) && $miEmpleado) {
-            // Reconsultar subordinados directos activos con user_id válido
             $subordinadosActivosIds = Empleado::where('supervisor_id', $miEmpleado->id)
                 ->where('es_activo', true)
                 ->whereNotNull('user_id')
@@ -253,13 +313,11 @@ class ActivityController extends Controller
             if (count($subordinadosActivosIds) > 0) {
                 $alertQuery = Activity::whereIn('estatus', ['Por Aprobar', 'Por Validar'])
                     ->where(function ($q) use ($subordinadosActivosIds, $user) {
-                        // Tareas asignadas a sus subordinados (de cualquier origen)
                         $q->whereIn('user_id', $subordinadosActivosIds)
-                          // O tareas que él delegó a alguien fuera del equipo
                           ->orWhere(function ($qq) use ($user, $subordinadosActivosIds) {
                               $qq->where('asignado_por', $user->id)
                                  ->whereNotIn('user_id', $subordinadosActivosIds)
-                                 ->where('user_id', '!=', $user->id);
+                                  ->where('user_id', '!=', $user->id);
                           });
                     });
                 $globalPendingCount = $alertQuery->count();
@@ -280,46 +338,21 @@ class ActivityController extends Controller
         $startOfWeek = now()->startOfWeek();
         $puedeGestionarPlaneacion = $esCoordinador;
 
-        // Cargar proyectos disponibles para el usuario
         $esRh = $user->isRh();
         $esRhCoordinador = $user->isRhCoordinador();
         $proyectosQuery = Proyecto::where('archivado', false);
 
         if (! $esRhCoordinador) {
-                $proyectosQuery->where(function ($q) use ($user) {
-                    $q->where('usuario_id', $user->id)
-                        ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
-                        ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
-                });
-            }
+            $proyectosQuery->where(function ($q) use ($user) {
+                $q->where('usuario_id', $user->id)
+                    ->orWhereHas('usuarios', fn ($uq) => $uq->where('users.id', $user->id))
+                    ->orWhereHas('responsablesTi', fn ($rq) => $rq->where('users.id', $user->id));
+            });
+        }
         $proyectos = $proyectosQuery->orderBy('nombre')->get();
 
-        // Tareas eliminadas: solo cuando se activa el filtro ver_eliminadas
         $verEliminadas = $request->get('ver_eliminadas') == '1';
-        $deletedActivities = collect();
-        if ($verEliminadas) {
-            if ($esDireccion) {
-                // Dirección: ve las tareas borradas por coordinadores
-                $coordinadorUserIds = Empleado::where('es_coordinador', true)
-                    ->whereNotNull('user_id')->pluck('user_id')->toArray();
-                if (! empty($coordinadorUserIds)) {
-                    $deletedActivities = Activity::onlyTrashed()
-                        ->with(['user', 'deletedByUser'])
-                        ->whereIn('deleted_by', $coordinadorUserIds)
-                        ->orderBy('deleted_at', 'desc')
-                        ->limit(100)
-                        ->get();
-                }
-            } elseif (($esCoordinador || $esSupervisor) && $targetUserId !== $user->id) {
-                // Coordinador/Supervisor viendo a un miembro de su equipo
-                $deletedActivities = Activity::onlyTrashed()
-                    ->with(['user', 'deletedByUser'])
-                    ->where('user_id', $targetUserId)
-                    ->orderBy('deleted_at', 'desc')
-                    ->limit(50)
-                    ->get();
-            }
-        }
+        $deletedActivities = $this->obtenerActividadesBorradas($user, $targetUserId, $verEliminadas);
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis',
@@ -342,7 +375,6 @@ class ActivityController extends Controller
             'area' => 'required|string',
         ]);
 
-        // Evitar duplicados por doble envío o reintentos de red
         $formToken = $request->input('form_token');
         if ($formToken) {
             $cacheKey = 'act_submit_' . Auth::id() . '_' . $formToken;
@@ -352,55 +384,18 @@ class ActivityController extends Controller
             Cache::put($cacheKey, true, now()->addMinutes(5));
         }
 
-        $data = $request->all();
+        $data = $request->safe()->all();
         $currentUser = Auth::user();
 
-        // Proyecto_id (opcional)
         $proyectoId = $request->filled('proyecto_id') ? $request->proyecto_id : null;
-
-        // Determinar destinatario
         $targetUserId = $request->filled('assigned_to') ? $request->assigned_to : $currentUser->id;
 
         $data['user_id'] = $targetUserId;
         $data['asignado_por'] = $currentUser->id;
         $data['fecha_inicio'] = now();
         $data['metrico'] = 1;
+        $data['estatus'] = $this->determinarEstatusInicial($targetUserId, $currentUser);
 
-        // --- REGLA DE JERARQUÍA ---
-        if ($targetUserId == $currentUser->id) {
-            $data['estatus'] = 'En proceso';
-        } else {
-            $soyDireccion = $currentUser->empleado && Str::contains(strtolower($currentUser->empleado->posicion), 'direcc');
-            $targetUser = User::with('empleado')->find($targetUserId);
-            $soySuJefe = false;
-
-            if ($targetUser?->empleado && $currentUser?->empleado) {
-                if ($targetUser->empleado->supervisor_id === $currentUser->empleado->id) {
-                    $soySuJefe = true;
-                }
-            }
-
-            $soySupervisor = false;
-            if ($currentUser->empleado) {
-                $soySupervisor = Empleado::where('supervisor_id', $currentUser->empleado->id)->exists();
-            }
-            $esDestinoSupervisor = false;
-            if ($targetUser && $targetUser->empleado) {
-                $esDestinoSupervisor = Empleado::where('supervisor_id', $targetUser->empleado->id)->exists();
-            }
-
-            if ($soyDireccion) {
-                $data['estatus'] = 'Planeado';
-            } elseif ($soySuJefe) {
-                $data['estatus'] = 'Planeado';
-            } elseif ($soySupervisor && $esDestinoSupervisor) {
-                $data['estatus'] = 'Por Aprobar';
-            } else {
-                $data['estatus'] = 'Por Aprobar';
-            }
-        }
-
-        // Agregar proyecto si se seleccionó
         if ($proyectoId) {
             $data['proyecto_id'] = $proyectoId;
         }
@@ -416,7 +411,7 @@ class ActivityController extends Controller
 
     public function storeBatch(Request $request)
     {
-        if (! (now()->isMonday() && now()->hour >= 9 && now()->hour < 11)) {
+        if (! PlaneacionVentana::estaAbierta()) {
             return redirect()->back()->with('error', 'El periodo de planificación semanal ha cerrado.');
         }
 
@@ -670,8 +665,6 @@ class ActivityController extends Controller
                 $activity->delete();
                 $deleted++;
             }
-        });
-
         $msg = $deleted . ' ' . ($deleted === 1 ? 'tarea eliminada.' : 'tareas eliminadas.');
         if ($skipped > 0) $msg .= " {$skipped} omitida(s) por permisos.";
 
@@ -683,20 +676,14 @@ class ActivityController extends Controller
         $act = Activity::with(['user.empleado', 'asignador.empleado'])->findOrFail($id);
         $currentUser = Auth::user();
 
-        $soyDireccion = $currentUser->empleado && Str::contains(strtolower($currentUser->empleado->posicion), 'direcc');
-
-        $soySuJefeDirecto = false;
-        if ($act->user->empleado && $currentUser->empleado) {
-            if ($act->user->empleado->supervisor_id === $currentUser->empleado->id) {
-                $soySuJefeDirecto = true;
-            }
-        }
+        $soyDireccion = $this->esDireccion($currentUser);
+        $soySuJefeDirecto = $this->esSupervisorDirectoDe($currentUser, $act->user);
 
         $assigner = $act->asignador;
         $target = $act->user;
 
-        $assignerIsSupervisor = $assigner && $assigner->empleado && Empleado::where('supervisor_id', $assigner->empleado->id)->exists();
-        $targetIsSupervisor = $target && $target->empleado && Empleado::where('supervisor_id', $target->empleado->id)->exists();
+        $assignerIsSupervisor = $this->esSupervisor($assigner);
+        $targetIsSupervisor = $this->esSupervisor($target);
 
         $esCasoSupervisorASupervisor = $assignerIsSupervisor && $targetIsSupervisor;
 
@@ -723,8 +710,8 @@ class ActivityController extends Controller
         $act = Activity::findOrFail($id);
         $user = Auth::user();
 
-        $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
-        $esSupervisor = $user->empleado && $act->user->empleado && $user->empleado->id === $act->user->empleado->supervisor_id;
+        $esDireccion = $this->esDireccion($user);
+        $esSupervisor = $this->esSupervisorDirectoDe($user, $act->user);
 
         if (! $esDireccion && ! $esSupervisor) {
             abort(403, 'No tienes permiso para rechazar esta actividad.');
@@ -759,9 +746,8 @@ class ActivityController extends Controller
         $act = Activity::findOrFail($id);
         $user = Auth::user();
 
-        // Validar permisos (Dirección o Supervisor directo)
-        $esDireccion = $user->empleado && str_contains(strtolower($user->empleado->posicion), 'direcc');
-        $esSupervisor = $user->empleado && $act->user->empleado && $user->empleado->id === $act->user->empleado->supervisor_id;
+        $esDireccion = $this->esDireccion($user);
+        $esSupervisor = $this->esSupervisorDirectoDe($user, $act->user);
 
         if ($esDireccion || $esSupervisor) {
             $act->estatus = 'Completado';
@@ -826,7 +812,7 @@ class ActivityController extends Controller
         $user = Auth::user();
         $me = $user->empleado;
         if (! $me || ! $me->es_coordinador) {
-            abort(403);
+            abort(403, 'No tienes acceso a las ventanas de planeación.');
         }
 
         try {
@@ -848,7 +834,7 @@ class ActivityController extends Controller
         $user = Auth::user();
         $me = $user->empleado;
         if (! $me || ! $me->es_coordinador) {
-            abort(403);
+            abort(403, 'No tienes permiso para guardar ventanas de planeación.');
         }
 
         $request->validate([
@@ -857,7 +843,6 @@ class ActivityController extends Controller
             'hora_cierre' => 'required|date_format:H:i|after:hora_apertura',
         ]);
 
-        // Desactivar cualquier ventana del mismo día antes de crear la nueva
         PlaneacionVentana::where('dia_semana', $request->dia_semana)
             ->where('activo', true)
             ->update(['activo' => false]);
@@ -881,7 +866,7 @@ class ActivityController extends Controller
     {
         $me = Auth::user()->empleado;
         if (! $me || ! $me->es_coordinador) {
-            abort(403);
+            abort(403, 'No tienes permiso para eliminar ventanas de planeación.');
         }
 
         try {

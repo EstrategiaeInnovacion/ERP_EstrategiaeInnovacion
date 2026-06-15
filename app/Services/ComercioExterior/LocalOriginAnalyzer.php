@@ -7,12 +7,6 @@ use Illuminate\Support\Collection;
 
 class LocalOriginAnalyzer
 {
-    private const TMEC_COUNTRIES = [
-        'MX', 'MEX', 'MEXICO', 'MÉXICO',
-        'US', 'USA', 'EEUU', 'EUA', 'ESTADOS UNIDOS', 'UNITED STATES',
-        'CA', 'CAN', 'CANADA', 'CANADÁ',
-    ];
-
     public function analyze(Bom $bom, array $calc, ?array $rule, array $overrides = []): array
     {
         $fraction = $calc['fg_fraction'] ?? '—';
@@ -33,7 +27,7 @@ class LocalOriginAnalyzer
         if (isset($overrides['logic']))         $parsed['logic']         = $overrides['logic'];
 
         $nonOrig = $bom->items->filter(
-            fn ($i) => ! in_array(strtoupper(trim((string) $i->pais_de_origen)), self::TMEC_COUNTRIES)
+            fn ($i) => ! in_array(strtoupper(trim((string) $i->pais_de_origen)), config('app.tmec_countries'))
         );
 
         $ccResult = $this->checkCC($fraction, $nonOrig, $parsed['cc_level']);

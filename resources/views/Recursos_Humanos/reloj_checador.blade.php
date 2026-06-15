@@ -231,8 +231,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     Borrar Asistencias por Rango de Fechas
                                 </button>
-                                {{-- Borrar todo --}}
-                                <form action="{{ route('rh.reloj.clear') }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODOS los registros del reloj checador.\n\nNo afecta ningún otro módulo del sistema. ¿Está seguro?');">
+                                <form action="{{ route('rh.reloj.clear', ['confirm' => 'yes']) }}" method="POST" onsubmit="return confirm('ATENCIÓN: Esto borrará TODOS los registros del reloj checador.\n\nNo afecta ningún otro módulo del sistema. ¿Está seguro?');">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline decoration-red-300">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>

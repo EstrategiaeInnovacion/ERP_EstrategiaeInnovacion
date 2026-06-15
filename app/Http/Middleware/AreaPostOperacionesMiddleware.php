@@ -21,7 +21,7 @@ class AreaPostOperacionesMiddleware
         $esPostOp = str_contains($areaNorm, 'post') || str_contains($posNorm, 'post')
                  || str_contains($areaNorm, 'postoperacion') || str_contains($posNorm, 'postoperacion');
 
-        if (!$user || !$esPostOp) {
+        if (!$esPostOp) {
             return redirect()->route('login')->with('info', 'Acceso restringido a Post-Operaciones.');
         }
 

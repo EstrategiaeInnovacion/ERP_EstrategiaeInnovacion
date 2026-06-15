@@ -29,6 +29,7 @@ class Capacitacion extends Model
     protected $casts = [
         'puestos_permitidos' => 'array',
         'usuarios_permitidos' => 'array',
+        'activo' => 'boolean',
     ];
 
     protected static function boot(): void

@@ -124,8 +124,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Revocar tokens anteriores del mismo dispositivo (opcional)
-        // $user->tokens()->where('name', $deviceName)->delete();
 
         // Crear nuevo token
         $token = $user->createToken($deviceName);

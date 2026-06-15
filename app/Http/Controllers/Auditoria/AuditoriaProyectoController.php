@@ -16,37 +16,8 @@ use Illuminate\Support\Facades\DB;
  
 class AuditoriaProyectoController extends Controller
 {
-    private function esCoordinador($user): bool
-    {
-        if ($user->isAdmin()) {
-            return true;
-        }
+    use \App\Http\Controllers\Auditoria\AuditoriaCoordinadorTrait;
 
-        $empleado = $user->empleado;
-        if (!$empleado) {
-            return false;
-        }
-
-        // 1. Si explícitamente está marcado como coordinador
-        if ($empleado->es_coordinador) {
-            return true;
-        }
-
-        // 2. Si tiene empleados a su cargo (es decir, actúa como supervisor en la estructura)
-        $esSupervisor = \App\Models\Empleado::where('supervisor_id', $empleado->id)->exists();
-        if ($esSupervisor) {
-            return true;
-        }
-
-        // 3. Si el nombre de su puesto contiene 'supervisor', 'coordinador' o 'jefe'
-        $posicion = mb_strtolower($empleado->posicion ?? '');
-        if (str_contains($posicion, 'supervisor') || str_contains($posicion, 'coordinador') || str_contains($posicion, 'jefe')) {
-            return true;
-        }
-
-        return false;
-    }
- 
     // Listado de proyectos por cliente
     public function index(Request $request)
     {

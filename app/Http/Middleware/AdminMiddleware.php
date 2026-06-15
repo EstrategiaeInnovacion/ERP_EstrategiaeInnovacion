@@ -15,12 +15,6 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Verificar si el usuario está autenticado
-        if (!auth()->check()) {
-            return redirect()->route('login');
-        }
-
-        // Verificar si el usuario es administrador (por rol)
         if (!auth()->user()->isAdmin()) {
             abort(403, 'Esta sección es solo para administradores.');
         }

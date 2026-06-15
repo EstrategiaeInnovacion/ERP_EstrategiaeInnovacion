@@ -24,7 +24,9 @@ class ProyectoController extends Controller
             $esCoordinador = Empleado::where('supervisor_id', $miEmpleado->id)->exists();
         }
 
-        $query = Proyecto::with(['creador', 'usuarios']);
+        $query = Proyecto::with(['creador', 'usuarios'])->withCount(['actividades', 'actividades as actividades_pendientes' => function ($q) {
+            $q->whereNotIn('estatus', ['Completado', 'Completado con retardo', 'Rechazado']);
+        }]);
 
         if (! $esRhCoordinador) {
             if ($esCoordinador && $miEmpleado) {
@@ -51,14 +53,7 @@ class ProyectoController extends Controller
 
         $proyectos = $query->orderBy('fecha_inicio', 'desc')->get();
 
-        $proyectosConActividades = $proyectos->map(function ($p) {
-            $p->total_actividades = $p->actividades()->count();
-            $p->actividades_pendientes = $p->actividades()->whereNotIn('estatus', ['Completado', 'Completado con retardo', 'Rechazado'])->count();
-
-            return $p;
-        });
-
-        return view('proyectos.index', compact('proyectos', 'proyectosConActividades', 'esRh', 'esRhCoordinador', 'esCoordinador'));
+        return view('proyectos.index', compact('proyectos', 'esRh', 'esRhCoordinador', 'esCoordinador'));
     }
 
     public function store(Request $request)

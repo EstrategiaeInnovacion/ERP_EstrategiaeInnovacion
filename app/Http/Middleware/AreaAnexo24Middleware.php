@@ -21,7 +21,7 @@ class AreaAnexo24Middleware
         $esAnexo24 = str_contains($areaNorm, 'anexo') || str_contains($posNorm, 'anexo')
                   || str_contains($areaNorm, 'a24')   || str_contains($posNorm, 'a24');
 
-        if (!$user || !$esAnexo24) {
+        if (!$esAnexo24) {
             return redirect()->route('login')->with('info', 'Acceso restringido a Anexo 24.');
         }
 

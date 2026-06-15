@@ -21,7 +21,7 @@ class AreaAuditoriaMiddleware
         $esAuditoria = str_contains($areaNorm, 'auditoria') || str_contains($posNorm, 'auditoria')
                     || str_contains($areaNorm, 'auditor')   || str_contains($posNorm, 'auditor');
 
-        if (!$user || !$esAuditoria) {
+        if (!$esAuditoria) {
             return redirect()->route('login')->with('info', 'Acceso restringido a Auditoría.');
         }
 

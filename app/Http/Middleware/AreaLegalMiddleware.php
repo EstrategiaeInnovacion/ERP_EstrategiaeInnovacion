@@ -21,7 +21,7 @@ class AreaLegalMiddleware
         $esLegal = ($areaNorm && (str_contains($areaNorm, 'legal') || str_contains($areaNorm, 'juridico')))
                 || ($posNorm  && (str_contains($posNorm,  'legal') || str_contains($posNorm,  'juridico')));
 
-        if (!$user || !$esLegal) {
+        if (!$esLegal) {
             return redirect()->route('welcome')
                 ->with('error', 'Acceso restringido al área Legal.');
         }

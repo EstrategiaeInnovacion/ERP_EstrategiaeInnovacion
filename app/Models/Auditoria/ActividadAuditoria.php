@@ -18,6 +18,7 @@ class ActividadAuditoria extends Model
         'orden',
         'actividad',
         'responsable',
+        'responsable_id',
         'plazo',
         'estatus_oficial',
         'porcentaje_oficial',
@@ -49,7 +50,14 @@ class ActividadAuditoria extends Model
     {
         return $this->hasMany(ActividadAuditoria::class, 'padre_id')->orderBy('orden');
     }
- 
+
+    // Relación con el responsable (analista)
+    public function responsable()
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+
 
  
     // Comentarios asociados a la actividad
