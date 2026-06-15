@@ -665,6 +665,8 @@ class ActivityController extends Controller
                 $activity->delete();
                 $deleted++;
             }
+        });
+
         $msg = $deleted . ' ' . ($deleted === 1 ? 'tarea eliminada.' : 'tareas eliminadas.');
         if ($skipped > 0) $msg .= " {$skipped} omitida(s) por permisos.";
 
