@@ -384,7 +384,7 @@ class ActivityController extends Controller
             Cache::put($cacheKey, true, now()->addMinutes(5));
         }
 
-        $data = $request->safe()->all();
+        $data = $request->all();
         $currentUser = Auth::user();
 
         $proyectoId = $request->filled('proyecto_id') ? $request->proyecto_id : null;
