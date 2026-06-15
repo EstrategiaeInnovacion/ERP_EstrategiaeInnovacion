@@ -1100,9 +1100,9 @@ function toggleAllUsersExcel(checkbox) {
 {{-- ======================================================= --}}
 <script>
     function submitPlan(e) {
-        const now = new Date();
-        if (now.getDay() !== 1 || now.getHours() < 9 || now.getHours() >= 11) {
-            e.preventDefault(); alert("⚠️ Periodo de planificación cerrado (Lunes 9:00 - 11:00)."); return false;
+        const esHorarioPermitido = @json($esHorarioPermitido);
+        if (!esHorarioPermitido) {
+            e.preventDefault(); alert("⚠️ Periodo de planificación cerrado."); return false;
         }
     }
     function openNotes(act, canEditAll) {
