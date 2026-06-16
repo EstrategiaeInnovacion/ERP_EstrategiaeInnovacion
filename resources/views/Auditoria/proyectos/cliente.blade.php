@@ -10,10 +10,8 @@
 </head>
 <body class="font-sans antialiased bg-slate-50/50 text-slate-600 min-h-screen flex flex-col justify-between"
      x-data="{
-        openCommentsModal: false,
-        commentsActNombre: '',
-        commentsList: [],
         expandedProcesos: {},
+        expandedComments: {},
  
         toggleProceso(id) {
             this.expandedProcesos[id] = !this.expandedProcesos[id];
@@ -21,12 +19,6 @@
  
         isExpanded(id) {
             return this.expandedProcesos[id] !== false; // Abierto por defecto
-        },
- 
-        abrirComentarios(nombre, comentariosStr) {
-            this.commentsActNombre = nombre;
-            this.commentsList = JSON.parse(comentariosStr);
-            this.openCommentsModal = true;
         }
      }">
  
@@ -202,14 +194,41 @@
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             @if($proceso->comentariosList->isNotEmpty())
-                                                <button @click="abrirComentarios('{{ addslashes($proceso->actividad) }}', '{{ $proceso->comentariosList->map(fn($c) => ['id'=>$c->id,'comentario'=>$c->comentario,'autor'=>$c->autor->name,'fecha'=>$c->created_at->format('d/m H:i')])->toJson() }}')"
-                                                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition relative">
+                                                <button @click="expandedComments[{{ $proceso->id }}] = !expandedComments[{{ $proceso->id }}]"
+                                                        class="p-1.5 rounded-lg transition relative"
+                                                        :class="expandedComments[{{ $proceso->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                     </svg>
-                                                    <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                                    <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $proceso->id }}] ? 'hidden' : ''"></span>
                                                 </button>
                                             @endif
+                                        </td>
+                                    </tr>
+ 
+                                    {{-- Comentarios Inline del Proceso Principal --}}
+                                    <tr x-show="expandedComments[{{ $proceso->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                        <td class="px-6 py-4"></td>
+                                        <td colspan="5" class="px-6 py-4">
+                                            <div class="space-y-3">
+                                                <h5 class="text-xs font-bold text-indigo-900/80 flex items-center gap-1.5 mb-2">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                                    </svg>
+                                                    Historial de Observaciones
+                                                </h5>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    @foreach($proceso->comentariosList as $c)
+                                                        <div class="bg-white border border-slate-200/60 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                             <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
+                                                                 <span class="text-slate-600">{{ $c->autor->name }}</span>
+                                                                 <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                             </div>
+                                                             <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
  
@@ -242,14 +261,41 @@
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 @if($sub->comentariosList->isNotEmpty())
-                                                    <button @click="abrirComentarios('{{ addslashes($sub->actividad) }}', '{{ $sub->comentariosList->map(fn($c) => ['id'=>$c->id,'comentario'=>$c->comentario,'autor'=>$c->autor->name,'fecha'=>$c->created_at->format('d/m H:i')])->toJson() }}')"
-                                                            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition relative">
+                                                    <button @click="expandedComments[{{ $sub->id }}] = !expandedComments[{{ $sub->id }}]"
+                                                            class="p-1.5 rounded-lg transition relative"
+                                                            :class="expandedComments[{{ $sub->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                         </svg>
-                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $sub->id }}] ? 'hidden' : ''"></span>
                                                     </button>
                                                 @endif
+                                            </td>
+                                        </tr>
+ 
+                                        {{-- Comentarios Inline del Subproceso --}}
+                                        <tr x-show="isExpanded({{ $proceso->id }}) && expandedComments[{{ $sub->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                            <td class="px-6 py-4"></td>
+                                            <td colspan="5" class="px-6 py-4">
+                                                <div class="space-y-3">
+                                                    <h5 class="text-xs font-bold text-indigo-900/80 flex items-center gap-1.5 mb-2">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                                        </svg>
+                                                        Historial de Observaciones (Subproceso)
+                                                    </h5>
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        @foreach($sub->comentariosList as $c)
+                                                            <div class="bg-white border border-slate-200/50 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                                 <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
+                                                                     <span class="text-slate-600">{{ $c->autor->name }}</span>
+                                                                     <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                 </div>
+                                                                 <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -274,53 +320,6 @@
     <footer class="py-6 border-t border-slate-200/80 bg-white text-center text-xs text-slate-400">
         &copy; {{ date('Y') }} Estrategia e Innovación. Plataforma ERP.
     </footer>
- 
-    {{-- MODAL: COMENTARIOS PÚBLICOS --}}
-    <div id="modal-comments" 
-         x-show="openCommentsModal" 
-         class="fixed inset-0 z-50 overflow-y-auto" 
-         x-cloak>
-        <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="openCommentsModal = false"></div>
- 
-            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-scale-up"
-                 x-show="openCommentsModal">
-                
-                <div class="bg-white px-6 py-6 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-900">Bitácora de Notas</h3>
-                        <p class="text-xs text-slate-400 mt-0.5 x-text" x-text="commentsActNombre"></p>
-                    </div>
-                    <button type="button" @click="openCommentsModal = false" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
- 
-                <div class="bg-white px-6 py-6 space-y-4 max-height-[40vh] overflow-y-auto" style="max-height: 40vh">
-                    <div class="space-y-3">
-                        <template x-for="c in commentsList" :key="c.id">
-                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-1">
-                                <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold">
-                                    <span x-text="c.autor"></span>
-                                    <span x-text="c.fecha"></span>
-                                </div>
-                                <p class="text-xs text-slate-700" x-text="c.comentario"></p>
-                            </div>
-                        </template>
-                    </div>
-                </div>
- 
-                <div class="bg-slate-50 px-6 py-4 flex justify-end border-t border-slate-100 rounded-b-3xl">
-                    <button type="button" @click="openCommentsModal = false"
-                            class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
  
 </body>
 </html>
