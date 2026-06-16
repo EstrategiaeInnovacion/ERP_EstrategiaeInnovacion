@@ -432,7 +432,7 @@
                                 ? 'bg-indigo-50 border-indigo-300 text-indigo-800 ring-2 ring-indigo-300 ring-offset-2' 
                                 : 'bg-slate-50 border-slate-200 text-slate-400');
                     @endphp
-                    <div {{ $esCoordinador ? "@click=\"updateFase($faseNum)\"" : '' }}
+                    <div @click="{{ $esCoordinador ? 'updateFase(' . $faseNum . ')' : '' }}"
                          class="flex flex-col items-center p-3 rounded-2xl border text-center transition-all duration-200 {{ $faseClass }} {{ $esCoordinador ? 'cursor-pointer hover:border-indigo-400 hover:shadow-sm' : 'cursor-default' }}">
                         
                         {{-- Icono/Número --}}
