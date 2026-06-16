@@ -197,13 +197,6 @@ class RecordatorioController extends Controller
     public function destruir(int $id, Request $request)
     {
         $recordatorio = Recordatorio::findOrFail($id);
-        
-        if (!$recordatorio->es_manual) {
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Solo se pueden eliminar eventos manuales'], 403);
-            }
-            return redirect()->back()->with('error', 'Solo se pueden eliminar eventos manuales');
-        }
 
         $recordatorio->update(['activo' => false]);
 
@@ -211,6 +204,6 @@ class RecordatorioController extends Controller
             return response()->json(['success' => true]);
         }
 
-        return redirect()->back()->with('success', 'Evento eliminado');
+        return redirect()->back()->with('success', 'Recordatorio descartado');
     }
 }

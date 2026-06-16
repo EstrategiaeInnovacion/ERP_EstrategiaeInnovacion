@@ -340,19 +340,20 @@ class Recordatorio extends Model
             ->first();
 
         if ($existe) {
+            $nuevoActivo = $existe->tipo === $tipo ? $existe->activo : true;
             if ($tipo === self::TIPO_DOCUMENTO_VENCIDO) {
                 $existe->update([
                     'tipo' => self::TIPO_DOCUMENTO_VENCIDO,
                     'titulo' => "Documento Vencido: {$documento->nombre}",
                     'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} venció el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
-                    'activo' => true,
+                    'activo' => $nuevoActivo,
                 ]);
             } elseif ($tipo === self::TIPO_CONTRATO_VENCER) {
                 $existe->update([
                     'tipo' => self::TIPO_CONTRATO_VENCER,
                     'titulo' => "Fin de Contrato: {$documento->nombre}",
                     'descripcion' => "El documento '{$documento->nombre}' de {$documento->empleado->nombre} vence el {$documento->fecha_vencimiento->locale('es')->translatedFormat('j \d\e F')}",
-                    'activo' => true,
+                    'activo' => $nuevoActivo,
                 ]);
             }
             return $existe;
@@ -400,11 +401,12 @@ class Recordatorio extends Model
             ->first();
 
         if ($existe) {
+            $nuevoActivo = $existe->tipo === $tipo ? $existe->activo : true;
             $existe->update([
                 'tipo' => $tipo,
                 'titulo' => "Fin de Contrato: {$empleado->nombre}",
                 'descripcion' => "El contrato de {$empleado->nombre} (" . ($empleado->tipo_contrato ?? 'Determinado') . ") " . ($tipo === self::TIPO_DOCUMENTO_VENCIDO ? 'venció' : 'vence') . " el " . $empleado->fecha_fin_contrato->locale('es')->translatedFormat('j \d\e F'),
-                'activo' => true,
+                'activo' => $nuevoActivo,
             ]);
             return $existe;
         }
