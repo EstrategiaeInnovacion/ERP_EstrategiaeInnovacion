@@ -142,16 +142,32 @@ class AuditoriaTest extends TestCase
             'es_proceso_principal' => true,
         ]);
  
+        // Asignar estatus iniciales a los hijos
+        $sub1->update(['estatus_oficial' => 'en proceso']);
+        $sub2->update(['estatus_oficial' => 'pendiente']);
+
         // Recalcular
         $proyecto->recalcularPorcentajes();
- 
+  
         // Proceso 1 debe promediar sus hijos: (80 + 40) / 2 = 60%
         $proceso1->refresh();
         $this->assertEquals(60, $proceso1->porcentaje_oficial);
- 
+        $this->assertEquals('en proceso', $proceso1->estatus_oficial);
+  
         // Proyecto debe promediar procesos de nivel superior: (60 + 30) / 2 = 45%
         $proyecto->refresh();
         $this->assertEquals(45.00, $proyecto->porcentaje_general_aprobado);
+
+        // Ahora cerramos todos los hijos
+        $sub1->update(['estatus_oficial' => 'cerrado', 'porcentaje_oficial' => 100]);
+        $sub2->update(['estatus_oficial' => 'cerrado', 'porcentaje_oficial' => 100]);
+
+        $proyecto->recalcularPorcentajes();
+        $proceso1->refresh();
+
+        // El proceso principal debe tener estatus_oficial como 'cerrado'
+        $this->assertEquals('cerrado', $proceso1->estatus_oficial);
+        $this->assertEquals(100, $proceso1->porcentaje_oficial);
     }
  
     /**

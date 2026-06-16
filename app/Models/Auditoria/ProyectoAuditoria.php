@@ -162,10 +162,21 @@ class ProyectoAuditoria extends Model
  
         $promedioAprobado = $sumHijosAprobado / $totalHijos;
         $promedioInterno = $sumHijosInterno / $totalHijos;
+
+        // Determinar el estatus del proceso padre a partir de sus hijos
+        $hijosStatuses = $hijos->pluck('estatus_oficial')->unique()->toArray();
+        if (count($hijosStatuses) === 1 && current($hijosStatuses) === 'cerrado') {
+            $nuevoEstatus = 'cerrado';
+        } elseif (count($hijosStatuses) === 1 && current($hijosStatuses) === 'pendiente') {
+            $nuevoEstatus = 'pendiente';
+        } else {
+            $nuevoEstatus = 'en proceso';
+        }
  
-        // Actualizar la fila del proceso padre para que refleje el promedio oficial actual
+        // Actualizar la fila del proceso padre para que refleje el promedio oficial actual y su estatus
         $proceso->update([
             'porcentaje_oficial' => round($promedioAprobado),
+            'estatus_oficial' => $nuevoEstatus,
         ]);
  
         return ['aprobado' => $promedioAprobado, 'interno' => $promedioInterno];
