@@ -29,6 +29,7 @@
         commentsList: [],
         newCommentText: '',
         newCommentVisible: false,
+        expandedComments: {},
         
         // Filtros de la matriz
         filtroResponsable: '',
@@ -614,16 +615,16 @@
                                                             </svg>
                                                         </button>
                                                     </form>
-                                                @endif
-                                            @else
+                                                                   @else
                                                 {{-- Comentarios --}}
-                                                <button @click="abrirComentarios({{ $proceso->id }}, '{{ addslashes($proceso->actividad) }}', '{{ $proceso->comentariosList->map(fn($c) => ['id'=>$c->id,'comentario'=>$c->comentario,'autor'=>$c->autor->name,'fecha'=>$c->created_at->format('d/m H:i'),'visible'=>$c->visible_cliente])->toJson() }}')"
-                                                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition relative">
+                                                <button @click="expandedComments[{{ $proceso->id }}] = !expandedComments[{{ $proceso->id }}]"
+                                                        class="p-1.5 rounded-lg transition relative"
+                                                        :class="expandedComments[{{ $proceso->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                     </svg>
                                                     @if($proceso->comentariosList->isNotEmpty())
-                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $proceso->id }}] ? 'hidden' : ''"></span>
                                                     @endif
                                                 </button>
                                                 
@@ -647,7 +648,7 @@
                                                         @endphp
                                                         <button @click="abrirReporte('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', {{ $borrador ? $borrador->porcentaje_propuesto : $proceso->porcentaje_oficial }}, '{{ $borrador ? $borrador->estatus_propuesto : $proceso->estatus_oficial }}', '{{ $borrador ? addslashes($borrador->comentario_propuesto) : '' }}', {{ $borrador && $borrador->comentario_visible_cliente ? 'true' : 'false' }})"
                                                                 :disabled="{{ $isLocked ? 'true' : 'false' }}"
-                                                                class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
+                                                                 class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
                                                             {{ $borrador ? 'Editar Borrador' : 'Reportar' }}
                                                         </button>
                                                         
@@ -691,6 +692,40 @@
                                                         @endif
                                                     @endif
                                                 @endif
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {{-- Comentarios Inline del Proceso Principal --}}
+                                <tr x-show="expandedComments[{{ $proceso->id }}]" class="bg-indigo-50/10" x-cloak x-transition>
+                                    <td colspan="6" class="px-6 py-4">
+                                        <div class="pl-12 space-y-3">
+                                            <h4 class="text-xs font-bold text-indigo-850 flex items-center gap-1.5 mb-2">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                                </svg>
+                                                Historial de Observaciones (Proceso)
+                                            </h4>
+                                            @if($proceso->comentariosList->isEmpty())
+                                                <p class="text-xs text-slate-400 italic">No hay comentarios ni observaciones registradas para esta actividad.</p>
+                                            @else
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    @foreach($proceso->comentariosList as $c)
+                                                        <div class="bg-white border border-slate-200/60 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                             <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
+                                                                 <span class="text-slate-600">{{ $c->autor->name }}</span>
+                                                                 <div class="flex items-center gap-1.5">
+                                                                     <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                     @if($c->visible_cliente)
+                                                                         <span class="px-1.5 py-0.5 bg-sky-50 text-sky-600 rounded border border-sky-100 text-[8px] uppercase tracking-wider font-extrabold">Cliente</span>
+                                                                     @endif
+                                                                 </div>
+                                                             </div>
+                                                             <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
                                             @endif
                                         </div>
                                     </td>
@@ -763,13 +798,14 @@
                                                     @endif
                                                 @else
                                                     {{-- Comentarios --}}
-                                                    <button @click="abrirComentarios({{ $sub->id }}, '{{ addslashes($sub->actividad) }}', '{{ $sub->comentariosList->map(fn($c) => ['id'=>$c->id,'comentario'=>$c->comentario,'autor'=>$c->autor->name,'fecha'=>$c->created_at->format('d/m H:i'),'visible'=>$c->visible_cliente])->toJson() }}')"
-                                                            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition relative">
+                                                    <button @click="expandedComments[{{ $sub->id }}] = !expandedComments[{{ $sub->id }}]"
+                                                            class="p-1.5 rounded-lg transition relative"
+                                                            :class="expandedComments[{{ $sub->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                         </svg>
                                                         @if($sub->comentariosList->isNotEmpty())
-                                                            <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                                            <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $sub->id }}] ? 'hidden' : ''"></span>
                                                         @endif
                                                     </button>
                                                     
@@ -825,6 +861,41 @@
                                                             @endif
                                                         @endif
                                                     @endif
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {{-- Comentarios Inline del Subproceso --}}
+                                    <tr x-show="isExpanded('{{ $proceso->id }}') && expandedComments[{{ $sub->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                        <td class="px-6 py-4"></td>
+                                        <td colspan="5" class="px-6 py-4">
+                                            <div class="space-y-3">
+                                                <h5 class="text-xs font-bold text-indigo-850 flex items-center gap-1.5 mb-2">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                                    </svg>
+                                                    Historial de Observaciones (Subproceso)
+                                                </h5>
+                                                @if($sub->comentariosList->isEmpty())
+                                                    <p class="text-xs text-slate-400 italic">No hay comentarios ni observaciones registradas para este subproceso.</p>
+                                                @else
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        @foreach($sub->comentariosList as $c)
+                                                            <div class="bg-white border border-slate-200/50 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                                 <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
+                                                                     <span class="text-slate-600">{{ $c->autor->name }}</span>
+                                                                     <div class="flex items-center gap-1.5">
+                                                                         <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                         @if($c->visible_cliente)
+                                                                             <span class="px-1.5 py-0.5 bg-sky-50 text-sky-600 rounded border border-sky-100 text-[8px] uppercase tracking-wider font-extrabold">Cliente</span>
+                                                                         @endif
+                                                                     </div>
+                                                                 </div>
+                                                                 <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
                                                 @endif
                                             </div>
                                         </td>
