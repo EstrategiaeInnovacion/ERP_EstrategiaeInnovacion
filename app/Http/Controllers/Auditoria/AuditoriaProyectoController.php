@@ -156,6 +156,8 @@ class AuditoriaProyectoController extends Controller
  
         $esCoordinador = $this->esCoordinador($user);
         $esResponsable = $proyecto->analista_id === $user->id || $proyecto->coordinador_id === $user->id;
+
+        \Log::info("AuditoriaProyectoController@show: User ID=" . $user->id . ", Name=" . $user->name . ", esCoordinador=" . ($esCoordinador ? 'TRUE' : 'FALSE') . ", esResponsable=" . ($esResponsable ? 'TRUE' : 'FALSE'));
  
         if (!$esCoordinador && !$esResponsable) {
             abort(403, 'No tienes permisos para ver este proyecto.');
@@ -314,11 +316,13 @@ class AuditoriaProyectoController extends Controller
         return redirect()->back()->with('success', 'Datos generales del proyecto actualizados correctamente.');
     }
  
-    // Cambiar fase actual (coordinador)
     public function updateFase(Request $request, $id)
     {
         $user = auth()->user();
-        if (!$this->esCoordinador($user)) {
+        $esCoordinador = $this->esCoordinador($user);
+        \Log::info("AuditoriaProyectoController@updateFase: User ID=" . $user->id . ", Name=" . $user->name . ", esCoordinador=" . ($esCoordinador ? 'TRUE' : 'FALSE') . ", Project ID=" . $id);
+        
+        if (!$esCoordinador) {
             return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
         }
  
