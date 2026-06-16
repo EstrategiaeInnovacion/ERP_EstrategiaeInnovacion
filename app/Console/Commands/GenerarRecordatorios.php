@@ -63,6 +63,53 @@ class GenerarRecordatorios extends Command
             ->where('fecha_evento', '<', $limitePasado)
             ->delete();
 
+        // 1. Limpiar recordatorios huérfanos de documentos eliminados
+        $docIds = EmpleadoDocumento::pluck('id')->toArray();
+        Recordatorio::where('tabla_relacionada', 'empleado_documentos')
+            ->whereNotIn('registro_id', $docIds)
+            ->delete();
+
+        // 2. Limpiar recordatorios de documentos si la fecha cambió o se anuló
+        $documentosNull = EmpleadoDocumento::whereNull('fecha_vencimiento')->pluck('id')->toArray();
+        Recordatorio::where('tabla_relacionada', 'empleado_documentos')
+            ->whereIn('registro_id', $documentosNull)
+            ->delete();
+
+        $documentosValidos = EmpleadoDocumento::whereNotNull('fecha_vencimiento')->get();
+        foreach ($documentosValidos as $doc) {
+            Recordatorio::where('tabla_relacionada', 'empleado_documentos')
+                ->where('registro_id', $doc->id)
+                ->whereDate('fecha_evento', '!=', $doc->fecha_vencimiento)
+                ->delete();
+        }
+
+        // 3. Limpiar recordatorios huérfanos de contratos de empleados eliminados o inactivos
+        $empIds = Empleado::where('es_activo', true)->pluck('id')->toArray();
+        Recordatorio::where('tabla_relacionada', 'empleados_contrato')
+            ->whereNotIn('registro_id', $empIds)
+            ->delete();
+
+        // 4. Limpiar recordatorios de contratos si la fecha de fin cambió, se anuló, o el empleado está inactivo/indeterminado
+        $empleadosSinContrato = Empleado::where(function($q) {
+            $q->whereNull('fecha_fin_contrato')
+              ->orWhere('tipo_contrato', 'Indeterminado')
+              ->orWhere('es_activo', false);
+        })->pluck('id')->toArray();
+        Recordatorio::where('tabla_relacionada', 'empleados_contrato')
+            ->whereIn('registro_id', $empleadosSinContrato)
+            ->delete();
+
+        $empleadosContrato = Empleado::whereNotNull('fecha_fin_contrato')
+            ->where('tipo_contrato', '!=', 'Indeterminado')
+            ->where('es_activo', true)
+            ->get();
+        foreach ($empleadosContrato as $emp) {
+            Recordatorio::where('tabla_relacionada', 'empleados_contrato')
+                ->where('registro_id', $emp->id)
+                ->whereDate('fecha_evento', '!=', $emp->fecha_fin_contrato)
+                ->delete();
+        }
+
         $this->info('  - Limpieza completada');
     }
 
