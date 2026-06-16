@@ -615,7 +615,8 @@
                                                             </svg>
                                                         </button>
                                                     </form>
-                                                                   @else
+                                                @endif
+                                            @else
                                                 {{-- Comentarios --}}
                                                 <button @click="expandedComments[{{ $proceso->id }}] = !expandedComments[{{ $proceso->id }}]"
                                                         class="p-1.5 rounded-lg transition relative"
