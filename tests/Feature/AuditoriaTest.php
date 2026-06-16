@@ -71,6 +71,7 @@ class AuditoriaTest extends TestCase
     {
         $response = $this->actingAs($this->coordinator)->post(route('auditoria.proyectos.store'), [
             'cliente_id' => $this->cliente->id,
+            'cliente_nombre' => $this->cliente->nombre,
             'periodo_fiscal' => '2025',
             'analista_id' => $this->analyst->id,
             'cantidad_expedientes' => 120,
@@ -82,6 +83,7 @@ class AuditoriaTest extends TestCase
         
         $this->assertDatabaseHas('auditoria_proyectos', [
             'cliente_id' => $this->cliente->id,
+            'cliente_nombre' => $this->cliente->nombre,
             'periodo_fiscal' => '2025',
             'analista_id' => $this->analyst->id,
             'coordinador_id' => $this->coordinator->id,

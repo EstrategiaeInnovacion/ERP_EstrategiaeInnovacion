@@ -91,7 +91,15 @@ class AuditoriaProyectoController extends Controller
             'fecha_inicio' => 'required|date',
             'fecha_entrega_estimada' => 'required|date|after_or_equal:fecha_inicio',
         ]);
- 
+
+        // Intentar asociar con un cliente existente si coincide el nombre o empresa
+        $clienteExistente = Cliente::where('nombre', $data['cliente_nombre'])
+            ->orWhere('empresa', $data['cliente_nombre'])
+            ->first();
+        if ($clienteExistente) {
+            $data['cliente_id'] = $clienteExistente->id;
+        }
+
         // 8 fases por defecto
         $fasesDefecto = [
             '1. Planeación e Inicio',
@@ -103,14 +111,14 @@ class AuditoriaProyectoController extends Controller
             '7. Discusión y Ajustes',
             '8. Cierre y Entrega Final'
         ];
- 
+
         $data['coordinador_id'] = $user->id;
         $data['estatus_general'] = 'pendiente';
         $data['fase_actual'] = 1;
         $data['fases_config'] = $fasesDefecto;
         $data['token_publico'] = Str::random(40);
         $data['mostrar_detalle_cliente'] = false;
- 
+
         $proyecto = ProyectoAuditoria::create($data);
  
         // Crear procesos base por defecto para que la matriz no empiece totalmente vacía
