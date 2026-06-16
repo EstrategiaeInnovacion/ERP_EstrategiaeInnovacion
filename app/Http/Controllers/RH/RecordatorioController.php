@@ -13,30 +13,31 @@ class RecordatorioController extends Controller
     {
         $user = auth()->user();
 
+        $rangoInicio = Carbon::today()->subDays(7);
+        $rangoFin = Carbon::today()->addDays(30);
+
         $query = Recordatorio::with('empleado')
             ->where('activo', true)
-            ->whereDate('fecha_evento', '>=', Carbon::today()->subDays(7))
-            ->whereDate('fecha_evento', '<=', Carbon::today()->addDays(30))
             ->orderBy('fecha_evento');
 
         if ($request->filled('tipo') && $request->tipo !== 'todos') {
             $query->where('tipo', $request->tipo);
         }
 
-        if ($request->filled('estado')) {
+        if ($request->filled('estado') && $request->estado !== 'todos') {
             if ($request->estado === 'vencidos') {
                 $query->whereDate('fecha_evento', '<', Carbon::today());
             } elseif ($request->estado === 'no_leidos') {
-                $query->where('leido', false);
+                $query->where('leido', false)
+                    ->whereBetween('fecha_evento', [$rangoInicio, $rangoFin]);
             } elseif ($request->estado === 'urgentes') {
                 $query->whereDate('fecha_evento', '<=', Carbon::today()->addDays(7));
             }
+        } else {
+            $query->whereBetween('fecha_evento', [$rangoInicio, $rangoFin]);
         }
 
         $recordatorios = $query->paginate(15);
-
-        $rangoInicio = Carbon::today()->subDays(7);
-        $rangoFin = Carbon::today()->addDays(30);
 
         $estadisticas = [
             'total' => Recordatorio::where('activo', true)
