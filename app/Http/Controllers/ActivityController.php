@@ -495,6 +495,11 @@ class ActivityController extends Controller
         if ($puedeEditarTodo) {
             $activity->fill($request->except(['evidencia']));
         } else {
+            // Si es el dueño, le permitimos editar el nombre de la actividad
+            if ($activity->user_id === $user->id) {
+                $activity->nombre_actividad = $request->nombre_actividad;
+            }
+
             // El analista solo puede mover estatus y comentar
             $activity->comentarios = $request->comentarios;
 
