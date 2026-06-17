@@ -579,7 +579,7 @@
                                                 <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @else
-                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }})' class="relative text-slate-400 hover:text-indigo-600 p-1.5" title="{{ $act->comentarios ? 'Tiene comentarios' : 'Agregar comentario' }}">
+                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }}, {{ ($act->user_id == Auth::id()) ? "true" : "false" }})' class="relative text-slate-400 hover:text-indigo-600 p-1.5" title="{{ $act->comentarios ? 'Tiene comentarios' : 'Agregar comentario' }}">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                                 @if($colorComentario)
                                                     <span class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} ring-1 ring-white"></span>
@@ -1222,7 +1222,7 @@ function toggleAllUsersExcel(checkbox) {
             e.preventDefault(); alert("⚠️ Periodo de planificación cerrado."); return false;
         }
     }
-    function openNotes(act, canEditAll) {
+    function openNotes(act, canEditAll, isOwner) {
         const f = document.getElementById('notesForm'); f.action = "/activities/" + act.id;
         document.getElementById('modal-activity-name').value = act.nombre_actividad;
         document.getElementById('modal-prioridad').value = act.prioridad || 'Media';
@@ -1268,7 +1268,11 @@ function toggleAllUsersExcel(checkbox) {
         const inputs = ['modal-activity-name','modal-fecha','modal-prioridad','modal-hora-inicio','modal-hora-fin','modal-area','modal-cliente'];
         inputs.forEach(id => {
             const el = document.getElementById(id);
-            if(!canEditAll){ el.readOnly=true; el.classList.add('bg-slate-100'); } else { el.readOnly=false; el.classList.remove('bg-slate-100'); }
+            let isReadOnly = !canEditAll;
+            if (id === 'modal-activity-name' && isOwner) {
+                isReadOnly = false;
+            }
+            if(isReadOnly){ el.readOnly=true; el.classList.add('bg-slate-100'); } else { el.readOnly=false; el.classList.remove('bg-slate-100'); }
         });
         const userSelect = document.getElementById('modal-user-id');
         if (userSelect) {
