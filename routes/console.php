@@ -12,3 +12,4 @@ Schedule::command('logistica:actualizar-status')->hourly();
 Schedule::command('rh:generar-recordatorios')->daily();
 Schedule::command('proyectos:recordatorios')->dailyAt('08:00');
 Schedule::command('it:notificar-proximo-mantenimiento')->dailyAt('08:00');
+Schedule::command('tareas:limpiar-pendientes-aprobacion')->daily();

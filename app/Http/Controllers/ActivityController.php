@@ -51,6 +51,15 @@ class ActivityController extends Controller
         return (bool) $user->empleado->es_coordinador || $this->esDireccion($user) || $this->esSupervisor($user);
     }
 
+    // Caso "coordinador a coordinador": ambos (quien asigna y quien recibe) tienen
+    // gente a su cargo. Solo en este caso la validación es competencia de Dirección;
+    // en cualquier otro caso, la validación es exclusiva del supervisor directo del
+    // colaborador (ej. un analista de legal lo valida su coordinador, no Dirección).
+    private function esCasoSupervisorASupervisor($assigner, $target)
+    {
+        return $this->esSupervisor($assigner) && $this->esSupervisor($target);
+    }
+
     private function determinarEstatusInicial($targetUserId, $currentUser)
     {
         if ($targetUserId == $currentUser->id) {
@@ -144,6 +153,22 @@ class ActivityController extends Controller
     {
         $query = Activity::query();
 
+        // Tras 1 semana sin aprobarse, la tarea se escala a "Tareas por validar" del
+        // coordinador/dirección y deja de mostrarse en la lista normal de quien la asignó.
+        $query->where(function ($q) use ($user) {
+            $q->where('estatus', '!=', 'Por Aprobar')
+              ->orWhere('asignado_por', '!=', $user->id)
+              ->orWhere('created_at', '>', now()->subDays(7));
+        });
+
+        // Misma regla para el cierre: tras 1 semana sin que el supervisor/dirección
+        // valide la entrega, deja de mostrarse al responsable y se escala igual.
+        $query->where(function ($q) use ($user) {
+            $q->where('estatus', '!=', 'Por Validar')
+              ->orWhere('user_id', '!=', $user->id)
+              ->orWhere('updated_at', '>', now()->subDays(7));
+        });
+
         if ($filterOrigin === 'delegadas') {
             $query->where('asignado_por', $user->id)->where('user_id', '!=', $user->id);
         } elseif ($filterOrigin === 'propias') {
@@ -216,14 +241,29 @@ class ActivityController extends Controller
         if ($esDireccion) {
             $coordinadorUserIds = Empleado::where('es_coordinador', true)
                 ->whereNotNull('user_id')->pluck('user_id')->toArray();
-            if (!empty($coordinadorUserIds)) {
-                return Activity::onlyTrashed()
-                    ->with(['user', 'deletedByUser'])
-                    ->whereIn('deleted_by', $coordinadorUserIds)
-                    ->orderBy('deleted_at', 'desc')
-                    ->limit(100)
-                    ->get();
-            }
+
+            $trashed = Activity::onlyTrashed()
+                ->with(['user', 'asignador', 'deletedByUser'])
+                ->where(function ($q) use ($coordinadorUserIds) {
+                    if (!empty($coordinadorUserIds)) {
+                        $q->whereIn('deleted_by', $coordinadorUserIds);
+                    }
+                    // Incluye las eliminadas automáticamente por el sistema (deleted_by null)
+                    // tras exceder 30 días sin validar.
+                    $q->orWhereNull('deleted_by');
+                })
+                ->orderBy('deleted_at', 'desc')
+                ->limit(200)
+                ->get();
+
+            // Dirección solo es competencia de los casos coordinador-a-coordinador; las
+            // eliminadas automáticamente de otros casos no le corresponden a Dirección.
+            return $trashed->filter(function ($act) {
+                if (!is_null($act->deleted_by)) {
+                    return true;
+                }
+                return $this->esCasoSupervisorASupervisor($act->asignador, $act->user);
+            })->take(100)->values();
         } elseif (($esCoordinador || $esSupervisor) && $targetUserId !== $user->id) {
             return Activity::onlyTrashed()
                 ->with(['user', 'deletedByUser'])
@@ -234,6 +274,36 @@ class ActivityController extends Controller
         }
 
         return collect();
+    }
+
+    private function obtenerActividadesPorValidar($user)
+    {
+        if (!$this->esDireccion($user) && !$this->esSupervisor($user)) {
+            return collect();
+        }
+
+        $esDireccion = $this->esDireccion($user);
+
+        return Activity::with(['user.empleado', 'asignador.empleado'])
+            ->whereIn('estatus', ['Por Aprobar', 'Por Validar'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->filter(function ($act) use ($user, $esDireccion) {
+                $assigner = $act->asignador;
+                $target = $act->user;
+
+                $esCasoSupervisorASupervisor = $this->esCasoSupervisorASupervisor($assigner, $target);
+
+                if ($esCasoSupervisorASupervisor) {
+                    // Solo Dirección valida tareas entre coordinadores.
+                    return $esDireccion;
+                }
+
+                // Cualquier otro caso (ej. un analista) es exclusivo de su supervisor
+                // directo; Dirección no debe verlo aquí.
+                return $this->esSupervisorDirectoDe($user, $target);
+            })
+            ->values();
     }
 
     public function index(Request $request)
@@ -353,6 +423,7 @@ class ActivityController extends Controller
 
         $verEliminadas = $request->get('ver_eliminadas') == '1';
         $deletedActivities = $this->obtenerActividadesBorradas($user, $targetUserId, $verEliminadas);
+        $porValidar = $this->obtenerActividadesPorValidar($user);
 
         return view('activities.index', compact(
             'mainActivities', 'teamUsers', 'targetUser', 'kpis',
@@ -363,7 +434,7 @@ class ActivityController extends Controller
             'areasSistema', 'empleadosAsignables',
             'usersWithPending', 'filterOrigin',
             'startDate', 'endDate', 'periodLabel', 'rangeType', 'prevDateRef', 'nextDateRef', 'startOfWeek',
-            'puedeGestionarPlaneacion', 'proyectos', 'esRh', 'deletedActivities'
+            'puedeGestionarPlaneacion', 'proyectos', 'esRh', 'deletedActivities', 'porValidar'
         ));
     }
 
@@ -684,17 +755,16 @@ class ActivityController extends Controller
         $assigner = $act->asignador;
         $target = $act->user;
 
-        $assignerIsSupervisor = $this->esSupervisor($assigner);
-        $targetIsSupervisor = $this->esSupervisor($target);
-
-        $esCasoSupervisorASupervisor = $assignerIsSupervisor && $targetIsSupervisor;
+        $esCasoSupervisorASupervisor = $this->esCasoSupervisorASupervisor($assigner, $target);
 
         if ($esCasoSupervisorASupervisor) {
             if (! $soyDireccion) {
                 return back()->with('error', 'Acción denegada: Las tareas entre coordinadores requieren aprobación de Dirección.');
             }
         } else {
-            if (! $soyDireccion && ! $soySuJefeDirecto) {
+            // Validación exclusiva del supervisor directo del colaborador; Dirección no
+            // interviene aquí (solo valida tareas entre coordinadores).
+            if (! $soySuJefeDirecto) {
                 return back()->with('error', 'Acción denegada: No eres el supervisor directo de este colaborador.');
             }
         }
@@ -709,13 +779,22 @@ class ActivityController extends Controller
 
     public function reject(Request $request, $id)
     {
-        $act = Activity::findOrFail($id);
+        $act = Activity::with(['user', 'asignador'])->findOrFail($id);
         $user = Auth::user();
 
         $esDireccion = $this->esDireccion($user);
         $esSupervisor = $this->esSupervisorDirectoDe($user, $act->user);
 
-        if (! $esDireccion && ! $esSupervisor) {
+        if (in_array($act->estatus, ['Por Aprobar', 'Por Validar'])) {
+            // Misma regla que approve()/validateCompletion(): Dirección solo interviene
+            // en tareas entre coordinadores; el resto es exclusivo del supervisor directo.
+            $esCasoSupervisorASupervisor = $this->esCasoSupervisorASupervisor($act->asignador, $act->user);
+            $autorizado = $esCasoSupervisorASupervisor ? $esDireccion : $esSupervisor;
+        } else {
+            $autorizado = $esDireccion || $esSupervisor;
+        }
+
+        if (! $autorizado) {
             abort(403, 'No tienes permiso para rechazar esta actividad.');
         }
 
@@ -745,13 +824,18 @@ class ActivityController extends Controller
 
     public function validateCompletion(Request $request, $id)
     {
-        $act = Activity::findOrFail($id);
+        $act = Activity::with(['user', 'asignador'])->findOrFail($id);
         $user = Auth::user();
 
         $esDireccion = $this->esDireccion($user);
         $esSupervisor = $this->esSupervisorDirectoDe($user, $act->user);
 
-        if ($esDireccion || $esSupervisor) {
+        // Misma regla que approve(): Dirección solo valida tareas entre coordinadores;
+        // cualquier otro caso (ej. un analista) es exclusivo de su supervisor directo.
+        $esCasoSupervisorASupervisor = $this->esCasoSupervisorASupervisor($act->asignador, $act->user);
+        $autorizado = $esCasoSupervisorASupervisor ? $esDireccion : $esSupervisor;
+
+        if ($autorizado) {
             $act->estatus = 'Completado';
             $act->fecha_final = now();
             $act->save();

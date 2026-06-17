@@ -61,6 +61,15 @@ class Activity extends Model
         return $this->hasMany(ActivityHistory::class)->orderBy('created_at', 'desc');
     }
 
+    // Quién escribió el comentario vigente más reciente (para distinguir si lo
+    // dejó el responsable o quien lo supervisa, y así colorear el indicador).
+    public function ultimoComentarioAutorId()
+    {
+        return $this->historial()
+            ->where('details', 'like', 'Actualizó comentarios%')
+            ->value('user_id');
+    }
+
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class);

@@ -76,6 +76,7 @@ class ClienteController extends Controller
 
             $request->validate([
                 'cliente' => 'required|string|max:255',
+                'clave' => 'nullable|string|max:50',
                 'ejecutivo_asignado_id' => 'nullable|exists:empleados,id',
                 'correos' => 'nullable|string', // JSON string
                 'periodicidad_reporte' => 'nullable|string|max:50'
@@ -99,6 +100,7 @@ class ClienteController extends Controller
 
             $cliente = Cliente::create([
                 'cliente' => $nombreCliente,
+                'clave' => $request->clave,
                 'ejecutivo_asignado_id' => $ejecutivoId,
                 'correos' => $correosArray,
                 'periodicidad_reporte' => $request->periodicidad_reporte ?? 'Diario'
@@ -122,6 +124,10 @@ class ClienteController extends Controller
         $cliente = Cliente::findOrFail($id);
         $nombreCliente = strtoupper($request->cliente);
 
+        $request->validate([
+            'clave' => 'nullable|string|max:50',
+        ]);
+
         // Validación básica de duplicados excluyendo el actual
         if (Cliente::whereRaw('UPPER(cliente) = ?', [$nombreCliente])->where('id', '!=', $id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Ya existe un cliente con ese nombre.'], 422);
@@ -129,6 +135,7 @@ class ClienteController extends Controller
 
         $updateData = [
             'cliente' => $nombreCliente,
+            'clave' => $request->clave,
             'ejecutivo_asignado_id' => $request->ejecutivo_asignado_id
         ];
 

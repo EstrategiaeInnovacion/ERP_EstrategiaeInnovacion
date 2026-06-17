@@ -45,10 +45,14 @@ class ProyectoController extends Controller
             }
         }
 
-        if ($request->has('archivado')) {
-            $query->where('archivado', $request->archivado === '1');
+        if ($request->has('archivado') && $request->archivado === '1') {
+            // "Archivados" agrupa tanto los archivados manualmente como los ya
+            // finalizados/cerrados, para que dejen de listarse como activos.
+            $query->where(function ($q) {
+                $q->where('archivado', true)->orWhere('finalizado', true);
+            });
         } else {
-            $query->where('archivado', false);
+            $query->where('archivado', false)->where('finalizado', false);
         }
 
         $proyectos = $query->orderBy('fecha_inicio', 'desc')->get();

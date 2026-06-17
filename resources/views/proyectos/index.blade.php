@@ -20,7 +20,7 @@
             <div class="flex gap-3">
                 <a href="{{ route('proyectos.index', ['archivado' => request('archivado') == '1' ? '0' : '1']) }}" 
                    class="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
-                    {{ request('archivado') == '1' ? 'Ver activos' : 'Ver archivados' }}
+                    {{ request('archivado') == '1' ? 'Ver activos' : 'Ver archivados/cerrados' }}
                 </a>
                 @if($esRh)
                 <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
@@ -56,7 +56,7 @@
         @if($proyectos->isEmpty())
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-12 text-center">
                 <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                <p class="text-slate-500 font-medium">No hay proyectos {{ request('archivado') == '1' ? 'archivados' : 'activos' }}</p>
+                <p class="text-slate-500 font-medium">No hay proyectos {{ request('archivado') == '1' ? 'archivados o cerrados' : 'activos' }}</p>
                 @if($esRh && request('archivado') != '1')
                     <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="mt-4 text-indigo-600 font-medium hover:underline">Crear el primer proyecto</button>
                 @endif
@@ -67,7 +67,7 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition">
                         <div class="flex justify-between items-start mb-4">
                             <h3 class="text-lg font-bold text-slate-800 truncate">{{ $proyecto->nombre }}</h3>
-                            @if(request('archivado') == '1')
+                            @if($proyecto->archivado)
                                 <div class="relative" x-data="{ open: false }">
                                     <button @click="open = !open" @click.outside="open = false" class="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium hover:bg-slate-200 transition">
                                         Archivado ▾
@@ -88,6 +88,8 @@
                                         </form>
                                     </div>
                                 </div>
+                            @elseif($proyecto->finalizado)
+                                <span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs rounded-full font-medium">Finalizado</span>
                             @endif
                         </div>
                         

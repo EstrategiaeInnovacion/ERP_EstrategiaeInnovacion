@@ -113,10 +113,10 @@
         {{-- ======================================================= --}}
         
         @if(($esSupervisor || $esDireccion) && $globalPendingCount > 0)
-            <div class="bg-orange-50 border-l-4 border-orange-400 p-3 rounded-r-lg shadow-sm flex items-center gap-3 animate-fade-in-down">
+            <a href="#tareas-por-validar" class="bg-orange-50 border-l-4 border-orange-400 p-3 rounded-r-lg shadow-sm flex items-center gap-3 animate-fade-in-down hover:bg-orange-100 transition-colors">
                 <div class="text-orange-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
-                <p class="text-xs font-bold text-orange-800">Atención: Tienes {{ $globalPendingCount }} actividades pendientes de aprobación en tu equipo.</p>
-            </div>
+                <p class="text-xs font-bold text-orange-800">Atención: Tienes {{ $globalPendingCount }} actividades pendientes de aprobación en tu equipo. Ver en "Tareas por validar" &rarr;</p>
+            </a>
         @endif
 
         @if($targetUser->id === Auth::id() && $misRechazos->count() > 0)
@@ -419,8 +419,21 @@
                                 </td>
 
                                 <td class="px-4 py-3">
+                                    @php
+                                        // Rojo = el último comentario lo dejó el responsable de la tarea (requiere
+                                        // atención de quien lo supervisa). Azul = lo dejó quien supervisa (coordinador
+                                        // o dirección), es informativo para el responsable.
+                                        $colorComentario = null;
+                                        if ($act->comentarios) {
+                                            $autorComentarioId = $act->ultimoComentarioAutorId();
+                                            $colorComentario = ($autorComentarioId && $autorComentarioId == $act->user_id) ? 'red' : 'blue';
+                                        }
+                                    @endphp
                                     <div class="flex flex-col">
                                         <span class="{{ in_array($act->estatus, ['Completado', 'Completado con retardo']) ? 'line-through text-slate-400' : 'text-slate-800 font-semibold' }} text-xs leading-snug">
+                                            @if($colorComentario)
+                                                <span class="inline-block w-1.5 h-1.5 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} mr-1 align-middle" title="{{ $colorComentario === 'red' ? 'Comentario del responsable' : 'Comentario del supervisor/coordinador' }}"></span>
+                                            @endif
                                             {{ $act->nombre_actividad }}
                                         </span>
                                         <div class="flex flex-wrap items-center gap-1 mt-0.5">
@@ -498,16 +511,20 @@
                                         {{-- CASO 1: APROBACIÓN DE ASIGNACIÓN --}}
                                         @if($act->estatus == 'Por Aprobar')
                                             @php
+                                                // Misma regla que el backend: Dirección solo valida tareas entre
+                                                // coordinadores; cualquier otro caso es exclusivo del supervisor directo.
+                                                $assignerEmp = $act->asignador->empleado ?? null;
+                                                $targetEmp = $act->user->empleado ?? null;
+                                                $assignerIsSupervisor = $assignerEmp && \App\Models\Empleado::where('supervisor_id', $assignerEmp->id)->exists();
+                                                $targetIsSupervisor = $targetEmp && \App\Models\Empleado::where('supervisor_id', $targetEmp->id)->exists();
+                                                $isSupToSup = $assignerIsSupervisor && $targetIsSupervisor;
+
                                                 $canApprove = false;
-                                                if ($esDireccion) $canApprove = true;
-                                                elseif ($esSupervisor) {
-                                                    $isSupToSup = (\App\Models\Empleado::where('user_id', $act->asignado_por)->exists() && \App\Models\Empleado::where('supervisor_id', \App\Models\Empleado::where('user_id', $act->asignado_por)->value('id'))->exists()) 
-                                                                  && (\App\Models\Empleado::where('user_id', $act->user_id)->exists() && \App\Models\Empleado::where('supervisor_id', \App\Models\Empleado::where('user_id', $act->user_id)->value('id'))->exists());
-                                                    if (!$isSupToSup) {
-                                                        $targetEmp = $act->user->empleado ?? null;
-                                                        $myEmpId = Auth::user()->empleado->id ?? null;
-                                                        if ($targetEmp && $myEmpId && $targetEmp->supervisor_id === $myEmpId) $canApprove = true;
-                                                    }
+                                                if ($isSupToSup) {
+                                                    $canApprove = $esDireccion;
+                                                } else {
+                                                    $myEmpId = Auth::user()->empleado->id ?? null;
+                                                    if ($targetEmp && $myEmpId && $targetEmp->supervisor_id === $myEmpId) $canApprove = true;
                                                 }
                                                 if ($act->user_id === Auth::id()) $canApprove = false;
                                             @endphp
@@ -521,8 +538,26 @@
 
                                         {{-- CASO 2: VALIDACIÓN DE CIERRE --}}
                                         @elseif($act->estatus == 'Por Validar')
-                                            @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
-                                            @if($esSupervisor || $esDireccion)
+                                            @php
+                                                $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id();
+
+                                                // Misma regla que en "Por Aprobar": Dirección solo valida cierres entre
+                                                // coordinadores; el resto es exclusivo del supervisor directo.
+                                                $assignerEmp2 = $act->asignador->empleado ?? null;
+                                                $targetEmp2 = $act->user->empleado ?? null;
+                                                $assignerIsSupervisor2 = $assignerEmp2 && \App\Models\Empleado::where('supervisor_id', $assignerEmp2->id)->exists();
+                                                $targetIsSupervisor2 = $targetEmp2 && \App\Models\Empleado::where('supervisor_id', $targetEmp2->id)->exists();
+                                                $isSupToSup2 = $assignerIsSupervisor2 && $targetIsSupervisor2;
+
+                                                $puedeValidar = false;
+                                                if ($isSupToSup2) {
+                                                    $puedeValidar = $esDireccion;
+                                                } else {
+                                                    $myEmpId2 = Auth::user()->empleado->id ?? null;
+                                                    if ($targetEmp2 && $myEmpId2 && $targetEmp2->supervisor_id === $myEmpId2) $puedeValidar = true;
+                                                }
+                                            @endphp
+                                            @if($puedeValidar)
                                                 <form action="{{ route('activities.validate', $act->id) }}" method="POST">@csrf @method('PUT')
                                                     <button class="bg-purple-600 text-white px-2 py-0.5 rounded text-[9px] font-bold hover:bg-purple-700 shadow-sm flex items-center gap-1" title="Validar Cierre">
                                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> VALIDAR
@@ -544,7 +579,12 @@
                                                 <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @else
-                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }})' class="text-slate-400 hover:text-indigo-600 p-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }})' class="relative text-slate-400 hover:text-indigo-600 p-1.5" title="{{ $act->comentarios ? 'Tiene comentarios' : 'Agregar comentario' }}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                @if($colorComentario)
+                                                    <span class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} ring-1 ring-white"></span>
+                                                @endif
+                                            </button>
                                             @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
                                             @if($puedeEliminar)
                                                 <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
@@ -566,6 +606,75 @@
     </div>
 
     {{-- BARRA FLOTANTE DE SELECCIÓN MASIVA (creada por JS, ver script) --}}
+
+    {{-- ======================================================= --}}
+    {{-- 5A. TAREAS POR VALIDAR (COORDINADOR / DIRECCIÓN)        --}}
+    {{-- ======================================================= --}}
+    @if(isset($porValidar) && $porValidar->count() > 0)
+    <div id="tareas-por-validar" class="max-w-[98%] mx-auto mt-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-orange-100 bg-orange-50">
+            <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div>
+                <h3 class="text-sm font-bold text-orange-700 uppercase tracking-wide">Tareas por validar</h3>
+                <p class="text-[10px] text-orange-400">Asignaciones y cierres que requieren tu validación como {{ $esDireccion ? 'dirección' : 'coordinador/supervisor' }}. Tras 7 días sin validar, deja de aparecerle a quien espera.</p>
+            </div>
+            <span class="ml-auto bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ $porValidar->count() }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="bg-orange-50/50 border-b border-orange-100">
+                        <th class="px-4 py-2 text-left text-[10px] font-bold text-orange-500 uppercase tracking-wider">Tarea</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-orange-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-orange-500 uppercase tracking-wider">Asignada a</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-orange-500 uppercase tracking-wider">Asignada por</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-orange-500 uppercase tracking-wider">Esperando desde</th>
+                        <th class="px-4 py-2 text-center text-[10px] font-bold text-orange-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-orange-50">
+                    @foreach($porValidar as $pv)
+                        @php
+                            $esCierre = $pv->estatus === 'Por Validar';
+                            $desde = $esCierre ? $pv->updated_at : $pv->created_at;
+                            $diasEsperando = \Carbon\Carbon::parse($desde)->diffInDays(now());
+                        @endphp
+                        <tr class="hover:bg-orange-50/40 transition-colors">
+                            <td class="px-4 py-3">
+                                <span class="font-semibold text-slate-700">{{ $pv->nombre_actividad }}</span>
+                                @if($pv->cliente)
+                                    <span class="ml-1 text-[9px] text-slate-400">({{ $pv->cliente }})</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold {{ $esCierre ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-600' }}">{{ $esCierre ? 'Cierre' : 'Aprobación' }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center text-slate-500">{{ $pv->user->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-center text-slate-500">{{ $pv->asignador->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold {{ $diasEsperando >= 7 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-600' }}">
+                                    {{ $diasEsperando }} {{ $diasEsperando == 1 ? 'día' : 'días' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="flex justify-center items-center gap-1">
+                                    @if($esCierre)
+                                        <form action="{{ route('activities.validate', $pv->id) }}" method="POST">@csrf @method('PUT')<button class="text-purple-600 hover:bg-purple-50 p-1.5 rounded" title="Validar Cierre"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button></form>
+                                    @else
+                                        <form action="{{ route('activities.approve', $pv->id) }}" method="POST">@csrf @method('PUT')<button class="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded" title="Aprobar"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></button></form>
+                                    @endif
+                                    <button onclick="rejectActivity({{ $pv->id }})" class="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Rechazar"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+    @endif
 
     {{-- ======================================================= --}}
     {{-- 5B. TAREAS BORRADAS (COORDINADOR / DIRECCIÓN)           --}}
@@ -596,6 +705,7 @@
                         <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Eliminada por</th>
                         <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Fecha de eliminación</th>
                         <th class="px-4 py-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider">Estatus previo</th>
+                        <th class="px-4 py-2 text-left text-[10px] font-bold text-red-500 uppercase tracking-wider">Motivo</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-red-50">
@@ -611,7 +721,11 @@
                                 <span class="text-slate-500">{{ $del->user->name ?? '—' }}</span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="font-semibold text-red-600">{{ $del->deletedByUser->name ?? '—' }}</span>
+                                @if($del->deletedByUser)
+                                    <span class="font-semibold text-red-600">{{ $del->deletedByUser->name }}</span>
+                                @else
+                                    <span class="font-semibold text-slate-400 italic">Sistema (automático)</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <span class="text-slate-500">{{ \Carbon\Carbon::parse($del->deleted_at)->format('d M Y H:i') }}</span>
@@ -621,6 +735,9 @@
                                     $delBadge = ['Por Aprobar'=>'bg-orange-100 text-orange-700','Por Validar'=>'bg-purple-100 text-purple-700','Planeado'=>'bg-indigo-100 text-indigo-700','En proceso'=>'bg-blue-100 text-blue-700','Completado'=>'bg-emerald-100 text-emerald-700','Completado con retardo'=>'bg-amber-100 text-amber-700','Retardo'=>'bg-red-100 text-red-700','Rechazado'=>'bg-red-200 text-red-800'];
                                 @endphp
                                 <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {{ $delBadge[$del->estatus] ?? 'bg-gray-100 text-gray-600' }}">{{ $del->estatus }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-left">
+                                <span class="text-slate-500">{{ $del->motivo_rechazo ?? '—' }}</span>
                             </td>
                         </tr>
                     @endforeach

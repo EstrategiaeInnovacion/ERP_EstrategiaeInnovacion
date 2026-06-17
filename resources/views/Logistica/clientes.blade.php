@@ -49,6 +49,7 @@
                         <tr class="border-b border-slate-200 bg-slate-50">
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">#</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cliente</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Clave</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Ejecutivo Asignado</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Periodicidad</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Correos</th>
@@ -60,6 +61,7 @@
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-6 py-4 text-slate-400 font-mono text-xs">{{ $clientes->firstItem() + $i }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $c->cliente }}</td>
+                                <td class="px-6 py-4 text-slate-500 font-mono text-xs">{{ $c->clave ?? '—' }}</td>
                                 <td class="px-6 py-4 text-slate-600">{{ $c->ejecutivoAsignado?->nombre ?? '—' }}</td>
                                 <td class="px-6 py-4 text-slate-600">{{ $c->periodicidad_reporte ?? '—' }}</td>
                                 <td class="px-6 py-4 text-slate-500 text-xs">{{ $c->correos_string ?: '—' }}</td>
@@ -80,7 +82,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-16 text-center text-slate-400">No hay clientes registrados.</td>
+                                <td colspan="7" class="px-6 py-16 text-center text-slate-400">No hay clientes registrados.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -109,6 +111,11 @@
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Cliente <span class="text-red-500">*</span></label>
                 <input type="text" id="clienteNombre"
                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 uppercase" required>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Clave (referencia interna)</label>
+                <input type="text" id="clienteClave" maxlength="50" placeholder="Ej. CLI-001"
+                       class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             </div>
             @if($esSupervisorLogistica)
             <div>
@@ -154,6 +161,7 @@ function abrirModal(titulo = 'Nuevo Cliente') {
     document.getElementById('modalTitulo').textContent = titulo;
     document.getElementById('clienteId').value = '';
     document.getElementById('clienteNombre').value = '';
+    document.getElementById('clienteClave').value = '';
     document.getElementById('clientePeriodicidad').value = 'Diario';
     document.getElementById('clienteCorreos').value = '';
     const sel = document.getElementById('clienteEjecutivo');
@@ -169,6 +177,7 @@ function editarCliente(btn) {
     document.getElementById('modalTitulo').textContent = 'Editar Cliente';
     document.getElementById('clienteId').value = id;
     document.getElementById('clienteNombre').value = data.cliente ?? '';
+    document.getElementById('clienteClave').value = data.clave ?? '';
     document.getElementById('clientePeriodicidad').value = data.periodicidad_reporte ?? 'Diario';
     const correos = Array.isArray(data.correos) ? data.correos.join(', ') : (data.correos ?? '');
     document.getElementById('clienteCorreos').value = correos;
@@ -203,6 +212,7 @@ async function guardarCliente() {
 
     const payload = {
         cliente: nombre,
+        clave: document.getElementById('clienteClave').value.trim() || null,
         periodicidad_reporte: document.getElementById('clientePeriodicidad').value,
         correos: JSON.stringify(correos),
     };
