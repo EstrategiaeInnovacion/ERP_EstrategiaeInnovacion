@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/activities/{id}/approve', [ActivityController::class, 'approve'])->name('activities.approve');
     Route::put('/activities/{id}/reject', [ActivityController::class, 'reject'])->name('activities.reject');
     Route::put('/activities/{id}/start', [ActivityController::class, 'start'])->name('activities.start');
+    Route::post('/activities/{id}/comentario-visto', [ActivityController::class, 'marcarComentarioVisto'])->name('activities.comentario_visto');
 
     // Proyectos
     Route::get('/proyectos', [App\Http\Controllers\ProyectoController::class, 'index'])->name('proyectos.index');

@@ -62,7 +62,7 @@ class ClienteController extends Controller
 
         return view('Logistica.clientes', [
             'clientes' => $query->paginate(15),
-            'todosEjecutivos' => $esSupervisorLogistica ? Empleado::where('es_activo', 1)->whereRaw("LOWER(posicion) LIKE '%logistic%'")->orderBy('nombre')->get() : [],
+            'todosEjecutivos' => Empleado::where('es_activo', 1)->whereRaw("LOWER(posicion) LIKE '%logistic%'")->orderBy('nombre')->get(),
             'esAdmin' => $esAdmin,
             'esSupervisorLogistica' => $esSupervisorLogistica,
             'equipo' => $equipo

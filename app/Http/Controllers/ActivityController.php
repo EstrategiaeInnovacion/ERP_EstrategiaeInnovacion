@@ -633,13 +633,22 @@ class ActivityController extends Controller
             }
 
             $mensaje = ($campo === 'comentarios')
-                ? 'Actualizó comentarios / bitácora'
+                ? 'Comentó: "'.$nuevoValor.'"'
                 : "Cambió $nombreLegible: '$valorAnterior' ➝ '$nuevoValor'";
+
+            if ($campo === 'comentarios') {
+                // Nuevo comentario: queda pendiente de revisión por la otra parte
+                // (responsable o quien lo supervisa, según quién lo escribió).
+                $activity->comentario_visto = false;
+            }
 
             ActivityHistory::create([
                 'activity_id' => $activity->id,
                 'user_id' => Auth::id(),
                 'action' => 'updated',
+                'field' => $campo,
+                'old_value' => $valorAnterior,
+                'new_value' => $nuevoValor,
                 'details' => $mensaje,
             ]);
         }
@@ -672,6 +681,22 @@ class ActivityController extends Controller
         }
 
         return redirect()->back()->with('success', 'Actualizado.');
+    }
+
+    public function marcarComentarioVisto($id)
+    {
+        $activity = Activity::findOrFail($id);
+        $autorId = $activity->ultimoComentarioAutorId();
+
+        // Solo se marca como visto cuando lo abre quien NO escribió el último
+        // comentario; si el propio autor lo vuelve a abrir, no debe ocultarse
+        // el punto a la otra parte antes de que esta lo haya visto.
+        if ($autorId && $autorId != Auth::id()) {
+            $activity->comentario_visto = true;
+            $activity->save();
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function destroy($id)

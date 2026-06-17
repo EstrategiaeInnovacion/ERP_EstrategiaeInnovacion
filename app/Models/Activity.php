@@ -19,6 +19,7 @@ class Activity extends Model
         'tipo_actividad',
         'nombre_actividad',
         'comentarios',
+        'comentario_visto',
         'fecha_inicio',
         'fecha_compromiso',
         'fecha_final',
@@ -42,6 +43,7 @@ class Activity extends Model
         'hora_inicio_programada' => 'datetime:H:i',
         'hora_fin_programada' => 'datetime:H:i',
         'proyecto_id' => 'integer',
+        'comentario_visto' => 'boolean',
     ];
 
     // --- RELACIONES ---

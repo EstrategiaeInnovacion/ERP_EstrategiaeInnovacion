@@ -420,19 +420,21 @@
 
                                 <td class="px-4 py-3">
                                     @php
-                                        // Rojo = el último comentario lo dejó el responsable de la tarea (requiere
-                                        // atención de quien lo supervisa). Azul = lo dejó quien supervisa (coordinador
-                                        // o dirección), es informativo para el responsable.
+                                        // Rojo = lo escribió el responsable (avisa a quien supervisa). Azul = lo
+                                        // escribió quien supervisa (avisa al responsable). Nunca se muestra a quien
+                                        // lo escribió, y desaparece para todos en cuanto la otra parte lo abre.
                                         $colorComentario = null;
-                                        if ($act->comentarios) {
+                                        if ($act->comentarios && !$act->comentario_visto) {
                                             $autorComentarioId = $act->ultimoComentarioAutorId();
-                                            $colorComentario = ($autorComentarioId && $autorComentarioId == $act->user_id) ? 'red' : 'blue';
+                                            if ($autorComentarioId && $autorComentarioId != Auth::id()) {
+                                                $colorComentario = ($autorComentarioId == $act->user_id) ? 'red' : 'blue';
+                                            }
                                         }
                                     @endphp
                                     <div class="flex flex-col">
                                         <span class="{{ in_array($act->estatus, ['Completado', 'Completado con retardo']) ? 'line-through text-slate-400' : 'text-slate-800 font-semibold' }} text-xs leading-snug">
                                             @if($colorComentario)
-                                                <span class="inline-block w-1.5 h-1.5 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} mr-1 align-middle" title="{{ $colorComentario === 'red' ? 'Comentario del responsable' : 'Comentario del supervisor/coordinador' }}"></span>
+                                                <span id="comment-dot-{{ $act->id }}" class="inline-block w-1.5 h-1.5 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} mr-1 align-middle" title="{{ $colorComentario === 'red' ? 'Comentario del responsable' : 'Comentario del supervisor/coordinador' }}"></span>
                                             @endif
                                             {{ $act->nombre_actividad }}
                                         </span>
@@ -579,11 +581,8 @@
                                                 <form action="{{ route('activities.destroy', $act->id) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad? No se podrá recuperar.')" class="inline">@csrf @method('DELETE')<button class="text-slate-300 hover:text-red-500 p-1.5" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></form>
                                             @endif
                                         @else
-                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }}, {{ ($act->user_id == Auth::id()) ? "true" : "false" }})' class="relative text-slate-400 hover:text-indigo-600 p-1.5" title="{{ $act->comentarios ? 'Tiene comentarios' : 'Agregar comentario' }}">
+                                            <button onclick='openNotes(@json($act), {{ ($esSupervisor || $esDireccion) ? "true" : "false" }}, {{ ($act->user_id == Auth::id()) ? "true" : "false" }})' class="text-slate-400 hover:text-indigo-600 p-1.5" title="{{ $act->comentarios ? 'Tiene comentarios' : 'Agregar comentario' }}">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                                @if($colorComentario)
-                                                    <span class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full {{ $colorComentario === 'red' ? 'bg-red-500' : 'bg-blue-500' }} ring-1 ring-white"></span>
-                                                @endif
                                             </button>
                                             @php $puedeEliminar = ($act->user_id == Auth::id() && (is_null($act->asignado_por) || $act->asignado_por == Auth::id())) || $act->asignado_por == Auth::id(); @endphp
                                             @if($puedeEliminar)
@@ -1223,6 +1222,7 @@ function toggleAllUsersExcel(checkbox) {
         }
     }
     function openNotes(act, canEditAll, isOwner) {
+        marcarComentarioVisto(act.id);
         const f = document.getElementById('notesForm'); f.action = "/activities/" + act.id;
         document.getElementById('modal-activity-name').value = act.nombre_actividad;
         document.getElementById('modal-prioridad').value = act.prioridad || 'Media';
@@ -1541,9 +1541,18 @@ function toggleAllUsersExcel(checkbox) {
         const c = document.getElementById(`container-day-${dayIndex}`); const idx = c.children.length + Math.floor(Math.random()*9999);
         c.insertAdjacentHTML('beforeend', `<div class="bg-white p-2 rounded border border-slate-200 shadow-sm relative group"><div onclick="this.parentElement.remove()" class="absolute -top-1 -right-1 text-slate-300 hover:text-red-500 cursor-pointer bg-white rounded-full"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg></div><input type="hidden" name="plan[${dayIndex}][${idx}][area]" value="General"><div class="flex gap-1 mb-1"><input type="time" name="plan[${dayIndex}][${idx}][start_time]" class="text-[10px] w-full border-slate-200 rounded px-1"><input type="time" name="plan[${dayIndex}][${idx}][end_time]" class="text-[10px] w-full border-slate-200 rounded px-1"></div><input type="text" name="plan[${dayIndex}][${idx}][cliente]" placeholder="Cliente" class="w-full text-[10px] border-none border-b border-slate-200 p-0 mb-1 focus:ring-0 text-indigo-600 font-bold"><textarea name="plan[${dayIndex}][${idx}][actividad]" rows="2" class="w-full text-xs border-slate-200 rounded p-1" placeholder="Actividad..." required></textarea></div>`);
     }
+    function marcarComentarioVisto(id) {
+        fetch(`/activities/${id}/comentario-visto`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+        }).catch(() => {});
+        document.getElementById('comment-dot-'+id)?.remove();
+    }
+
     function openHistory(id) {
+        marcarComentarioVisto(id);
         const d = JSON.parse(document.getElementById('history-json-'+id).textContent); const c = document.getElementById('history-container');
-        if(!d || !d.length) { c.innerHTML='<p class="text-center text-slate-400 py-4 text-xs">Sin historial.</p>'; } 
+        if(!d || !d.length) { c.innerHTML='<p class="text-center text-slate-400 py-4 text-xs">Sin historial.</p>'; }
         else {
             d.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
             let h = '<div class="space-y-3 relative border-l border-slate-200 ml-2">';

@@ -20,13 +20,6 @@
                     <p class="mt-1 text-slate-500">{{ $clientes->total() }} cliente{{ $clientes->total() !== 1 ? 's' : '' }} registrado{{ $clientes->total() !== 1 ? 's' : '' }}</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    @if($esAdmin)
-                    <label class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl font-semibold text-sm cursor-pointer hover:bg-slate-200 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        Importar Excel
-                        <input type="file" accept=".xlsx,.xls" class="hidden" id="fileImportar" onchange="importarClientes(this)">
-                    </label>
-                    @endif
                     <button onclick="abrirModal()"
                             class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -117,7 +110,6 @@
                 <input type="text" id="clienteClave" maxlength="50" placeholder="Ej. CLI-001"
                        class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             </div>
-            @if($esSupervisorLogistica)
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Ejecutivo Asignado</label>
                 <select id="clienteEjecutivo" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
@@ -127,7 +119,6 @@
                     @endforeach
                 </select>
             </div>
-            @endif
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Periodicidad de Reporte</label>
                 <select id="clientePeriodicidad" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
@@ -252,22 +243,6 @@ async function eliminarCliente(id) {
     }
 }
 
-async function importarClientes(input) {
-    if (!input.files.length) return;
-    const form = new FormData();
-    form.append('clientes_file', input.files[0]);
-    form.append('_token', CSRF);
-    try {
-        const resp = await fetch('/logistica/clientes/importar', { method: 'POST', body: form });
-        const json = await resp.json();
-        if (!resp.ok) { alert(json.message ?? 'Error al importar.'); return; }
-        alert('Importación completada.');
-        window.location.reload();
-    } catch (e) {
-        alert('Error de conexión.');
-    }
-    input.value = '';
-}
 </script>
 @endpush
 @endsection
