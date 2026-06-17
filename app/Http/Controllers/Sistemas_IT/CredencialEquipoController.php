@@ -100,10 +100,6 @@ class CredencialEquipoController extends Controller
             'modelo' => 'nullable|string|max:255',
             'numero_serie' => 'nullable|string|max:255',
             'photo_id' => 'nullable|integer',
-            'nombre_usuario_pc' => 'required|string|max:255',
-            'contrasena_equipo' => 'required|string',
-            'correo' => 'nullable|email|max:255',
-            'contrasena_correo' => 'nullable|string',
             'notas' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
@@ -124,8 +120,6 @@ class CredencialEquipoController extends Controller
                 'modelo' => $request->modelo,
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
-                'nombre_usuario_pc' => $request->nombre_usuario_pc,
-                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $request->notas,
             ]);
 
@@ -146,15 +140,6 @@ class CredencialEquipoController extends Controller
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user->name;
 
-            // Guardar credenciales en Activos (username, password, email, email_password)
-            $this->activos->upsertCredentialByUuid(
-                $request->uuid_activos,
-                $request->nombre_usuario_pc,
-                $request->contrasena_equipo,
-                $request->correo,
-                $request->contrasena_correo
-            );
-
             // Equipo principal: solo cuando se seleccionó de los disponibles
             if ($request->boolean('assign_new')) {
                 $this->activos->assignDeviceInActivos(
@@ -171,6 +156,10 @@ class CredencialEquipoController extends Controller
                     $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
                 }
             }
+
+            // Usuario de PC y correo viven únicamente en Activos: se jalan aquí
+            // para mantener el caché del ERP (búsqueda/listado) sincronizado.
+            $this->aplicarCredencialDesdeActivos($equipo);
             // ─────────────────────────────────────────────────────────────────
 
             return response()->json([
@@ -225,11 +214,7 @@ class CredencialEquipoController extends Controller
             'nombre_equipo' => 'required|string|max:255',
             'modelo' => 'nullable|string|max:255',
             'numero_serie' => 'nullable|string|max:255',
-            'nombre_usuario_pc' => 'required|string|max:255',
-            'contrasena_equipo' => 'nullable|string',
             'notas' => 'nullable|string',
-            'correo' => 'nullable|email|max:255',
-            'contrasena_correo' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.id' => 'nullable|integer',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
@@ -250,17 +235,12 @@ class CredencialEquipoController extends Controller
 
         try {
             // Update main record fields
-            $updateData = [
+            $credencial->update([
                 'nombre_equipo' => $request->nombre_equipo,
                 'modelo' => $request->modelo,
                 'numero_serie' => $request->numero_serie,
-                'nombre_usuario_pc' => $request->nombre_usuario_pc,
                 'notas' => $request->notas,
-            ];
-            if ($request->filled('contrasena_equipo')) {
-                $updateData['contrasena_equipo'] = $request->contrasena_equipo;
-            }
-            $credencial->update($updateData);
+            ]);
 
             // Sync perifericos: delete removed, add new
             $credencial->perifericos()->whereNotIn('id', $keepPerIds)->delete();
@@ -284,15 +264,6 @@ class CredencialEquipoController extends Controller
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user?->name ?? '';
 
-            // Actualizar credenciales en Activos (username, password, email, email_password)
-            $this->activos->upsertCredentialByUuid(
-                $credencial->uuid_activos,
-                $request->nombre_usuario_pc,
-                $request->filled('contrasena_equipo') ? $request->contrasena_equipo : null,
-                $request->correo,
-                $request->filled('contrasena_correo') ? $request->contrasena_correo : null
-            );
-
             foreach ($removedPers as $per) {
                 if ($per->uuid_activos) {
                     $this->activos->returnDeviceInActivos($per->uuid_activos);
@@ -303,6 +274,10 @@ class CredencialEquipoController extends Controller
                     $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
                 }
             }
+
+            // Usuario de PC y correo viven únicamente en Activos: se refrescan aquí
+            // para mantener el caché del ERP sincronizado.
+            $this->aplicarCredencialDesdeActivos($credencial);
 
             return response()->json([
                 'success' => true,
@@ -353,10 +328,6 @@ class CredencialEquipoController extends Controller
             'modelo' => 'nullable|string|max:255',
             'numero_serie' => 'nullable|string|max:255',
             'photo_id' => 'nullable|integer',
-            'nombre_usuario_pc' => 'required|string|max:255',
-            'contrasena_equipo' => 'required|string',
-            'correo' => 'nullable|email|max:255',
-            'contrasena_correo' => 'nullable|string',
             'notas' => 'nullable|string',
             'perifericos' => 'sometimes|array',
             'perifericos.*.uuid' => 'required_with:perifericos.*|string',
@@ -383,8 +354,6 @@ class CredencialEquipoController extends Controller
                 'modelo' => $request->modelo,
                 'numero_serie' => $request->numero_serie,
                 'photo_id' => $request->photo_id,
-                'nombre_usuario_pc' => $request->nombre_usuario_pc,
-                'contrasena_equipo' => $request->contrasena_equipo,
                 'notas' => $notas,
                 'es_principal' => false,
             ]);
@@ -405,15 +374,6 @@ class CredencialEquipoController extends Controller
             $badge = $empleado?->id_empleado ?: null;
             $assignedTo = $empleado?->nombre ?? $user->name;
 
-            // Guardar credenciales en Activos
-            $this->activos->upsertCredentialByUuid(
-                $request->uuid_activos,
-                $request->nombre_usuario_pc,
-                $request->contrasena_equipo,
-                $request->correo,
-                $request->contrasena_correo
-            );
-
             // Equipo principal: solo cuando se seleccionó de los disponibles
             if ($request->boolean('assign_new')) {
                 $this->activos->assignDeviceInActivos(
@@ -430,6 +390,10 @@ class CredencialEquipoController extends Controller
                     $this->activos->assignDeviceInActivos($per['uuid'], $assignedTo, $badge);
                 }
             }
+
+            // Usuario de PC y correo viven únicamente en Activos: se jalan aquí
+            // para mantener el caché del ERP sincronizado.
+            $this->aplicarCredencialDesdeActivos($secundario);
 
             return response()->json([
                 'success' => true,
@@ -468,6 +432,34 @@ class CredencialEquipoController extends Controller
         $secundario->delete();
 
         return back()->with('success', 'Equipo secundario eliminado correctamente.');
+    }
+
+    // Usuario de PC, correo y sus contraseñas se gestionan únicamente en Activos
+    // (vía "Editar credenciales" en el detalle del dispositivo). Aquí solo se
+    // refleja el username y el correo como caché de lectura/búsqueda en el ERP.
+    private function aplicarCredencialDesdeActivos(EquipoAsignado $equipo): void
+    {
+        if (! $equipo->uuid_activos || ! $this->activos->isConfigured()) {
+            return;
+        }
+
+        $cred = $this->activos->getDeviceCredentialByUuid($equipo->uuid_activos);
+        if (! $cred) {
+            return;
+        }
+
+        if ($cred->username) {
+            $equipo->update(['nombre_usuario_pc' => $cred->username]);
+        }
+
+        if ($cred->email) {
+            $correoExistente = $equipo->correos()->orderBy('id')->first();
+            if ($correoExistente) {
+                $correoExistente->update(['correo' => $cred->email]);
+            } else {
+                $equipo->correos()->create(['correo' => $cred->email]);
+            }
+        }
     }
 
     public function cartaResponsiva(User $user)

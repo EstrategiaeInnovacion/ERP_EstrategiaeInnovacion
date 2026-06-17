@@ -7,12 +7,16 @@ use App\Models\BlockedEmail;
 use App\Models\User;
 use App\Models\Empleado;
 use App\Models\EmpleadoBaja;
+use App\Models\Sistemas_IT\EquipoAsignado;
+use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UsersController extends Controller
 {
+    public function __construct(protected ActivosDbService $activos) {}
+
     public function index()
     {
         $approvedUsers = User::where('status', User::STATUS_APPROVED)
@@ -319,7 +323,32 @@ class UsersController extends Controller
             'rejected_at' => now(),
         ]);
 
+        $this->liberarEquiposDeBaja($user);
+
         return redirect()->route('admin.users')->with('success', 'El usuario ' . $user->name . ' ha sido dado de baja exitosamente.');
+    }
+
+    // Libera (devuelve a "disponible" en Activos) y elimina todos los registros de
+    // Contraseñas y Equipos del usuario dado de baja, principal y secundarios, junto
+    // con sus periféricos y correos asociados (se borran en cascada por FK). No toca
+    // las cartas responsivas, que viven en el expediente del empleado (EmpleadoDocumento).
+    private function liberarEquiposDeBaja(User $user): void
+    {
+        $equipos = EquipoAsignado::with('perifericos')->where('user_id', $user->id)->get();
+
+        foreach ($equipos as $equipo) {
+            if ($equipo->uuid_activos) {
+                $this->activos->returnDeviceInActivos($equipo->uuid_activos);
+            }
+
+            foreach ($equipo->perifericos as $periferico) {
+                if ($periferico->uuid_activos) {
+                    $this->activos->returnDeviceInActivos($periferico->uuid_activos);
+                }
+            }
+
+            $equipo->delete();
+        }
     }
 
     public function reactivar(User $user)

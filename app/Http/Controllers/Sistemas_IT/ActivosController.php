@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Sistemas_IT;
 
 use App\Http\Controllers\Controller;
 use App\Models\Empleado;
+use App\Models\Sistemas_IT\EquipoAsignado;
+use App\Models\Sistemas_IT\EquipoPeriferico;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -269,8 +271,24 @@ class ActivosController extends Controller
             return back()->with('error', 'No se pudo registrar la devolución. Verifica que el dispositivo tenga una asignación activa.');
         }
 
+        $this->limpiarRegistroErp($uuid);
+
         return redirect()->route('admin.activos.show', $uuid)
             ->with('success', 'Dispositivo devuelto y marcado como disponible.');
+    }
+
+    // Si el dispositivo devuelto en Activos tenía registro en "Contraseñas y Equipos"
+    // (como equipo principal o como periférico), lo elimina para que no quede
+    // mostrándose ahí como si siguiera asignado.
+    private function limpiarRegistroErp(string $uuid): void
+    {
+        $equipo = EquipoAsignado::where('uuid_activos', $uuid)->first();
+        if ($equipo) {
+            $equipo->delete();
+            return;
+        }
+
+        EquipoPeriferico::where('uuid_activos', $uuid)->delete();
     }
 
     /**

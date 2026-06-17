@@ -337,7 +337,7 @@ class ActivityController extends Controller
             if ($esPuestoPlanificador && $esHorarioPermitido) {
                 $puedePlanificar = true;
             }
-            $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->pluck('user_id')->filter()->toArray();
+            $subordinadosIds = Empleado::where('supervisor_id', $miEmpleado->id)->where('es_activo', true)->pluck('user_id')->filter()->toArray();
             if (count($subordinadosIds) > 0) {
                 $idsVisibles = array_merge($idsVisibles, $subordinadosIds);
             }
@@ -365,7 +365,9 @@ class ActivityController extends Controller
         $puedeAsignarAOtros = $this->puedeAsignarAOtros($user);
         $teamUsers = collect();
         if ($esDireccion) {
-            $teamUsers = User::orderBy('name')->get();
+            $teamUsers = User::whereHas('empleado', function ($q) {
+                $q->where('es_activo', true);
+            })->orderBy('name')->get();
         } elseif ($esSupervisor || $esCoordinador) {
             $teamUsers = User::whereIn('id', $idsVisibles)->orderBy('name')->get();
         }

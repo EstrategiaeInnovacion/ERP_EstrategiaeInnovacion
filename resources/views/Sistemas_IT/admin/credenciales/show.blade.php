@@ -496,33 +496,15 @@
                             </div>
                         </template>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="rounded-xl border border-amber-200 bg-white p-3">
+                            <p class="text-xs text-amber-700">
+                                El usuario de PC, su contraseña, el correo y la contraseña del correo se
+                                gestionan desde el <strong>Sistema de Activos</strong> (detalle del dispositivo →
+                                Editar credenciales). Este registro las reflejará automáticamente al guardar.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4">
                             <div class="space-y-1">
-                                <label class="text-xs font-semibold text-slate-600">Usuario de PC <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="nombreUsuarioPc"
-                                       placeholder="Ej. jperez"
-                                       class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-semibold text-slate-600">Contraseña del equipo <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <input :type="showCont ? 'text' : 'password'" x-model="contrasenaEquipo"
-                                           placeholder="••••••••"
-                                           class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
-                                    <button type="button" @click="showCont = !showCont"
-                                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                        <svg x-show="!showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                        <svg x-show="showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="space-y-1 sm:col-span-2">
                                 <label class="text-xs font-semibold text-slate-600">Notas</label>
                                 <textarea x-model="notas" rows="2"
                                           placeholder="Información adicional (nombre del cliente, propósito del equipo…)"
@@ -592,7 +574,7 @@
                                     class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl hover:bg-slate-100 transition">
                                 Cancelar
                             </button>
-                            <button type="button" @click="guardar()" :disabled="guardando || !nombreUsuarioPc.trim() || !contrasenaEquipo.trim()"
+                            <button type="button" @click="guardar()" :disabled="guardando || !device"
                                     class="inline-flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition shadow-sm">
                                 <template x-if="guardando">
                                     <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -678,82 +660,28 @@
                 </div>
             </div>
 
-            {{-- Credenciales --}}
-            <div class="space-y-4 border-t border-slate-100 pt-4">
+            {{-- Credenciales y correo (gestionados desde Activos) --}}
+            <div class="space-y-3 border-t border-slate-100 pt-4">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                     <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                     </svg>
-                    Credenciales del equipo
+                    Usuario, contraseña y correo
                 </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-600">Usuario de PC <span class="text-red-500">*</span></label>
-                        <input type="text" x-model="nombreUsuarioPc" placeholder="Ej. jperez"
-                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-600">Nueva contraseña <span class="text-slate-400 font-normal">(dejar vacío para no cambiar)</span></label>
-                        <div class="relative">
-                            <input :type="showCont ? 'text' : 'password'" x-model="contrasenaEquipo"
-                                   placeholder="••••••••"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
-                            <button type="button" @click="showCont = !showCont"
-                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                <svg x-show="!showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                <svg x-show="showCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="space-y-1 sm:col-span-2">
-                        <label class="text-xs font-semibold text-slate-600">Notas</label>
-                        <textarea x-model="notas" rows="2" placeholder="Información adicional…"
-                                  class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"></textarea>
-                    </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-sm text-slate-700"><span class="font-semibold">Usuario PC:</span> {{ $activosCred?->username ?? $credencial->nombre_usuario_pc ?? '—' }}</p>
+                    <p class="text-sm text-slate-700 mt-1"><span class="font-semibold">Correo:</span> {{ $activosCred?->email ?? '—' }}</p>
+                    <p class="text-xs text-slate-400 mt-2">
+                        Usuario, contraseña, correo y su contraseña se gestionan desde el
+                        <strong>Sistema de Activos</strong> (detalle del dispositivo → Editar credenciales).
+                        Este registro las refleja automáticamente.
+                    </p>
                 </div>
-            </div>
-
-            {{-- Correo --}}
-            <div class="space-y-3 border-t border-slate-100 pt-4">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                    Correo del equipo
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-600">Dirección de correo</label>
-                        <input type="email" x-model="correo" placeholder="correo@dominio.com"
-                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-600">Contraseña del correo <span class="text-slate-400 font-normal">(dejar vacío para no cambiar)</span></label>
-                        <div class="relative">
-                            <input :type="showCorreoCont ? 'text' : 'password'" x-model="contrasenaCorreo"
-                                   placeholder="••••••••"
-                                   class="w-full border border-slate-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white">
-                            <button type="button" @click="showCorreoCont = !showCorreoCont"
-                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                <svg x-show="!showCorreoCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                <svg x-show="showCorreoCont" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-600">Notas</label>
+                    <textarea x-model="notas" rows="2" placeholder="Información adicional…"
+                              class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"></textarea>
                 </div>
             </div>
 
@@ -823,7 +751,7 @@
                     Cancelar
                 </button>
                 <button type="button" @click="guardar()"
-                        :disabled="guardando || !nombreEquipo.trim() || !nombreUsuarioPc.trim()"
+                        :disabled="guardando || !nombreEquipo.trim()"
                         class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition shadow-sm">
                     <template x-if="guardando">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -882,12 +810,6 @@ function editForm() {
         nombreEquipo:     @json($credencial->nombre_equipo),
         modelo:           @json($credencial->modelo ?? ''),
         numeroSerie:      @json($credencial->numero_serie ?? ''),
-        nombreUsuarioPc:  @json($credencial->nombre_usuario_pc),
-        contrasenaEquipo: '',
-        showCont:         false,
-        correo:           @json($activosCred?->email ?? ''),
-        contrasenaCorreo: '',
-        showCorreoCont:   false,
         notas:            @json($credencial->notas ?? ''),
 
         perifericos: @json($_editPerifericos),
@@ -937,7 +859,7 @@ function editForm() {
         },
 
         async guardar() {
-            if (!this.nombreEquipo.trim() || !this.nombreUsuarioPc.trim()) return;
+            if (!this.nombreEquipo.trim()) return;
             this.guardando = true;
             this.errorMsg  = '';
             try {
@@ -952,10 +874,6 @@ function editForm() {
                         nombre_equipo:     this.nombreEquipo.trim(),
                         modelo:            this.modelo.trim() || null,
                         numero_serie:      this.numeroSerie.trim() || null,
-                        nombre_usuario_pc: this.nombreUsuarioPc.trim(),
-                        contrasena_equipo: this.contrasenaEquipo || null,
-                        correo:            this.correo.trim() || null,
-                        contrasena_correo: this.contrasenaCorreo || null,
                         notas:             this.notas.trim() || null,
                         perifericos: this.perifericos.map(p => ({
                             id:     p.id,
@@ -988,12 +906,6 @@ function secEquipoForm() {
         step: 'pick_device', // 'loading' | 'pick_device' | 'credentials'
         disponibles: [],
         device: null,
-        nombreUsuarioPc: '',
-        contrasenaEquipo: '',
-        showCont: false,
-        correo: '',
-        contrasenaCorreo: '',
-        showCorreoCont: false,
         notas: '',
         assignNew: false,
         perifericos: [],
@@ -1023,10 +935,6 @@ function secEquipoForm() {
             this.showFormSecundario = false;
             this.step = 'pick_device';
             this.device = null;
-            this.nombreUsuarioPc  = '';
-            this.contrasenaEquipo = '';
-            this.correo           = '';
-            this.contrasenaCorreo = '';
             this.notas            = '';
             this.assignNew        = false;
             this.perifericos = [];
@@ -1036,7 +944,7 @@ function secEquipoForm() {
         },
 
         get perifericosDisponiblesParaAgregar() {
-            return this.disponibles.filter(d => d.type === 'peripheral' && !this.perifericos.find(p => p.uuid === d.uuid));
+            return this.disponibles.filter(d => d.type !== 'computer' && !this.perifericos.find(p => p.uuid === d.uuid));
         },
 
         addPeriferico() {
@@ -1065,7 +973,7 @@ function secEquipoForm() {
         },
 
         async guardar() {
-            if (!this.device || !this.nombreUsuarioPc.trim() || !this.contrasenaEquipo.trim()) return;
+            if (!this.device) return;
             this.guardando = true;
             this.errorMsg = '';
             try {
@@ -1082,10 +990,6 @@ function secEquipoForm() {
                         modelo:            this.device.modelo,
                         numero_serie:      this.device.serie,
                         photo_id:          this.device.photo_id,
-                        nombre_usuario_pc: this.nombreUsuarioPc.trim(),
-                        contrasena_equipo: this.contrasenaEquipo,
-                        correo:            this.correo.trim() || null,
-                        contrasena_correo: this.contrasenaCorreo || null,
                         notas:             this.notas.trim() || null,
                         assign_new:        this.assignNew,
                         perifericos:       this.perifericos.map(p => ({
