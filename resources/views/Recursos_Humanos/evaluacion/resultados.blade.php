@@ -18,16 +18,31 @@
                 Volver al Tablero
             </a>
             <div class="flex items-center gap-3">
-                <form method="GET" class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase">Periodo:</span>
-                    <select name="periodo" onchange="this.form.submit()"
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Periodo / Ventana:</span>
+                    <select onchange="window.location.href = this.value"
                         class="text-sm bg-white border border-slate-200 rounded-full px-4 py-2 text-slate-700 font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
-                        @foreach($periodos as $p)
-                            <option value="{{ $p }}" {{ $periodo == $p ? 'selected' : '' }}>{{ $p }}</option>
-                        @endforeach
+                        <optgroup label="Periodos Estándar">
+                            @foreach($periodos as $p)
+                                <option value="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'periodo' => $p]) }}" 
+                                    {{ (empty($ventanaId) && $periodo == $p) ? 'selected' : '' }}>
+                                    {{ $p }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                        @if($ventanasConEvaluacion->isNotEmpty())
+                            <optgroup label="Ventanas Programadas / Prueba">
+                                @foreach($ventanasConEvaluacion as $v)
+                                    <option value="{{ route('rh.evaluacion.resultados', ['id' => $empleado->id, 'ventana_id' => $v->id]) }}" 
+                                        {{ ($ventanaId == $v->id) ? 'selected' : '' }}>
+                                        {{ $v->nombre }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
-                </form>
-                <a href="{{ route('rh.evaluacion.resultados.excel', ['id' => $empleado->id, 'periodo' => $periodo]) }}"
+                </div>
+                <a href="{{ route('rh.evaluacion.resultados.excel', ['id' => $empleado->id, 'periodo' => $periodo, 'ventana_id' => $ventanaId]) }}"
                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold shadow-sm transition flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     Descargar Excel
@@ -95,19 +110,19 @@
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                                     @php
-                                                        $tipoBadge = match($evaluacion->tipo) {
+                                                        $tipoBadge = match($eval->tipo) {
                                                             'admin_rh' => 'Admin RH',
                                                             'subordinado' => 'Subordinado',
                                                             default => 'Supervisor',
                                                         };
-                                                        $tipoBadgeColor = match($evaluacion->tipo) {
+                                                        $tipoBadgeColor = match($eval->tipo) {
                                                             'admin_rh' => 'bg-purple-50 text-purple-700 border-purple-200',
                                                             'subordinado' => 'bg-teal-50 text-teal-700 border-teal-200',
                                                             default => 'bg-slate-50 text-slate-700 border-slate-200',
                                                         };
                                                     @endphp
-                                            <span class="px-2 py-1 rounded text-[10px] font-bold border {{ $tipoColor }}">
-                                                {{ $tipoLabel }}
+                                            <span class="px-2 py-1 rounded text-[10px] font-bold border {{ $tipoBadgeColor }}">
+                                                {{ $tipoBadge }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-center">

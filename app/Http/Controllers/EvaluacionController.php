@@ -504,6 +504,11 @@ class EvaluacionController extends Controller
         if (!$this->hasFullVisibility($user))
             return redirect()->route('rh.evaluacion.index');
 
+        $empleado = Empleado::findOrFail($id);
+        if (!$empleado->es_activo) {
+            return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible acceder a los resultados de un empleado dado de baja.');
+        }
+
         $currentYear = Carbon::now()->year;
         $periodos = [
             ($currentYear + 1) . " | Enero - Junio",
@@ -513,16 +518,22 @@ class EvaluacionController extends Controller
             ($currentYear - 1) . " | Enero - Junio",
         ];
 
-        $empleado = Empleado::findOrFail($id);
-        if (!$empleado->es_activo) {
-            return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible acceder a los resultados de un empleado dado de baja.');
-        }
         $periodo = $request->query('periodo', $periodos[2] ?? "$currentYear | Enero - Junio");
+        $ventanaId = $request->query('ventana_id');
 
-        $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
-            ->where('empleado_id', $id)
-            ->where('periodo', $periodo)
-            ->get();
+        $queryEval = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
+            ->where('empleado_id', $id);
+
+        if ($ventanaId) {
+            $queryEval->where('ventana_id', $ventanaId);
+            $ventanaSeleccionada = EvaluacionVentana::find($ventanaId);
+            $nombrePeriodo = $ventanaSeleccionada ? $ventanaSeleccionada->nombre : $periodo;
+        } else {
+            $queryEval->where('periodo', $periodo);
+            $nombrePeriodo = $periodo;
+        }
+
+        $evaluaciones = $queryEval->get();
 
         if ($evaluaciones->isEmpty())
             return back()->with('error', 'Sin datos.');
@@ -548,7 +559,25 @@ class EvaluacionController extends Controller
             return $eval;
         });
 
-        return view('Recursos_Humanos.evaluacion.resultados', compact('empleado', 'periodo', 'promedioGeneral', 'desglose', 'periodos'));
+        // Obtener todas las ventanas en las que este empleado tiene evaluaciones para el selector
+        $ventanasConEvaluacion = Evaluacion::where('empleado_id', $id)
+            ->whereNotNull('ventana_id')
+            ->with('ventana')
+            ->get()
+            ->pluck('ventana')
+            ->unique('id')
+            ->filter();
+
+        return view('Recursos_Humanos.evaluacion.resultados', compact(
+            'empleado',
+            'periodo',
+            'promedioGeneral',
+            'desglose',
+            'periodos',
+            'ventanasConEvaluacion',
+            'ventanaId',
+            'nombrePeriodo'
+        ));
     }
 
     public function resultadosExcel(Request $request, $id)
@@ -571,11 +600,21 @@ class EvaluacionController extends Controller
             ($currentYear - 1) . " | Enero - Junio",
         ];
         $periodo = $request->query('periodo', $periodos[2] ?? "$currentYear | Enero - Junio");
+        $ventanaId = $request->query('ventana_id');
 
-        $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
-            ->where('empleado_id', $id)
-            ->where('periodo', $periodo)
-            ->get();
+        $queryEval = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
+            ->where('empleado_id', $id);
+
+        if ($ventanaId) {
+            $queryEval->where('ventana_id', $ventanaId);
+            $ventanaSeleccionada = EvaluacionVentana::find($ventanaId);
+            $nombrePeriodo = $ventanaSeleccionada ? $ventanaSeleccionada->nombre : $periodo;
+        } else {
+            $queryEval->where('periodo', $periodo);
+            $nombrePeriodo = $periodo;
+        }
+
+        $evaluaciones = $queryEval->get();
 
         if ($evaluaciones->isEmpty())
             return back()->with('error', 'Sin datos.');
@@ -617,7 +656,7 @@ class EvaluacionController extends Controller
         $sheet->setCellValue('A4', 'Puesto:');
         $sheet->setCellValue('B4', $empleado->posicion ?? '-');
         $sheet->setCellValue('A5', 'Periodo:');
-        $sheet->setCellValue('B5', $periodo);
+        $sheet->setCellValue('B5', $nombrePeriodo);
         $sheet->setCellValue('A6', 'Calificación Final:');
         $sheet->setCellValue('B6', number_format($promedioGeneral, 1) . ' / 100');
 
@@ -662,7 +701,7 @@ class EvaluacionController extends Controller
         $sheet2->setCellValue('A3', 'Empleado:');
         $sheet2->setCellValue('B3', $empleado->nombre . ' ' . $empleado->apellido_paterno);
         $sheet2->setCellValue('A4', 'Periodo:');
-        $sheet2->setCellValue('B4', $periodo);
+        $sheet2->setCellValue('B4', $nombrePeriodo);
 
         $sheet2->setCellValue('A6', 'Evaluador');
         $sheet2->setCellValue('B6', 'Pregunta');
@@ -692,7 +731,7 @@ class EvaluacionController extends Controller
         }
 
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $filename = "evaluacion_{$empleado->id}_{$periodo}.xlsx";
+        $filename = "evaluacion_{$empleado->id}_{$nombrePeriodo}.xlsx";
 
         ob_start();
         $writer->save('php://output');
