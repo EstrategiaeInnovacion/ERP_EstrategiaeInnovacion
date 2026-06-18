@@ -16,15 +16,7 @@ class EvaluacionController extends Controller
 {
     private function isEvaluationWindowOpen(): bool
     {
-        // Primero consulta si hay una ventana configurada en BD
-        if (EvaluacionVentana::where('activo', true)->exists()) {
-            return EvaluacionVentana::estaAbierta();
-        }
-
-        // Fallback: lógica semestral original
-        $now = Carbon::now();
-        return ($now->month == 6 && $now->day >= 21 && $now->day <= 30) ||
-               ($now->month == 12 && $now->day >= 1  && $now->day <= 31);
+        return EvaluacionVentana::estaAbierta();
     }
 
     // -------------------------------------------------------
