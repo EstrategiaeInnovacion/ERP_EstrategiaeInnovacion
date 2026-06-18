@@ -49,10 +49,12 @@ class GlobalEvaluacionSeeder extends Seeder
         // 3. EVALUACIÓN DE SUPERVISOR (Upward Feedback)
         // ==========================================
         $supervisorSkills = [
-            ['criterio' => 'Liderazgo y Motivación', 'descripcion' => 'Inspira al equipo y reconoce logros.', 'peso' => 25],
-            ['criterio' => 'Comunicación Clara', 'descripcion' => 'Da instrucciones precisas y escucha.', 'peso' => 25],
-            ['criterio' => 'Apoyo al Desarrollo', 'descripcion' => 'Fomenta el crecimiento profesional del equipo.', 'peso' => 25],
-            ['criterio' => 'Toma de Decisiones', 'descripcion' => 'Resuelve conflictos de manera justa y oportuna.', 'peso' => 25],
+            ['criterio' => 'Liderazgo y Motivación', 'descripcion' => 'Inspira al equipo y reconoce logros.', 'peso' => 20],
+            ['criterio' => 'Comunicación Clara', 'descripcion' => 'Da instrucciones precisas y escucha.', 'peso' => 20],
+            ['criterio' => 'Apoyo al Desarrollo', 'descripcion' => 'Fomenta el crecimiento profesional del equipo.', 'peso' => 15],
+            ['criterio' => 'Toma de Decisiones', 'descripcion' => 'Resuelve conflictos de manera justa y oportuna.', 'peso' => 15],
+            ['criterio' => 'Delegación y Confianza', 'descripcion' => 'Asigna responsabilidades con claridad y otorga autonomía.', 'peso' => 15],
+            ['criterio' => 'Empatía y Accesibilidad', 'descripcion' => 'Es accesible y muestra interés por el bienestar del equipo.', 'peso' => 15],
         ];
 
         // ==========================================
