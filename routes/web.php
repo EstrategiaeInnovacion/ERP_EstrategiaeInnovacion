@@ -180,6 +180,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/evaluacion-ventanas', 'getVentanas')->name('evaluacion.ventanas.index');
         Route::post('/evaluacion-ventanas', 'saveVentana')->name('evaluacion.ventanas.store');
         Route::patch('/evaluacion-ventanas/{id}/toggle', 'toggleVentana')->name('evaluacion.ventanas.toggle');
+        Route::delete('/evaluacion-ventanas/{id}', 'deleteVentana')->name('evaluacion.ventanas.destroy');
     }
     );
 });

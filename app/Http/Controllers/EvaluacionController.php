@@ -106,6 +106,24 @@ class EvaluacionController extends Controller
         return response()->json(['success' => true, 'activo' => $ventana->activo]);
     }
 
+    public function deleteVentana($id)
+    {
+        $user = Auth::user();
+        $me   = Empleado::where('correo', $user->email)->first();
+
+        if (!$this->isAdminRH($me) && !$user->isAdmin()) {
+            abort(403);
+        }
+
+        $ventana = EvaluacionVentana::findOrFail($id);
+        $ventana->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ventana de evaluación eliminada correctamente.'
+        ]);
+    }
+
     // --- DETECCIÓN DE PUESTO (POSICIÓN) ---
     private function isAdminRH($empleado)
     {
@@ -198,7 +216,7 @@ class EvaluacionController extends Controller
         $puedeGestionarVentanas  = $isAdminRH || $user->isAdmin();
         $ventanaActiva           = EvaluacionVentana::ventanaActual();
 
-        $query = Empleado::query();
+        $query = Empleado::where('es_activo', true);
 
         if ($hasFullVisibility) {
             if ($request->has('area') && $request->area !== 'Todos') {
@@ -254,6 +272,9 @@ class EvaluacionController extends Controller
     public function show(Request $request, $id)
     {
         $target = Empleado::findOrFail($id);
+        if (!$target->es_activo) {
+            return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible evaluar a un empleado dado de baja.');
+        }
         $user = Auth::user();
         $me = Empleado::where('correo', $user->email)->first();
         $periodo = $request->query('periodo');
@@ -365,6 +386,9 @@ class EvaluacionController extends Controller
             return back()->with('error', 'Ya evaluaste a esta persona como ' . $request->tipo . ' en este periodo.');
 
         $target = Empleado::find($request->empleado_id);
+        if (!$target || !$target->es_activo) {
+            return back()->with('error', 'No es posible evaluar a un empleado dado de baja.');
+        }
         $me = Empleado::where('correo', Auth::user()->email)->first();
 
         try {
@@ -414,6 +438,11 @@ class EvaluacionController extends Controller
         $evaluacion = Evaluacion::findOrFail($id);
         if ($evaluacion->evaluador_id != Auth::id())
             return abort(403);
+
+        $target = Empleado::find($evaluacion->empleado_id);
+        if (!$target || !$target->es_activo) {
+            return back()->with('error', 'No es posible modificar la evaluación de un empleado dado de baja.');
+        }
 
         $request->validate([
             'tipo' => 'required|string|in:supervisor,admin_rh,subordinado',
@@ -493,6 +522,9 @@ class EvaluacionController extends Controller
         ];
 
         $empleado = Empleado::findOrFail($id);
+        if (!$empleado->es_activo) {
+            return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible acceder a los resultados de un empleado dado de baja.');
+        }
         $periodo = $request->query('periodo', $periodos[2] ?? "$currentYear | Enero - Junio");
 
         $evaluaciones = Evaluacion::with(['evaluador.empleado', 'detalles.criterio'])
@@ -534,6 +566,9 @@ class EvaluacionController extends Controller
             return redirect()->route('rh.evaluacion.index');
 
         $empleado = Empleado::findOrFail($id);
+        if (!$empleado->es_activo) {
+            return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible acceder a los resultados de un empleado dado de baja.');
+        }
 
         $currentYear = Carbon::now()->year;
         $periodos = [

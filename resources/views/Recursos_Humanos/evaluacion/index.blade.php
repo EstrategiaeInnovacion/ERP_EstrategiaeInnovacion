@@ -480,12 +480,19 @@
                                 ${formatDate(v.fecha_apertura)} → ${formatDate(v.fecha_cierre)}
                             </p>
                         </div>
-                        <button onclick="toggleVentana(${v.id}, this)"
-                            class="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${v.activo
-                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}">
-                            ${v.activo ? 'Desactivar' : 'Activar'}
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleVentana(${v.id}, this)"
+                                class="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${v.activo
+                                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}">
+                                ${v.activo ? 'Desactivar' : 'Activar'}
+                            </button>
+                            <button onclick="eliminarVentana(${v.id}, this)"
+                                class="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Eliminar ventana">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             })
@@ -493,6 +500,24 @@
                 lista.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Error al cargar ventanas.</p>';
             });
         }
+
+        window.eliminarVentana = function(id, btn) {
+            if (!confirm('¿Estás seguro de eliminar esta ventana de evaluación permanentemente?')) return;
+            btn.disabled = true;
+            fetch(`{{ url('capital-humano/evaluacion-ventanas') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(() => {
+                cargarVentanas();
+            })
+            .catch(() => { btn.disabled = false; alert('Error al eliminar la ventana.'); });
+        };
 
         function formatDate(d) {
             if (!d) return '';
