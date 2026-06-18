@@ -525,7 +525,7 @@
             return `${day}/${m}/${y}`;
         }
 
-        function toggleVentana(id, btn) {
+        window.toggleVentana = function(id, btn) {
             btn.disabled = true;
             fetch(`{{ url('capital-humano/evaluacion-ventanas') }}/${id}/toggle`, {
                 method: 'PATCH',
@@ -536,9 +536,11 @@
                 }
             })
             .then(r => r.json())
-            .then(() => cargarVentanas())
+            .then(() => {
+                location.reload();
+            })
             .catch(() => { btn.disabled = false; });
-        }
+        };
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
