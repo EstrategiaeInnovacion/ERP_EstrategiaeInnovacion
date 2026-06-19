@@ -117,7 +117,8 @@
                 <table class="w-full text-sm" style="min-width: 1800px;">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Referencia Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Referencia de Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EXP</th>
@@ -144,7 +145,7 @@
                         @forelse($registros as $reg)
                         @php
                             $searchStr = mb_strtolower(implode(' ', array_filter([
-                                $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
+                                $reg->referencia, $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
                                 $reg->impo_ex, $reg->tipo_operacion, $reg->transporte,
                                 $reg->aduana, $reg->clave, $reg->pedimento, $reg->bl_guia,
                                 $reg->status, $reg->resultado, $reg->target, $reg->comentarios,
@@ -169,6 +170,7 @@
                         <tr class="seg-row transition-colors {{ $esMia ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
                             data-row-id="{{ $reg->id }}"
                             data-search="{{ $searchStr }}">
+                            <td class="px-3 py-3 text-slate-800 font-bold whitespace-nowrap font-mono text-xs">{{ $reg->referencia ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">
                                 <div class="flex items-center gap-1.5">
                                     @if($demurrageDotColor)
@@ -400,7 +402,8 @@
                 <table class="w-full text-sm" style="min-width: 1800px;">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ref. Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Referencia Interna</th>
+                            <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Referencia de Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Proveedor / Cliente</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Factura</th>
                             <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">IMP / EXP</th>
@@ -427,7 +430,7 @@
                         @forelse($completados as $reg)
                         @php
                             $searchStrC = mb_strtolower(implode(' ', array_filter([
-                                $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
+                                $reg->referencia, $reg->ref_interna, $reg->proveedor_cliente, $reg->cliente_operacion, $reg->factura,
                                 $reg->impo_ex, $reg->tipo_operacion, $reg->transporte,
                                 $reg->aduana, $reg->clave, $reg->pedimento, $reg->bl_guia,
                                 $reg->status, $reg->resultado, $reg->target,
@@ -468,6 +471,7 @@
                         <tr class="seg-row transition-colors {{ $esMiaC ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-400' : 'hover:bg-slate-50' }}"
                             data-row-id="{{ $reg->id }}"
                             data-search="{{ $searchStrC }}">
+                            <td class="px-3 py-3 text-slate-800 font-bold whitespace-nowrap font-mono text-xs">{{ $reg->referencia ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-700 whitespace-nowrap font-mono text-xs">{{ $reg->ref_interna ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-800 font-semibold whitespace-nowrap">{{ $reg->cliente_operacion ?? '—' }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $reg->factura ?? '—' }}</td>
@@ -613,10 +617,13 @@
         <form id="form-seguimiento" class="px-8 py-6 space-y-6" onsubmit="submitForm(event)">
             <input type="hidden" id="registro-id" value="">
 
-            {{-- Selector de cliente (uso interno para filtros) --}}
+            {{-- Selector de cliente (uso interno para filtros y para generar la Referencia) --}}
             <div class="bg-slate-50 rounded-2xl border border-slate-200 px-4 py-3">
-                <label class="block text-xs font-bold text-slate-500 mb-1.5">Cliente <span class="font-normal text-slate-400">(uso interno — para filtrar operaciones)</span></label>
-                <select id="f-proveedor_cliente"
+                <label class="block text-xs font-bold text-slate-500 mb-1.5">
+                    Cliente <span class="text-red-500">*</span>
+                    <span class="font-normal text-slate-400">(uso interno — filtra operaciones y genera la Referencia)</span>
+                </label>
+                <select id="f-proveedor_cliente" required
                         class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
                     <option value="">— Seleccionar cliente —</option>
                     @foreach($misClientes as $cliente)
@@ -628,7 +635,7 @@
             {{-- Row 1 --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Ref. Interna</label>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Referencia de Cliente</label>
                     <input type="text" id="f-ref_interna" maxlength="100"
                            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                            placeholder="REF-001">
@@ -820,6 +827,7 @@
 $mapReg = function ($r) {
     return [
         'id'                => $r->id,
+        'referencia'        => $r->referencia,
         'ref_interna'       => $r->ref_interna,
         'proveedor_cliente' => $r->proveedor_cliente,
         'cliente_operacion' => $r->cliente_operacion,
@@ -1104,7 +1112,7 @@ $registrosJs = $registros->merge($completados)->map($mapReg)->values()->toArray(
                 <p class="font-semibold text-slate-600">El archivo incluye:</p>
                 <p>• Hoja <strong>Operaciones</strong> — todos los campos (activas y completadas)</p>
                 <p>• Hoja <strong>Transporte</strong> — naviera, buque, contenedor, etc.</p>
-                <p class="text-slate-400 mt-1">Referencia cruzada por columna <strong>Ref. Interna</strong></p>
+                <p class="text-slate-400 mt-1">Referencia cruzada por columna <strong>Referencia de Cliente</strong></p>
             </div>
 
             <div class="flex justify-end gap-3 pt-1">
