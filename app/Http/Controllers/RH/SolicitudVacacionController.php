@@ -32,15 +32,21 @@ class SolicitudVacacionController extends Controller
                 ->get();
         }
 
-        // Si es RH, traer las que ya aprobó el supervisor
+        // Si es RH, traer las que ya aprobó el supervisor, y las que están pendientes de supervisor para monitoreo
+        $solicitudesGlobalesPendientes = collect();
         if ($user->isRh()) {
             $solicitudesRH = SolicitudVacacion::where('estado', 'aprobado_supervisor')
                 ->with('empleado', 'supervisor')
                 ->latest()
                 ->get();
+                
+            $solicitudesGlobalesPendientes = SolicitudVacacion::where('estado', 'pendiente')
+                ->with('empleado', 'supervisor')
+                ->latest()
+                ->get();
         }
 
-        return view('Recursos_Humanos.vacaciones.aprobaciones', compact('solicitudesSupervisor', 'solicitudesRH'));
+        return view('Recursos_Humanos.vacaciones.aprobaciones', compact('solicitudesSupervisor', 'solicitudesRH', 'solicitudesGlobalesPendientes'));
     }
 
     /**
