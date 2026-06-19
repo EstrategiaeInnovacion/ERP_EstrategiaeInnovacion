@@ -10,7 +10,7 @@ class MatrizSeguimiento extends Model
     protected $table = 'matriz_seguimiento';
 
     protected $fillable = [
-        'user_id',
+        'user_id', 'referencia',
         'ref_interna', 'proveedor_cliente', 'cliente_operacion', 'factura', 'impo_ex',
         'tipo_operacion', 'transporte', 'naviera', 'buque', 'carga_tipo',
         'no_contenedor', 'tipo_contenedor', 'aduana', 'clave',

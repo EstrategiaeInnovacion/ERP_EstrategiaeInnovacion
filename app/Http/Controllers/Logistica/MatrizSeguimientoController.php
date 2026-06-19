@@ -13,6 +13,7 @@ use App\Models\Logistica\Pedimento;
 use App\Models\Empleado;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -267,6 +268,12 @@ class MatrizSeguimientoController extends Controller
         $data['status']    = $this->calcularStatus($data);
         $data['resultado'] = $this->calcularResultado($data);
 
+        try {
+            $data['referencia'] = $this->generarReferencia($data['proveedor_cliente']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
         $registro = MatrizSeguimiento::create($data);
 
         return response()->json(['success' => true, 'registro' => $registro]);
@@ -428,37 +435,41 @@ class MatrizSeguimientoController extends Controller
         $sh1 = $spreadsheet->getActiveSheet();
         $sh1->setTitle('Operaciones');
 
-        // col# 1-28
+        // col# 1-29
         $cols1 = [
-            'Ref. Interna',           // 1
-            'Cliente (Filtro)',        // 2
-            'Cliente / Proveedor',     // 3
-            'Factura',                 // 4
-            'IMP / EXP',              // 5
-            'T. Operación',           // 6
-            'Transporte',             // 7
-            'Naviera / Aerolínea',    // 8
-            'Buque',                  // 9
-            'FCL / LCL',             // 10
-            'No. Contenedor / Caja',  // 11
-            'Tipo Contenedor / Caja', // 12
-            'Aduana',                 // 13
-            'Clave',                  // 14
-            'Pedimento',              // 15
-            'BL / Guía',             // 16
-            'ETD',                    // 17 ← fecha
-            'ETA',                    // 18 ← fecha
-            'Días Libres',            // 19
-            'Cita de Previo',         // 20 ← fecha
-            'Cita de Despacho',       // 21 ← fecha
-            'Fecha Arribo a Planta',  // 22 ← fecha
-            'Status',                 // 23
-            'Resultado',              // 24
-            'Target',                 // 25
-            'Último Comentario',      // 26
-            'Ejecutivo',              // 27
-            'Fecha Creación',         // 28 ← fecha
+            'Referencia Interna',      // 1
+            'Referencia de Cliente',  // 2
+            'Cliente (Filtro)',        // 3
+            'Cliente / Proveedor',     // 4
+            'Factura',                 // 5
+            'IMP / EXP',              // 6
+            'T. Operación',           // 7
+            'Transporte',             // 8
+            'Naviera / Aerolínea',    // 9
+            'Buque',                  // 10
+            'FCL / LCL',             // 11
+            'No. Contenedor / Caja',  // 12
+            'Tipo Contenedor / Caja', // 13
+            'Aduana',                 // 14
+            'Clave',                  // 15
+            'Pedimento',              // 16
+            'BL / Guía',             // 17
+            'ETD',                    // 18 ← fecha
+            'ETA',                    // 19 ← fecha
+            'Días Libres',            // 20
+            'Cita de Previo',         // 21 ← fecha
+            'Cita de Despacho',       // 22 ← fecha
+            'Fecha Arribo a Planta',  // 23 ← fecha
+            'Status',                 // 24
+            'Resultado',              // 25
+            'Target',                 // 26
+            'Último Comentario',      // 27
+            'Ejecutivo',              // 28
+            'Fecha Creación',         // 29 ← fecha
         ];
+        // Total de columnas fijas (antes de agregar las de campos personalizados)
+        $totalColsFijas = count($cols1);
+
         // Agregar encabezados de campos personalizados al final
         foreach ($extraCampos as $ec) {
             $cols1[] = $ec['label'];
@@ -478,30 +489,30 @@ class MatrizSeguimientoController extends Controller
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                 'borders'   => ['bottom' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FFA78BFA']]],
             ];
-            $extraStart = $cl(29);
+            $extraStart = $cl($totalColsFijas + 1);
             $sh1->getStyle("{$extraStart}1:{$last1}1")->applyFromArray($extraHeaderStyle);
         }
 
-        $sh1->getStyle("A1:{$cl(28)}1")->applyFromArray($headerStyle);
+        $sh1->getStyle("A1:{$cl($totalColsFijas)}1")->applyFromArray($headerStyle);
         $sh1->getRowDimension(1)->setRowHeight(28);
         $sh1->freezePane('A2');
         $sh1->setAutoFilter("A1:{$last1}1");
 
-        $widths1 = [14, 22, 26, 14, 10, 14, 24, 24, 20, 12, 24, 22, 16, 10, 16, 16, 12, 12, 11, 16, 17, 20, 15, 12, 15, 40, 22, 16];
+        $widths1 = [16, 14, 22, 26, 14, 10, 14, 24, 24, 20, 12, 24, 22, 16, 10, 16, 16, 12, 12, 11, 16, 17, 20, 15, 12, 15, 40, 22, 16];
         foreach ($widths1 as $ci => $w) {
             $sh1->getColumnDimension($cl($ci + 1))->setWidth($w);
         }
         // Ancho por defecto para columnas extra de campos personalizados
-        for ($ec = 29; $ec <= $totalCols1; $ec++) {
+        for ($ec = $totalColsFijas + 1; $ec <= $totalCols1; $ec++) {
             $sh1->getColumnDimension($cl($ec))->setWidth(22);
         }
 
-        // Columnas de fecha (1-indexed): ETD=17, ETA=18, Previo=20, Despacho=21, Arribo=22, Creación=28
-        $dateCols1 = [17, 18, 20, 21, 22, 28];
+        // Columnas de fecha (1-indexed, dentro de las columnas fijas): ETD, ETA, Previo, Despacho, Arribo, Creación
+        $dateCols1 = [18, 19, 21, 22, 23, 29];
         // Agregar columnas de fecha de campos personalizados
         foreach ($extraCampos as $idx => $ec) {
             if ($ec['tipo'] === 'fecha') {
-                $dateCols1[] = 29 + $idx;
+                $dateCols1[] = $totalColsFijas + 1 + $idx;
             }
         }
 
@@ -512,6 +523,7 @@ class MatrizSeguimientoController extends Controller
             $ultimoComentario = $reg->historial->first()?->comentario ?? $reg->comentarios ?? '';
 
             $values = [
+                $reg->referencia,
                 $reg->ref_interna,
                 $reg->proveedor_cliente,
                 $reg->cliente_operacion,
@@ -548,7 +560,7 @@ class MatrizSeguimientoController extends Controller
 
             // Escribir valores de campos personalizados
             foreach ($extraCampos as $idx => $ec) {
-                $colIdx = 29 + $idx;
+                $colIdx = $totalColsFijas + 1 + $idx;
                 $valor  = $valoresMapa[$reg->id][$ec['id']] ?? '';
                 if ($ec['tipo'] === 'fecha' && $valor) {
                     try {
@@ -567,7 +579,7 @@ class MatrizSeguimientoController extends Controller
             $sh1->getStyle("A{$row}:{$last1}{$row}")
                 ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($bg);
             $sh1->getStyle("A{$row}:{$last1}{$row}")->applyFromArray($rowBorder);
-            $sh1->getStyle('Z' . $row)->getAlignment()->setWrapText(true); // col 26 = Z
+            $sh1->getStyle($cl(27) . $row)->getAlignment()->setWrapText(true); // col 27 = Último Comentario
         }
 
         // ════════════════════════════════════════════════════════════
@@ -577,7 +589,7 @@ class MatrizSeguimientoController extends Controller
         $sh2->setTitle('Transporte');
 
         $cols2 = [
-            'Ref. Interna', 'T. Operación', 'Transportista',
+            'Referencia de Cliente', 'T. Operación', 'Transportista',
             'Naviera / Aerolínea', 'Buque',
             'FCL / LCL', 'No. Contenedor / Caja', 'Tipo Contenedor / Caja',
         ];
@@ -591,7 +603,7 @@ class MatrizSeguimientoController extends Controller
         $sh2->freezePane('A2');
         $sh2->setAutoFilter("A1:{$last2}1");
 
-        $sh2->setCellValue('J1', 'Ref. Interna corresponde a columna A de la hoja "Operaciones"');
+        $sh2->setCellValue('J1', 'Referencia de Cliente corresponde a columna B de la hoja "Operaciones"');
         $sh2->getStyle('J1')->getFont()->setItalic(true)->getColor()->setARGB('FF6B7280');
         $sh2->getColumnDimension('J')->setWidth(58);
 
@@ -642,11 +654,43 @@ class MatrizSeguimientoController extends Controller
 
     // ── Helpers ──────────────────────────────────────────────────────
 
+    // Genera la Referencia Interna de la operación: CLAVE_CLIENTE + AA + MM + NN,
+    // donde NN es el consecutivo propio del cliente dentro del mes en curso (se
+    // reinicia en 01 cada vez que cambia el mes) y AA/MM corresponden a la fecha
+    // de creación del registro. Bloquea la creación si el cliente no tiene 'clave'
+    // registrada en Administrar Clientes.
+    private function generarReferencia(string $nombreCliente): string
+    {
+        return DB::transaction(function () use ($nombreCliente) {
+            $cliente = Cliente::where('cliente', $nombreCliente)->lockForUpdate()->first();
+
+            if (! $cliente || empty($cliente->clave)) {
+                throw new \RuntimeException(
+                    "El cliente \"{$nombreCliente}\" no tiene una clave registrada en Administrar Clientes. "
+                    . 'Regístrala antes de crear esta operación.'
+                );
+            }
+
+            $fecha         = now();
+            $periodoActual = $fecha->format('Y-m');
+
+            if ($cliente->ultimo_periodo_logistica !== $periodoActual) {
+                $cliente->ultimo_consecutivo_logistica = 1;
+                $cliente->ultimo_periodo_logistica     = $periodoActual;
+            } else {
+                $cliente->ultimo_consecutivo_logistica++;
+            }
+            $cliente->save();
+
+            return $cliente->clave . $fecha->format('y') . $fecha->format('m') . sprintf('%02d', $cliente->ultimo_consecutivo_logistica);
+        });
+    }
+
     private function validar(Request $request): array
     {
         return $request->validate([
             'ref_interna'        => 'nullable|string|max:100',
-            'proveedor_cliente'  => 'nullable|string|max:255',
+            'proveedor_cliente'  => 'required|string|max:255',
             'cliente_operacion'  => 'nullable|string|max:255',
             'factura'            => 'nullable|string|max:100',
             'impo_ex'          => 'nullable|in:IMP,EXP',
