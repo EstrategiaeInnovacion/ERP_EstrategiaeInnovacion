@@ -46,7 +46,7 @@ class SolicitudVacacionController extends Controller
                 ->latest()
                 ->get();
                 
-            $historialRH = SolicitudVacacion::where('estado', 'aprobado_rh')
+            $historialRH = SolicitudVacacion::whereIn('estado', ['aprobado', 'rechazado'])
                 ->with('empleado', 'supervisor')
                 ->latest()
                 ->take(50) // Limitar a las últimas 50 para no sobrecargar
