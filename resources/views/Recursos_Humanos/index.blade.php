@@ -123,6 +123,24 @@
                 </div>
             </a>
 
+            <a href="{{ route('vacaciones.aprobaciones') }}" class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-sky-600">
+                    <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2zm4 4h-2v2h2v-2zm0-4h-2v2h2v-2zm0-4h-2v2h2V8z"/></svg>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <div class="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-sky-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-sky-600 transition-colors">Vacaciones</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">Gestión y aprobación de solicitudes de vacaciones del personal.</p>
+                </div>
+                <div class="relative z-10 mt-6 flex items-center text-sky-600 font-bold text-sm">
+                    Revisar Solicitudes <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
             <a href="{{ route('rh.recordatorios.index') }}" class="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-amber-600">
                     <svg class="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"></path></svg>
