@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
 
     // Vacaciones
     Route::prefix('vacaciones')->name('vacaciones.')->group(function () {
+        Route::get('/aprobaciones', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'indexAprobaciones'])->name('aprobaciones');
         Route::get('/calcular-dias', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'calcularDias'])->name('calcular-dias');
         Route::post('/solicitar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'store'])->name('solicitar');
         Route::post('/{id}/aprobar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'aprobar'])->name('aprobar');

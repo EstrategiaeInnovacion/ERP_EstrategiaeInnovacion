@@ -14,6 +14,36 @@ use App\Notifications\SolicitudVacacionNotification;
 class SolicitudVacacionController extends Controller
 {
     /**
+     * Vista de aprobaciones pendientes para supervisores y RH.
+     */
+    public function indexAprobaciones()
+    {
+        $user = Auth::user();
+        
+        $solicitudesSupervisor = collect();
+        $solicitudesRH = collect();
+
+        // Si es supervisor, traer las de sus subordinados que estén pendientes
+        if ($user->empleado) {
+            $solicitudesSupervisor = SolicitudVacacion::where('supervisor_id', $user->empleado->id)
+                ->where('estado', 'pendiente')
+                ->with('empleado')
+                ->latest()
+                ->get();
+        }
+
+        // Si es RH, traer las que ya aprobó el supervisor
+        if ($user->isRh()) {
+            $solicitudesRH = SolicitudVacacion::where('estado', 'aprobado_supervisor')
+                ->with('empleado', 'supervisor')
+                ->latest()
+                ->get();
+        }
+
+        return view('Recursos_Humanos.vacaciones.aprobaciones', compact('solicitudesSupervisor', 'solicitudesRH'));
+    }
+
+    /**
      * Calcula los días hábiles entre dos fechas.
      */
     public function calcularDias(Request $request)

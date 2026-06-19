@@ -54,7 +54,7 @@ class SolicitudVacacionNotification extends Notification
     {
         $mensaje = '';
         $titulo = '';
-        $url = route('rh.reloj.index'); // O la vista donde lo aprueben
+        $url = route('vacaciones.aprobaciones'); // Nueva vista de aprobaciones
         
         switch ($this->tipo) {
             case 'para_supervisor':
