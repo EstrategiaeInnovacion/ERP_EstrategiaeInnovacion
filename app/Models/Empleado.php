@@ -41,7 +41,8 @@ class Empleado extends Model
         'contacto_emergencia_nombre', 'contacto_emergencia_numero', 'contacto_emergencia_parentesco',
         'rfc', 'curp', 'nss',
         'fecha_nacimiento', 'fecha_ingreso',
-        'fecha_inicio_contrato', 'fecha_fin_contrato', 'tipo_contrato'
+        'fecha_inicio_contrato', 'fecha_fin_contrato', 'tipo_contrato',
+        'dias_vacaciones_extra'
     ];
 
     public function user()
@@ -67,6 +68,11 @@ class Empleado extends Model
     public function documentos()
     {
         return $this->hasMany(\App\Models\EmpleadoDocumento::class);
+    }
+
+    public function solicitudesVacaciones()
+    {
+        return $this->hasMany(SolicitudVacacion::class, 'empleado_id');
     }
 
     // --- LÓGICA DE NEGOCIO ---
@@ -192,5 +198,64 @@ class Empleado extends Model
     public function avisosAsistencia()
     {
         return $this->hasMany(AvisoAsistencia::class);
+    }
+
+    /**
+     * Calcula los días de vacaciones disponibles para el periodo actual.
+     */
+    public function obtenerVacacionesDisponibles(): int
+    {
+        if (!$this->fecha_inicio_contrato) {
+            return 0;
+        }
+
+        $hoy = \Carbon\Carbon::now();
+        $primerAniversario = $this->fecha_inicio_contrato->copy()->addYear();
+        
+        // No tiene derecho a vacaciones base antes del primer año
+        if ($hoy->lt($primerAniversario)) {
+            return 0;
+        }
+
+        // Calcular el año de aniversario actual
+        $aniosAntiguedad = $this->fecha_inicio_contrato->diffInYears($hoy);
+        $inicioPeriodo = $this->fecha_inicio_contrato->copy()->addYears($aniosAntiguedad);
+        $finPeriodo = $inicioPeriodo->copy()->addYear();
+
+        // Si por alguna razón la fecha calculada es futura, retrocedemos un año
+        if ($inicioPeriodo->gt($hoy)) {
+            $inicioPeriodo->subYear();
+            $finPeriodo->subYear();
+        }
+
+        // Obtener los días de vacaciones ya aprobados (o en flujo finalizado) en este periodo
+        $diasConsumidos = $this->solicitudesVacaciones()
+            ->whereIn('estado', ['aprobado_supervisor', 'aprobado']) // Considerando aprobados
+            ->whereBetween('fecha_inicio', [$inicioPeriodo, $finPeriodo])
+            ->sum('dias_solicitados');
+
+        // dias_vacaciones_extra ahora se usa como los días que YA TOMÓ manualmente antes del sistema
+        $diasYaTomadosManuales = $this->dias_vacaciones_extra ?? 0;
+
+        return max(0, 12 - $diasConsumidos - $diasYaTomadosManuales);
+    }
+
+    /**
+     * Devuelve el total de días base (12).
+     */
+    public function getTotalVacacionesBase(): int
+    {
+        if (!$this->fecha_inicio_contrato) {
+            return 0;
+        }
+        
+        $hoy = \Carbon\Carbon::now();
+        $primerAniversario = $this->fecha_inicio_contrato->copy()->addYear();
+        
+        if ($hoy->lt($primerAniversario)) {
+            return 0;
+        }
+        
+        return 12; // Siempre son 12 por año cumplido
     }
 }

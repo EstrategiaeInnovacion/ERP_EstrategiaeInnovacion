@@ -86,6 +86,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Vacaciones
+    Route::prefix('vacaciones')->name('vacaciones.')->group(function () {
+        Route::get('/calcular-dias', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'calcularDias'])->name('calcular-dias');
+        Route::post('/solicitar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'store'])->name('solicitar');
+        Route::post('/{id}/aprobar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'aprobar'])->name('aprobar');
+        Route::post('/{id}/rechazar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'rechazar'])->name('rechazar');
+    });
+
     // Marcar aviso de asistencia como leído (cualquier empleado)
     Route::post('/aviso-leido/{id}', function (\Illuminate\Http\Request $request, $id) {
         $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
@@ -164,6 +172,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [CapacitacionController::class, 'index'])->name('index');
         Route::get('/ver/{id}', [CapacitacionController::class, 'show'])->name('show');
         Route::get('/ver/{id}/video', [CapacitacionController::class, 'streamVideo'])->name('stream');
+        Route::get('/ver/{id}/thumbnail', [CapacitacionController::class, 'streamThumbnail'])->name('thumbnail');
         Route::get('/adjunto/{adjuntoId}/descargar', [CapacitacionController::class, 'downloadAdjunto'])->name('adjunto.download');
     });
 

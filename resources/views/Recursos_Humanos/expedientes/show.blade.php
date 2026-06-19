@@ -493,6 +493,17 @@
                             </div>
                          </div>
                     </div>
+                    {{-- 3.7 Ajuste de Vacaciones (Migración / Histórico) --}}
+                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                         <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Vacaciones Históricas (Ajuste Manual)</h4>
+                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Días de vacaciones que YA TOMÓ en su ciclo actual</label>
+                                <input type="number" name="dias_vacaciones_extra" value="{{ $empleado->dias_vacaciones_extra ?? 0 }}" min="0" class="w-full rounded-lg border-slate-300 text-xs focus:ring-indigo-500" />
+                                <p class="text-[9px] text-slate-400 mt-1">Ingresa el número de días que el empleado ya disfrutó de sus 12 reglamentarios en este año. (El sistema se los restará al saldo disponible).</p>
+                            </div>
+                         </div>
+                    </div>
                     {{-- 4. Emergencia --}}
                     <div class="bg-red-50 p-4 rounded-xl border border-red-100">
                          <h4 class="text-xs font-bold text-red-900 uppercase tracking-wider mb-3">Emergencia</h4>

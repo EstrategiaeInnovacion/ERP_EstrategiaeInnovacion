@@ -38,6 +38,7 @@
                         <option value="Talleres Virtuales">Talleres Virtuales</option>
                         <option value="Capacitación RH">Capacitación RH</option>
                         <option value="Formatos">Formatos</option>
+                        <option value="Acerca de nuestros valores y principios">Acerca de nuestros valores y principios</option>
                         <option value="Otro">Otro</option>
                     </select>
                 </div>
@@ -114,6 +115,11 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Archivo de Video (MP4) <span class="text-gray-400 font-normal">(Opcional)</span></label>
                     <input type="file" name="video" accept="video/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     <p class="text-xs text-gray-500 mt-1">Opcional. Puedes subir solo documentos sin necesidad de video. Recomendado &lt; 50MB.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Imagen de Portada / Miniatura <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                    <input type="file" name="thumbnail" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="text-xs text-gray-500 mt-1">Recomendado para la categoría 'Acerca de nuestros valores y principios'.</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>

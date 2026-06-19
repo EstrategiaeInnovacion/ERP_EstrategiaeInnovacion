@@ -21,6 +21,8 @@ class Capacitacion extends Model
         'archivo_contenido',
         'archivo_mime_type',
         'thumbnail_path',
+        'thumbnail_contenido',
+        'thumbnail_mime_type',
         'subido_por',
         'activo',
         'youtube_url',

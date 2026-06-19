@@ -113,6 +113,16 @@ class ProfileController extends Controller
             'horas' => $this->calcularHoras($asistencias),
         ];
 
+        // Vacaciones
+        $diasVacaciones = 0;
+        $totalVacaciones = 12;
+        $solicitudesVacaciones = collect();
+        if ($empleado) {
+            $diasVacaciones = $empleado->obtenerVacacionesDisponibles();
+            $totalVacaciones = $empleado->getTotalVacacionesBase();
+            $solicitudesVacaciones = $empleado->solicitudesVacaciones()->latest()->take(5)->get();
+        }
+
         return view('Sistemas_IT.profile.edit', [
             'user' => $user,
             'empleado' => $empleado,
@@ -120,6 +130,9 @@ class ProfileController extends Controller
             'blankDays' => $blankDays,       // Días vacíos al inicio
             'kpis' => $kpis,
             'periodoActual' => $periodoActual,
+            'diasVacaciones' => $diasVacaciones,
+            'totalVacaciones' => $totalVacaciones,
+            'solicitudesVacaciones' => $solicitudesVacaciones,
         ]);
     }
 

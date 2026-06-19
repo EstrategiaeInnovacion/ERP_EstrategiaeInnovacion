@@ -55,6 +55,7 @@ class CapacitacionController extends Controller
             'usuarios_permitidos.*'=> 'integer',
             'youtube_url'          => 'nullable|url',
             'video'                => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
+            'thumbnail'            => 'nullable|image|max:5120',
             'adjuntos.*'           => 'nullable|file|max:10240',
         ]);
 
@@ -68,6 +69,15 @@ class CapacitacionController extends Controller
                 $archivoMime      = $file->getMimeType();
             }
 
+            $thumbnailContenido = null;
+            $thumbnailMime      = null;
+
+            if ($request->hasFile('thumbnail')) {
+                $thumbFile          = $request->file('thumbnail');
+                $thumbnailContenido = $thumbFile->get();
+                $thumbnailMime      = $thumbFile->getMimeType();
+            }
+
             $capacitacion = Capacitacion::create([
                 'titulo'             => $request->titulo,
                 'descripcion'        => $request->descripcion,
@@ -77,6 +87,8 @@ class CapacitacionController extends Controller
                 'archivo_path'       => null,
                 'archivo_contenido'  => $archivoContenido,
                 'archivo_mime_type'  => $archivoMime,
+                'thumbnail_contenido'=> $thumbnailContenido,
+                'thumbnail_mime_type'=> $thumbnailMime,
                 'youtube_url'        => $request->youtube_url,
                 'subido_por'         => Auth::id(),
             ]);
@@ -123,6 +135,7 @@ class CapacitacionController extends Controller
                 'usuarios_permitidos.*'=> 'integer',
                 'youtube_url'          => 'nullable|url',
                 'video'                => 'nullable|mimes:mp4,mov,ogg,qt|max:200000',
+                'thumbnail'            => 'nullable|image|max:5120',
                 'adjuntos.*'           => 'nullable|file|max:10240',
             ]);
 
@@ -148,6 +161,14 @@ class CapacitacionController extends Controller
                 $video->archivo_contenido = null;
                 $video->archivo_mime_type = null;
                 $video->archivo_path      = null;
+                $video->save();
+            }
+
+            if ($request->hasFile('thumbnail')) {
+                $thumbFile = $request->file('thumbnail');
+                $video->thumbnail_contenido = $thumbFile->get();
+                $video->thumbnail_mime_type = $thumbFile->getMimeType();
+                $video->thumbnail_path      = null;
                 $video->save();
             }
 
@@ -226,6 +247,29 @@ class CapacitacionController extends Controller
         }
 
         abort(404, 'Video no encontrado.');
+    }
+
+    /**
+     * GET /capacitacion/ver/{id}/thumbnail
+     * Sirve la miniatura desde la BD o almacenamiento público.
+     */
+    public function streamThumbnail($id)
+    {
+        $video = Capacitacion::withoutGlobalScope('sin_contenido')
+            ->select(['id', 'thumbnail_contenido', 'thumbnail_mime_type', 'thumbnail_path'])
+            ->findOrFail($id);
+
+        if (! empty($video->thumbnail_contenido)) {
+            return response($video->thumbnail_contenido, 200, [
+                'Content-Type' => $video->thumbnail_mime_type ?? 'image/jpeg',
+            ]);
+        }
+
+        if ($video->thumbnail_path && Storage::disk('public')->exists($video->thumbnail_path)) {
+            return Storage::disk('public')->response($video->thumbnail_path);
+        }
+
+        abort(404, 'Miniatura no encontrada.');
     }
 
     /**

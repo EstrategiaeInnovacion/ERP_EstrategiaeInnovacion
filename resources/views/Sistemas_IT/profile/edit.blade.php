@@ -124,7 +124,7 @@
                         </div>
 
                         {{-- KPIs --}}
-                        <div class="flex gap-2">
+                        <div class="flex flex-wrap gap-2 justify-end">
                             <div class="text-center px-3 py-1 bg-blue-50 rounded-lg border border-blue-100">
                                 <span class="block text-[10px] font-bold text-blue-400 uppercase">Horas</span>
                                 <span class="text-lg font-bold text-blue-700">{{ $kpis['horas'] }}</span>
@@ -137,6 +137,13 @@
                                 <span class="block text-[10px] font-bold text-red-400 uppercase">Faltas</span>
                                 <span class="text-lg font-bold text-red-700">{{ $kpis['faltas'] }}</span>
                             </div>
+                            <div class="text-center px-3 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <span class="block text-[10px] font-bold text-indigo-400 uppercase">Vacaciones</span>
+                                <span class="text-lg font-bold text-indigo-700">{{ $diasVacaciones }}/{{ $totalVacaciones }}</span>
+                            </div>
+                            <button x-data @click="$dispatch('open-modal', 'modal-vacaciones')" class="ml-2 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
+                                Solicitar Vacaciones
+                            </button>
                         </div>
                     </header>
 
@@ -241,7 +248,113 @@
 
                         </div>
                     </div>
+
+                    {{-- MIS SOLICITUDES DE VACACIONES --}}
+                    @if($solicitudesVacaciones->count() > 0)
+                    <div class="mt-8 border-t border-slate-200 pt-6">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4">Mis Solicitudes de Vacaciones Recientes</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead>
+                                    <tr class="border-b border-slate-200">
+                                        <th class="py-2">Fechas</th>
+                                        <th class="py-2">Días Hábiles</th>
+                                        <th class="py-2">Estado</th>
+                                        <th class="py-2">Motivo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($solicitudesVacaciones as $solicitud)
+                                        <tr class="border-b border-slate-100 last:border-0">
+                                            <td class="py-2">{{ $solicitud->fecha_inicio->format('d/m/Y') }} al {{ $solicitud->fecha_fin->format('d/m/Y') }}</td>
+                                            <td class="py-2 font-bold">{{ $solicitud->dias_solicitados }}</td>
+                                            <td class="py-2">
+                                                @if($solicitud->estado == 'pendiente')
+                                                    <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">Pendiente</span>
+                                                @elseif($solicitud->estado == 'aprobado_supervisor')
+                                                    <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">En revisión RH</span>
+                                                @elseif($solicitud->estado == 'aprobado')
+                                                    <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">Aprobado</span>
+                                                @else
+                                                    <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full">Rechazado</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2 truncate max-w-[150px]" title="{{ $solicitud->motivo }}">{{ $solicitud->motivo ?? '-' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
                 </div>
+                
+                {{-- MODAL SOLICITUD VACACIONES --}}
+                <x-modal name="modal-vacaciones" focusable>
+                    <div class="p-6" x-data="{
+                        fechaInicio: '',
+                        fechaFin: '',
+                        diasCalculados: null,
+                        calculando: false,
+                        maxDias: {{ $diasVacaciones }},
+                        calcularDias() {
+                            if(this.fechaInicio && this.fechaFin && this.fechaInicio <= this.fechaFin) {
+                                this.calculando = true;
+                                fetch('{{ route('vacaciones.calcular-dias') }}?fecha_inicio=' + this.fechaInicio + '&fecha_fin=' + this.fechaFin)
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        this.diasCalculados = data.dias;
+                                        this.calculando = false;
+                                    })
+                                    .catch(() => this.calculando = false);
+                            } else {
+                                this.diasCalculados = null;
+                            }
+                        }
+                    }">
+                        <h2 class="text-lg font-bold text-slate-900 mb-4">Solicitar Vacaciones</h2>
+                        <p class="text-sm text-slate-600 mb-6">Selecciona el rango de fechas. Solo se te descontarán los días hábiles (lunes a viernes, sin contar días festivos).</p>
+                        
+                        <form method="POST" action="{{ route('vacaciones.solicitar') }}">
+                            @csrf
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <x-input-label for="fecha_inicio" value="Fecha de Inicio" />
+                                    <x-text-input id="fecha_inicio" name="fecha_inicio" type="date" class="mt-1 block w-full" x-model="fechaInicio" @change="calcularDias" required />
+                                </div>
+                                <div>
+                                    <x-input-label for="fecha_fin" value="Fecha de Fin" />
+                                    <x-text-input id="fecha_fin" name="fecha_fin" type="date" class="mt-1 block w-full" x-model="fechaFin" @change="calcularDias" required />
+                                </div>
+                            </div>
+
+                            <div x-show="diasCalculados !== null" class="mb-4 p-3 rounded-lg border flex items-center gap-3"
+                                 :class="diasCalculados > maxDias ? 'bg-red-50 border-red-200 text-red-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'">
+                                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <div>
+                                    <p class="text-sm font-bold">Días hábiles a descontar: <span x-text="diasCalculados"></span></p>
+                                    <p class="text-xs" x-show="diasCalculados > maxDias">No tienes suficientes días disponibles.</p>
+                                    <p class="text-xs" x-show="diasCalculados <= maxDias">Te quedarán <span x-text="maxDias - diasCalculados"></span> días disponibles después de esta solicitud.</p>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <x-input-label for="motivo" value="Motivo / Observaciones (Opcional)" />
+                                <textarea id="motivo" name="motivo" rows="2" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
+                            </div>
+
+                            <div class="mt-6 flex justify-end gap-3">
+                                <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
+                                <x-primary-button x-bind:disabled="calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0" 
+                                                  x-bind:class="{ 'opacity-50 cursor-not-allowed': calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0 }">
+                                    Enviar Solicitud
+                                </x-primary-button>
+                            </div>
+                        </form>
+                    </div>
+                </x-modal>
+
             @else
                 <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded-r shadow-sm">
                     <div class="flex">

@@ -94,6 +94,11 @@ class ExpedienteController extends Controller
             $request->merge(['id_empleado' => $empleado->id_empleado]);
         }
 
+        // Si los días extra vienen vacíos, setear en 0 explícitamente
+        if (!$request->filled('dias_vacaciones_extra')) {
+            $request->merge(['dias_vacaciones_extra' => 0]);
+        }
+
         // Actualización estándar de campos (excluir user_id para evitar romper el vínculo empleado-usuario)
         $empleado->update($request->except(['user_id', '_token', '_method']));
 
