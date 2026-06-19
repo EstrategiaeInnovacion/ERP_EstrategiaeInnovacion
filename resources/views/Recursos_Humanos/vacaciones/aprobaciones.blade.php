@@ -219,6 +219,53 @@
         </div>
         @endif
 
+        {{-- HISTÓRICO DE APROBADAS POR RH --}}
+        @if($historialRH->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
+            <div class="bg-slate-50 border-b border-slate-100 px-6 py-4">
+                <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Historial de Vacaciones Aprobadas (Últimas 50)
+                </h2>
+                <p class="text-xs text-slate-500 mt-1">Registro de las solicitudes que ya completaron todo el flujo y fueron aprobadas por Recursos Humanos.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-500">
+                        <tr>
+                            <th class="px-6 py-2 font-medium text-xs">Colaborador</th>
+                            <th class="px-6 py-2 font-medium text-xs">Fechas</th>
+                            <th class="px-6 py-2 font-medium text-xs">Supervisor</th>
+                            <th class="px-6 py-2 font-medium text-xs">Fecha de Aprobación RH</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @foreach($historialRH as $solicitud)
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-700">{{ $solicitud->empleado->nombre }}</div>
+                                </td>
+                                <td class="px-6 py-3 text-xs text-slate-600">
+                                    <span class="font-bold">{{ $solicitud->dias_solicitados }} días</span> 
+                                    ({{ $solicitud->fecha_inicio->format('d/m/Y') }} al {{ $solicitud->fecha_fin->format('d/m/Y') }})
+                                </td>
+                                <td class="px-6 py-3 text-xs text-slate-500">
+                                    {{ $solicitud->supervisor->nombre ?? 'N/A' }}
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        {{ $solicitud->aprobado_rh_at ? \Carbon\Carbon::parse($solicitud->aprobado_rh_at)->format('d/m/Y h:i A') : 'Aprobado' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         @endif
 
         @if($solicitudesSupervisor->count() == 0 && !Auth::user()->isRh())
