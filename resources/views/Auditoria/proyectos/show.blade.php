@@ -54,6 +54,21 @@
         isExpanded(id) {
             return this.expandedProcesos[id] !== false; // Abierto por defecto
         },
+
+        toggleComments(id, hasComments = false) {
+            if (this.expandedComments[id] === undefined) {
+                this.expandedComments[id] = !hasComments;
+            } else {
+                this.expandedComments[id] = !this.expandedComments[id];
+            }
+        },
+
+        isCommentsExpanded(id, hasComments = false) {
+            if (this.expandedComments[id] === undefined) {
+                return hasComments;
+            }
+            return this.expandedComments[id];
+        },
  
         updateFase(faseNum) {
             if (!{{ $esCoordinador ? 'true' : 'false' }}) return;
@@ -250,19 +265,7 @@
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                             Expedientes: {{ $proyecto->cantidad_expedientes }}
                         </span>
-                        
-                        @php
-                            $statusColors = match($proyecto->estatus_general) {
-                                'pendiente' => 'bg-slate-100 text-slate-700 border-slate-200',
-                                'en proceso' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                'retrasado' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                'cerrado' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                                default => 'bg-slate-100 text-slate-700 border-slate-200',
-                            };
-                        @endphp
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border capitalize {{ $statusColors }}">
-                            {{ $proyecto->estatus_general }}
-                        </span>
+
                         
                         @if($proyecto->ultima_publicacion_at)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200"
@@ -618,14 +621,15 @@
                                                 @endif
                                             @else
                                                 {{-- Comentarios --}}
-                                                <button @click="expandedComments[{{ $proceso->id }}] = !expandedComments[{{ $proceso->id }}]"
+                                                 @php $hasComments = $proceso->comentariosList->isNotEmpty() ? 'true' : 'false'; @endphp
+                                                 <button @click="toggleComments('{{ $proceso->id }}', {{ $hasComments }})"
                                                         class="p-1.5 rounded-lg transition relative"
-                                                        :class="expandedComments[{{ $proceso->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
+                                                        :class="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }}) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                     </svg>
                                                     @if($proceso->comentariosList->isNotEmpty())
-                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $proceso->id }}] ? 'hidden' : ''"></span>
+                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }}) ? 'hidden' : ''"></span>
                                                     @endif
                                                 </button>
                                                 
@@ -697,9 +701,9 @@
                                         </div>
                                     </td>
                                 </tr>
-
+ 
                                 {{-- Comentarios Inline del Proceso Principal --}}
-                                <tr x-show="expandedComments[{{ $proceso->id }}]" class="bg-indigo-50/10" x-cloak x-transition>
+                                 <tr x-show="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }})" class="bg-indigo-50/10" x-cloak x-transition>
                                     <td colspan="6" class="px-6 py-4">
                                         <div class="pl-12 space-y-3">
                                             <h4 class="text-xs font-bold text-indigo-850 flex items-center gap-1.5 mb-2">
@@ -799,14 +803,15 @@
                                                     @endif
                                                 @else
                                                     {{-- Comentarios --}}
-                                                    <button @click="expandedComments[{{ $sub->id }}] = !expandedComments[{{ $sub->id }}]"
+                                                    @php $subHasComments = $sub->comentariosList->isNotEmpty() ? 'true' : 'false'; @endphp
+                                                    <button @click="toggleComments('{{ $sub->id }}', {{ $subHasComments }})"
                                                             class="p-1.5 rounded-lg transition relative"
-                                                            :class="expandedComments[{{ $sub->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
+                                                            :class="isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }}) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                         </svg>
                                                         @if($sub->comentariosList->isNotEmpty())
-                                                            <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $sub->id }}] ? 'hidden' : ''"></span>
+                                                            <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }}) ? 'hidden' : ''"></span>
                                                         @endif
                                                     </button>
                                                     
@@ -868,7 +873,7 @@
                                     </tr>
 
                                     {{-- Comentarios Inline del Subproceso --}}
-                                    <tr x-show="isExpanded('{{ $proceso->id }}') && expandedComments[{{ $sub->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                     <tr x-show="isExpanded('{{ $proceso->id }}') && isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }})" class="bg-indigo-50/5" x-cloak x-transition>
                                         <td class="px-6 py-4"></td>
                                         <td colspan="5" class="px-6 py-4">
                                             <div class="space-y-3">
@@ -1035,22 +1040,10 @@
                                 </div>
                             </div>
  
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="edit_estatus" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estatus General</label>
-                                    <select name="estatus_general" id="edit_estatus" required
-                                            class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
-                                        <option value="pendiente" {{ $proyecto->estatus_general == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                                        <option value="en proceso" {{ $proyecto->estatus_general == 'en proceso' ? 'selected' : '' }}>En proceso</option>
-                                        <option value="retrasado" {{ $proyecto->estatus_general == 'retrasado' ? 'selected' : '' }}>Retrasado</option>
-                                        <option value="cerrado" {{ $proyecto->estatus_general == 'cerrado' ? 'selected' : '' }}>Cerrado</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="edit_expira" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Expiración Link Público</label>
-                                    <input type="date" name="publico_expira_at" id="edit_expira" value="{{ $proyecto->publico_expira_at ? $proyecto->publico_expira_at->format('Y-m-d') : '' }}"
-                                           class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
-                                </div>
+                            <div>
+                                <label for="edit_expira" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Expiración Link Público</label>
+                                <input type="date" name="publico_expira_at" id="edit_expira" value="{{ $proyecto->publico_expira_at ? $proyecto->publico_expira_at->format('Y-m-d') : '' }}"
+                                       class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
                             </div>
  
                             <div>
@@ -1266,22 +1259,7 @@
                                class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                     </div>
 
-                    {{-- Estatus --}}
-                    <div x-show="reportPorcentaje < 100">
-                        <label for="report_estatus" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estatus</label>
-                        <select id="report_estatus" x-model="reportEstatus"
-                                class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
-                            <option value="pendiente">Pendiente</option>
-                            <option value="en proceso">En proceso</option>
-                            <option value="parcial">Parcial</option>
-                            <option value="retrasado">Retrasado</option>
-                        </select>
-                    </div>
-                    
-                    <div x-show="reportPorcentaje == 100" class="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
-                        Al reportar 100%, el estatus se fijará automáticamente como Cerrado.
-                    </div>
+
 
                     {{-- Comentario Justificativo --}}
                     <div>

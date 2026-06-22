@@ -148,15 +148,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($proyectos as $p)
                     <div class="group bg-white rounded-3xl border border-slate-200/75 shadow-sm hover:shadow-lg hover:border-indigo-200/80 transition-all duration-300 flex flex-col justify-between overflow-hidden relative">
-                        {{-- Indicador visual superior según el estatus --}}
+                        {{-- Indicador visual superior según el estatus (calculado dinámicamente) --}}
                         @php
-                            $badgeColors = match($p->estatus_general) {
-                                'pendiente' => ['bg' => 'bg-slate-100', 'text' => 'text-slate-700', 'border' => 'border-slate-200', 'color' => 'from-slate-500 to-slate-600'],
-                                'en proceso' => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-700', 'border' => 'border-emerald-200', 'color' => 'from-emerald-500 to-emerald-600'],
-                                'retrasado' => ['bg' => 'bg-rose-50', 'text' => 'text-rose-700', 'border' => 'border-rose-200', 'color' => 'from-rose-500 to-rose-600'],
-                                'cerrado' => ['bg' => 'bg-indigo-50', 'text' => 'text-indigo-700', 'border' => 'border-indigo-200', 'color' => 'from-indigo-600 to-violet-600'],
-                                default => ['bg' => 'bg-slate-100', 'text' => 'text-slate-700', 'border' => 'border-slate-200', 'color' => 'from-slate-500 to-slate-600'],
-                            };
+                            $avance = round($p->porcentaje_general_aprobado);
+                            if ($avance >= 100) {
+                                $estatusCalc = 'cerrado';
+                                $badgeColors = ['bg' => 'bg-indigo-50', 'text' => 'text-indigo-700', 'border' => 'border-indigo-200', 'color' => 'from-indigo-600 to-violet-600'];
+                            } elseif ($p->fecha_entrega_estimada && $p->fecha_entrega_estimada->isPast()) {
+                                $estatusCalc = 'retrasado';
+                                $badgeColors = ['bg' => 'bg-rose-50', 'text' => 'text-rose-700', 'border' => 'border-rose-200', 'color' => 'from-rose-500 to-rose-600'];
+                            } else {
+                                $estatusCalc = 'en proceso';
+                                $badgeColors = ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-700', 'border' => 'border-emerald-200', 'color' => 'from-emerald-500 to-emerald-600'];
+                            }
                         @endphp
                         
                         <div class="h-1.5 w-full bg-gradient-to-r {{ $badgeColors['color'] }}"></div>
@@ -165,7 +169,7 @@
                             {{-- Cabecera de la card --}}
                             <div class="flex items-start justify-between gap-3 mb-4">
                                 <span class="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider {{ $badgeColors['bg'] }} {{ $badgeColors['text'] }} border {{ $badgeColors['border'] }}">
-                                    {{ $p->estatus_general }}
+                                    {{ $estatusCalc }}
                                 </span>
                                 <span class="text-xs text-slate-400 font-bold bg-slate-50 border border-slate-100 py-1 px-2.5 rounded-lg flex items-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

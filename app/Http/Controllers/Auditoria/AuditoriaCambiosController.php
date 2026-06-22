@@ -24,7 +24,6 @@ class AuditoriaCambiosController extends Controller
         $request->validate([
             'actividad_id' => 'required|exists:auditoria_actividades,id',
             'porcentaje_propuesto' => 'required|integer|between:0,100',
-            'estatus_propuesto' => 'required|in:pendiente,en proceso,parcial,retrasado,cerrado',
             'comentario_propuesto' => 'required|string|max:2000',
             'comentario_visible_cliente' => 'nullable|boolean',
             'enviar' => 'required|boolean', // true = enviar a revisión, false = guardar borrador
@@ -40,11 +39,13 @@ class AuditoriaCambiosController extends Controller
             return response()->json(['success' => false, 'error' => 'No tienes permisos para reportar avance en esta actividad.'], 403);
         }
  
-        // Si el analista quiere cerrar al 100%, forzar que el estatus sea "cerrado"
         $porcentaje = $request->porcentaje_propuesto;
-        $estatus = $request->estatus_propuesto;
         if ($porcentaje == 100) {
             $estatus = 'cerrado';
+        } elseif ($porcentaje == 0) {
+            $estatus = 'pendiente';
+        } else {
+            $estatus = 'en proceso';
         }
  
         // Buscar si ya existe una propuesta de cambio (borrador o pendiente) para esta actividad

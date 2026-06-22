@@ -56,11 +56,11 @@ class AuditoriaProyectoController extends Controller
  
         $proyectos = $query->latest()->get();
  
-        // Totales para las cards superiores del listado
+        // Totales para las cards superiores del listado (calculados dinámicamente)
         $totalProyectos = $proyectos->count();
-        $proyectosEnProceso = $proyectos->where('estatus_general', 'en proceso')->count();
-        $proyectosRetrasados = $proyectos->where('estatus_general', 'retrasado')->count();
-        $proyectosCerrados = $proyectos->where('estatus_general', 'cerrado')->count();
+        $proyectosCerrados = $proyectos->where('porcentaje_general_aprobado', '>=', 100)->count();
+        $proyectosRetrasados = $proyectos->where('porcentaje_general_aprobado', '<', 100)->filter(fn($p) => $p->fecha_entrega_estimada && $p->fecha_entrega_estimada->isPast())->count();
+        $proyectosEnProceso = $totalProyectos - $proyectosCerrados - $proyectosRetrasados;
  
         return view('Auditoria.dashboard', compact(
             'proyectos',
@@ -102,15 +102,16 @@ class AuditoriaProyectoController extends Controller
 
         // 8 fases por defecto
         $fasesDefecto = [
-            '1. Planeación e Inicio',
+            '1. Reunión Preoperativa',
             '2. Requerimiento de Información',
-            '3. Recepción de Expedientes',
-            '4. Revisión y Análisis',
-            '5. Detección de Incidencias',
-            '6. Borrador de Hallazgos',
-            '7. Discusión y Ajustes',
-            '8. Cierre y Entrega Final'
+            '3. Revisión de Datos Fiscales',
+            '4. Revisión Documental',
+            '5. Revisión Transaccional',
+            '6. Reporte Final',
+            '7. Envío de Archivos a Cliente para VoBo',
+            '8. Cierre de Proyecto Auditoria Documental/Transaccional'
         ];
+
 
         $data['coordinador_id'] = $user->id;
         $data['estatus_general'] = 'pendiente';
@@ -121,29 +122,9 @@ class AuditoriaProyectoController extends Controller
 
         $proyecto = ProyectoAuditoria::create($data);
  
-        // Crear procesos base por defecto para que la matriz no empiece totalmente vacía
-        $procesosBase = [
-            'Revisión de Pedimentos e Impuestos',
-            'Análisis de Regulaciones y Restricciones No Arancelarias',
-            'Validación de Expedientes Físicos vs Digitales',
-            'Cruce de Inventarios de Activo Fijo'
-        ];
+
  
-        foreach ($procesosBase as $index => $procesoNombre) {
-            ActividadAuditoria::create([
-                'proyecto_id' => $proyecto->id,
-                'padre_id' => null,
-                'orden' => $index,
-                'actividad' => $procesoNombre,
-                'responsable' => 'E&I',
-                'plazo' => $proyecto->fecha_entrega_estimada,
-                'estatus_oficial' => 'pendiente',
-                'porcentaje_oficial' => 0,
-                'es_proceso_principal' => true,
-            ]);
-        }
- 
-        BitacoraAuditoria::registrar($proyecto->id, 'crear_proyecto', null, null, null, null, 'Proyecto creado con procesos base.');
+        BitacoraAuditoria::registrar($proyecto->id, 'crear_proyecto', null, null, null, null, 'Proyecto creado.');
  
         return redirect()->route('auditoria.proyectos.show', $proyecto->id)->with('success', 'Proyecto creado correctamente.');
     }
@@ -292,7 +273,6 @@ class AuditoriaProyectoController extends Controller
             'cantidad_expedientes' => 'required|integer|min:1',
             'fecha_inicio' => 'required|date',
             'fecha_entrega_estimada' => 'required|date|after_or_equal:fecha_inicio',
-            'estatus_general' => 'required|in:pendiente,en proceso,retrasado,cerrado',
             'publico_password' => 'nullable|string|max:100',
             'publico_expira_at' => 'nullable|date',
             'mostrar_detalle_cliente' => 'nullable|boolean',

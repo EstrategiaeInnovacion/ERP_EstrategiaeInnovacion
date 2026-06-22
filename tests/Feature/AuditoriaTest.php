@@ -90,9 +90,9 @@ class AuditoriaTest extends TestCase
             'estatus_general' => 'pendiente',
         ]);
  
-        // Verificar que se crearon los procesos base
+        // Verificar que no se crearon procesos base por defecto
         $proyecto = ProyectoAuditoria::first();
-        $this->assertCount(4, $proyecto->actividades);
+        $this->assertCount(0, $proyecto->actividades);
     }
  
     /**

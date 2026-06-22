@@ -19,6 +19,21 @@
  
         isExpanded(id) {
             return this.expandedProcesos[id] !== false; // Abierto por defecto
+        },
+
+        toggleComments(id, hasComments = false) {
+            if (this.expandedComments[id] === undefined) {
+                this.expandedComments[id] = !hasComments;
+            } else {
+                this.expandedComments[id] = !this.expandedComments[id];
+            }
+        },
+
+        isCommentsExpanded(id, hasComments = false) {
+            if (this.expandedComments[id] === undefined) {
+                return hasComments;
+            }
+            return this.expandedComments[id];
         }
      }">
  
@@ -81,28 +96,14 @@
                     <p class="text-[10px] text-slate-400">Fecha inicio: {{ $proyecto->fecha_inicio->format('d/m/Y') }}</p>
                 </div>
  
-                {{-- Card Estatus y Entrega --}}
+                {{-- Card Entrega Estimada --}}
                 <div class="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Estatus General</span>
-                        
-                        @php
-                            $statusColors = match($proyecto->estatus_general) {
-                                'pendiente' => 'bg-slate-100 text-slate-700 border-slate-200',
-                                'en proceso' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                'retrasado' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                'cerrado' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                                default => 'bg-slate-100 text-slate-700 border-slate-200',
-                            };
-                        @endphp
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-full text-xs font-extrabold border capitalize {{ $statusColors }}">
-                            {{ $proyecto->estatus_general }}
-                        </span>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Entrega Estimada</span>
+                        <p class="text-2xl font-black text-slate-800 mt-2">{{ $proyecto->fecha_entrega_estimada->format('d/m/Y') }}</p>
+                        <p class="text-xs text-slate-400 mt-1">Fecha de finalización proyectada.</p>
                     </div>
-                    <div>
-                        <p class="text-[10px] text-slate-400">Entrega Estimada:</p>
-                        <p class="text-sm font-bold text-slate-800 mt-0.5">{{ $proyecto->fecha_entrega_estimada->format('d/m/Y') }}</p>
-                    </div>
+                    <p class="text-[10px] text-slate-400">Auditoría Documental/Transaccional</p>
                 </div>
             </div>
  
@@ -194,20 +195,20 @@
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             @if($proceso->comentariosList->isNotEmpty())
-                                                <button @click="expandedComments[{{ $proceso->id }}] = !expandedComments[{{ $proceso->id }}]"
+                                                 <button @click="toggleComments('{{ $proceso->id }}', {{ $hasComments }})"
                                                         class="p-1.5 rounded-lg transition relative"
-                                                        :class="expandedComments[{{ $proceso->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
+                                                         :class="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }}) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                                                     </svg>
-                                                    <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $proceso->id }}] ? 'hidden' : ''"></span>
+                                                     <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }}) ? 'hidden' : ''"></span>
                                                 </button>
                                             @endif
                                         </td>
                                     </tr>
  
                                     {{-- Comentarios Inline del Proceso Principal --}}
-                                    <tr x-show="expandedComments[{{ $proceso->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                     <tr x-show="isCommentsExpanded('{{ $proceso->id }}', {{ $hasComments }})" class="bg-indigo-50/5" x-cloak x-transition>
                                         <td class="px-6 py-4"></td>
                                         <td colspan="5" class="px-6 py-4">
                                             <div class="space-y-3">
@@ -260,21 +261,22 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                @if($sub->comentariosList->isNotEmpty())
-                                                    <button @click="expandedComments[{{ $sub->id }}] = !expandedComments[{{ $sub->id }}]"
-                                                            class="p-1.5 rounded-lg transition relative"
-                                                            :class="expandedComments[{{ $sub->id }}] ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                                                        </svg>
-                                                        <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="expandedComments[{{ $sub->id }}] ? 'hidden' : ''"></span>
-                                                    </button>
-                                                @endif
+                                                 @php $subHasComments = $sub->comentariosList->isNotEmpty() ? 'true' : 'false'; @endphp
+                                                 @if($sub->comentariosList->isNotEmpty())
+                                                 <button @click="toggleComments('{{ $sub->id }}', {{ $subHasComments }})"
+                                                         class="p-1.5 rounded-lg transition relative"
+                                                         :class="isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }}) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'">
+                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                                     </svg>
+                                                     <span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full" :class="isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }}) ? 'hidden' : ''"></span>
+                                                 </button>
+                                             @endif
                                             </td>
                                         </tr>
  
                                         {{-- Comentarios Inline del Subproceso --}}
-                                        <tr x-show="isExpanded({{ $proceso->id }}) && expandedComments[{{ $sub->id }}]" class="bg-indigo-50/5" x-cloak x-transition>
+                                        <tr x-show="isExpanded({{ $proceso->id }}) && isCommentsExpanded('{{ $sub->id }}', {{ $subHasComments }})" class="bg-indigo-50/5" x-cloak x-transition>
                                             <td class="px-6 py-4"></td>
                                             <td colspan="5" class="px-6 py-4">
                                                 <div class="space-y-3">
