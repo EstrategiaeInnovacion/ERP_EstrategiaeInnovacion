@@ -97,6 +97,7 @@ class RelojChecadorImportController extends Controller
         $search = $request->input('search');
 
         $empleados = Empleado::query()
+            ->where('es_activo', true)
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
@@ -632,6 +633,7 @@ class RelojChecadorImportController extends Controller
         $search = $request->input('search');
 
         $empleados = Empleado::query()
+            ->where('es_activo', true)
             ->whereIn('id', $subordinados)
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
