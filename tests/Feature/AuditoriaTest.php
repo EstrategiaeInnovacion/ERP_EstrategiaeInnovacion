@@ -572,5 +572,81 @@ class AuditoriaTest extends TestCase
             'es_importante' => true,
         ]);
     }
+
+    /**
+     * Prueba que el coordinador puede actualizar directamente una actividad/proceso.
+     */
+    public function test_coordinator_can_update_activity(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $actividad = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'padre_id' => null,
+            'actividad' => 'Proceso Original',
+            'responsable' => 'E&I',
+            'plazo' => '2026-06-10',
+            'es_proceso_principal' => true,
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->put(route('auditoria.proyectos.actividades.update', [$proyecto->id, $actividad->id]), [
+            'actividad' => 'Proceso Editado',
+            'responsable' => 'Cliente de Prueba S.A.',
+            'plazo' => '2026-07-15',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('auditoria_actividades', [
+            'id' => $actividad->id,
+            'actividad' => 'Proceso Editado',
+            'responsable' => 'Cliente de Prueba S.A.',
+            'plazo' => '2026-07-15 00:00:00',
+        ]);
+    }
+
+    /**
+     * Prueba que un analista no puede actualizar una actividad (abort 403).
+     */
+    public function test_analyst_cannot_update_activity(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $actividad = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'padre_id' => null,
+            'actividad' => 'Proceso Original',
+            'responsable' => 'E&I',
+            'plazo' => '2026-06-10',
+            'es_proceso_principal' => true,
+        ]);
+
+        $response = $this->actingAs($this->analyst)->put(route('auditoria.proyectos.actividades.update', [$proyecto->id, $actividad->id]), [
+            'actividad' => 'Proceso Editado',
+            'responsable' => 'Cliente de Prueba S.A.',
+            'plazo' => '2026-07-15',
+        ]);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('auditoria_actividades', [
+            'id' => $actividad->id,
+            'actividad' => 'Proceso Original',
+        ]);
+    }
 }
 

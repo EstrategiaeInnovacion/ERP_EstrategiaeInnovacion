@@ -8,12 +8,17 @@
         openEditModal: false,
         openReviewModal: false,
         openCreateActModal: false,
+        openEditActModal: false,
         openReportModal: false,
         openCommentsModal: false,
         
-        // Variables para crear actividad
+        // Variables para crear / editar actividad
         createPadreId: '',
         createEsProceso: true,
+        editActId: '',
+        editActNombre: '',
+        editActResponsable: 'E&I',
+        editActPlazo: '',
         
         // Variables para reportar avance (analista)
         reportActId: '',
@@ -114,6 +119,14 @@
  
         subirOrden(actId) {
             // Lógica de ordenación si se requiere
+        },
+
+        abrirEditarActividad(id, nombre, responsable, plazo) {
+            this.editActId = id;
+            this.editActNombre = nombre;
+            this.editActResponsable = responsable || 'E&I';
+            this.editActPlazo = plazo || '';
+            this.openEditActModal = true;
         },
 
         abrirReporte(id, nombre, porcentaje, estatus, comentario, visible, esImportante) {
@@ -683,6 +696,14 @@
                                                         @endif
                                                     @endif
                                                     
+                                                    {{-- Editar --}}
+                                                    <button @click="abrirEditarActividad('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', '{{ $proceso->responsable }}', '{{ $proceso->plazo ? $proceso->plazo->format('Y-m-d') : '' }}')"
+                                                            class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition" title="Editar Proceso">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                        </svg>
+                                                    </button>
+
                                                     {{-- Eliminar --}}
                                                     <form action="{{ route('auditoria.proyectos.actividades.destroy', [$proyecto->id, $proceso->id]) }}" method="POST" onsubmit="return confirm('¿Eliminar esta actividad y todos sus subprocesos?');">
                                                         @csrf
@@ -860,6 +881,14 @@
                                                                 Enviar
                                                             </button>
                                                         @endif
+
+                                                        {{-- Editar --}}
+                                                        <button @click="abrirEditarActividad('{{ $sub->id }}', '{{ addslashes($sub->actividad) }}', '{{ $sub->responsable }}', '{{ $sub->plazo ? $sub->plazo->format('Y-m-d') : '' }}')"
+                                                                class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition" title="Editar Subproceso">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                            </svg>
+                                                        </button>
 
                                                         {{-- Eliminar --}}
                                                         <form action="{{ route('auditoria.proyectos.actividades.destroy', [$proyecto->id, $sub->id]) }}" method="POST" onsubmit="return confirm('¿Eliminar este subproceso?');">
@@ -1407,6 +1436,66 @@
                             <button type="submit"
                                     class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
                                 {{ $esCoordinador ? 'Agregar Actividad' : 'Sugerir Actividad' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- MODAL: EDITAR ACTIVIDAD / SUBPROCESO (COORDINADOR) --}}
+    @if($esCoordinador)
+        <div id="modal-edit-act" 
+             x-show="openEditActModal" 
+             class="fixed inset-0 z-50 overflow-y-auto" 
+             x-cloak>
+            <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="openEditActModal = false"></div>
+ 
+                <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-scale-up"
+                     x-show="openEditActModal">
+                    
+                    <form :action="'{{ url('/auditoria/proyectos/' . $proyecto->id . '/actividades') }}/' + editActId" method="POST">
+                        @csrf
+                        @method('PUT')
+                        
+                        <div class="bg-white px-6 py-6 border-b border-slate-100">
+                            <h3 class="text-xl font-bold text-slate-900">Editar Proceso / Subproceso</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Ingresa los nuevos detalles oficiales de la actividad.</p>
+                        </div>
+ 
+                        <div class="bg-white px-6 py-6 space-y-4">
+                            <div>
+                                <label for="edit_act_nombre" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nombre de Actividad</label>
+                                <input type="text" name="actividad" id="edit_act_nombre" x-model="editActNombre" required placeholder="Ej: Revisión de Glosa del Pedimento"
+                                       class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                            </div>
+ 
+                            <div>
+                                <label for="edit_act_responsable" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Responsable Asignado</label>
+                                <select name="responsable" id="edit_act_responsable" x-model="editActResponsable" required
+                                        class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <option value="E&I">E&I</option>
+                                    <option value="{{ $proyecto->nombre_cliente }}">{{ $proyecto->nombre_cliente }}</option>
+                                </select>
+                            </div>
+ 
+                            <div>
+                                <label for="edit_act_plazo" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Fecha Límite / Plazo</label>
+                                <input type="date" name="plazo" id="edit_act_plazo" x-model="editActPlazo"
+                                       class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                            </div>
+                        </div>
+ 
+                        <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 rounded-b-3xl">
+                            <button type="button" @click="openEditActModal = false"
+                                    class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                    class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
+                                Guardar Cambios
                             </button>
                         </div>
                     </form>

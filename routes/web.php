@@ -432,6 +432,7 @@ Route::middleware(['auth', 'verified', 'area.auditoria'])->prefix('auditoria')->
  
     // Actividades
     Route::post('/proyectos/{id}/actividades', [AuditoriaProyectoController::class, 'storeActividad'])->name('proyectos.actividades.store');
+    Route::put('/proyectos/{id}/actividades/{actividadId}', [AuditoriaProyectoController::class, 'updateActividad'])->name('proyectos.actividades.update');
     Route::delete('/proyectos/{id}/actividades/{actividadId}', [AuditoriaProyectoController::class, 'destroyActividad'])->name('proyectos.actividades.destroy');
     Route::post('/proyectos/{id}/actividades/orden', [AuditoriaProyectoController::class, 'updateActividadOrden'])->name('proyectos.actividades.orden');
  

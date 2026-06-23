@@ -472,6 +472,34 @@ class AuditoriaProyectoController extends Controller
  
         return redirect()->back()->with('success', 'Actividad eliminada exitosamente.');
     }
+
+    // Editar actividad / proceso / subproceso (coordinador)
+    public function updateActividad(Request $request, $proyectoId, $actividadId)
+    {
+        $user = auth()->user();
+        if (!$this->esCoordinador($user)) {
+            abort(403, 'Solo el coordinador puede editar procesos o subprocesos.');
+        }
+
+        $request->validate([
+            'actividad' => 'required|string|max:1000',
+            'responsable' => 'required|string|max:255',
+            'plazo' => 'nullable|date',
+        ]);
+
+        $actividad = ActividadAuditoria::where('proyecto_id', $proyectoId)->findOrFail($actividadId);
+        $valorAnterior = $actividad->actividad;
+
+        $actividad->update([
+            'actividad' => $request->actividad,
+            'responsable' => $request->responsable,
+            'plazo' => $request->plazo,
+        ]);
+
+        BitacoraAuditoria::registrar($proyectoId, 'editar_actividad', $actividadId, 'actividad', $valorAnterior, $request->actividad, 'Actividad editada.');
+
+        return redirect()->back()->with('success', 'Proceso o subproceso actualizado exitosamente.');
+    }
  
     // Eliminar proyecto (coordinador)
     public function destroy($id)
