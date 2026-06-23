@@ -648,5 +648,56 @@ class AuditoriaTest extends TestCase
             'actividad' => 'Proceso Original',
         ]);
     }
+
+    /**
+     * Prueba que el coordinador puede cargar los procesos base.
+     */
+    public function test_coordinator_can_load_base_processes(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->post(route('auditoria.proyectos.actividades.cargar_base', $proyecto->id));
+
+        $response->assertRedirect();
+        
+        // 10 procesos principales + 1 subproceso (1.1) = 11 actividades en total
+        $this->assertCount(11, $proyecto->actividades);
+        $this->assertCount(10, $proyecto->actividades()->whereNull('padre_id')->get());
+        $this->assertCount(1, $proyecto->actividades()->whereNotNull('padre_id')->get());
+
+        $this->assertDatabaseHas('auditoria_bitacora', [
+            'proyecto_id' => $proyecto->id,
+            'accion' => 'cargar_procesos_base',
+        ]);
+    }
+
+    /**
+     * Prueba que el analista no puede cargar los procesos base.
+     */
+    public function test_analyst_cannot_load_base_processes(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $response = $this->actingAs($this->analyst)->post(route('auditoria.proyectos.actividades.cargar_base', $proyecto->id));
+
+        $response->assertStatus(403);
+        $this->assertCount(0, $proyecto->actividades);
+    }
 }
 

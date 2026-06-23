@@ -545,13 +545,28 @@
                 </div>
  
                 @if($esCoordinador || $proyecto->analista_id === auth()->id())
-                    <button @click="createPadreId = ''; createEsProceso = true; openCreateActModal = true"
-                            class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition active:scale-95 w-full lg:w-auto">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        {{ $esCoordinador ? 'Agregar Proceso' : 'Sugerir Proceso' }}
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                        @if($esCoordinador && $actividades->isEmpty())
+                            <form action="{{ route('auditoria.proyectos.actividades.cargar_base', $proyecto->id) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit"
+                                        class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition active:scale-95 w-full sm:w-auto">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Cargar Procesos Base
+                                </button>
+                            </form>
+                        @endif
+
+                        <button @click="createPadreId = ''; createEsProceso = true; openCreateActModal = true"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition active:scale-95 w-full lg:w-auto">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            {{ $esCoordinador ? 'Agregar Proceso' : 'Sugerir Proceso' }}
+                        </button>
+                    </div>
                 @endif
             </div>
  

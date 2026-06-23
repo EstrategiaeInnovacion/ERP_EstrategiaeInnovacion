@@ -435,6 +435,7 @@ Route::middleware(['auth', 'verified', 'area.auditoria'])->prefix('auditoria')->
     Route::put('/proyectos/{id}/actividades/{actividadId}', [AuditoriaProyectoController::class, 'updateActividad'])->name('proyectos.actividades.update');
     Route::delete('/proyectos/{id}/actividades/{actividadId}', [AuditoriaProyectoController::class, 'destroyActividad'])->name('proyectos.actividades.destroy');
     Route::post('/proyectos/{id}/actividades/orden', [AuditoriaProyectoController::class, 'updateActividadOrden'])->name('proyectos.actividades.orden');
+    Route::post('/proyectos/{id}/actividades/cargar-base', [AuditoriaProyectoController::class, 'cargarProcesosBase'])->name('proyectos.actividades.cargar_base');
  
     // Flujo de Cambios (Analistas / Coordinadores)
     Route::post('/proyectos/{id}/cambios', [AuditoriaCambiosController::class, 'store'])->name('proyectos.cambios.store');

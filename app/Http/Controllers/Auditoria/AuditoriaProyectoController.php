@@ -501,6 +501,75 @@ class AuditoriaProyectoController extends Controller
         return redirect()->back()->with('success', 'Proceso o subproceso actualizado exitosamente.');
     }
  
+    // Cargar procesos base (coordinador)
+    public function cargarProcesosBase(Request $request, $id)
+    {
+        $user = auth()->user();
+        if (!$this->esCoordinador($user)) {
+            abort(403, 'Solo el coordinador puede cargar los procesos base.');
+        }
+
+        $proyecto = ProyectoAuditoria::findOrFail($id);
+
+        $procesosBase = [
+            [
+                'actividad' => '1. Revisión de datos fiscales Importador Vs CSF vigente.',
+                'subprocesos' => [
+                    '1.1 Entrega de datos fiscales Proveedor Vs W-9 / Certificado de Tax-Id.'
+                ]
+            ],
+            ['actividad' => '2. Iniciar revisión Documental.', 'subprocesos' => []],
+            ['actividad' => '3. Iniciar revisión Transaccional.', 'subprocesos' => []],
+            ['actividad' => '4. Revisión archivos/complementar observaciones.', 'subprocesos' => []],
+            ['actividad' => '5. Registrar multas correspondientes (Documental/Transaccional).', 'subprocesos' => []],
+            ['actividad' => '6. Preparar reporte final.', 'subprocesos' => []],
+            ['actividad' => '7. Envío de información.', 'subprocesos' => []],
+            ['actividad' => '8. Recepción y revisión cliente.', 'subprocesos' => []],
+            ['actividad' => '9. Concretar reunión para explicar observaciones.', 'subprocesos' => []],
+            ['actividad' => '10. Cierre de proyecto Auditoría Documental/Transaccional.', 'subprocesos' => []],
+        ];
+
+        DB::transaction(function () use ($proyecto, $procesosBase) {
+            $ultimoOrden = ActividadAuditoria::where('proyecto_id', $proyecto->id)
+                ->whereNull('padre_id')
+                ->max('orden') ?? -1;
+
+            foreach ($procesosBase as $index => $pb) {
+                $ordenProceso = $ultimoOrden + 1 + $index;
+                $proceso = ActividadAuditoria::create([
+                    'proyecto_id' => $proyecto->id,
+                    'padre_id' => null,
+                    'orden' => $ordenProceso,
+                    'actividad' => $pb['actividad'],
+                    'responsable' => 'E&I',
+                    'plazo' => $proyecto->fecha_entrega_estimada,
+                    'estatus_oficial' => 'pendiente',
+                    'porcentaje_oficial' => 0,
+                    'es_proceso_principal' => true,
+                ]);
+
+                foreach ($pb['subprocesos'] as $subIndex => $subText) {
+                    ActividadAuditoria::create([
+                        'proyecto_id' => $proyecto->id,
+                        'padre_id' => $proceso->id,
+                        'orden' => $subIndex,
+                        'actividad' => $subText,
+                        'responsable' => 'E&I',
+                        'plazo' => $proyecto->fecha_entrega_estimada,
+                        'estatus_oficial' => 'pendiente',
+                        'porcentaje_oficial' => 0,
+                        'es_proceso_principal' => false,
+                    ]);
+                }
+            }
+
+            BitacoraAuditoria::registrar($proyecto->id, 'cargar_procesos_base', null, null, null, null, 'Procesos base cargados en la matriz.');
+            $proyecto->recalcularPorcentajes();
+        });
+
+        return redirect()->back()->with('success', '¡Procesos base cargados al 100% mi carnal! Listos para romperla.');
+    }
+
     // Eliminar proyecto (coordinador)
     public function destroy($id)
     {
