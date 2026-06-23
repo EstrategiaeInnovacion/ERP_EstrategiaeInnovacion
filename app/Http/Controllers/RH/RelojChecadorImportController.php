@@ -588,11 +588,17 @@ class RelojChecadorImportController extends Controller
 
         $subordinadosQuery = $miEmpleado->subordinados()->where('es_activo', true);
         
-        if (!$subordinadosQuery->exists()) {
+        $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
+        $tieneSubordinados = $subordinadosQuery->exists();
+
+        $esSupervisor = Str::contains($posicion, 'coordinador') || 
+                        Str::contains($posicion, 'coordinadora') || 
+                        Str::contains($posicion, 'direcc') || 
+                        $tieneSubordinados;
+
+        if (!$esSupervisor) {
             abort(403, 'No tienes acceso a este módulo.');
         }
-
-        $posicion = mb_strtolower($miEmpleado->posicion ?? '', 'UTF-8');
         
         if (Str::contains($posicion, 'direcc')) {
             $subordinados = Empleado::where('es_activo', true)->pluck('id')->toArray();
