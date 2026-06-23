@@ -476,5 +476,45 @@ class AuditoriaTest extends TestCase
         $response->assertStatus(403);
         $this->assertDatabaseHas('auditoria_proyectos', ['id' => $proyecto->id]);
     }
+
+    /**
+     * Prueba que se puede proponer un avance sin comentario (comentario opcional).
+     */
+    public function test_propose_change_without_comment_is_successful(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $actividad = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'padre_id' => null,
+            'actividad' => 'Proceso 1',
+            'porcentaje_oficial' => 10,
+            'estatus_oficial' => 'pendiente',
+            'es_proceso_principal' => true,
+        ]);
+
+        $response = $this->actingAs($this->analyst)->post(route('auditoria.proyectos.cambios.store', $proyecto->id), [
+            'actividad_id' => $actividad->id,
+            'porcentaje_propuesto' => 50,
+            'estatus_propuesto' => 'en proceso',
+            'comentario_propuesto' => null, // Opcional
+            'enviar' => true,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('auditoria_cambios_propuestos', [
+            'actividad_id' => $actividad->id,
+            'porcentaje_propuesto' => 50,
+            'comentario_propuesto' => null,
+        ]);
+    }
 }
 

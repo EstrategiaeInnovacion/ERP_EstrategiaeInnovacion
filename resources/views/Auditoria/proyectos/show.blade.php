@@ -107,10 +107,6 @@
         },
  
         enviarReporte(enviarFlag) {
-            if (!this.reportComentario.trim()) {
-                alert('El comentario es obligatorio para explicar el avance al coordinador.');
-                return;
-            }
             fetch('{{ route('auditoria.proyectos.cambios.store', $proyecto->id) }}', {
                 method: 'POST',
                 headers: {
@@ -1276,8 +1272,8 @@
 
                     {{-- Comentario Justificativo --}}
                     <div>
-                        <label for="report_comentario" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Comentario de Justificación</label>
-                        <textarea id="report_comentario" x-model="reportComentario" required rows="4" placeholder="Explica detalladamente qué actividades realizaste, plazos cumplidos, o justificaciones de retraso..."
+                        <label for="report_comentario" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Comentario de Justificación (Opcional)</label>
+                        <textarea id="report_comentario" x-model="reportComentario" rows="4" placeholder="Explica detalladamente qué actividades realizaste, plazos cumplidos, o justificaciones de retraso..."
                                   class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition"></textarea>
                     </div>
 

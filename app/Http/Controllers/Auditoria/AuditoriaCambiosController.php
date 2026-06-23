@@ -24,7 +24,7 @@ class AuditoriaCambiosController extends Controller
         $request->validate([
             'actividad_id' => 'required|exists:auditoria_actividades,id',
             'porcentaje_propuesto' => 'required|integer|between:0,100',
-            'comentario_propuesto' => 'required|string|max:2000',
+            'comentario_propuesto' => 'nullable|string|max:2000',
             'comentario_visible_cliente' => 'nullable|boolean',
             'enviar' => 'required|boolean', // true = enviar a revisión, false = guardar borrador
         ]);
