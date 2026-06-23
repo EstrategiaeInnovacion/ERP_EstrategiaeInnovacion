@@ -482,12 +482,12 @@
                                     </div>
                                 </div>
 
-                                <div x-show="tipoPermiso === 'corto'" class="mb-4" style="display: none;">
+                                <div x-show="tipoPermiso === 'corto' || tipoPermiso === 'especial'" class="mb-4" style="display: none;">
                                     <x-input-label for="reposicion_tipo" value="Forma de Reposición" />
-                                    <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto'">
+                                    <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto' || tipoPermiso === 'especial'">
                                         <option value="">Selecciona...</option>
                                         <option value="tiempo_por_tiempo">Tiempo por Tiempo</option>
-                                        <option value="descuento_nomina">Descuento de Nómina</option>
+                                        <option value="descuento_nomina" x-text="tipoPermiso === 'especial' ? 'Sin Goce de Sueldo' : 'Descuento de Nómina'"></option>
                                     </select>
                                 </div>
 

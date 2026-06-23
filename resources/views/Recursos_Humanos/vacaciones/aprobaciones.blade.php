@@ -348,7 +348,14 @@
                                             {{ $permiso->tipo_permiso }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-slate-600 max-w-xs truncate" title="{{ $permiso->motivo_detalle }}">{{ $permiso->motivo_detalle }}</td>
+                                    <td class="px-6 py-4 text-slate-600 max-w-xs truncate" title="{{ $permiso->motivo_detalle }}">
+                                        {{ $permiso->motivo_detalle }}
+                                        @if($permiso->reposicion_tipo)
+                                            <div class="mt-1 text-xs text-indigo-600 font-semibold">
+                                                Reposición: {{ \Illuminate\Support\Str::title(str_replace('_', ' ', $permiso->reposicion_tipo)) }}
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-right" x-data="{ modalP_Open: false, action: '' }">
                                         <div class="flex justify-end gap-2 items-center" x-data="{ openUploadSup: false }">
                                             @if($permiso->tipo_permiso === 'legal' && !$permiso->comprobante_path)
@@ -437,6 +444,11 @@
                                         </td>
                                         <td class="px-6 py-4 text-xs text-slate-600">
                                             {{ $permiso->motivo_detalle }}
+                                            @if($permiso->reposicion_tipo)
+                                                <div class="mt-1 font-semibold text-emerald-700">
+                                                    Reposición: {{ \Illuminate\Support\Str::title(str_replace('_', ' ', $permiso->reposicion_tipo)) }}
+                                                </div>
+                                            @endif
                                             @if($permiso->comprobante_path)
                                                 <div class="mt-2">
                                                     <a href="{{ asset('storage/' . $permiso->comprobante_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
