@@ -29,7 +29,7 @@
         commentsList: [],
         newCommentText: '',
         newCommentVisible: false,
-        expandedComments: {},
+        expandedComments: JSON.parse(localStorage.getItem('auditoria_expanded_comments_' + {{ $proyecto->id }}) || '{}'),
         
         // Filtros de la matriz
         filtroResponsable: '',
@@ -61,6 +61,7 @@
             } else {
                 this.expandedComments[id] = !this.expandedComments[id];
             }
+            localStorage.setItem('auditoria_expanded_comments_' + {{ $proyecto->id }}, JSON.stringify(this.expandedComments));
         },
 
         isCommentsExpanded(id, hasComments = false) {
