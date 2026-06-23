@@ -220,10 +220,20 @@
                                                 </h5>
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     @foreach($proceso->comentariosList as $c)
-                                                        <div class="bg-white border border-slate-200/60 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                        <div class="{{ $c->es_importante ? 'bg-rose-50/70 border-rose-200 ring-1 ring-rose-200/50 shadow-rose-50/20' : 'bg-white border-slate-200/60' }} border p-3.5 rounded-2xl shadow-sm space-y-1.5">
                                                              <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
                                                                  <span class="text-slate-600">{{ $c->autor->name }}</span>
-                                                                 <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                 <div class="flex items-center gap-1.5">
+                                                                     <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                     @if($c->es_importante)
+                                                                         <span class="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded border border-rose-200 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-0.5">
+                                                                             <svg class="w-2.5 h-2.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                                             </svg>
+                                                                             Importante
+                                                                         </span>
+                                                                     @endif
+                                                                 </div>
                                                              </div>
                                                              <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
                                                         </div>
@@ -288,10 +298,20 @@
                                                     </h5>
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                         @foreach($sub->comentariosList as $c)
-                                                            <div class="bg-white border border-slate-200/50 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                            <div class="{{ $c->es_importante ? 'bg-rose-50/70 border-rose-200 ring-1 ring-rose-200/50 shadow-rose-50/20' : 'bg-white border-slate-200/50' }} border p-3.5 rounded-2xl shadow-sm space-y-1.5">
                                                                  <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
                                                                      <span class="text-slate-600">{{ $c->autor->name }}</span>
-                                                                     <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                     <div class="flex items-center gap-1.5">
+                                                                         <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
+                                                                         @if($c->es_importante)
+                                                                             <span class="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded border border-rose-200 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-0.5">
+                                                                                 <svg class="w-2.5 h-2.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                                                 </svg>
+                                                                                 Importante
+                                                                             </span>
+                                                                         @endif
+                                                                     </div>
                                                                  </div>
                                                                  <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
                                                             </div>

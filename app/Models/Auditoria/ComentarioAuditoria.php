@@ -14,10 +14,12 @@ class ComentarioAuditoria extends Model
         'user_id',
         'comentario',
         'visible_cliente',
+        'es_importante',
     ];
  
     protected $casts = [
         'visible_cliente' => 'boolean',
+        'es_importante' => 'boolean',
     ];
  
     // Relación con Actividad

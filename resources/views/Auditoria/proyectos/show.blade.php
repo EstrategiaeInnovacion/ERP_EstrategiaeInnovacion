@@ -22,6 +22,7 @@
         reportEstatus: 'pendiente',
         reportComentario: '',
         reportVisibleCliente: false,
+        reportEsImportante: false,
         
         // Variables para comentarios
         commentsActId: '',
@@ -114,17 +115,18 @@
         subirOrden(actId) {
             // Lógica de ordenación si se requiere
         },
- 
-        abrirReporte(id, nombre, porcentaje, estatus, comentario, visible) {
+
+        abrirReporte(id, nombre, porcentaje, estatus, comentario, visible, esImportante) {
             this.reportActId = id;
             this.reportActNombre = nombre;
             this.reportPorcentaje = porcentaje;
             this.reportEstatus = estatus;
             this.reportComentario = comentario || '';
             this.reportVisibleCliente = visible || false;
+            this.reportEsImportante = esImportante || false;
             this.openReportModal = true;
         },
- 
+  
         enviarReporte(enviarFlag) {
             fetch('{{ route('auditoria.proyectos.cambios.store', $proyecto->id) }}', {
                 method: 'POST',
@@ -138,6 +140,7 @@
                     estatus_propuesto: this.reportEstatus,
                     comentario_propuesto: this.reportComentario,
                     comentario_visible_cliente: this.reportVisibleCliente,
+                    es_importante: this.reportEsImportante,
                     enviar: enviarFlag
                 })
             })
@@ -666,7 +669,7 @@
                                                             $borrador = $misBorradores[$proceso->id] ?? null;
                                                             $isLocked = !is_null($cambioRevision);
                                                         @endphp
-                                                        <button @click="abrirReporte('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', {{ $borrador ? $borrador->porcentaje_propuesto : $proceso->porcentaje_oficial }}, '{{ $borrador ? $borrador->estatus_propuesto : $proceso->estatus_oficial }}', '{{ $borrador ? addslashes($borrador->comentario_propuesto) : '' }}', {{ $borrador && $borrador->comentario_visible_cliente ? 'true' : 'false' }})"
+                                                        <button @click="abrirReporte('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', {{ $borrador ? $borrador->porcentaje_propuesto : $proceso->porcentaje_oficial }}, '{{ $borrador ? $borrador->estatus_propuesto : $proceso->estatus_oficial }}', '{{ $borrador ? addslashes($borrador->comentario_propuesto) : '' }}', {{ $borrador && $borrador->comentario_visible_cliente ? 'true' : 'false' }}, {{ $borrador && $borrador->es_importante ? 'true' : 'false' }})"
                                                                 :disabled="{{ $isLocked ? 'true' : 'false' }}"
                                                                  class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
                                                             {{ $borrador ? 'Editar Borrador' : 'Reportar' }}
@@ -698,7 +701,7 @@
                                                             $borrador = $misBorradores[$proceso->id] ?? null;
                                                             $isLocked = !is_null($cambioRevision);
                                                         @endphp
-                                                        <button @click="abrirReporte('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', {{ $borrador ? $borrador->porcentaje_propuesto : $proceso->porcentaje_oficial }}, '{{ $borrador ? $borrador->estatus_propuesto : $proceso->estatus_oficial }}', '{{ $borrador ? addslashes($borrador->comentario_propuesto) : '' }}', {{ $borrador && $borrador->comentario_visible_cliente ? 'true' : 'false' }})"
+                                                        <button @click="abrirReporte('{{ $proceso->id }}', '{{ addslashes($proceso->actividad) }}', {{ $borrador ? $borrador->porcentaje_propuesto : $proceso->porcentaje_oficial }}, '{{ $borrador ? $borrador->estatus_propuesto : $proceso->estatus_oficial }}', '{{ $borrador ? addslashes($borrador->comentario_propuesto) : '' }}', {{ $borrador && $borrador->comentario_visible_cliente ? 'true' : 'false' }}, {{ $borrador && $borrador->es_importante ? 'true' : 'false' }})"
                                                                 :disabled="{{ $isLocked ? 'true' : 'false' }}"
                                                                 class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
                                                             {{ $borrador ? 'Editar Borrador' : 'Reportar' }}
@@ -732,13 +735,21 @@
                                             @else
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     @foreach($proceso->comentariosList as $c)
-                                                        <div class="bg-white border border-slate-200/60 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                        <div class="{{ $c->es_importante ? 'bg-rose-50/70 border-rose-200 ring-1 ring-rose-200/50 shadow-rose-50/20' : 'bg-white border-slate-200/60' }} border p-3.5 rounded-2xl shadow-sm space-y-1.5">
                                                              <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
                                                                  <span class="text-slate-600">{{ $c->autor->name }}</span>
                                                                  <div class="flex items-center gap-1.5">
                                                                      <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
                                                                      @if($c->visible_cliente)
                                                                          <span class="px-1.5 py-0.5 bg-sky-50 text-sky-600 rounded border border-sky-100 text-[8px] uppercase tracking-wider font-extrabold">Cliente</span>
+                                                                     @endif
+                                                                     @if($c->es_importante)
+                                                                         <span class="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded border border-rose-200 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-0.5">
+                                                                             <svg class="w-2.5 h-2.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                                             </svg>
+                                                                             Importante
+                                                                         </span>
                                                                      @endif
                                                                  </div>
                                                              </div>
@@ -837,7 +848,7 @@
                                                             $subBorrador = $misBorradores[$sub->id] ?? null;
                                                             $subIsLocked = !is_null($subCambioRevision);
                                                         @endphp
-                                                        <button @click="abrirReporte('{{ $sub->id }}', '{{ addslashes($sub->actividad) }}', {{ $subBorrador ? $subBorrador->porcentaje_propuesto : $sub->porcentaje_oficial }}, '{{ $subBorrador ? $subBorrador->estatus_propuesto : $sub->estatus_oficial }}', '{{ $subBorrador ? addslashes($subBorrador->comentario_propuesto) : '' }}', {{ $subBorrador && $subBorrador->comentario_visible_cliente ? 'true' : 'false' }})"
+                                                        <button @click="abrirReporte('{{ $sub->id }}', '{{ addslashes($sub->actividad) }}', {{ $subBorrador ? $subBorrador->porcentaje_propuesto : $sub->porcentaje_oficial }}, '{{ $subBorrador ? $subBorrador->estatus_propuesto : $sub->estatus_oficial }}', '{{ $subBorrador ? addslashes($subBorrador->comentario_propuesto) : '' }}', {{ $subBorrador && $subBorrador->comentario_visible_cliente ? 'true' : 'false' }}, {{ $subBorrador && $subBorrador->es_importante ? 'true' : 'false' }})"
                                                                 :disabled="{{ $subIsLocked ? 'true' : 'false' }}"
                                                                 class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
                                                             {{ $subBorrador ? 'Editar Borrador' : 'Reportar' }}
@@ -868,7 +879,7 @@
                                                                 $subBorrador = $misBorradores[$sub->id] ?? null;
                                                                 $subIsLocked = !is_null($subCambioRevision);
                                                             @endphp
-                                                            <button @click="abrirReporte('{{ $sub->id }}', '{{ addslashes($sub->actividad) }}', {{ $subBorrador ? $subBorrador->porcentaje_propuesto : $sub->porcentaje_oficial }}, '{{ $subBorrador ? $subBorrador->estatus_propuesto : $sub->estatus_oficial }}', '{{ $subBorrador ? addslashes($subBorrador->comentario_propuesto) : '' }}', {{ $subBorrador && $subBorrador->comentario_visible_cliente ? 'true' : 'false' }})"
+                                                            <button @click="abrirReporte('{{ $sub->id }}', '{{ addslashes($sub->actividad) }}', {{ $subBorrador ? $subBorrador->porcentaje_propuesto : $sub->porcentaje_oficial }}, '{{ $subBorrador ? $subBorrador->estatus_propuesto : $sub->estatus_oficial }}', '{{ $subBorrador ? addslashes($subBorrador->comentario_propuesto) : '' }}', {{ $subBorrador && $subBorrador->comentario_visible_cliente ? 'true' : 'false' }}, {{ $subBorrador && $subBorrador->es_importante ? 'true' : 'false' }})"
                                                                     :disabled="{{ $subIsLocked ? 'true' : 'false' }}"
                                                                     class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold disabled:opacity-50 transition active:scale-95">
                                                                 {{ $subBorrador ? 'Editar Borrador' : 'Reportar' }}
@@ -903,13 +914,21 @@
                                                 @else
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                         @foreach($sub->comentariosList as $c)
-                                                            <div class="bg-white border border-slate-200/50 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                                            <div class="{{ $c->es_importante ? 'bg-rose-50/70 border-rose-200 ring-1 ring-rose-200/50 shadow-rose-50/20' : 'bg-white border-slate-200/50' }} border p-3.5 rounded-2xl shadow-sm space-y-1.5">
                                                                  <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold border-b border-slate-50 pb-1.5">
                                                                      <span class="text-slate-600">{{ $c->autor->name }}</span>
                                                                      <div class="flex items-center gap-1.5">
                                                                          <span>{{ $c->created_at->format('d/m/Y H:i') }}</span>
                                                                          @if($c->visible_cliente)
                                                                              <span class="px-1.5 py-0.5 bg-sky-50 text-sky-600 rounded border border-sky-100 text-[8px] uppercase tracking-wider font-extrabold">Cliente</span>
+                                                                         @endif
+                                                                         @if($c->es_importante)
+                                                                             <span class="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded border border-rose-200 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-0.5">
+                                                                                 <svg class="w-2.5 h-2.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                                                 </svg>
+                                                                                 Importante
+                                                                             </span>
                                                                          @endif
                                                                      </div>
                                                                  </div>
@@ -1301,6 +1320,17 @@
                         <input type="checkbox" id="report_visible" x-model="reportVisibleCliente" class="rounded text-indigo-600 focus:ring-indigo-500">
                         <label for="report_visible" class="text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">
                             {{ $esCoordinador ? 'Hacer este comentario visible al cliente' : 'Hacer este comentario visible al cliente al ser aprobado' }}
+                        </label>
+                    </div>
+
+                    {{-- Checkbox Importante --}}
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="checkbox" id="report_importante" x-model="reportEsImportante" class="rounded text-rose-600 focus:ring-rose-500">
+                        <label for="report_importante" class="text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-rose-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            Marcar comentario como importante / destacado
                         </label>
                     </div>
                 </div>

@@ -516,5 +516,61 @@ class AuditoriaTest extends TestCase
             'comentario_propuesto' => null,
         ]);
     }
+
+    /**
+     * Prueba que proponer un avance con comentario marcado como importante guarda el flag y se propaga al comentario aprobado.
+     */
+    public function test_propose_change_with_important_comment_is_saved_and_highlighted(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $actividad = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'padre_id' => null,
+            'actividad' => 'Proceso 1',
+            'porcentaje_oficial' => 10,
+            'estatus_oficial' => 'pendiente',
+            'es_proceso_principal' => true,
+        ]);
+
+        // 1. Enviar propuesta con es_importante = true
+        $response = $this->actingAs($this->analyst)->post(route('auditoria.proyectos.cambios.store', $proyecto->id), [
+            'actividad_id' => $actividad->id,
+            'porcentaje_propuesto' => 60,
+            'estatus_propuesto' => 'en proceso',
+            'comentario_propuesto' => 'Comentario crucial de auditoria',
+            'es_importante' => true,
+            'enviar' => true,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('auditoria_cambios_propuestos', [
+            'actividad_id' => $actividad->id,
+            'es_importante' => true,
+        ]);
+
+        $propuesta = CambioPropuesto::where('actividad_id', $actividad->id)->first();
+
+        // 2. Coordinador aprueba y se crea el comentario con es_importante = true
+        $responseApprove = $this->actingAs($this->coordinator)->post(route('auditoria.proyectos.cambios.revisar', $proyecto->id), [
+            'cambio_id' => $propuesta->id,
+            'accion' => 'aprobar',
+        ]);
+
+        $responseApprove->assertJson(['success' => true]);
+        $this->assertDatabaseHas('auditoria_comentarios', [
+            'actividad_id' => $actividad->id,
+            'comentario' => 'Comentario crucial de auditoria',
+            'es_importante' => true,
+        ]);
+    }
 }
 

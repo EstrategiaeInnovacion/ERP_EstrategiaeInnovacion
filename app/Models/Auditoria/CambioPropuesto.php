@@ -21,6 +21,7 @@ class CambioPropuesto extends Model
         'porcentaje_propuesto',
         'comentario_propuesto',
         'comentario_visible_cliente',
+        'es_importante',
         'estatus_revision',
         'motivo_rechazo',
         'revisado_por',
@@ -29,6 +30,7 @@ class CambioPropuesto extends Model
  
     protected $casts = [
         'comentario_visible_cliente' => 'boolean',
+        'es_importante' => 'boolean',
         'fecha_revision' => 'datetime',
     ];
  

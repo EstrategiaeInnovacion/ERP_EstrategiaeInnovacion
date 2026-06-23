@@ -26,6 +26,7 @@ class AuditoriaCambiosController extends Controller
             'porcentaje_propuesto' => 'required|integer|between:0,100',
             'comentario_propuesto' => 'nullable|string|max:2000',
             'comentario_visible_cliente' => 'nullable|boolean',
+            'es_importante' => 'nullable|boolean',
             'enviar' => 'required|boolean', // true = enviar a revisión, false = guardar borrador
         ]);
  
@@ -61,6 +62,8 @@ class AuditoriaCambiosController extends Controller
         $estatusRevision = $request->enviar ? ($esCoordinador ? 'aprobado' : 'pendiente') : 'borrador';
  
         DB::transaction(function () use ($propuestaExistente, $actividad, $proyecto, $user, $porcentaje, $estatus, $request, $estatusRevision, $esCoordinador) {
+            $esImportante = $request->has('es_importante') && $request->es_importante;
+            
             if ($propuestaExistente) {
                 // Actualizar propuesta existente
                 $propuestaExistente->update([
@@ -69,6 +72,7 @@ class AuditoriaCambiosController extends Controller
                     'porcentaje_propuesto' => $porcentaje,
                     'comentario_propuesto' => $request->comentario_propuesto,
                     'comentario_visible_cliente' => $request->has('comentario_visible_cliente'),
+                    'es_importante' => $esImportante,
                     'estatus_revision' => $estatusRevision,
                     'motivo_rechazo' => null, // Limpiar motivo anterior si estaba en ajuste_solicitado
                     'revisado_por' => $estatusRevision === 'aprobado' ? $user->id : null,
@@ -87,6 +91,7 @@ class AuditoriaCambiosController extends Controller
                     'porcentaje_propuesto' => $porcentaje,
                     'comentario_propuesto' => $request->comentario_propuesto,
                     'comentario_visible_cliente' => $request->has('comentario_visible_cliente'),
+                    'es_importante' => $esImportante,
                     'estatus_revision' => $estatusRevision,
                     'revisado_por' => $estatusRevision === 'aprobado' ? $user->id : null,
                     'fecha_revision' => $estatusRevision === 'aprobado' ? now() : null,
@@ -110,6 +115,7 @@ class AuditoriaCambiosController extends Controller
                         'user_id' => $user->id,
                         'comentario' => $request->comentario_propuesto,
                         'visible_cliente' => $request->has('comentario_visible_cliente'),
+                        'es_importante' => $esImportante,
                     ]);
                 }
  
@@ -172,6 +178,7 @@ class AuditoriaCambiosController extends Controller
                         'user_id' => $cambio->user_id,
                         'comentario' => $cambio->comentario_propuesto,
                         'visible_cliente' => $cambio->comentario_visible_cliente,
+                        'es_importante' => $cambio->es_importante,
                     ]);
                 }
  
@@ -237,6 +244,7 @@ class AuditoriaCambiosController extends Controller
                             'user_id' => $cambio->user_id, // El analista que lo escribió
                             'comentario' => $cambio->comentario_propuesto,
                             'visible_cliente' => $cambio->comentario_visible_cliente,
+                            'es_importante' => $cambio->es_importante,
                         ]);
                     }
  
@@ -267,6 +275,7 @@ class AuditoriaCambiosController extends Controller
                             'user_id' => $cambio->user_id,
                             'comentario' => $cambio->comentario_propuesto,
                             'visible_cliente' => $cambio->comentario_visible_cliente,
+                            'es_importante' => $cambio->es_importante,
                         ]);
                     }
 
@@ -345,6 +354,7 @@ class AuditoriaCambiosController extends Controller
                             'user_id' => $cambio->user_id,
                             'comentario' => $cambio->comentario_propuesto,
                             'visible_cliente' => $cambio->comentario_visible_cliente,
+                            'es_importante' => $cambio->es_importante,
                         ]);
                     }
  
@@ -373,6 +383,7 @@ class AuditoriaCambiosController extends Controller
                             'user_id' => $cambio->user_id,
                             'comentario' => $cambio->comentario_propuesto,
                             'visible_cliente' => $cambio->comentario_visible_cliente,
+                            'es_importante' => $cambio->es_importante,
                         ]);
                     }
  
@@ -432,6 +443,7 @@ class AuditoriaCambiosController extends Controller
                                 'user_id' => $cambio->user_id,
                                 'comentario' => $cambio->comentario_propuesto,
                                 'visible_cliente' => $cambio->comentario_visible_cliente,
+                                'es_importante' => $cambio->es_importante,
                             ]);
                         }
 
@@ -460,6 +472,7 @@ class AuditoriaCambiosController extends Controller
                                 'user_id' => $cambio->user_id,
                                 'comentario' => $cambio->comentario_propuesto,
                                 'visible_cliente' => $cambio->comentario_visible_cliente,
+                                'es_importante' => $cambio->es_importante,
                             ]);
                         }
 
