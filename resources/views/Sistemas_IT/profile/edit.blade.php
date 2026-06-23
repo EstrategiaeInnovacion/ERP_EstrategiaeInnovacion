@@ -141,8 +141,8 @@
                                 <span class="block text-[10px] font-bold text-indigo-400 uppercase">Vacaciones</span>
                                 <span class="text-lg font-bold text-indigo-700">{{ $diasVacaciones }}/{{ $totalVacaciones }}</span>
                             </div>
-                            <button x-data @click="$dispatch('open-modal', 'modal-vacaciones')" class="ml-2 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-                                Solicitar Ausencia / Permiso
+                            <button x-data @click="$dispatch('open-modal', 'modal-vacaciones')" class="ml-2 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors shadow-sm">
+                                Solicitar Vacaciones/Permiso
                             </button>
                         </div>
                     </header>
