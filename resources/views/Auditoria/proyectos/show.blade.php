@@ -47,6 +47,23 @@
         // Estados expandidos de los procesos principales
         expandedProcesos: JSON.parse(localStorage.getItem('auditoria_expanded_procesos_' + {{ $proyecto->id }}) || '{}'),
  
+        init() {
+            const isReloadAfterChange = sessionStorage.getItem('auditoria_reload_after_change_' + {{ $proyecto->id }});
+            if (!isReloadAfterChange) {
+                localStorage.removeItem('auditoria_expanded_comments_' + {{ $proyecto->id }});
+                localStorage.removeItem('auditoria_expanded_procesos_' + {{ $proyecto->id }});
+                this.expandedComments = {};
+                this.expandedProcesos = {};
+            } else {
+                sessionStorage.removeItem('auditoria_reload_after_change_' + {{ $proyecto->id }});
+            }
+        },
+
+        reloadPage() {
+            sessionStorage.setItem('auditoria_reload_after_change_' + {{ $proyecto->id }}, 'true');
+            window.location.reload();
+        },
+
         toggleProceso(id) {
             this.expandedProcesos[id] = this.expandedProcesos[id] === false ? true : false;
             localStorage.setItem('auditoria_expanded_procesos_' + {{ $proyecto->id }}, JSON.stringify(this.expandedProcesos));
@@ -86,7 +103,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        this.reloadPage();
                     } else {
                         alert('Error al actualizar la fase.');
                     }
@@ -127,7 +144,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    window.location.reload();
+                    this.reloadPage();
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -147,7 +164,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        this.reloadPage();
                     } else {
                         alert('Error: ' + data.error);
                     }
@@ -168,7 +185,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        this.reloadPage();
                     } else {
                         alert('Error: ' + data.error);
                     }
@@ -203,7 +220,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    window.location.reload();
+                    this.reloadPage();
                 } else {
                     alert('Error al procesar la revisión.');
                 }
@@ -223,7 +240,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        this.reloadPage();
                     } else {
                         alert('Error al aprobar el paquete.');
                     }
