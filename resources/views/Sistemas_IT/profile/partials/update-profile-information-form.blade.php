@@ -18,7 +18,7 @@
 
         <div>
             <x-input-label for="name" :value="__('Nombre')" class="text-slate-700 font-bold" />
-            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm bg-slate-50 focus:bg-white transition-colors" :value="old('name', $user->name)" required autofocus autocomplete="name" />
+            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm bg-slate-50 focus:bg-white transition-colors" :value="old('name', $user->name)" required autocomplete="name" />
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
