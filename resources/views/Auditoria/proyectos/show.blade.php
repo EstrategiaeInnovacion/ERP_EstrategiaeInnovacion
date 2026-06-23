@@ -45,10 +45,11 @@
         motivoRechazo: '',
         
         // Estados expandidos de los procesos principales
-        expandedProcesos: {},
+        expandedProcesos: JSON.parse(localStorage.getItem('auditoria_expanded_procesos_' + {{ $proyecto->id }}) || '{}'),
  
         toggleProceso(id) {
-            this.expandedProcesos[id] = !this.expandedProcesos[id];
+            this.expandedProcesos[id] = this.expandedProcesos[id] === false ? true : false;
+            localStorage.setItem('auditoria_expanded_procesos_' + {{ $proyecto->id }}, JSON.stringify(this.expandedProcesos));
         },
  
         isExpanded(id) {
