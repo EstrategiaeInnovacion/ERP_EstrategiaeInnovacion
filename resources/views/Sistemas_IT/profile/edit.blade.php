@@ -142,7 +142,7 @@
                                 <span class="text-lg font-bold text-indigo-700">{{ $diasVacaciones }}/{{ $totalVacaciones }}</span>
                             </div>
                             <button x-data @click="$dispatch('open-modal', 'modal-vacaciones')" class="ml-2 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-                                Solicitar Vacaciones
+                                Solicitar Ausencia / Permiso
                             </button>
                         </div>
                     </header>
@@ -287,16 +287,99 @@
                         </div>
                     </div>
                     @endif
+
+                    {{-- MIS SOLICITUDES DE PERMISOS --}}
+                    @if(isset($solicitudesPermisos) && $solicitudesPermisos->count() > 0)
+                    <div class="mt-8 border-t border-slate-200 pt-6">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4">Mis Permisos y Ausencias Recientes</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead>
+                                    <tr class="border-b border-slate-200">
+                                        <th class="py-2">Fechas/Horas</th>
+                                        <th class="py-2">Tipo</th>
+                                        <th class="py-2">Estado</th>
+                                        <th class="py-2">Detalles</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($solicitudesPermisos as $permiso)
+                                        <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                                            <td class="py-2">
+                                                <div class="font-medium text-slate-700">
+                                                    {{ $permiso->fecha_inicio->format('d/m/Y') }}
+                                                    @if($permiso->fecha_inicio != $permiso->fecha_fin)
+                                                        al {{ $permiso->fecha_fin->format('d/m/Y') }}
+                                                    @endif
+                                                </div>
+                                                @if($permiso->hora_inicio && $permiso->hora_fin)
+                                                <div class="text-xs text-slate-500">
+                                                    {{ \Carbon\Carbon::parse($permiso->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($permiso->hora_fin)->format('H:i') }}
+                                                </div>
+                                                @endif
+                                            </td>
+                                            <td class="py-2">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 uppercase">
+                                                    {{ $permiso->tipo_permiso }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2">
+                                                @if($permiso->estado == 'pendiente')
+                                                    <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">Pendiente</span>
+                                                @elseif($permiso->estado == 'aprobado_supervisor')
+                                                    <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">En revisión RH</span>
+                                                @elseif($permiso->estado == 'aprobado')
+                                                    <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">Aprobado</span>
+                                                @else
+                                                    <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full">Rechazado</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2">
+                                                <div class="truncate max-w-[150px]" title="{{ $permiso->motivo_detalle }}">
+                                                    {{ $permiso->motivo_detalle ?? '-' }}
+                                                </div>
+                                                @if($permiso->tipo_permiso === 'legal' && !$permiso->comprobante_path)
+                                                    <div class="mt-2" x-data="{ openUpload: false }">
+                                                        <button @click="openUpload = !openUpload" class="text-xs text-indigo-600 font-bold hover:text-indigo-800 flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                                            Subir Comprobante
+                                                        </button>
+                                                        <div x-show="openUpload" class="mt-2 p-3 bg-indigo-50 rounded-lg border border-indigo-100 min-w-[200px]" style="display: none;">
+                                                            <form action="{{ route('permisos.subir_comprobante', $permiso->id) }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-2">
+                                                                @csrf
+                                                                <input type="file" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" required class="text-xs w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200" />
+                                                                <button type="submit" class="self-end px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 shadow-sm">Guardar</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                @elseif($permiso->comprobante_path)
+                                                    <div class="mt-2">
+                                                        <a href="{{ asset('storage/' . $permiso->comprobante_path) }}" target="_blank" class="text-[10px] text-emerald-600 font-bold flex items-center gap-1 hover:underline">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                            Documento Adjunto
+                                                        </a>
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 
-                {{-- MODAL SOLICITUD VACACIONES --}}
+                {{-- MODAL SOLICITUD VACACIONES Y PERMISOS --}}
                 <x-modal name="modal-vacaciones" focusable>
                     <div class="p-6" x-data="{
+                        tab: 'vacaciones',
                         fechaInicio: '',
                         fechaFin: '',
                         diasCalculados: null,
                         calculando: false,
                         maxDias: {{ $diasVacaciones }},
+                        tipoPermiso: 'corto',
                         calcularDias() {
                             if(this.fechaInicio && this.fechaFin && this.fechaInicio <= this.fechaFin) {
                                 this.calculando = true;
@@ -312,46 +395,120 @@
                             }
                         }
                     }">
-                        <h2 class="text-lg font-bold text-slate-900 mb-4">Solicitar Vacaciones</h2>
-                        <p class="text-sm text-slate-600 mb-6">Selecciona el rango de fechas. Solo se te descontarán los días hábiles (lunes a viernes, sin contar días festivos).</p>
-                        
-                        <form method="POST" action="{{ route('vacaciones.solicitar') }}">
-                            @csrf
+                        <div class="flex items-center gap-4 border-b border-slate-200 pb-4 mb-6">
+                            <button @click="tab = 'vacaciones'" :class="tab === 'vacaciones' ? 'text-indigo-600 border-indigo-600' : 'text-slate-500 border-transparent hover:text-slate-700'" class="pb-2 border-b-2 font-bold text-sm transition-colors">Vacaciones</button>
+                            <button @click="tab = 'permisos'" :class="tab === 'permisos' ? 'text-indigo-600 border-indigo-600' : 'text-slate-500 border-transparent hover:text-slate-700'" class="pb-2 border-b-2 font-bold text-sm transition-colors">Permisos y Ausencias</button>
+                        </div>
+
+                        {{-- TAB: VACACIONES --}}
+                        <div x-show="tab === 'vacaciones'">
+                            <h2 class="text-lg font-bold text-slate-900 mb-2">Solicitar Vacaciones</h2>
+                            <p class="text-sm text-slate-600 mb-6">Selecciona el rango de fechas. Solo se te descontarán los días hábiles (lunes a viernes, sin contar días festivos).</p>
                             
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <x-input-label for="fecha_inicio" value="Fecha de Inicio" />
-                                    <x-text-input id="fecha_inicio" name="fecha_inicio" type="date" class="mt-1 block w-full" x-model="fechaInicio" @change="calcularDias" required />
+                            <form method="POST" action="{{ route('vacaciones.solicitar') }}">
+                                @csrf
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <x-input-label for="fecha_inicio_v" value="Fecha de Inicio" />
+                                        <x-text-input id="fecha_inicio_v" name="fecha_inicio" type="date" class="mt-1 block w-full" x-model="fechaInicio" @change="calcularDias" required />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="fecha_fin_v" value="Fecha de Fin" />
+                                        <x-text-input id="fecha_fin_v" name="fecha_fin" type="date" class="mt-1 block w-full" x-model="fechaFin" @change="calcularDias" required />
+                                    </div>
                                 </div>
-                                <div>
-                                    <x-input-label for="fecha_fin" value="Fecha de Fin" />
-                                    <x-text-input id="fecha_fin" name="fecha_fin" type="date" class="mt-1 block w-full" x-model="fechaFin" @change="calcularDias" required />
+
+                                <div x-show="diasCalculados !== null" class="mb-4 p-3 rounded-lg border flex items-center gap-3"
+                                     :class="diasCalculados > maxDias ? 'bg-red-50 border-red-200 text-red-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'">
+                                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <p class="text-sm font-bold">Días hábiles a descontar: <span x-text="diasCalculados"></span></p>
+                                        <p class="text-xs" x-show="diasCalculados > maxDias">No tienes suficientes días disponibles.</p>
+                                        <p class="text-xs" x-show="diasCalculados <= maxDias">Te quedarán <span x-text="maxDias - diasCalculados"></span> días disponibles después de esta solicitud.</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div x-show="diasCalculados !== null" class="mb-4 p-3 rounded-lg border flex items-center gap-3"
-                                 :class="diasCalculados > maxDias ? 'bg-red-50 border-red-200 text-red-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'">
-                                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <div>
-                                    <p class="text-sm font-bold">Días hábiles a descontar: <span x-text="diasCalculados"></span></p>
-                                    <p class="text-xs" x-show="diasCalculados > maxDias">No tienes suficientes días disponibles.</p>
-                                    <p class="text-xs" x-show="diasCalculados <= maxDias">Te quedarán <span x-text="maxDias - diasCalculados"></span> días disponibles después de esta solicitud.</p>
+                                <div class="mb-4">
+                                    <x-input-label for="motivo_v" value="Motivo / Observaciones (Opcional)" />
+                                    <textarea id="motivo_v" name="motivo" rows="2" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
                                 </div>
-                            </div>
 
-                            <div class="mb-4">
-                                <x-input-label for="motivo" value="Motivo / Observaciones (Opcional)" />
-                                <textarea id="motivo" name="motivo" rows="2" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
-                            </div>
+                                <div class="mt-6 flex justify-end gap-3">
+                                    <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
+                                    <x-primary-button x-bind:disabled="calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0" 
+                                                      x-bind:class="{ 'opacity-50 cursor-not-allowed': calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0 }">
+                                        Enviar Solicitud
+                                    </x-primary-button>
+                                </div>
+                            </form>
+                        </div>
 
-                            <div class="mt-6 flex justify-end gap-3">
-                                <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
-                                <x-primary-button x-bind:disabled="calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0" 
-                                                  x-bind:class="{ 'opacity-50 cursor-not-allowed': calculando || (diasCalculados !== null && diasCalculados > maxDias) || diasCalculados === 0 }">
-                                    Enviar Solicitud
-                                </x-primary-button>
-                            </div>
-                        </form>
+                        {{-- TAB: PERMISOS --}}
+                        <div x-show="tab === 'permisos'" style="display: none;">
+                            <h2 class="text-lg font-bold text-slate-900 mb-2">Solicitar Ausencia / Permiso</h2>
+                            <p class="text-sm text-slate-600 mb-6">Completa los datos para justificar una ausencia (retardos, citas, incapacidades).</p>
+                            
+                            <form method="POST" action="{{ route('permisos.solicitar') }}" enctype="multipart/form-data">
+                                @csrf
+                                
+                                <div class="mb-4">
+                                    <x-input-label for="tipo_permiso" value="Tipo de Permiso" />
+                                    <select id="tipo_permiso" name="tipo_permiso" x-model="tipoPermiso" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
+                                        <option value="corto">Ausencia Corta (< 4 horas)</option>
+                                        <option value="legal">Permiso Legal / Incapacidad (Requiere Justificante)</option>
+                                        <option value="especial">Permiso Especial (Sin goce de sueldo)</option>
+                                    </select>
+                                </div>
+
+                                <div class="grid gap-4 mb-4" :class="tipoPermiso === 'corto' ? 'grid-cols-1' : 'grid-cols-2'">
+                                    <div>
+                                        <x-input-label for="fecha_inicio_p" value="Fecha" x-text="tipoPermiso === 'corto' ? 'Fecha de Ausencia' : 'Fecha de Inicio'" />
+                                        <x-text-input id="fecha_inicio_p" name="fecha_inicio" type="date" class="mt-1 block w-full" required />
+                                    </div>
+                                    <div x-show="tipoPermiso !== 'corto'">
+                                        <x-input-label for="fecha_fin_p" value="Fecha de Fin" />
+                                        <x-text-input id="fecha_fin_p" name="fecha_fin" type="date" class="mt-1 block w-full" x-bind:required="tipoPermiso !== 'corto'" />
+                                    </div>
+                                </div>
+
+                                <div x-show="tipoPermiso === 'corto'" class="grid grid-cols-2 gap-4 mb-4" style="display: none;">
+                                    <div>
+                                        <x-input-label for="hora_inicio" value="Hora de Salida" />
+                                        <x-text-input id="hora_inicio" name="hora_inicio" type="time" class="mt-1 block w-full" x-bind:required="tipoPermiso === 'corto'" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="hora_fin" value="Hora de Regreso" />
+                                        <x-text-input id="hora_fin" name="hora_fin" type="time" class="mt-1 block w-full" x-bind:required="tipoPermiso === 'corto'" />
+                                    </div>
+                                </div>
+
+                                <div x-show="tipoPermiso === 'corto'" class="mb-4" style="display: none;">
+                                    <x-input-label for="reposicion_tipo" value="Forma de Reposición" />
+                                    <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto'">
+                                        <option value="">Selecciona...</option>
+                                        <option value="tiempo_por_tiempo">Tiempo por Tiempo</option>
+                                        <option value="descuento_nomina">Descuento de Nómina</option>
+                                    </select>
+                                </div>
+
+                                <div x-show="tipoPermiso === 'legal'" class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg" style="display: none;">
+                                    <x-input-label for="comprobante" value="Comprobante Oficial (IMSS, Acta, Citatorio) - Opcional al solicitar" class="text-amber-800" />
+                                    <input type="file" id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200" />
+                                    <p class="text-xs text-amber-600 mt-2">Formatos permitidos: PDF, JPG, PNG. Max 5MB.</p>
+                                    <p class="text-xs font-bold text-amber-700 mt-1">Nota: Puedes adjuntarlo después, pero recuerda que tienes un plazo máximo de 48 horas para hacerlo.</p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <x-input-label for="motivo_detalle" value="Motivo Detallado" />
+                                    <textarea id="motivo_detalle" name="motivo_detalle" rows="2" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                </div>
+
+                                <div class="mt-6 flex justify-end gap-3">
+                                    <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
+                                    <x-primary-button>Enviar Solicitud</x-primary-button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </x-modal>
 

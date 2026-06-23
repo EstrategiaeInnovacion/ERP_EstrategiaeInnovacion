@@ -113,14 +113,16 @@ class ProfileController extends Controller
             'horas' => $this->calcularHoras($asistencias),
         ];
 
-        // Vacaciones
+        // Vacaciones y Permisos
         $diasVacaciones = 0;
         $totalVacaciones = 12;
         $solicitudesVacaciones = collect();
+        $solicitudesPermisos = collect();
         if ($empleado) {
             $diasVacaciones = $empleado->obtenerVacacionesDisponibles();
             $totalVacaciones = $empleado->getTotalVacacionesBase();
             $solicitudesVacaciones = $empleado->solicitudesVacaciones()->latest()->take(5)->get();
+            $solicitudesPermisos = $empleado->solicitudesPermisos()->latest()->take(5)->get();
         }
 
         return view('Sistemas_IT.profile.edit', [
@@ -133,6 +135,7 @@ class ProfileController extends Controller
             'diasVacaciones' => $diasVacaciones,
             'totalVacaciones' => $totalVacaciones,
             'solicitudesVacaciones' => $solicitudesVacaciones,
+            'solicitudesPermisos' => $solicitudesPermisos,
         ]);
     }
 

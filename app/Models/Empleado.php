@@ -258,4 +258,9 @@ class Empleado extends Model
         
         return 12; // Siempre son 12 por año cumplido
     }
+
+    public function solicitudesPermisos()
+    {
+        return $this->hasMany(SolicitudPermiso::class, 'empleado_id');
+    }
 }

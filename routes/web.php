@@ -95,6 +95,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/rechazar', [\App\Http\Controllers\RH\SolicitudVacacionController::class, 'rechazar'])->name('rechazar');
     });
 
+    // Permisos y Ausencias
+    Route::prefix('permisos')->name('permisos.')->group(function () {
+        Route::post('/solicitar', [\App\Http\Controllers\RH\SolicitudPermisoController::class, 'store'])->name('solicitar');
+        Route::post('/{id}/aprobar', [\App\Http\Controllers\RH\SolicitudPermisoController::class, 'aprobar'])->name('aprobar');
+        Route::post('/{id}/rechazar', [\App\Http\Controllers\RH\SolicitudPermisoController::class, 'rechazar'])->name('rechazar');
+        Route::post('/{id}/subir-comprobante', [\App\Http\Controllers\RH\SolicitudPermisoController::class, 'subirComprobante'])->name('subir_comprobante');
+    });
+
     // Marcar aviso de asistencia como leído (cualquier empleado)
     Route::post('/aviso-leido/{id}', function (\Illuminate\Http\Request $request, $id) {
         $aviso = \App\Models\AvisoAsistencia::findOrFail($id);
@@ -191,8 +199,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/evaluacion-ventanas', 'saveVentana')->name('evaluacion.ventanas.store');
         Route::patch('/evaluacion-ventanas/{id}/toggle', 'toggleVentana')->name('evaluacion.ventanas.toggle');
         Route::delete('/evaluacion-ventanas/{id}', 'deleteVentana')->name('evaluacion.ventanas.destroy');
-    }
-    );
+    });
+
+    // Reloj Checador - Mi Equipo (Supervisores)
+    Route::get('recursos-humanos/reloj/equipo', [RelojChecadorImportController::class, 'equipo'])->name('rh.reloj.equipo');
 });
 
 // 4. MÓDULO LOGÍSTICA
@@ -277,9 +287,7 @@ Route::middleware(['auth', 'area.rh'])->group(function () {
         Route::delete('/clear', 'clear')->name('clear');
         Route::delete('/clear-rango', 'clearRango')->name('clearRango');
         Route::post('/aviso', 'enviarAviso')->name('aviso');
-        Route::get('/equipo', 'equipo')->name('equipo');
-    }
-    );
+    });
 
     // Expedientes
     Route::prefix('recursos-humanos/expedientes')->name('rh.expedientes.')->controller(ExpedienteController::class)->group(function () {

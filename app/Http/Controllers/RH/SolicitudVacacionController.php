@@ -22,10 +22,18 @@ class SolicitudVacacionController extends Controller
         
         $solicitudesSupervisor = collect();
         $solicitudesRH = collect();
+        $permisosSupervisor = collect();
+        $permisosRH = collect();
 
         // Si es supervisor, traer las de sus subordinados que estén pendientes
         if ($user->empleado) {
             $solicitudesSupervisor = SolicitudVacacion::where('supervisor_id', $user->empleado->id)
+                ->where('estado', 'pendiente')
+                ->with('empleado')
+                ->latest()
+                ->get();
+                
+            $permisosSupervisor = \App\Models\SolicitudPermiso::where('supervisor_id', $user->empleado->id)
                 ->where('estado', 'pendiente')
                 ->with('empleado')
                 ->latest()
@@ -35,6 +43,9 @@ class SolicitudVacacionController extends Controller
         // Si es RH, traer las que ya aprobó el supervisor, y las que están pendientes de supervisor para monitoreo
         $solicitudesGlobalesPendientes = collect();
         $historialRH = collect();
+        $permisosGlobalesPendientes = collect();
+        $historialPermisosRH = collect();
+        
         if ($user->isRh()) {
             $solicitudesRH = SolicitudVacacion::where('estado', 'aprobado_supervisor')
                 ->with('empleado', 'supervisor')
@@ -51,9 +62,28 @@ class SolicitudVacacionController extends Controller
                 ->latest()
                 ->take(50) // Limitar a las últimas 50 para no sobrecargar
                 ->get();
+                
+            $permisosRH = \App\Models\SolicitudPermiso::where('estado', 'aprobado_supervisor')
+                ->with('empleado', 'supervisor')
+                ->latest()
+                ->get();
+                
+            $permisosGlobalesPendientes = \App\Models\SolicitudPermiso::where('estado', 'pendiente')
+                ->with('empleado', 'supervisor')
+                ->latest()
+                ->get();
+                
+            $historialPermisosRH = \App\Models\SolicitudPermiso::whereIn('estado', ['aprobado', 'rechazado'])
+                ->with('empleado', 'supervisor')
+                ->latest()
+                ->take(50)
+                ->get();
         }
 
-        return view('Recursos_Humanos.vacaciones.aprobaciones', compact('solicitudesSupervisor', 'solicitudesRH', 'solicitudesGlobalesPendientes', 'historialRH'));
+        return view('Recursos_Humanos.vacaciones.aprobaciones', compact(
+            'solicitudesSupervisor', 'solicitudesRH', 'solicitudesGlobalesPendientes', 'historialRH',
+            'permisosSupervisor', 'permisosRH', 'permisosGlobalesPendientes', 'historialPermisosRH'
+        ));
     }
 
     /**
