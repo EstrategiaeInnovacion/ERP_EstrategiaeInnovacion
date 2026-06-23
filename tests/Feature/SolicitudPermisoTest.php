@@ -35,9 +35,9 @@ class SolicitudPermisoTest extends TestCase
     }
 
     /** @test */
-    public function no_puede_crear_permiso_retroactivo_mayor_a_48_horas()
+    public function no_puede_crear_permiso_retroactivo_mayor_a_24_horas()
     {
-        $fechaPasada = Carbon::now()->subDays(3)->format('Y-m-d');
+        $fechaPasada = Carbon::now()->subDays(2)->format('Y-m-d');
 
         $response = $this->actingAs($this->user)->post(route('permisos.solicitar'), [
             'tipo_permiso' => 'corto',

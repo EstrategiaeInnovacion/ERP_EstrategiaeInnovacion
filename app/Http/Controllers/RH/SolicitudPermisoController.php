@@ -35,8 +35,8 @@ class SolicitudPermisoController extends Controller
         
         if ($fechaSolicitud->lt($hoy)) {
             $horasPasadas = $fechaSolicitud->diffInHours(Carbon::now());
-            if ($horasPasadas > 48) {
-                return back()->with('error', 'No puedes solicitar permisos retroactivos mayores a 48 horas. Contacta a Recursos Humanos.');
+            if ($horasPasadas > 24) {
+                return back()->with('error', 'No puedes solicitar permisos retroactivos mayores a 24 horas. Contacta a Recursos Humanos.');
             }
         }
 

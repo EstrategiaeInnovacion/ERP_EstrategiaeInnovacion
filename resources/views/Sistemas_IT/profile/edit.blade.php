@@ -496,7 +496,7 @@
                                     <x-input-label for="comprobante" value="Comprobante Oficial (IMSS, Acta, Citatorio) - Opcional al solicitar" class="text-amber-800" />
                                     <input type="file" id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200" />
                                     <p class="text-xs text-amber-600 mt-2">Formatos permitidos: PDF, JPG, PNG. Max 5MB.</p>
-                                    <p class="text-xs font-bold text-amber-700 mt-1">Nota: Puedes adjuntarlo después, pero recuerda que tienes un plazo máximo de 48 horas para hacerlo.</p>
+                                    <p class="text-xs font-bold text-amber-700 mt-1">Nota: Puedes adjuntarlo después, pero recuerda que tienes un plazo máximo de 24 horas para hacerlo.</p>
                                 </div>
 
                                 <div class="mb-4">
