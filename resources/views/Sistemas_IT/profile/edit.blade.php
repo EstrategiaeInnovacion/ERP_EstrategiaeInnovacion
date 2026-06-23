@@ -454,9 +454,9 @@
                                 <div class="mb-4">
                                     <x-input-label for="tipo_permiso" value="Tipo de Permiso" />
                                     <select id="tipo_permiso" name="tipo_permiso" x-model="tipoPermiso" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
-                                        <option value="corto">Ausencia Corta (< 4 horas)</option>
-                                        <option value="legal">Permiso Legal / Incapacidad (Requiere Justificante)</option>
-                                        <option value="especial">Permiso Especial (Sin goce de sueldo)</option>
+                                        <option value="corto">Ausencia Corta</option>
+                                        <option value="legal">Permiso Legal / Incapacidad</option>
+                                        <option value="especial">Permiso Especial</option>
                                     </select>
                                 </div>
 
@@ -487,7 +487,8 @@
                                     <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto' || tipoPermiso === 'especial'">
                                         <option value="">Selecciona...</option>
                                         <option value="tiempo_por_tiempo">Tiempo por Tiempo</option>
-                                        <option value="descuento_nomina" x-text="tipoPermiso === 'especial' ? 'Sin Goce de Sueldo' : 'Descuento de Nómina'"></option>
+                                        <option value="sin_goce_sueldo">Sin Goce de Sueldo</option>
+                                        <option value="con_goce_sueldo">Con Goce de Sueldo</option>
                                     </select>
                                 </div>
 
