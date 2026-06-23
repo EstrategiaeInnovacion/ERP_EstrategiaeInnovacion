@@ -434,4 +434,47 @@ class AuditoriaTest extends TestCase
         $actividad->refresh();
         $this->assertEquals(50, $actividad->porcentaje_oficial);
     }
+
+    /**
+     * Prueba que el coordinador puede eliminar un proyecto y es redirigido al dashboard.
+     */
+    public function test_coordinator_can_delete_project(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->delete(route('auditoria.proyectos.destroy', $proyecto->id));
+        
+        $response->assertRedirect(route('auditoria.dashboard'));
+        $this->assertSoftDeleted($proyecto); // Or assertDatabaseMissing depending on soft deletes configuration, let's check
+    }
+
+    /**
+     * Prueba que un analista no puede eliminar un proyecto (abort 403).
+     */
+    public function test_analyst_cannot_delete_project(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $response = $this->actingAs($this->analyst)->delete(route('auditoria.proyectos.destroy', $proyecto->id));
+        
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('auditoria_proyectos', ['id' => $proyecto->id]);
+    }
 }
+

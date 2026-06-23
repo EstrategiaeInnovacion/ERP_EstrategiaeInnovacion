@@ -484,6 +484,6 @@ class AuditoriaProyectoController extends Controller
         $proyecto = ProyectoAuditoria::findOrFail($id);
         $proyecto->delete();
  
-        return redirect()->route('auditoria.index')->with('success', 'Proyecto de auditoría eliminado.');
+        return redirect()->route('auditoria.dashboard')->with('success', 'Proyecto de auditoría eliminado.');
     }
 }

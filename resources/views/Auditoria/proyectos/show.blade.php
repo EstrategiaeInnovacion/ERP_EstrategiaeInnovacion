@@ -1064,16 +1064,29 @@
                             </div>
                         </div>
  
-                        <div class="bg-slate-50 px-6 py-4 flex justify-between gap-3 border-t border-slate-100 rounded-b-3xl">
-                            <button type="button" @click="openEditModal = false"
-                                    class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
-                                Cancelar
+                        <div class="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-100 rounded-b-3xl">
+                            <button type="button" 
+                                    onclick="if(confirm('¿Estás seguro de que deseas eliminar permanentemente este proyecto de auditoría? Esta acción no se puede deshacer y borrará toda la matriz y avances relacionados.')) { document.getElementById('delete-project-form').submit(); }"
+                                    class="px-4 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-md active:scale-95">
+                                Eliminar Proyecto
                             </button>
-                            <button type="submit"
-                                    class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
-                                Guardar Cambios
-                            </button>
+
+                            <div class="flex items-center gap-3">
+                                <button type="button" @click="openEditModal = false"
+                                        class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                                    Cancelar
+                                </button>
+                                <button type="submit"
+                                        class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
+                                    Guardar Cambios
+                                </button>
+                            </div>
                         </div>
+                    </form>
+
+                    <form id="delete-project-form" action="{{ route('auditoria.proyectos.destroy', $proyecto->id) }}" method="POST" class="hidden">
+                        @csrf
+                        @method('DELETE')
                     </form>
                 </div>
             </div>
