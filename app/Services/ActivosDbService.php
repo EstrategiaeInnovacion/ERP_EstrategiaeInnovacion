@@ -579,17 +579,49 @@ class ActivosDbService
         try {
             $type = $type ? $this->normalizeDeviceType($type) : null;
 
-            $query = $this->conn()
-                ->table('devices as d')
+            // ──────────────────────────────────────────────────────────────
+            // Subquery: asignación activa por dispositivo — máximo 1 fila
+            // por device_id, eliminando duplicados en el origen.
+            // Esto evita que el JOIN infle el resultado y rompa LIMIT/OFFSET.
+            // ──────────────────────────────────────────────────────────────
+            $activeAssignment = $this->conn()
+                ->table('assignments')
+                ->whereNull('returned_at')
+                ->selectRaw('device_id, MIN(id) as assignment_id')
+                ->groupBy('device_id');
+
+            // Closure reutilizable para construir la query base con filtros
+            $buildBase = function () use ($activeAssignment, $search, $type, $status) {
+                return $this->conn()
+                    ->table('devices as d')
+                    ->leftJoinSub($activeAssignment, 'la', 'la.device_id', '=', 'd.id')
+                    ->leftJoin('assignments as a', 'a.id', '=', 'la.assignment_id')
+                    ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                    ->when($search, function ($q) use ($search) {
+                        $q->where(function ($inner) use ($search) {
+                            $inner->where('d.name', 'like', "%{$search}%")
+                                  ->orWhere('d.brand', 'like', "%{$search}%")
+                                  ->orWhere('d.model', 'like', "%{$search}%")
+                                  ->orWhere('d.serial_number', 'like', "%{$search}%")
+                                  ->orWhere('e.name', 'like', "%{$search}%")
+                                  ->orWhere('a.assigned_to', 'like', "%{$search}%");
+                        });
+                    })
+                    ->when($type, fn ($q) => $q->whereRaw('LOWER(TRIM(d.type)) = ?', [$type]))
+                    ->when($status, fn ($q) => $q->where('d.status', $status));
+            };
+
+            // Conteo exacto — sin DISTINCT porque el subquery garantiza 1 fila/dispositivo
+            $total = $buildBase()->count('d.id');
+
+            $page  = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+
+            // Query de datos: agrega foto y columnas, aplica orden y paginación
+            $items = $buildBase()
                 ->leftJoin('device_photos as dp', function ($join) {
                     $join->on('dp.device_id', '=', 'd.id')
                          ->whereRaw('dp.id = (SELECT MIN(id) FROM device_photos WHERE device_id = d.id)');
                 })
-                ->leftJoin('assignments as a', function ($join) {
-                    $join->on('a.device_id', '=', 'd.id')
-                         ->whereNull('a.returned_at');
-                })
-                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
                 ->select(
                     'd.id', 'd.uuid', 'd.name', 'd.brand', 'd.model',
                     'd.serial_number', 'd.type', 'd.status',
@@ -598,55 +630,10 @@ class ActivosDbService
                     'dp.id as photo_id',
                     'a.assigned_at', 'a.assigned_to',
                     'e.name as employee_name'
-                );
-
-            if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('d.name', 'like', "%{$search}%")
-                      ->orWhere('d.brand', 'like', "%{$search}%")
-                      ->orWhere('d.model', 'like', "%{$search}%")
-                      ->orWhere('d.serial_number', 'like', "%{$search}%")
-                      ->orWhere('e.name', 'like', "%{$search}%")
-                      ->orWhere('a.assigned_to', 'like', "%{$search}%");
-                });
-            }
-
-            if ($type) {
-                $query->whereRaw('LOWER(TRIM(d.type)) = ?', [$type]);
-            }
-
-            if ($status) {
-                $query->where('d.status', $status);
-            }
-
-            $query->orderBy('d.name');
-
-            // Usar COUNT(DISTINCT d.id) para evitar que los JOINs (assignments, employees)
-            // inflen el conteo cuando un dispositivo tiene múltiples filas relacionadas.
-            $total = $this->conn()
-                ->table('devices as d')
-                ->leftJoin('assignments as a', function ($join) {
-                    $join->on('a.device_id', '=', 'd.id')
-                         ->whereNull('a.returned_at');
-                })
-                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
-                ->when($search ?? null, function ($q) use ($search) {
-                    $q->where(function ($inner) use ($search) {
-                        $inner->where('d.name', 'like', "%{$search}%")
-                              ->orWhere('d.brand', 'like', "%{$search}%")
-                              ->orWhere('d.model', 'like', "%{$search}%")
-                              ->orWhere('d.serial_number', 'like', "%{$search}%")
-                              ->orWhere('e.name', 'like', "%{$search}%")
-                              ->orWhere('a.assigned_to', 'like', "%{$search}%");
-                    });
-                })
-                ->when($type ?? null, fn ($q) => $q->whereRaw('LOWER(TRIM(d.type)) = ?', [$type]))
-                ->when($status ?? null, fn ($q) => $q->where('d.status', $status))
-                ->distinct()
-                ->count('d.id');
-
-            $page  = \Illuminate\Pagination\Paginator::resolveCurrentPage();
-            $items = $query->distinct()->forPage($page, $perPage)->get();
+                )
+                ->orderBy('d.name')
+                ->forPage($page, $perPage)
+                ->get();
 
             return new \Illuminate\Pagination\LengthAwarePaginator(
                 $items,
