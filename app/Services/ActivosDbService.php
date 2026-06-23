@@ -31,7 +31,7 @@ class ActivosDbService
         $normalized = mb_strtolower(trim((string) $type), 'UTF-8');
 
         return match ($normalized) {
-            'computer', 'peripheral', 'printer', 'mobiliario', 'other' => $normalized,
+            'computer', 'peripheral', 'printer', 'mobiliario', 'phone', 'other' => $normalized,
             default => 'other',
         };
     }
@@ -519,6 +519,52 @@ class ActivosDbService
     }
 
     /**
+     * Retorna TODOS los dispositivos activos (available, assigned, maintenance)
+     * con su asignación actual, agrupados por tipo de dispositivo.
+     * Usado para la exportación a Excel por categorías.
+     *
+     * @return array<string, array<int, object>>  Keyed by type slug.
+     */
+    public function getAllDevicesForExcel(): array
+    {
+        try {
+            $rows = $this->conn()
+                ->table('devices as d')
+                ->leftJoin('assignments as a', function ($join) {
+                    $join->on('a.device_id', '=', 'd.id')
+                         ->whereNull('a.returned_at');
+                })
+                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->select(
+                    'd.uuid', 'd.name', 'd.brand', 'd.model',
+                    'd.serial_number', 'd.type', 'd.status',
+                    'd.purchase_date', 'd.warranty_expiration', 'd.notes',
+                    'd.created_at',
+                    'a.assigned_at',
+                    'e.name as employee_name',
+                    'a.assigned_to'
+                )
+                ->where('d.status', '!=', 'broken')
+                ->orderBy('d.type')
+                ->orderBy('d.name')
+                ->distinct()
+                ->get();
+
+            $grouped = [];
+            foreach ($rows as $row) {
+                $type = $this->normalizeDeviceType($row->type ?? 'other');
+                $grouped[$type][] = $row;
+            }
+
+            return $grouped;
+
+        } catch (\Exception $e) {
+            Log::error('ActivosDb: getAllDevicesForExcel — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Retorna una paginación manual de dispositivos con filtros opcionales
      * de búsqueda, tipo y estado.
      *
@@ -575,9 +621,32 @@ class ActivosDbService
 
             $query->orderBy('d.name');
 
-            $total = $query->count();
+            // Usar COUNT(DISTINCT d.id) para evitar que los JOINs (assignments, employees)
+            // inflen el conteo cuando un dispositivo tiene múltiples filas relacionadas.
+            $total = $this->conn()
+                ->table('devices as d')
+                ->leftJoin('assignments as a', function ($join) {
+                    $join->on('a.device_id', '=', 'd.id')
+                         ->whereNull('a.returned_at');
+                })
+                ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+                ->when($search ?? null, function ($q) use ($search) {
+                    $q->where(function ($inner) use ($search) {
+                        $inner->where('d.name', 'like', "%{$search}%")
+                              ->orWhere('d.brand', 'like', "%{$search}%")
+                              ->orWhere('d.model', 'like', "%{$search}%")
+                              ->orWhere('d.serial_number', 'like', "%{$search}%")
+                              ->orWhere('e.name', 'like', "%{$search}%")
+                              ->orWhere('a.assigned_to', 'like', "%{$search}%");
+                    });
+                })
+                ->when($type ?? null, fn ($q) => $q->whereRaw('LOWER(TRIM(d.type)) = ?', [$type]))
+                ->when($status ?? null, fn ($q) => $q->where('d.status', $status))
+                ->distinct()
+                ->count('d.id');
+
             $page  = \Illuminate\Pagination\Paginator::resolveCurrentPage();
-            $items = $query->forPage($page, $perPage)->get();
+            $items = $query->distinct()->forPage($page, $perPage)->get();
 
             return new \Illuminate\Pagination\LengthAwarePaginator(
                 $items,
@@ -632,6 +701,7 @@ class ActivosDbService
                     'peripheral' => (int) ($normalizedByType['peripheral'] ?? 0),
                     'printer'    => (int) ($normalizedByType['printer']    ?? 0),
                     'mobiliario' => (int) ($normalizedByType['mobiliario'] ?? 0),
+                    'phone'      => (int) ($normalizedByType['phone']      ?? 0),
                     'other'      => (int) ($normalizedByType['other']      ?? 0),
                 ],
             ];
@@ -641,7 +711,7 @@ class ActivosDbService
             return [
                 'total'     => 0,
                 'by_status' => ['available' => 0, 'assigned' => 0, 'maintenance' => 0, 'broken' => 0],
-                'by_type'   => ['computer' => 0, 'peripheral' => 0, 'printer' => 0, 'mobiliario' => 0, 'other' => 0],
+                'by_type'   => ['computer' => 0, 'peripheral' => 0, 'printer' => 0, 'mobiliario' => 0, 'phone' => 0, 'other' => 0],
             ];
         }
     }

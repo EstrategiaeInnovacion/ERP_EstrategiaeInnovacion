@@ -38,6 +38,15 @@
                     </svg>
                     Imprimir etiquetas
                 </button>
+                <a href="{{ route('admin.activos.exportar-excel') }}"
+                   class="inline-flex items-center px-5 py-2.5 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-200"
+                   title="Exportar inventario completo a Excel (disponibles + asignados, por categoría)">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Exportar Excel
+                </a>
                 <a href="{{ route('admin.activos.create') }}"
                    class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,6 +143,7 @@
                     <option value="peripheral" @selected($type === 'peripheral')>Periférico</option>
                     <option value="printer"    @selected($type === 'printer')>Impresora</option>
                     <option value="mobiliario" @selected($type === 'mobiliario')>Mobiliario</option>
+                    <option value="phone"      @selected($type === 'phone')>Teléfono</option>
                     <option value="other"      @selected($type === 'other')>Otro</option>
                 </select>
                 <select name="status"
@@ -193,6 +203,7 @@
                                 'peripheral' => 'Periférico',
                                 'printer'    => 'Impresora',
                                 'mobiliario' => 'Mobiliario',
+                                'phone'      => 'Teléfono',
                                 default      => 'Otro',
                             };
 
@@ -355,6 +366,7 @@
                     'peripheral' => ['label' => 'Periféricos',   'icon' => '🖱️',  'color' => 'violet'],
                     'printer'    => ['label' => 'Impresoras',    'icon' => '🖨️',  'color' => 'sky'],
                     'mobiliario' => ['label' => 'Mobiliario',    'icon' => '🪑',  'color' => 'amber'],
+                    'phone'      => ['label' => 'Teléfonos',     'icon' => '📱',  'color' => 'emerald'],
                     'other'      => ['label' => 'Otro',          'icon' => '📦',  'color' => 'slate'],
                 ];
             @endphp
@@ -518,6 +530,7 @@
             'peripheral' => 'Periféricos',
             'printer'    => 'Impresoras',
             'mobiliario' => 'Mobiliario',
+            'phone'      => 'Teléfonos',
             default      => 'Otro',
         };
     } elseif (!empty($status)) {
@@ -540,6 +553,7 @@ window.QR_SIZES = window.QR_SIZES || {
     peripheral:{ px: 220, cm: '1.5cm', modal: 160, labelWidth: '1.8cm' },
     printer:   { px: 300, cm: '3.8cm', modal: 200, labelWidth: '4.3cm' },
     mobiliario:{ px: 260, cm: '3.4cm', modal: 180, labelWidth: '3.9cm' },
+    phone:     { px: 220, cm: '2.0cm', modal: 160, labelWidth: '2.4cm' },
     other:     { px: 260, cm: '3.2cm', modal: 180, labelWidth: '3.7cm' },
 };
 
@@ -679,6 +693,7 @@ const CAT_LABELS = {
     peripheral: 'Periféricos',
     printer:    'Impresoras',
     mobiliario: 'Mobiliario',
+    phone:      'Teléfonos',
     other:      'Otro',
     all:        'Todos los activos',
 };

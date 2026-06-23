@@ -531,6 +531,7 @@ Route::middleware(['auth', 'verified', 'sistemas_admin'])->prefix('admin')->name
     Route::controller(ActivosController::class)->prefix('activos')->name('activos.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/escaner-qr', 'qrScanner')->name('qr-scanner');
+        Route::get('/exportar-excel', 'exportExcel')->name('exportar-excel');  // ← ANTES de /{uuid}
         Route::get('/crear', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{uuid}', 'show')->name('show');

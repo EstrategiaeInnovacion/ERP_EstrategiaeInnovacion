@@ -9,6 +9,12 @@ use App\Models\Sistemas_IT\EquipoPeriferico;
 use App\Services\ActivosDbService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class ActivosController extends Controller
 {
@@ -91,7 +97,7 @@ class ActivosController extends Controller
             'brand'               => 'nullable|string|max:255',
             'model'               => 'nullable|string|max:255',
             'serial_number'       => 'required|string|max:255',
-            'type'                => 'required|in:computer,peripheral,printer,mobiliario,other',
+            'type'                => 'required|in:computer,peripheral,printer,mobiliario,phone,other',
             'status'              => 'required|in:available,assigned,maintenance,broken',
             'purchase_date'       => 'nullable|date',
             'warranty_expiration' => 'nullable|date',
@@ -193,7 +199,7 @@ class ActivosController extends Controller
             'brand'               => 'nullable|string|max:255',
             'model'               => 'nullable|string|max:255',
             'serial_number'       => 'required|string|max:255',
-            'type'                => 'required|in:computer,peripheral,printer,mobiliario,other',
+            'type'                => 'required|in:computer,peripheral,printer,mobiliario,phone,other',
             'status'              => 'required|in:available,assigned,maintenance,broken',
             'purchase_date'       => 'nullable|date',
             'warranty_expiration' => 'nullable|date',
@@ -383,5 +389,155 @@ class ActivosController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Credenciales actualizadas correctamente.']);
+    }
+
+    /**
+     * GET /admin/activos/exportar-excel
+     * Genera un .xlsx con una hoja por categoría de dispositivo.
+     * Incluye disponibles, asignados y en mantenimiento (excluye dañados).
+     */
+    public function exportExcel()
+    {
+        if (! $this->activos->isConfigured()) {
+            return back()->with('error', 'No se pudo conectar a la base de datos de activos.');
+        }
+
+        $grupos = $this->activos->getAllDevicesForExcel();
+
+        // Configuración de cada categoría: etiqueta, color de encabezado (ARGB)
+        $categorias = [
+            'computer'   => ['label' => 'Computadoras',  'color' => 'FF7C3AED'],  // violeta
+            'peripheral' => ['label' => 'Periféricos',   'color' => 'FF0EA5E9'],  // azul cielo
+            'printer'    => ['label' => 'Impresoras',    'color' => 'FF0284C7'],  // azul
+            'mobiliario' => ['label' => 'Mobiliario',    'color' => 'FFD97706'],  // ámbar
+            'phone'      => ['label' => 'Teléfonos',     'color' => 'FF059669'],  // esmeralda
+            'other'      => ['label' => 'Otros',         'color' => 'FF475569'],  // slate
+        ];
+
+        $estadoLabels = [
+            'available'   => 'Disponible',
+            'assigned'    => 'Asignado',
+            'maintenance' => 'Mantenimiento',
+            'broken'      => 'Dañado',
+        ];
+
+        $headers = [
+            'Nombre', 'Marca', 'Modelo', 'N° Serie',
+            'Estado', 'Asignado a', 'Fecha Asignación',
+            'Fecha Compra', 'Garantía hasta', 'Notas',
+        ];
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->removeSheetByIndex(0); // Quitar hoja vacía inicial
+
+        foreach ($categorias as $slug => $meta) {
+            $items = $grupos[$slug] ?? [];
+
+            $sheet = $spreadsheet->createSheet();
+            $sheet->setTitle($meta['label']);
+
+            // ── Fila de título de la hoja ──────────────────────────────
+            $lastCol = 'J'; // columna J = 10 columnas
+            $sheet->mergeCells("A1:{$lastCol}1");
+            $sheet->setCellValue('A1', '📋 Inventario IT — ' . $meta['label']);
+            $sheet->getStyle('A1')->applyFromArray([
+                'font'      => ['bold' => true, 'size' => 14, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $meta['color']]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+            $sheet->getRowDimension(1)->setRowHeight(30);
+
+            // ── Fila de fecha de exportación ───────────────────────────
+            $sheet->mergeCells("A2:{$lastCol}2");
+            $sheet->setCellValue('A2', 'Exportado: ' . now()->format('d/m/Y H:i') . '  |  Total: ' . count($items) . ' dispositivo(s)');
+            $sheet->getStyle('A2')->applyFromArray([
+                'font'      => ['italic' => true, 'size' => 10, 'color' => ['argb' => 'FF64748B']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+            ]);
+
+            // ── Encabezados de columnas (fila 3) ──────────────────────
+            $col = 'A';
+            foreach ($headers as $h) {
+                $sheet->setCellValue("{$col}3", $h);
+                $col++;
+            }
+            $sheet->getStyle('A3:J3')->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $meta['color']]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFE2E8F0']]],
+            ]);
+            $sheet->getRowDimension(3)->setRowHeight(20);
+
+            // ── Filas de datos ─────────────────────────────────────────
+            $row = 4;
+            foreach ($items as $d) {
+                $asignado = $d->employee_name ?? $d->assigned_to ?? '—';
+                $estado   = $estadoLabels[$d->status] ?? $d->status;
+
+                $sheet->setCellValue("A{$row}", $d->name ?? '');
+                $sheet->setCellValue("B{$row}", $d->brand ?? '');
+                $sheet->setCellValue("C{$row}", $d->model ?? '');
+                $sheet->setCellValue("D{$row}", $d->serial_number ?? '');
+                $sheet->setCellValue("E{$row}", $estado);
+                $sheet->setCellValue("F{$row}", $asignado);
+                $sheet->setCellValue("G{$row}", $d->assigned_at ? \Carbon\Carbon::parse($d->assigned_at)->format('d/m/Y') : '');
+                $sheet->setCellValue("H{$row}", $d->purchase_date ? \Carbon\Carbon::parse($d->purchase_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("I{$row}", $d->warranty_expiration ? \Carbon\Carbon::parse($d->warranty_expiration)->format('d/m/Y') : '');
+                $sheet->setCellValue("J{$row}", $d->notes ?? '');
+
+                // Alternar color de fila para mejor legibilidad
+                $bgColor = ($row % 2 === 0) ? 'FFF8FAFC' : 'FFFFFFFF';
+                $sheet->getStyle("A{$row}:J{$row}")->applyFromArray([
+                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgColor]],
+                    'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFE2E8F0']]],
+                    'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+                ]);
+
+                // Colorear la celda de estado
+                $statusColor = match($d->status) {
+                    'available'   => 'FFD1FAE5', // verde claro
+                    'assigned'    => 'FFE0F2FE', // azul claro
+                    'maintenance' => 'FFFEF3C7', // ámbar claro
+                    default       => 'FFFEE2E2', // rojo claro
+                };
+                $sheet->getStyle("E{$row}")->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $statusColor]],
+                    'font' => ['bold' => true],
+                ]);
+
+                $row++;
+            }
+
+            // ── Auto-ajuste de ancho de columnas ──────────────────────
+            foreach (range('A', 'J') as $colLetter) {
+                $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+            }
+            // Limitar columna de notas para que no se extienda demasiado
+            $sheet->getColumnDimension('J')->setAutoSize(false);
+            $sheet->getColumnDimension('J')->setWidth(40);
+
+            // Fijar las primeras 3 filas (título + fecha + encabezados)
+            $sheet->freezePane('A4');
+        }
+
+        // Si no hay ninguna hoja con datos, agregar al menos una vacía
+        if ($spreadsheet->getSheetCount() === 0) {
+            $spreadsheet->createSheet()->setTitle('Sin datos');
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'Inventario_IT_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control'       => 'max-age=0',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 }

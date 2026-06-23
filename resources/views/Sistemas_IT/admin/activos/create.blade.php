@@ -92,6 +92,7 @@
                             <option value="peripheral" @selected(old('type') === 'peripheral')>Periférico</option>
                             <option value="printer"    @selected(old('type') === 'printer')>Impresora</option>
                             <option value="mobiliario" @selected(old('type') === 'mobiliario')>Mobiliario</option>
+                            <option value="phone"      @selected(old('type') === 'phone')>Teléfono</option>
                             <option value="other"      @selected(old('type') === 'other')>Otro</option>
                         </select>
                         @error('type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror

@@ -17,6 +17,7 @@
         'peripheral' => 'Periférico',
         'printer'    => 'Impresora',
         'mobiliario' => 'Mobiliario',
+        'phone'      => 'Teléfono',
         default      => 'Otro',
     };
 
@@ -609,6 +610,7 @@ function togglePassActivo(spanId, btn) {
         peripheral:{ px: 220, cm: '2.8cm', modal: 160 },
         printer:   { px: 300, cm: '3.8cm', modal: 200 },
         mobiliario:{ px: 260, cm: '3.4cm', modal: 180 },
+        phone:     { px: 220, cm: '2.0cm', modal: 160 },
         other:     { px: 260, cm: '3.2cm', modal: 180 },
     };
 
