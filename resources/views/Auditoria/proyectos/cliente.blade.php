@@ -194,6 +194,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right">
+                                            @php $hasComments = $proceso->comentariosList->isNotEmpty() ? 'true' : 'false'; @endphp
                                             @if($proceso->comentariosList->isNotEmpty())
                                                  <button @click="toggleComments('{{ $proceso->id }}', {{ $hasComments }})"
                                                         class="p-1.5 rounded-lg transition relative"
