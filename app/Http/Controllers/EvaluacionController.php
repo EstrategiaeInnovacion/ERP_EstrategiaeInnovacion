@@ -242,8 +242,13 @@ class EvaluacionController extends Controller
             $target->dual_role = $isAdminRH && $isDirectSupervisor;
 
             $target->is_my_boss = $me && $me->supervisor_id == $target->id;
+            $target->is_admin_only = $isAdminRH && !$isDirectSupervisor;
 
-            $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
+            if ($target->is_admin_only) {
+                $target->evaluacion_actual = $baseEvalQuery('admin_rh')->first();
+            } else {
+                $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
+            }
 
             if ($target->dual_role) {
                 $target->evaluacion_adminrh = $baseEvalQuery('admin_rh')->first();

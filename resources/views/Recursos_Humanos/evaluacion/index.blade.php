@@ -136,6 +136,9 @@
                                                     </div>
                                                     @php
                                                         $tipoPrimary = 'supervisor';
+                                                        if ($empleado->is_admin_only ?? false) {
+                                                            $tipoPrimary = 'admin_rh';
+                                                        }
                                                         $evalPrimary = $empleado->evaluacion_actual ?? null;
                                                         $labelPrimary = 'Evaluar';
                                                         if ($empleado->is_my_boss ?? false) {
