@@ -261,7 +261,7 @@ class EvaluacionController extends Controller
             return $target;
         });
 
-        $areas = Empleado::select('posicion')->distinct()->pluck('posicion');
+        $areas = $empleados->pluck('posicion')->filter()->unique()->values();
 
         return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility', 'isAdminRH', 'puedeGestionarVentanas', 'ventanaActiva'));
     }
