@@ -16,7 +16,7 @@ class CampoPersonalizadoController extends Controller
     private function esCoordinador(): bool
     {
         $user     = auth()->user();
-        $empleado = $user ? Empleado::where('correo', $user->email)->first() : null;
+        $empleado = $user ? $user->empleado : null;
 
         if (! $empleado || ! $empleado->es_coordinador) {
             return false;

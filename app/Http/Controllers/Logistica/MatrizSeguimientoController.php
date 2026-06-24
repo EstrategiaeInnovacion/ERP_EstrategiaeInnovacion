@@ -27,7 +27,7 @@ class MatrizSeguimientoController extends Controller
     public function index(Request $request)
     {
         $user           = auth()->user();
-        $empleadoActual = $user ? Empleado::where('correo', $user->email)->first() : null;
+        $empleadoActual = $user ? $user->empleado : null;
 
         // ── Detectar si es coordinador de logística ──────────────────────────
         $esCoordinador = false;
@@ -148,7 +148,7 @@ class MatrizSeguimientoController extends Controller
     public function reportes(Request $request)
     {
         $user           = auth()->user();
-        $empleadoActual = $user ? Empleado::where('correo', $user->email)->first() : null;
+        $empleadoActual = $user ? $user->empleado : null;
 
         $esCoordinador = false;
         if ($empleadoActual && $empleadoActual->es_coordinador) {
@@ -354,7 +354,7 @@ class MatrizSeguimientoController extends Controller
     public function exportar(Request $request)
     {
         $user           = auth()->user();
-        $empleadoActual = $user ? Empleado::where('correo', $user->email)->first() : null;
+        $empleadoActual = $user ? $user->empleado : null;
 
         $esCoordinador = false;
         if ($empleadoActual && $empleadoActual->es_coordinador) {
