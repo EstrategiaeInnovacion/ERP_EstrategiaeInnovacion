@@ -38,15 +38,6 @@
                     </svg>
                     Imprimir etiquetas
                 </button>
-                <a href="{{ route('admin.activos.exportar-excel') }}"
-                   class="inline-flex items-center px-5 py-2.5 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-200"
-                   title="Exportar inventario completo a Excel (disponibles + asignados, por categoría)">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Exportar Excel
-                </a>
                 <a href="{{ route('admin.activos.create') }}"
                    class="inline-flex items-center px-5 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,6 +46,15 @@
                     Nuevo dispositivo
                 </a>
                 @endunless
+                <a href="{{ ($soloLectura ?? false) ? route('rh.inventario.exportar-excel') : route('admin.activos.exportar-excel') }}"
+                   class="inline-flex items-center px-5 py-2.5 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-200"
+                   title="Exportar inventario completo a Excel (disponibles + asignados, por categoría)">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Exportar Excel
+                </a>
             </div>
         </div>
     </div>
@@ -81,7 +81,7 @@
         @endphp
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {{-- Total (sin filtro de estado) --}}
-            <a href="{{ $baseUrl . '?status=' }}"
+            <a href="{{ $baseUrl . '?status=all' }}"
                class="rounded-2xl border p-4 text-center shadow-sm transition hover:shadow-md
                       {{ $activeStatus === '' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-white border-slate-200' }}">
                 <p class="text-2xl font-bold text-slate-900">{{ $stats['total'] }}</p>
@@ -148,7 +148,10 @@
                 </select>
                 <select name="status"
                         class="px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-white">
-                    <option value="">Todos los estados</option>
+                    {{-- value="all" (no vacío): un valor vacío se convierte en null por el
+                         middleware ConvertEmptyStringsToNull y http_build_query() lo elimina
+                         de los links de paginación, perdiendo el filtro al cambiar de página --}}
+                    <option value="all" @selected(is_null($status))>Todos los estados</option>
                     <option value="available"   @selected(($status ?? '') === 'available')>Disponible</option>
                     <option value="assigned"    @selected(($status ?? '') === 'assigned')>Asignado</option>
                     <option value="maintenance" @selected(($status ?? '') === 'maintenance')>Mantenimiento</option>

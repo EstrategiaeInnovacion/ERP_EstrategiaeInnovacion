@@ -40,9 +40,14 @@ class ActivosController extends Controller
 
         $search = $request->input('search');
         $type   = $request->input('type');
-        // Por defecto mostrar solo los disponibles; pasar ?status= (vacío) para ver todos
+        // Por defecto mostrar solo los disponibles; pasar ?status=all para ver todos.
+        // OJO: el sentinel debe ser un string NO vacío ("all"), porque un valor vacío
+        // ("") es convertido a null por el middleware ConvertEmptyStringsToNull, y
+        // http_build_query() elimina las claves null al construir los links de
+        // paginación — eso hacía que el filtro "todos los estados" se perdiera (y
+        // cayera de vuelta al default "available") en cuanto se cambiaba de página.
         $status = $request->input('status', 'available');
-        if ($status === '') {
+        if ($status === 'all' || $status === '') {
             $status = null;
         }
 
