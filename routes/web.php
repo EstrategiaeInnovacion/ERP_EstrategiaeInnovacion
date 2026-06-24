@@ -58,7 +58,9 @@ Route::get('/', function () {
                 ->get();
         }
 
-        return view('welcome', compact('avisosPendientes'));
+        $ventanaActiva = \App\Models\EvaluacionVentana::ventanaActual();
+
+        return view('welcome', compact('avisosPendientes', 'ventanaActiva'));
     }
 
     return view('welcome');
