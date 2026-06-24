@@ -16,7 +16,9 @@ class SistemasAdminMiddleware
         $posNorm = $empleado ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($empleado->posicion ?? '')), 'UTF-8') : '';
 
         if ($user->role !== 'admin' ||
-            !(str_contains($areaNorm, 'sistemas') || $posNorm === 'ti' || $posNorm === 'it')
+            !(str_contains($areaNorm, 'sistemas') || str_contains($posNorm, 'ti') || str_contains($posNorm, 'it') ||
+              str_contains($posNorm, 'direccion') || str_contains($posNorm, 'dirección') ||
+              str_contains($areaNorm, 'direccion') || str_contains($areaNorm, 'dirección'))
         ) {
             return redirect()->route('tickets.mis-tickets')
                 ->with('error', 'No tienes acceso al panel administrativo de Sistemas.');

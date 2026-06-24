@@ -21,10 +21,12 @@ class AreaLogisticaMiddleware
         
         // Permitir si el área contiene "logistica" o si la posición contiene "logistica"
         $esLogistica = ($areaNorm && stripos($areaNorm, 'logistic') !== false) || 
-                       ($posNorm && stripos($posNorm, 'logistic') !== false);
+                       ($posNorm && stripos($posNorm, 'logistic') !== false) ||
+                       ($posNorm && (stripos($posNorm, 'direccion') !== false || stripos($posNorm, 'dirección') !== false)) ||
+                       ($areaNorm && (stripos($areaNorm, 'direccion') !== false || stripos($areaNorm, 'dirección') !== false));
         
         if (!$esLogistica) {
-            return redirect()->route('login')->with('info','Acceso restringido a Logística');
+            return redirect()->route('welcome')->with('error','Acceso restringido a Logística');
         }
         
         return $next($request);
