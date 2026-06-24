@@ -53,12 +53,10 @@
     </div>
 
     @php
-        $categoriasPrincipales = ['Logistica', 'Legal', 'Anexo 24', 'Auditoria', 'TI'];
-        $todosLosPuestos = $empleados->pluck('posicion')->unique()->values()->toArray();
-        $todasLasCategorias = array_unique(array_merge($categoriasPrincipales, $todosLosPuestos));
+        $todasLasCategorias = $empleados->pluck('posicion')->filter()->unique()->values()->toArray();
     @endphp
 
-    <div class="py-12 bg-slate-50 min-h-screen" x-data="{ activeTab: 'Logistica' }">
+    <div class="py-12 bg-slate-50 min-h-screen" x-data="{ activeTab: '{{ $todasLasCategorias[0] ?? '' }}' }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
             
             {{-- BANNER DE ESTADO DEL PERIODO --}}
