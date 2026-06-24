@@ -19,10 +19,12 @@ class AreaPostOperacionesMiddleware
         $posNorm  = mb_strtolower(preg_replace('/\s+/u', ' ', $posicion), 'UTF-8');
 
         $esPostOp = str_contains($areaNorm, 'post') || str_contains($posNorm, 'post')
-                 || str_contains($areaNorm, 'postoperacion') || str_contains($posNorm, 'postoperacion');
+                 || str_contains($areaNorm, 'postoperacion') || str_contains($posNorm, 'postoperacion')
+                 || str_contains($posNorm, 'direccion') || str_contains($posNorm, 'dirección')
+                 || str_contains($areaNorm, 'direccion') || str_contains($areaNorm, 'dirección');
 
         if (!$esPostOp) {
-            return redirect()->route('login')->with('info', 'Acceso restringido a Post-Operaciones.');
+            return redirect()->route('welcome')->with('error', 'Acceso restringido a Post-Operaciones.');
         }
 
         return $next($request);

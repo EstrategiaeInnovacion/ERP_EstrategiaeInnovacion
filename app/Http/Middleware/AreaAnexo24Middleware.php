@@ -19,10 +19,12 @@ class AreaAnexo24Middleware
         $posNorm  = mb_strtolower(preg_replace('/\s+/u', ' ', $posicion), 'UTF-8');
 
         $esAnexo24 = str_contains($areaNorm, 'anexo') || str_contains($posNorm, 'anexo')
-                  || str_contains($areaNorm, 'a24')   || str_contains($posNorm, 'a24');
+                  || str_contains($areaNorm, 'a24')   || str_contains($posNorm, 'a24')
+                  || str_contains($posNorm, 'direccion') || str_contains($posNorm, 'dirección')
+                  || str_contains($areaNorm, 'direccion') || str_contains($areaNorm, 'dirección');
 
         if (!$esAnexo24) {
-            return redirect()->route('login')->with('info', 'Acceso restringido a Anexo 24.');
+            return redirect()->route('welcome')->with('error', 'Acceso restringido a Anexo 24.');
         }
 
         return $next($request);

@@ -19,7 +19,9 @@ class AreaLegalMiddleware
         $posNorm  = $posicion ? mb_strtolower(preg_replace('/\s+/u', ' ', trim($posicion)), 'UTF-8') : null;
 
         $esLegal = ($areaNorm && (str_contains($areaNorm, 'legal') || str_contains($areaNorm, 'juridico')))
-                || ($posNorm  && (str_contains($posNorm,  'legal') || str_contains($posNorm,  'juridico')));
+                || ($posNorm  && (str_contains($posNorm,  'legal') || str_contains($posNorm,  'juridico')))
+                || ($posNorm && (str_contains($posNorm, 'direccion') || str_contains($posNorm, 'dirección')))
+                || ($areaNorm && (str_contains($areaNorm, 'direccion') || str_contains($areaNorm, 'dirección')));
 
         if (!$esLegal) {
             return redirect()->route('welcome')

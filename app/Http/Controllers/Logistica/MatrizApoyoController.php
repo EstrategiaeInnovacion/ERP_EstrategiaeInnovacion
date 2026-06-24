@@ -29,7 +29,7 @@ class MatrizApoyoController extends Controller
         $aduanas  = Aduana::orderBy('aduana')->orderBy('seccion')->get(['aduana', 'seccion', 'denominacion']);
 
         $empleadoActual = auth()->user()
-            ? Empleado::where('correo', auth()->user()->email)->first()
+            ? auth()->user()->empleado
             : null;
 
         $misClientes = $empleadoActual

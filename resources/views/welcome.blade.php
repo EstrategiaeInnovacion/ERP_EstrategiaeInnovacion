@@ -95,6 +95,36 @@
                     </div>
                 </div>
 
+                {{-- AVISO DE EVALUACIÓN DE DESEMPEÑO --}}
+                @if(isset($ventanaActiva) && $ventanaActiva)
+                    <div class="mb-10 animate-fade-in-up">
+                        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200 shadow-sm flex flex-col sm:flex-row gap-5 items-start sm:items-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-200 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-40"></div>
+                            
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="flex-1 relative z-10">
+                                <h3 class="text-lg font-bold text-emerald-900 flex items-center gap-2">
+                                    ¡Evaluación de Desempeño Activa!
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-200 text-emerald-800 border border-emerald-300">
+                                        {{ $ventanaActiva->nombre }}
+                                    </span>
+                                </h3>
+                                <p class="mt-2 text-sm text-emerald-800">
+                                    El periodo de evaluación estará abierto del <strong>{{ \Carbon\Carbon::parse($ventanaActiva->fecha_apertura)->format('d/m/Y') }}</strong> al <strong>{{ \Carbon\Carbon::parse($ventanaActiva->fecha_cierre)->format('d/m/Y') }}</strong>. Por favor, asegúrate de completar tus evaluaciones a tiempo.
+                                </p>
+                            </div>
+                            <div class="relative z-10 sm:ml-auto w-full sm:w-auto">
+                                <a href="{{ route('rh.evaluacion.index') }}" class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all duration-300 shadow-sm flex items-center justify-center gap-2 group">
+                                    Ir a Evaluaciones
+                                    <svg class="w-4 h-4 text-emerald-200 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- SECCIÓN DE AVISOS DE ASISTENCIA (SI HAY PENDIENTES) --}}
                 @if(isset($avisosPendientes) && $avisosPendientes->count() > 0)
                     <div class="mb-10 space-y-4">

@@ -19,10 +19,12 @@ class AreaAuditoriaMiddleware
         $posNorm  = mb_strtolower(preg_replace('/\s+/u', ' ', $posicion), 'UTF-8');
 
         $esAuditoria = str_contains($areaNorm, 'auditoria') || str_contains($posNorm, 'auditoria')
-                    || str_contains($areaNorm, 'auditor')   || str_contains($posNorm, 'auditor');
+                    || str_contains($areaNorm, 'auditor')   || str_contains($posNorm, 'auditor')
+                    || str_contains($posNorm, 'direccion')  || str_contains($posNorm, 'dirección')
+                    || str_contains($areaNorm, 'direccion') || str_contains($areaNorm, 'dirección');
 
         if (!$esAuditoria) {
-            return redirect()->route('login')->with('info', 'Acceso restringido a Auditoría.');
+            return redirect()->route('welcome')->with('error', 'Acceso restringido a Auditoría.');
         }
 
         return $next($request);

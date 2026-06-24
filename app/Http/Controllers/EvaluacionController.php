@@ -26,7 +26,7 @@ class EvaluacionController extends Controller
     public function getVentanas()
     {
         $user = Auth::user();
-        $me   = Empleado::where('correo', $user->email)->first();
+        $me   = $user->empleado;
 
         if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
@@ -44,7 +44,7 @@ class EvaluacionController extends Controller
     public function saveVentana(Request $request)
     {
         $user = Auth::user();
-        $me   = Empleado::where('correo', $user->email)->first();
+        $me   = $user->empleado;
 
         if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
@@ -79,7 +79,7 @@ class EvaluacionController extends Controller
     public function toggleVentana(Request $request, $id)
     {
         $user = Auth::user();
-        $me   = Empleado::where('correo', $user->email)->first();
+        $me   = $user->empleado;
 
         if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
@@ -101,7 +101,7 @@ class EvaluacionController extends Controller
     public function deleteVentana($id)
     {
         $user = Auth::user();
-        $me   = Empleado::where('correo', $user->email)->first();
+        $me   = $user->empleado;
 
         if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);
@@ -172,7 +172,7 @@ class EvaluacionController extends Controller
 
     private function hasFullVisibility($user)
     {
-        $empleado = Empleado::where('correo', $user->email)->first();
+        $empleado = $user->empleado;
         if (!$empleado)
             return false;
 
@@ -201,7 +201,7 @@ class EvaluacionController extends Controller
         ];
 
         $user = Auth::user();
-        $me = Empleado::where('correo', $user->email)->first();
+        $me = $user->empleado;
         $hasFullVisibility       = $this->hasFullVisibility($user);
         $isWindowOpen            = $this->isEvaluationWindowOpen();
         $isAdminRH               = $this->isAdminRH($me);
@@ -242,8 +242,13 @@ class EvaluacionController extends Controller
             $target->dual_role = $isAdminRH && $isDirectSupervisor;
 
             $target->is_my_boss = $me && $me->supervisor_id == $target->id;
+            $target->is_admin_only = $isAdminRH && !$isDirectSupervisor;
 
-            $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
+            if ($target->is_admin_only) {
+                $target->evaluacion_actual = $baseEvalQuery('admin_rh')->first();
+            } else {
+                $target->evaluacion_actual = $baseEvalQuery('supervisor')->first();
+            }
 
             if ($target->dual_role) {
                 $target->evaluacion_adminrh = $baseEvalQuery('admin_rh')->first();
@@ -256,7 +261,7 @@ class EvaluacionController extends Controller
             return $target;
         });
 
-        $areas = Empleado::select('posicion')->distinct()->pluck('posicion');
+        $areas = $empleados->pluck('posicion')->filter()->unique()->values();
 
         return view('Recursos_Humanos.evaluacion.index', compact('areas', 'empleados', 'periodos', 'selectedPeriod', 'isWindowOpen', 'hasFullVisibility', 'isAdminRH', 'puedeGestionarVentanas', 'ventanaActiva'));
     }
@@ -268,7 +273,7 @@ class EvaluacionController extends Controller
             return redirect()->route('rh.evaluacion.index')->with('error', 'No es posible evaluar a un empleado dado de baja.');
         }
         $user = Auth::user();
-        $me = Empleado::where('correo', $user->email)->first();
+        $me = $user->empleado;
         $periodo = $request->query('periodo');
         $tipo = $request->query('tipo', 'supervisor');
 
@@ -381,7 +386,7 @@ class EvaluacionController extends Controller
         if (!$target || !$target->es_activo) {
             return back()->with('error', 'No es posible evaluar a un empleado dado de baja.');
         }
-        $me = Empleado::where('correo', Auth::user()->email)->first();
+        $me = Auth::user()->empleado;
 
         try {
             DB::beginTransaction();
@@ -486,7 +491,7 @@ class EvaluacionController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $me   = Empleado::where('correo', $user->email)->first();
+        $me   = $user->empleado;
 
         if (!$this->isAdminRH($me) && !$user->isAdmin()) {
             abort(403);

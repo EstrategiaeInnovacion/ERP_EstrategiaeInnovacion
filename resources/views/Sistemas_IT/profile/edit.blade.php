@@ -454,9 +454,9 @@
                                 <div class="mb-4">
                                     <x-input-label for="tipo_permiso" value="Tipo de Permiso" />
                                     <select id="tipo_permiso" name="tipo_permiso" x-model="tipoPermiso" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
-                                        <option value="corto">Ausencia Corta (< 4 horas)</option>
-                                        <option value="legal">Permiso Legal / Incapacidad (Requiere Justificante)</option>
-                                        <option value="especial">Permiso Especial (Sin goce de sueldo)</option>
+                                        <option value="corto">Ausencia Corta</option>
+                                        <option value="legal">Permiso Legal / Incapacidad</option>
+                                        <option value="especial">Permiso Especial</option>
                                     </select>
                                 </div>
 
@@ -482,12 +482,13 @@
                                     </div>
                                 </div>
 
-                                <div x-show="tipoPermiso === 'corto'" class="mb-4" style="display: none;">
+                                <div x-show="tipoPermiso === 'corto' || tipoPermiso === 'especial'" class="mb-4" style="display: none;">
                                     <x-input-label for="reposicion_tipo" value="Forma de Reposición" />
-                                    <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto'">
+                                    <select id="reposicion_tipo" name="reposicion_tipo" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" x-bind:required="tipoPermiso === 'corto' || tipoPermiso === 'especial'">
                                         <option value="">Selecciona...</option>
                                         <option value="tiempo_por_tiempo">Tiempo por Tiempo</option>
-                                        <option value="descuento_nomina">Descuento de Nómina</option>
+                                        <option value="sin_goce_sueldo">Sin Goce de Sueldo</option>
+                                        <option value="con_goce_sueldo">Con Goce de Sueldo</option>
                                     </select>
                                 </div>
 
@@ -495,7 +496,7 @@
                                     <x-input-label for="comprobante" value="Comprobante Oficial (IMSS, Acta, Citatorio) - Opcional al solicitar" class="text-amber-800" />
                                     <input type="file" id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200" />
                                     <p class="text-xs text-amber-600 mt-2">Formatos permitidos: PDF, JPG, PNG. Max 5MB.</p>
-                                    <p class="text-xs font-bold text-amber-700 mt-1">Nota: Puedes adjuntarlo después, pero recuerda que tienes un plazo máximo de 48 horas para hacerlo.</p>
+                                    <p class="text-xs font-bold text-amber-700 mt-1">Nota: Puedes adjuntarlo después, pero recuerda que tienes un plazo máximo de 24 horas para hacerlo.</p>
                                 </div>
 
                                 <div class="mb-4">

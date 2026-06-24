@@ -17,7 +17,7 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
         $usuarioActual = auth()->user();
-        $empleadoActual = $usuarioActual ?Empleado::where('correo', $usuarioActual->email)->first() : null;
+        $empleadoActual = $usuarioActual ? $usuarioActual->empleado : null;
 
 
 
@@ -93,7 +93,7 @@ class ClienteController extends Controller
             // Asignar ejecutivo por defecto si no viene
             $ejecutivoId = $request->ejecutivo_asignado_id;
             if (!$ejecutivoId && auth()->user()) {
-                $empleado = Empleado::where('correo', auth()->user()->email)->first();
+                $empleado = auth()->user()->empleado;
                 if ($empleado)
                     $ejecutivoId = $empleado->id;
             }
