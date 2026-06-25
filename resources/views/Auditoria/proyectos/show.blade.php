@@ -1635,61 +1635,61 @@
                 </div>
             </div>
         </div>
-    {{-- MODAL: EDITAR COMENTARIO / OBSERVACIÓN (COORDINADOR) --}}
-    @if($esCoordinador)
-        <div id="modal-edit-comment" 
-             x-show="openEditCommentModal" 
-             class="fixed inset-0 z-50 overflow-y-auto" 
-             x-cloak>
-            <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="openEditCommentModal = false"></div>
- 
-                <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-scale-up"
-                     x-show="openEditCommentModal">
-                    
-                    <form :action="'{{ url('/auditoria/proyectos/' . $proyecto->id . '/comentarios') }}/' + editCommentId" method="POST">
-                        @csrf
-                        @method('PUT')
-                        
-                        <div class="bg-white px-6 py-6 border-b border-slate-100">
-                            <h3 class="text-xl font-bold text-slate-900">Editar Observación</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Modifica los detalles de la observación oficial.</p>
-                        </div>
- 
-                        <div class="bg-white px-6 py-6 space-y-4">
-                            <div>
-                                <label for="edit_comment_text" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Comentario / Observación</label>
-                                <textarea name="comentario" id="edit_comment_text" x-model="editCommentText" required rows="4"
-                                          class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition"></textarea>
-                            </div>
+    </div>
 
-                            <div class="flex flex-col gap-2">
-                                <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="visible_cliente" x-model="editCommentVisibleCliente" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                    <span class="ms-2 text-xs font-semibold text-slate-650">Hacer visible para el cliente</span>
-                                </label>
-                                <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="es_importante" x-model="editCommentEsImportante" value="1" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
-                                    <span class="ms-2 text-xs font-semibold text-rose-650">Marcar como Importante (Resaltar observación)</span>
-                                </label>
-                            </div>
+    {{-- MODAL: EDITAR COMENTARIO / OBSERVACIÓN (COORDINADOR) --}}
+    <div id="modal-edit-comment" 
+         x-show="openEditCommentModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="openEditCommentModal = false"></div>
+
+            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-scale-up"
+                 x-show="openEditCommentModal">
+                
+                <form :action="'{{ url('/auditoria/proyectos/' . $proyecto->id . '/comentarios') }}/' + editCommentId" method="POST">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div class="bg-white px-6 py-6 border-b border-slate-100">
+                        <h3 class="text-xl font-bold text-slate-900">Editar Observación</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Modifica los detalles de la observación oficial.</p>
+                    </div>
+
+                    <div class="bg-white px-6 py-6 space-y-4">
+                        <div>
+                            <label for="edit_comment_text" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Comentario / Observación</label>
+                            <textarea name="comentario" id="edit_comment_text" x-model="editCommentText" required rows="4"
+                                      class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition"></textarea>
                         </div>
- 
-                        <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 rounded-b-3xl">
-                            <button type="button" @click="openEditCommentModal = false"
-                                    class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
-                                Cancelar
-                            </button>
-                            <button type="submit"
-                                    class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
-                                Guardar Cambios
-                            </button>
+
+                        <div class="flex flex-col gap-2">
+                            <label class="inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" name="visible_cliente" x-model="editCommentVisibleCliente" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="ms-2 text-xs font-semibold text-slate-650">Hacer visible para el cliente</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" name="es_importante" x-model="editCommentEsImportante" value="1" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                <span class="ms-2 text-xs font-semibold text-rose-650">Marcar como Importante (Resaltar observación)</span>
+                            </label>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 rounded-b-3xl">
+                        <button type="button" @click="openEditCommentModal = false"
+                                class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    @endif
+    </div>
 
 </div>
 @endsection
