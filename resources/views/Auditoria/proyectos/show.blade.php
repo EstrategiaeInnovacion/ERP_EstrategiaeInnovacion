@@ -808,7 +808,7 @@
                                                                  <p class="text-xs text-slate-700 leading-relaxed pr-8">{{ $c->comentario }}</p>
                                                                  @if($esCoordinador)
                                                                      <div class="flex items-center gap-1 shrink-0 -mt-0.5">
-                                                                         <button @click="abrirEditarComentario({{ $c->id }}, `{{ addslashes($c->comentario) }}`, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
+                                                                         <button @click="abrirEditarComentario({{ $c->id }}, {{ json_encode($c->comentario) }}, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
                                                                                  title="Editar Observación" 
                                                                                  class="p-1 text-slate-400 hover:text-indigo-650 hover:bg-slate-100 rounded transition">
                                                                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1019,7 +1019,7 @@
                                                                  <p class="text-xs text-slate-700 leading-relaxed pr-8">{{ $c->comentario }}</p>
                                                                  @if($esCoordinador)
                                                                      <div class="flex items-center gap-1 shrink-0 -mt-0.5">
-                                                                         <button @click="abrirEditarComentario({{ $c->id }}, `{{ addslashes($c->comentario) }}`, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
+                                                                         <button @click="abrirEditarComentario({{ $c->id }}, {{ json_encode($c->comentario) }}, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
                                                                                  title="Editar Observación" 
                                                                                  class="p-1 text-slate-400 hover:text-indigo-650 hover:bg-slate-100 rounded transition">
                                                                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
