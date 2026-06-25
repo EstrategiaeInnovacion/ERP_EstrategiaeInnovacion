@@ -699,5 +699,122 @@ class AuditoriaTest extends TestCase
         $response->assertStatus(403);
         $this->assertCount(0, $proyecto->actividades);
     }
+
+    /**
+     * Prueba que el coordinador puede actualizar comentarios/observaciones.
+     */
+    public function test_coordinator_can_update_comment(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $act = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'actividad' => 'Actividad para comentario',
+            'es_proceso_principal' => true,
+        ]);
+
+        $comment = \App\Models\Auditoria\ComentarioAuditoria::create([
+            'actividad_id' => $act->id,
+            'user_id' => $this->analyst->id,
+            'comentario' => 'Comentario original del analista',
+            'visible_cliente' => false,
+            'es_importante' => false,
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->put(route('auditoria.proyectos.comentarios.update', [$proyecto->id, $comment->id]), [
+            'comentario' => 'Comentario corregido por coordinador',
+            'visible_cliente' => true,
+            'es_importante' => true,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('auditoria_comentarios', [
+            'id' => $comment->id,
+            'comentario' => 'Comentario corregido por coordinador',
+            'visible_cliente' => true,
+            'es_importante' => true,
+        ]);
+    }
+
+    /**
+     * Prueba que el coordinador puede eliminar comentarios/observaciones.
+     */
+    public function test_coordinator_can_delete_comment(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $act = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'actividad' => 'Actividad para comentario',
+            'es_proceso_principal' => true,
+        ]);
+
+        $comment = \App\Models\Auditoria\ComentarioAuditoria::create([
+            'actividad_id' => $act->id,
+            'user_id' => $this->analyst->id,
+            'comentario' => 'Comentario original del analista',
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->delete(route('auditoria.proyectos.comentarios.destroy', [$proyecto->id, $comment->id]));
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('auditoria_comentarios', [
+            'id' => $comment->id,
+        ]);
+    }
+
+    /**
+     * Prueba que el analista no puede editar ni eliminar comentarios/observaciones.
+     */
+    public function test_analyst_cannot_update_or_delete_comment(): void
+    {
+        $proyecto = ProyectoAuditoria::create([
+            'cliente_id' => $this->cliente->id,
+            'periodo_fiscal' => '2025',
+            'coordinador_id' => $this->coordinator->id,
+            'analista_id' => $this->analyst->id,
+            'fecha_inicio' => '2026-06-10',
+            'fecha_entrega_estimada' => '2026-12-10',
+            'fases_config' => ['Fase 1'],
+        ]);
+
+        $act = ActividadAuditoria::create([
+            'proyecto_id' => $proyecto->id,
+            'actividad' => 'Actividad para comentario',
+            'es_proceso_principal' => true,
+        ]);
+
+        $comment = \App\Models\Auditoria\ComentarioAuditoria::create([
+            'actividad_id' => $act->id,
+            'user_id' => $this->analyst->id,
+            'comentario' => 'Comentario original del analista',
+        ]);
+
+        // Intentar actualizar
+        $responseUpdate = $this->actingAs($this->analyst)->put(route('auditoria.proyectos.comentarios.update', [$proyecto->id, $comment->id]), [
+            'comentario' => 'Intento de hack por analista',
+        ]);
+        $responseUpdate->assertStatus(403);
+
+        // Intentar eliminar
+        $responseDelete = $this->actingAs($this->analyst)->delete(route('auditoria.proyectos.comentarios.destroy', [$proyecto->id, $comment->id]));
+        $responseDelete->assertStatus(403);
+    }
 }
 

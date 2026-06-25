@@ -567,7 +567,7 @@ class AuditoriaProyectoController extends Controller
             $proyecto->recalcularPorcentajes();
         });
 
-        return redirect()->back()->with('success', '¡Procesos base cargados al 100% mi carnal! Listos para romperla.');
+        return redirect()->back()->with('success', 'Los procesos base se han cargado exitosamente en el proyecto.');
     }
 
     // Eliminar proyecto (coordinador)

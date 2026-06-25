@@ -36,6 +36,13 @@
         newCommentText: '',
         newCommentVisible: false,
         expandedComments: JSON.parse(localStorage.getItem('auditoria_expanded_comments_' + {{ $proyecto->id }}) || '{}'),
+
+        // Edición de Comentarios
+        openEditCommentModal: false,
+        editCommentId: '',
+        editCommentText: '',
+        editCommentVisibleCliente: false,
+        editCommentEsImportante: false,
         
         // Filtros de la matriz
         filtroResponsable: '',
@@ -127,6 +134,14 @@
             this.editActResponsable = responsable || 'E&I';
             this.editActPlazo = plazo || '';
             this.openEditActModal = true;
+        },
+
+        abrirEditarComentario(id, texto, visibleCliente, esImportante) {
+            this.editCommentId = id;
+            this.editCommentText = texto;
+            this.editCommentVisibleCliente = !!visibleCliente;
+            this.editCommentEsImportante = !!esImportante;
+            this.openEditCommentModal = true;
         },
 
         abrirReporte(id, nombre, porcentaje, estatus, comentario, visible, esImportante) {
@@ -789,7 +804,31 @@
                                                                      @endif
                                                                  </div>
                                                              </div>
-                                                             <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                             <div class="flex justify-between items-start">
+                                                                 <p class="text-xs text-slate-700 leading-relaxed pr-8">{{ $c->comentario }}</p>
+                                                                 @if($esCoordinador)
+                                                                     <div class="flex items-center gap-1 shrink-0 -mt-0.5">
+                                                                         <button @click="abrirEditarComentario({{ $c->id }}, `{{ addslashes($c->comentario) }}`, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
+                                                                                 title="Editar Observación" 
+                                                                                 class="p-1 text-slate-400 hover:text-indigo-650 hover:bg-slate-100 rounded transition">
+                                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                                             </svg>
+                                                                         </button>
+                                                                         <form action="{{ route('auditoria.proyectos.comentarios.destroy', [$proyecto->id, $c->id]) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta observación?');" class="inline">
+                                                                             @csrf
+                                                                             @method('DELETE')
+                                                                             <button type="submit" 
+                                                                                     title="Eliminar Observación" 
+                                                                                     class="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition">
+                                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                                 </svg>
+                                                                             </button>
+                                                                         </form>
+                                                                     </div>
+                                                                 @endif
+                                                             </div>
                                                         </div>
                                                     @endforeach
                                                 </div>
@@ -976,7 +1015,31 @@
                                                                          @endif
                                                                      </div>
                                                                  </div>
-                                                                 <p class="text-xs text-slate-700 leading-relaxed">{{ $c->comentario }}</p>
+                                                             <div class="flex justify-between items-start">
+                                                                 <p class="text-xs text-slate-700 leading-relaxed pr-8">{{ $c->comentario }}</p>
+                                                                 @if($esCoordinador)
+                                                                     <div class="flex items-center gap-1 shrink-0 -mt-0.5">
+                                                                         <button @click="abrirEditarComentario({{ $c->id }}, `{{ addslashes($c->comentario) }}`, {{ $c->visible_cliente ? 'true' : 'false' }}, {{ $c->es_importante ? 'true' : 'false' }})" 
+                                                                                 title="Editar Observación" 
+                                                                                 class="p-1 text-slate-400 hover:text-indigo-650 hover:bg-slate-100 rounded transition">
+                                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                                             </svg>
+                                                                         </button>
+                                                                         <form action="{{ route('auditoria.proyectos.comentarios.destroy', [$proyecto->id, $c->id]) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta observación?');" class="inline">
+                                                                             @csrf
+                                                                             @method('DELETE')
+                                                                             <button type="submit" 
+                                                                                     title="Eliminar Observación" 
+                                                                                     class="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition">
+                                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                                 </svg>
+                                                                             </button>
+                                                                         </form>
+                                                                     </div>
+                                                                 @endif
+                                                             </div>
                                                             </div>
                                                         @endforeach
                                                     </div>
@@ -1572,7 +1635,61 @@
                 </div>
             </div>
         </div>
-    </div>
+    {{-- MODAL: EDITAR COMENTARIO / OBSERVACIÓN (COORDINADOR) --}}
+    @if($esCoordinador)
+        <div id="modal-edit-comment" 
+             x-show="openEditCommentModal" 
+             class="fixed inset-0 z-50 overflow-y-auto" 
+             x-cloak>
+            <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="openEditCommentModal = false"></div>
  
+                <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-scale-up"
+                     x-show="openEditCommentModal">
+                    
+                    <form :action="'{{ url('/auditoria/proyectos/' . $proyecto->id . '/comentarios') }}/' + editCommentId" method="POST">
+                        @csrf
+                        @method('PUT')
+                        
+                        <div class="bg-white px-6 py-6 border-b border-slate-100">
+                            <h3 class="text-xl font-bold text-slate-900">Editar Observación</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Modifica los detalles de la observación oficial.</p>
+                        </div>
+ 
+                        <div class="bg-white px-6 py-6 space-y-4">
+                            <div>
+                                <label for="edit_comment_text" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Comentario / Observación</label>
+                                <textarea name="comentario" id="edit_comment_text" x-model="editCommentText" required rows="4"
+                                          class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition"></textarea>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <label class="inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" name="visible_cliente" x-model="editCommentVisibleCliente" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="ms-2 text-xs font-semibold text-slate-650">Hacer visible para el cliente</span>
+                                </label>
+                                <label class="inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" name="es_importante" x-model="editCommentEsImportante" value="1" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <span class="ms-2 text-xs font-semibold text-rose-650">Marcar como Importante (Resaltar observación)</span>
+                                </label>
+                            </div>
+                        </div>
+ 
+                        <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 rounded-b-3xl">
+                            <button type="button" @click="openEditCommentModal = false"
+                                    class="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                    class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95">
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>
 @endsection

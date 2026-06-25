@@ -513,14 +513,60 @@ class AuditoriaCambiosController extends Controller
         if (!in_array($cambio->estatus_revision, ['borrador', 'pendiente', 'ajuste_solicitado'])) {
             return redirect()->back()->with('error', 'No se puede eliminar un cambio que ya ha sido aprobado o rechazado.');
         }
-
+ 
         $nombre = $cambio->actividad_nombre_propuesto ?? ($cambio->actividad ? $cambio->actividad->actividad : 'Cambio');
         $cambio->delete();
-
+ 
         BitacoraAuditoria::registrar($proyecto->id, 'cancelar_cambio', $cambio->actividad_id, 'estatus_revision', $cambio->estatus_revision, 'cancelado', "Propuesta/borrador de '$nombre' cancelada.");
-
+ 
         $proyecto->recalcularPorcentajes();
-
+ 
         return redirect()->back()->with('success', 'Propuesta cancelada y eliminada correctamente.');
+    }
+ 
+    // Editar comentario / observación (Solo coordinador)
+    public function updateComentario(Request $request, $proyectoId, $comentarioId)
+    {
+        $user = auth()->user();
+        if (!$this->esCoordinador($user)) {
+            abort(403, 'Solo el coordinador puede editar observaciones.');
+        }
+ 
+        $request->validate([
+            'comentario' => 'required|string|max:2000',
+            'visible_cliente' => 'nullable|boolean',
+            'es_importante' => 'nullable|boolean',
+        ]);
+ 
+        $comentario = ComentarioAuditoria::findOrFail($comentarioId);
+        $valorAnterior = $comentario->comentario;
+ 
+        $comentario->update([
+            'comentario' => $request->comentario,
+            'visible_cliente' => $request->has('visible_cliente'),
+            'es_importante' => $request->has('es_importante'),
+        ]);
+ 
+        BitacoraAuditoria::registrar($proyectoId, 'editar_comentario', $comentario->actividad_id, 'comentario', $valorAnterior, $request->comentario, 'Observación editada por el coordinador.');
+ 
+        return redirect()->back()->with('success', 'Observación actualizada correctamente.');
+    }
+ 
+    // Eliminar comentario / observación (Solo coordinador)
+    public function destroyComentario($proyectoId, $comentarioId)
+    {
+        $user = auth()->user();
+        if (!$this->esCoordinador($user)) {
+            abort(403, 'Solo el coordinador puede eliminar observaciones.');
+        }
+ 
+        $comentario = ComentarioAuditoria::findOrFail($comentarioId);
+        $texto = $comentario->comentario;
+        $actividadId = $comentario->actividad_id;
+        $comentario->delete();
+ 
+        BitacoraAuditoria::registrar($proyectoId, 'eliminar_comentario', $actividadId, 'comentario', $texto, null, 'Observación eliminada por el coordinador.');
+ 
+        return redirect()->back()->with('success', 'Observación eliminada correctamente.');
     }
 }
