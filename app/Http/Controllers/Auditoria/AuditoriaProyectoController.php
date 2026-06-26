@@ -92,41 +92,46 @@ class AuditoriaProyectoController extends Controller
             'fecha_entrega_estimada' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
-        // Intentar asociar con un cliente existente si coincide el nombre o empresa
-        $clienteExistente = Cliente::where('nombre', $data['cliente_nombre'])
-            ->orWhere('empresa', $data['cliente_nombre'])
-            ->first();
-        if ($clienteExistente) {
-            $data['cliente_id'] = $clienteExistente->id;
+        try {
+            // Intentar asociar con un cliente existente si coincide el nombre o empresa
+            $clienteExistente = Cliente::where('nombre', $data['cliente_nombre'])
+                ->orWhere('empresa', $data['cliente_nombre'])
+                ->first();
+            if ($clienteExistente) {
+                $data['cliente_id'] = $clienteExistente->id;
+            }
+
+            // 8 fases por defecto
+            $fasesDefecto = [
+                '1. Reunión Preoperativa',
+                '2. Requerimiento de Información',
+                '3. Revisión de Datos Fiscales',
+                '4. Revisión Documental',
+                '5. Revisión Transaccional',
+                '6. Reporte Final',
+                '7. Envío de Archivos a Cliente para VoBo',
+                '8. Cierre de Proyecto Auditoria Documental/Transaccional'
+            ];
+
+            $data['coordinador_id'] = $user->id;
+            $data['estatus_general'] = 'pendiente';
+            $data['fase_actual'] = 1;
+            $data['fases_config'] = $fasesDefecto;
+            $data['token_publico'] = Str::random(40);
+            $data['mostrar_detalle_cliente'] = false;
+
+            $proyecto = ProyectoAuditoria::create($data);
+
+            BitacoraAuditoria::registrar($proyecto->id, 'crear_proyecto', null, null, null, null, 'Proyecto creado.');
+
+            return redirect()->route('auditoria.proyectos.show', $proyecto->id)->with('success', 'Proyecto creado correctamente.');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('auditoria.dashboard')
+                ->withInput()
+                ->with('error', 'No se pudo crear el proyecto. Intenta de nuevo o contacta a Sistemas si el problema persiste.');
         }
-
-        // 8 fases por defecto
-        $fasesDefecto = [
-            '1. Reunión Preoperativa',
-            '2. Requerimiento de Información',
-            '3. Revisión de Datos Fiscales',
-            '4. Revisión Documental',
-            '5. Revisión Transaccional',
-            '6. Reporte Final',
-            '7. Envío de Archivos a Cliente para VoBo',
-            '8. Cierre de Proyecto Auditoria Documental/Transaccional'
-        ];
-
-
-        $data['coordinador_id'] = $user->id;
-        $data['estatus_general'] = 'pendiente';
-        $data['fase_actual'] = 1;
-        $data['fases_config'] = $fasesDefecto;
-        $data['token_publico'] = Str::random(40);
-        $data['mostrar_detalle_cliente'] = false;
-
-        $proyecto = ProyectoAuditoria::create($data);
- 
-
- 
-        BitacoraAuditoria::registrar($proyecto->id, 'crear_proyecto', null, null, null, null, 'Proyecto creado.');
- 
-        return redirect()->route('auditoria.proyectos.show', $proyecto->id)->with('success', 'Proyecto creado correctamente.');
     }
  
     // Vista detalle del proyecto (Matriz oficial e interactiva)

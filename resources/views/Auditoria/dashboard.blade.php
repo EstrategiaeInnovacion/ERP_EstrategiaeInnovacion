@@ -2,7 +2,7 @@
 @section('title', 'Panel Auditoría')
  
 @section('content')
-<div class="min-h-screen bg-slate-50/50 pb-12" x-data="{ openCreateModal: false }">
+<div class="min-h-screen bg-slate-50/50 pb-12" x-data="{ openCreateModal: {{ $errors->any() ? 'true' : 'false' }} }">
  
     {{-- ENCABEZADO --}}
     <div class="bg-white border-b border-slate-200/80 mb-8 shadow-sm">
@@ -49,6 +49,35 @@
                     </svg>
                 </div>
                 <span class="text-sm font-semibold">{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 p-4 rounded-xl border bg-rose-50/50 border-rose-200/80 text-rose-800 flex items-center gap-3 animate-fade-in-up">
+                <div class="p-1.5 bg-rose-100 text-rose-600 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+                <span class="text-sm font-semibold">{{ session('error') }}</span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="mb-6 p-4 rounded-xl border bg-rose-50/50 border-rose-200/80 text-rose-800 flex items-start gap-3 animate-fade-in-up">
+                <div class="p-1.5 bg-rose-100 text-rose-600 rounded-lg shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+                <div class="text-sm font-semibold">
+                    No se pudo crear el proyecto:
+                    <ul class="list-disc list-inside font-normal">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
         @endif
  
@@ -291,47 +320,53 @@
                             {{-- Cliente --}}
                             <div>
                                 <label for="cliente_nombre" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cliente</label>
-                                <input type="text" name="cliente_nombre" id="cliente_nombre" required placeholder="Escribe el nombre del cliente..."
-                                       class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                <input type="text" name="cliente_nombre" id="cliente_nombre" required placeholder="Escribe el nombre del cliente..." value="{{ old('cliente_nombre') }}"
+                                       class="w-full text-sm border @error('cliente_nombre') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                @error('cliente_nombre')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                             </div>
- 
+
                             {{-- Periodo Fiscal y Cantidad de Expedientes --}}
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="periodo_fiscal" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Periodo Fiscal</label>
-                                    <input type="text" name="periodo_fiscal" id="periodo_fiscal" required placeholder="Ej: 2025"
-                                           class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <input type="text" name="periodo_fiscal" id="periodo_fiscal" required placeholder="Ej: 2025" value="{{ old('periodo_fiscal') }}"
+                                           class="w-full text-sm border @error('periodo_fiscal') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    @error('periodo_fiscal')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
                                 <div>
                                     <label for="cantidad_expedientes" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cantidad Expedientes</label>
-                                    <input type="number" name="cantidad_expedientes" id="cantidad_expedientes" required min="1" placeholder="Ej: 150"
-                                           class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <input type="number" name="cantidad_expedientes" id="cantidad_expedientes" required min="1" placeholder="Ej: 150" value="{{ old('cantidad_expedientes') }}"
+                                           class="w-full text-sm border @error('cantidad_expedientes') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    @error('cantidad_expedientes')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
                             </div>
- 
+
                             {{-- Analista --}}
                             <div>
                                 <label for="analista_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Analista Responsable</label>
                                 <select name="analista_id" id="analista_id" required
-                                        class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
-                                    <option value="" disabled selected>Selecciona un responsable...</option>
+                                        class="w-full text-sm border @error('analista_id') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <option value="" disabled @selected(!old('analista_id'))>Selecciona un responsable...</option>
                                     @foreach($analistas as $a)
-                                        <option value="{{ $a->id }}">{{ $a->name }}</option>
+                                        <option value="{{ $a->id }}" @selected((string) old('analista_id') === (string) $a->id)>{{ $a->name }}</option>
                                     @endforeach
                                 </select>
+                                @error('analista_id')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                             </div>
- 
+
                             {{-- Fechas --}}
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="fecha_inicio" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Fecha Inicio</label>
-                                    <input type="date" name="fecha_inicio" id="fecha_inicio" required
-                                           class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <input type="date" name="fecha_inicio" id="fecha_inicio" required value="{{ old('fecha_inicio') }}"
+                                           class="w-full text-sm border @error('fecha_inicio') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    @error('fecha_inicio')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
                                 <div>
                                     <label for="fecha_entrega_estimada" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Entrega Estimada</label>
-                                    <input type="date" name="fecha_entrega_estimada" id="fecha_entrega_estimada" required
-                                           class="w-full text-sm border border-slate-200 rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    <input type="date" name="fecha_entrega_estimada" id="fecha_entrega_estimada" required value="{{ old('fecha_entrega_estimada') }}"
+                                           class="w-full text-sm border @error('fecha_entrega_estimada') border-rose-400 @else border-slate-200 @enderror rounded-xl bg-slate-50/50 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+                                    @error('fecha_entrega_estimada')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
                             </div>
                         </div>
