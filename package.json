@@ -13,10 +13,10 @@
         "autoprefixer": "^10.5.2",
         "axios": "^1.18.1",
         "concurrently": "^9.2.3",
-        "laravel-vite-plugin": "^2.1.0",
+        "laravel-vite-plugin": "^3.1.0",
         "postcss": "^8.5.16",
         "tailwindcss": "^3.4.19",
-        "vite": "^7.3.6"
+        "vite": "^8.1.2"
     },
     "dependencies": {
         "flatpickr": "^4.6.13",
