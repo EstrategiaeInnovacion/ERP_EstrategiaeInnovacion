@@ -455,7 +455,7 @@
                                     <x-input-label for="tipo_permiso" value="Tipo de Permiso" />
                                     <select id="tipo_permiso" name="tipo_permiso" x-model="tipoPermiso" class="mt-1 block w-full border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
                                         <option value="corto">Ausencia Corta</option>
-                                        <option value="legal">Permiso Legal / Incapacidad</option>
+                                        <option value="legal">Permiso Justificado / Incapacidad</option>
                                         <option value="especial">Permiso Especial</option>
                                     </select>
                                 </div>

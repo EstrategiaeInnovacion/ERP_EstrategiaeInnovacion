@@ -21,6 +21,14 @@
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $empleado->es_activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                         {{ $empleado->es_activo ? 'ACTIVO' : 'BAJA' }}
                     </span>
+                    @if(!$empleado->es_activo && $empleado->baja)
+                        <span class="text-xs text-slate-500 flex items-center gap-1">
+                            • Motivo: <strong class="text-red-700 font-semibold">{{ $empleado->baja->motivo_baja }}</strong>
+                            @if($empleado->baja->observaciones)
+                                <span class="italic text-slate-400">({{ $empleado->baja->observaciones }})</span>
+                            @endif
+                        </span>
+                    @endif
                     <button onclick="openEditModal()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded border border-slate-300 transition flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         Editar Info

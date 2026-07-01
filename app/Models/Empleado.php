@@ -75,6 +75,11 @@ class Empleado extends Model
         return $this->hasMany(SolicitudVacacion::class, 'empleado_id');
     }
 
+    public function baja()
+    {
+        return $this->hasOne(EmpleadoBaja::class, 'empleado_id');
+    }
+
     // --- LÓGICA DE NEGOCIO ---
 
     public static function getRequisitos($esPracticante)
