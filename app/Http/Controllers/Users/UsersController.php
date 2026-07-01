@@ -83,13 +83,15 @@ class UsersController extends Controller
             return back()->withErrors(['subdepartamento_id' => 'Debes seleccionar un subdepartamento para Comercio Exterior'])->withInput();
         }
 
-        // Si existe un usuario dado de baja con el mismo correo, eliminarlo para poder reutilizar el correo
+        // Si existe un usuario dado de baja con el mismo correo, liberar el correo renombrándolo
+        // (no se puede eliminar porque puede tener actividades u otros registros relacionados)
         $usuarioBajaAnterior = User::where('email', $request->email)
             ->where('status', User::STATUS_REJECTED)
             ->first();
         if ($usuarioBajaAnterior) {
-            EmpleadoBaja::where('user_id', $usuarioBajaAnterior->id)->delete();
-            $usuarioBajaAnterior->delete();
+            $usuarioBajaAnterior->update([
+                'email' => 'baja_' . $usuarioBajaAnterior->id . '_' . $request->email,
+            ]);
         }
 
         // 1. Crear Usuario (Login)
