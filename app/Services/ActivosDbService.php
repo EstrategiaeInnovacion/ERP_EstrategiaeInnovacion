@@ -107,14 +107,6 @@ class ActivosDbService
     public function getAssignedDevices(string $nombre, ?string $badge = null, ?string $email = null): array
     {
         try {
-            // Palabras significativas del nombre (más de 5 caracteres) para búsqueda parcial.
-            // Se usa un umbral de 6+ chars para evitar falsos positivos: p. ej. buscar "Ana Karen"
-            // no debe encontrar el equipo de "Karen Bonal" porque ambas contienen "Karen" (5 chars).
-            $palabras = array_values(array_filter(
-                explode(' ', $nombre),
-                fn (string $w) => mb_strlen(trim($w)) > 5
-            ));
-
             $rows = $this->conn()
                 ->table('devices as d')
                 ->join('assignments as a', function ($join) {
@@ -138,27 +130,21 @@ class ActivosDbService
                     'dp.id as photo_id',
                     'dp.file_path as photo_path'
                 )
-                ->where(function ($q) use ($nombre, $badge, $email, $palabras) {
+                ->where(function ($q) use ($nombre, $badge, $email) {
                     if ($badge) {
                         // Badge disponible: buscar solo por identificador exacto.
-                        // No usar LIKE para evitar falsos positivos con empleados que
-                        // comparten apellido u otras palabras del nombre.
                         $q->where('e.employee_id', $badge);
                         if ($email) {
                             $q->orWhere('u.email', $email);
                         }
                     } else {
-                        // Sin badge: usar nombre/email como fallback
+                        // Sin badge: coincidencia exacta por nombre completo para evitar
+                        // falsos positivos entre empleados que comparten nombre o apellido.
                         if ($email) {
                             $q->where('u.email', $email);
                         }
-                        $q->orWhere('e.name', 'like', "%{$nombre}%")
-                          ->orWhere('u.name', 'like', "%{$nombre}%")
-                          ->orWhere('a.assigned_to', 'like', "%{$nombre}%");
-                        foreach ($palabras as $palabra) {
-                            $q->orWhere('e.name', 'like', "%{$palabra}%")
-                              ->orWhere('a.assigned_to', 'like', "%{$palabra}%");
-                        }
+                        $q->orWhere('e.name', $nombre)
+                          ->orWhere('a.assigned_to', $nombre);
                     }
                 })
                 ->distinct()
